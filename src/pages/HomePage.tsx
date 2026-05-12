@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, GraduationCap, Users, Sparkles, Quote, Play, TrendingUp, Clock, Calendar, UserCheck, Gift, Crown, Star } from "lucide-react";
+import { BookOpen, GraduationCap, Users, Sparkles, Quote, Play, TrendingUp, Clock, Calendar, UserCheck, Gift, Crown, Star, Brain, Lightbulb, Target, Bot } from "lucide-react";
 import { Link } from 'react-router-dom';
 import Header from "@/components/layout/Header";
 import PageNavigation from "@/components/common/PageNavigation";
@@ -193,7 +193,7 @@ export default function HomePage() {
           </Card>
         </div>
       </section>
-      {/* 俱乐部主理人介绍 */}
+      {/* 俱乐部创始人介绍 */}
       <section id="founder" className="py-12 xl:py-16 px-4 bg-[#ecece5ff] bg-none">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-3 mb-8">
@@ -207,44 +207,86 @@ export default function HomePage() {
               <div className="xl:col-span-1 bg-gradient-to-br from-primary/5 to-primary/10 flex items-center justify-center p-8">
                 <div className="relative">
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary-glow/20 rounded-2xl blur-2xl" />
-                  <img 
-                    src="https://miaoda-conversation-file.cdn.bcebos.com/user-75tmduypbkzk/app-7iwdhpt0pypt/20260512/ChatGPT Image 2026年4月22日 12_26_23.png" 
-                    alt="哈老师" 
+                  <img
+                    src="https://miaoda-conversation-file.cdn.bcebos.com/user-75tmduypbkzk/app-7iwdhpt0pypt/20260512/ChatGPT Image 2026年4月22日 12_26_23.png"
+                    alt="哈老师"
                     className="relative w-48 h-48 xl:w-64 xl:h-64 rounded-2xl object-cover shadow-[var(--shadow-elegant)] border-4 border-background"
                   />
                 </div>
               </div>
 
               {/* 介绍部分 */}
-              <div className="xl:col-span-2 p-8">
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-2xl xl:text-3xl font-bold text-foreground mb-2">哈老师</h3>
-                    <p className="text-lg text-primary font-medium">{"教学设计师俱乐部创始人"}</p>
+              <div className="xl:col-span-2 p-6 xl:p-8 flex flex-col gap-5">
+                {/* 姓名 + 身份标签 */}
+                <div>
+                  <h3 className="text-2xl xl:text-3xl font-bold text-foreground mb-3">哈老师</h3>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+                      <GraduationCap className="w-3.5 h-3.5" />教学专家
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                      <Bot className="w-3.5 h-3.5" />开发小白
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-600 border border-purple-500/20">
+                      <TrendingUp className="w-3.5 h-3.5" />一人公司
+                    </span>
                   </div>
+                </div>
 
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
-                      <p className="text-muted-foreground leading-relaxed">
-                        <strong className="text-foreground">10年教育从业经验</strong>，教育创业者、课程设计师、培训师
-                      </p>
+                {/* 信念 */}
+                <div className="relative pl-4 border-l-4 border-primary/40">
+                  <Quote className="absolute -top-1 -left-1 w-4 h-4 text-primary/30" />
+                  <p className="text-sm xl:text-base text-foreground/80 italic leading-relaxed text-pretty">
+                    教学是艺术和科学，更是工程和技术
+                  </p>
+                </div>
+
+                {/* 愿景 / 产品 / 社区 */}
+                <div className="space-y-2.5">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center mt-0.5">
+                      <Lightbulb className="w-4 h-4 text-amber-500" />
                     </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
-                      <p className="text-muted-foreground leading-relaxed">
-                        致力于<strong className="text-foreground">创新教育导向的教学设计</strong>，多平台拥有数万名教师粉丝
-                      </p>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
-                      <p className="text-muted-foreground leading-relaxed">{"深度支持500+位教师专业发展，运营千人教育者社区"}</p>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />
-                      <p className="text-muted-foreground leading-relaxed">{"研发过教学目标、重构讲授法、PBL、AI通识课、真实任务设计、学习动力、建构主义等100余节师培课程"}</p>
+                    <div className="min-w-0">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">愿景</span>
+                      <p className="text-sm text-foreground leading-relaxed">做一所 AI 时代的创新师范学院</p>
                     </div>
                   </div>
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center mt-0.5">
+                      <BookOpen className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">产品</span>
+                      <p className="text-sm text-foreground leading-relaxed">教学通识课 / 教师AI课</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-teal-500/10 flex items-center justify-center mt-0.5">
+                      <Users className="w-4 h-4 text-teal-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">社区</span>
+                      <p className="text-sm text-foreground leading-relaxed">教学设计师俱乐部</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 数据亮点 */}
+                <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 pt-2 border-t border-border">
+                  {[
+                    { icon: Brain, value: '6h+', label: '每日AI使用', color: 'text-purple-500' },
+                    { icon: Bot, value: '80%', label: '业务AI外包', color: 'text-amber-500' },
+                    { icon: BookOpen, value: '数百节', label: '师培课程', color: 'text-primary' },
+                    { icon: UserCheck, value: '数千名', label: '老师支持', color: 'text-teal-600' },
+                    { icon: TrendingUp, value: '数万名', label: '全网粉丝', color: 'text-rose-500' },
+                  ].map(({ icon: Icon, value, label, color }) => (
+                    <div key={label} className="flex flex-col items-center text-center gap-1 py-2 px-1 rounded-lg bg-muted/40">
+                      <Icon className={`w-4 h-4 ${color}`} />
+                      <span className="text-base font-bold text-foreground leading-tight">{value}</span>
+                      <span className="text-xs text-muted-foreground leading-tight">{label}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
