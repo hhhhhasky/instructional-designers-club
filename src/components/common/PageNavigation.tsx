@@ -17,7 +17,6 @@ export default function PageNavigation({ items }: PageNavigationProps) {
       const sections = items.map(item => document.getElementById(item.id));
       const scrollPosition = window.scrollY + 150;
 
-      // 从后往前遍历，找到第一个顶部位置小于当前滚动位置的section
       for (let i = sections.length - 1; i >= 0; i--) {
         const section = sections[i];
         if (section) {
@@ -28,8 +27,7 @@ export default function PageNavigation({ items }: PageNavigationProps) {
           }
         }
       }
-      
-      // 如果没有找到，默认设置为第一个
+
       if (items.length > 0) {
         setActiveSection(items[0].id);
       }
@@ -56,19 +54,18 @@ export default function PageNavigation({ items }: PageNavigationProps) {
   };
 
   return (
-    <div className="sticky top-16 md:top-20 z-40 bg-background/95 backdrop-blur-sm border-b border-border shadow-sm">
-      <div className="max-w-5xl mx-auto">
-        {/* 移动端横向滚动，桌面端自动换行 */}
-        <nav className="flex overflow-x-auto md:flex-wrap items-center gap-1.5 md:gap-2 py-2 md:py-3 px-3 md:px-4
+    <div className="sticky top-14 md:top-14 z-40 bg-[rgba(250,248,245,0.95)] backdrop-blur-xl border-b border-bd shadow-ds-xs">
+      <div className="max-w-[1200px] mx-auto">
+        <nav className="flex overflow-x-auto md:flex-wrap md:justify-center items-center gap-1.5 md:gap-2 py-2 md:py-3 px-3 md:px-4
           [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {items.map((item) => (
             <button
               key={item.id}
               onClick={() => scrollToSection(item.id)}
-              className={`flex-shrink-0 px-2.5 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium whitespace-nowrap transition-all duration-200 ${
+              className={`flex-shrink-0 px-2.5 py-1.5 md:px-4 md:py-2 rounded-ds-md text-ds-xs md:text-ds-sm font-ds-medium whitespace-nowrap transition-all duration-200 ${
                 activeSection === item.id
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                  ? 'bg-ac text-white shadow-ds-xs'
+                  : 'text-txs hover:text-ac hover:bg-acl'
               }`}
             >
               {item.label}

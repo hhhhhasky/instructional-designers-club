@@ -308,19 +308,19 @@ export default function ResourcesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-cream">
       <Header />
       {/* Hero Section */}
       <section className="relative py-20 xl:py-32 px-4 overflow-hidden gradient-animate pt-32 xl:pt-40">
-        <div className="absolute top-20 right-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl pointer-events-none animate-pulse-slow" />
-        <div className="absolute bottom-20 left-10 w-96 h-96 bg-primary/3 rounded-full blur-3xl pointer-events-none animate-pulse-slow" />
-        
+        <div className="absolute top-20 right-10 w-72 h-72 bg-acl rounded-full blur-3xl pointer-events-none animate-pulse-slow" />
+        <div className="absolute bottom-20 left-10 w-96 h-96 bg-acl rounded-full blur-3xl pointer-events-none animate-pulse-slow" />
+
         <div className="relative max-w-5xl mx-auto text-center space-y-6">
 
-          <h1 className="text-4xl xl:text-6xl font-bold text-foreground tracking-tight drop-shadow-sm animate-fade-in-down">
+          <h1 className="text-4xl xl:text-6xl font-ds-bold text-tx tracking-tight drop-shadow-sm animate-fade-in-down" style={{ fontFamily: 'var(--fd)' }}>
             资源中心
           </h1>
-          <p className="text-lg xl:text-2xl text-foreground max-w-3xl mx-auto leading-relaxed font-medium animate-fade-in-up">
+          <p className="text-lg xl:text-2xl text-tx max-w-3xl mx-auto leading-relaxed font-medium animate-fade-in-up">
             精选<span className="gradient-text">教学设计</span>文章与翻译作品
           </p>
         </div>
@@ -329,19 +329,19 @@ export default function ResourcesPage() {
       <section className="py-12 xl:py-16 px-4">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-3 mb-8 animate-fade-in">
-            <BookOpen className="w-6 h-6 xl:w-8 xl:h-8 text-primary" />
-            <h2 className="text-2xl xl:text-3xl font-bold text-foreground">全部文章</h2>
-            <span className="text-sm text-muted-foreground">共 {articles.length} 篇</span>
+            <BookOpen className="w-6 h-6 xl:w-8 xl:h-8 text-ac" />
+            <h2 className="text-2xl xl:text-3xl font-ds-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>全部文章</h2>
+            <span className="text-sm text-txs">共 {articles.length} 篇</span>
           </div>
 
           <div className="grid grid-cols-1 gap-4">
             {articles.map((article, index) => {
               const typeInfo = getTypeLabel(article.type);
               return (
-                <Card key={index} className="border-border shadow-sm hover-lift hover-glow transition-all duration-300 group animate-fade-in-up">
+                <Card key={index} className="border-bd shadow-sm hover-lift hover-glow transition-all duration-300 group animate-fade-in-up">
                   <CardHeader>
                     <div className="flex items-start justify-between gap-4">
-                      <CardTitle className="text-lg xl:text-xl group-hover:text-primary transition-colors">
+                      <CardTitle className="text-lg xl:text-xl group-hover:text-ac transition-colors">
                         {article.title}
                       </CardTitle>
                       <span className={`px-3 py-1 rounded-full text-xs font-medium border flex-shrink-0 hover-scale transition-transform duration-300 ${typeInfo.color}`}>
@@ -357,7 +357,7 @@ export default function ResourcesPage() {
                           href={link.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted hover:bg-primary/10 text-sm font-medium text-foreground hover:text-primary transition-all hover:scale-105 hover:shadow-md"
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-warm hover:bg-acl text-sm font-medium text-tx hover:text-ac transition-all hover:scale-105 hover:shadow-md"
                         >
                           <ExternalLink className="w-4 h-4 transition-transform group-hover:rotate-12" />
                           <span>{link.label}</span>

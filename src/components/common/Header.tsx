@@ -28,7 +28,7 @@ const Header: React.FC = () => {
   return (
     <header className="bg-card border-b-2 border-border sticky top-0 z-50 backdrop-blur-sm bg-card/95">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 md:h-20">
+        <div className="flex justify-between h-16 md:h-20 md:justify-center">
           {/* Logo和网站名称 */}
           <div className="flex items-center">
             <Link to="/" className="flex-shrink-0 flex items-center group">
@@ -44,7 +44,7 @@ const Header: React.FC = () => {
           </div>
 
           {/* 桌面端导航 */}
-          <div className="hidden md:flex items-center space-x-2">
+          <div className="hidden md:flex items-center space-x-2 ml-6 lg:ml-8">
             {navigation.map((item) => (
               <Link
                 key={item.path}

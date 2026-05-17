@@ -71,7 +71,7 @@ export function TestimonialCarousel({ images, autoplayDelay = 5000 }: Testimonia
         <div className="flex">
           {images.map((image, index) => (
             <div key={index} className="flex-[0_0_100%] min-w-0 px-2 md:px-4">
-              <Card className="border-border shadow-[var(--shadow-elegant)] overflow-hidden">
+              <Card className="border-bd shadow-ds-md overflow-hidden">
                 <CardContent className="p-0">
                   <img
                     src={image.url}
@@ -90,21 +90,21 @@ export function TestimonialCarousel({ images, autoplayDelay = 5000 }: Testimonia
       <Button
         variant="ghost"
         size="icon"
-        className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 bg-background/95 backdrop-blur-sm hover:bg-primary/10 border border-border/50 shadow-xl z-10 h-12 w-12 rounded-full transition-all duration-300 hover:scale-110 hover:border-primary/50"
+        className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 bg-cream/95 backdrop-blur-sm hover:bg-acl border border-bd/50 shadow-xl z-10 h-12 w-12 rounded-full transition-all duration-300 hover:scale-110 hover:border-ac/50"
         onClick={scrollPrev}
         aria-label="上一张"
       >
-        <ChevronLeft className="w-6 h-6 text-foreground" />
+        <ChevronLeft className="w-6 h-6 text-tx" />
       </Button>
 
       <Button
         variant="ghost"
         size="icon"
-        className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 bg-background/95 backdrop-blur-sm hover:bg-primary/10 border border-border/50 shadow-xl z-10 h-12 w-12 rounded-full transition-all duration-300 hover:scale-110 hover:border-primary/50"
+        className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 bg-cream/95 backdrop-blur-sm hover:bg-acl border border-bd/50 shadow-xl z-10 h-12 w-12 rounded-full transition-all duration-300 hover:scale-110 hover:border-ac/50"
         onClick={scrollNext}
         aria-label="下一张"
       >
-        <ChevronRight className="w-6 h-6 text-foreground" />
+        <ChevronRight className="w-6 h-6 text-tx" />
       </Button>
 
       {/* 圆点指示器 */}
@@ -114,8 +114,8 @@ export function TestimonialCarousel({ images, autoplayDelay = 5000 }: Testimonia
             key={index}
             className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
               index === selectedIndex
-                ? 'bg-primary w-8'
-                : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
+                ? 'bg-ac w-8'
+                : 'bg-txt/30 hover:bg-txt/50'
             }`}
             onClick={() => scrollTo(index)}
             aria-label={`跳转到第 ${index + 1} 张`}
@@ -125,7 +125,7 @@ export function TestimonialCarousel({ images, autoplayDelay = 5000 }: Testimonia
 
       {/* 计数器 */}
       <div className="text-center mt-4">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-txs">
           {selectedIndex + 1} / {images.length}
         </p>
       </div>

@@ -24,21 +24,21 @@ export default function Header() {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled
-          ? "bg-background/95 backdrop-blur-md shadow-md border-b border-border"
-          : "bg-background/80 backdrop-blur-sm"
+          ? "bg-[rgba(250,248,245,0.92)] backdrop-blur-xl shadow-ds-sm border-b border-bd"
+          : "bg-[rgba(250,248,245,0.6)] backdrop-blur-sm"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 xl:px-6">
-        <div className="flex items-center justify-between h-16 xl:h-20 bg-[transparent] bg-none">
-          {/* Logo 和名称 */}
+      <div className="max-w-[1200px] mx-auto px-6">
+        <div className="flex items-center justify-between h-14 xl:h-16">
+          {/* Logo */}
           <Link
             to="/"
-            className="flex items-center gap-2 xl:gap-3 hover:opacity-80 transition-opacity"
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
-            <div className="w-8 h-8 xl:w-10 xl:h-10 rounded-full from-primary to-primary-glow flex items-center justify-center shadow-md bg-[#f0e4c2ff] bg-none">
-              <GraduationCap className="w-5 h-5 xl:w-6 xl:h-6 text-primary-foreground" />
+            <div className="w-9 h-9 rounded-ds-full flex items-center justify-center bg-acl">
+              <GraduationCap className="w-5 h-5 text-ac" />
             </div>
-            <span className="text-base xl:text-lg font-bold text-foreground">
+            <span className="text-ds-lg font-ds-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>
               教学设计师俱乐部
             </span>
           </Link>
@@ -49,10 +49,10 @@ export default function Header() {
               <Link
                 key={route.path}
                 to={route.path}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                className={`px-3 py-1.5 text-ds-sm font-ds-semibold rounded-ds-pill transition-all ${
                   location.pathname === route.path
-                    ? "text-primary bg-primary/10"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    ? "text-ac bg-acl"
+                    : "text-txs hover:text-ac hover:bg-acl"
                 }`}
               >
                 {route.name}
@@ -65,7 +65,7 @@ export default function Header() {
             <Button
               asChild
               size="sm"
-              className="hidden xl:inline-flex shadow-md hover:shadow-lg transition-all"
+              className="hidden xl:inline-flex btn-super-cta !text-white font-ds-bold text-ds-sm rounded-ds-lg"
             >
               <a
                 href="http://b50rtgy70nmgu05j.mikecrm.com/rPZN0Mb"
@@ -93,25 +93,25 @@ export default function Header() {
               </SheetTrigger>
               <SheetContent side="right" className="w-64">
                 <div className="flex flex-col gap-4 mt-8">
-                  <div className="flex items-center gap-2 pb-4 border-b border-border">
-                    <div className="w-10 h-10 rounded-full from-primary to-primary-glow flex items-center justify-center bg-[#f0e4c2ff] bg-none">
-                      <GraduationCap className="w-6 h-6 text-primary-foreground" />
+                  <div className="flex items-center gap-2 pb-4 border-b border-bd">
+                    <div className="w-10 h-10 rounded-ds-full flex items-center justify-center bg-acl">
+                      <GraduationCap className="w-6 h-6 text-ac" />
                     </div>
-                    <span className="text-base font-bold text-foreground">
+                    <span className="text-ds-lg font-ds-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>
                       教学设计师俱乐部
                     </span>
                   </div>
-                  
+
                   <nav className="flex flex-col gap-2">
                     {visibleRoutes.map((route) => (
                       <Link
                         key={route.path}
                         to={route.path}
                         onClick={() => setIsOpen(false)}
-                        className={`px-4 py-3 text-left text-sm font-medium rounded-lg transition-all ${
+                        className={`px-4 py-3 text-left text-ds-base font-ds-medium rounded-ds-lg transition-all ${
                           location.pathname === route.path
-                            ? "text-primary bg-primary/10"
-                            : "text-foreground hover:bg-muted"
+                            ? "text-ac bg-acl"
+                            : "text-tx hover:bg-bgs"
                         }`}
                       >
                         {route.name}
@@ -122,7 +122,7 @@ export default function Header() {
                   <Button
                     asChild
                     size="lg"
-                    className="w-full mt-4 shadow-md"
+                    className="w-full mt-4 btn-super-cta !text-white font-ds-bold rounded-ds-lg"
                   >
                     <a
                       href="http://b50rtgy70nmgu05j.mikecrm.com/rPZN0Mb"

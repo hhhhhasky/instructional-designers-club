@@ -10,7 +10,7 @@ export default function PricingSection() {
       englishName: "Free",
       icon: Gift,
       price: "¥0",
-      period: "永久",
+      period: "永远",
       tagline: "适合想了解「教学设计」魅力的老师，先尝后买，零风险。",
       features: [
         "🎁 <strong>精选试听课</strong>：免费解锁至少<strong>2节核心概念课</strong>，听懂底层逻辑",
@@ -40,7 +40,7 @@ export default function PricingSection() {
       buttonLink: "http://b50rtgy70nmgu05j.mikecrm.com/rPZN0Mb",
       highlighted: true,
       badge: "最受欢迎",
-      badgeColor: "bg-primary text-primary-foreground"
+      badgeColor: "bg-ac text-white"
     },
     {
       id: "pro",
@@ -62,26 +62,26 @@ export default function PricingSection() {
       buttonLink: "http://b50rtgy70nmgu05j.mikecrm.com/rPZN0Mb",
       highlighted: false,
       badge: "限额招募",
-      badgeColor: "bg-gradient-to-r from-amber-500 to-orange-500 text-white"
+      badgeColor: "bg-am text-white"
     }
   ];
 
   return (
     <section
       id="join"
-      className="py-12 md:py-20 xl:py-32 px-4 bg-gradient-to-b from-background via-muted/30 to-background relative overflow-hidden"
+      className="py-12 md:py-20 xl:py-32 px-4 bg-aml relative overflow-hidden"
     >
       {/* 装饰元素 */}
-      <div className="hidden md:block absolute top-20 left-20 w-24 h-24 rounded-full bg-primary/10 deco-circle animate-pulse-slow" />
+      <div className="hidden md:block absolute top-20 left-20 w-24 h-24 rounded-full bg-acl deco-circle animate-pulse-slow" />
       <div className="hidden md:block absolute bottom-20 right-20 w-20 h-20 rounded-full bg-primary-glow/15 deco-circle" />
       <div className="hidden md:block absolute top-40 right-32 w-12 h-12 rounded-full bg-accent/20 deco-circle" />
       <div className="max-w-7xl mx-auto relative">
         {/* 标题区域 */}
         <div className="text-center mb-12 md:mb-16 animate-fade-in">
-          <h2 className="text-3xl md:text-4xl xl:text-5xl font-black text-foreground mb-4">
+          <h2 className="text-3xl md:text-4xl xl:text-5xl font-ds-black text-tx mb-4" style={{ fontFamily: 'var(--fd)' }}>
             会员权益对比
           </h2>
-          <p className="text-base md:text-lg xl:text-xl text-foreground/70 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-base md:text-lg xl:text-xl text-txs max-w-3xl mx-auto leading-relaxed">
             清晰了解各版本权益，选择最适合你的学习方案
           </p>
         </div>
@@ -93,15 +93,15 @@ export default function PricingSection() {
 
         {/* 退款保障说明 - 信息卡片样式 */}
         <div className="max-w-2xl mx-auto animate-fade-in-up">
-          <div className="bg-gradient-to-r from-primary/5 via-primary-glow/5 to-primary/5 rounded-2xl p-6 border border-primary/20">
+          <div className="bg-gradient-to-r from-acl via-ac/5 to-acl rounded-2xl p-6 border border-ac/20">
             <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-acl flex items-center justify-center">
                 <span className="text-2xl">🛡️</span>
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-bold text-foreground mb-2">退款保障</h3>
-                <p className="text-sm text-foreground/80 leading-relaxed">
-                  购买后<strong className="text-primary">{"7天内"}</strong>不满意可随时申请退款，<strong className="text-primary">{"7天内"}</strong>体验我们的课程服务
+                <h3 className="text-lg font-ds-bold text-tx mb-2" style={{ fontFamily: 'var(--fd)' }}>退款保障</h3>
+                <p className="text-sm text-txs leading-relaxed">
+                  购买后<strong className="text-ac">{"7天内"}</strong>不满意可随时申请退款，<strong className="text-ac">{"7天内"}</strong>体验我们的课程服务
                 </p>
               </div>
             </div>

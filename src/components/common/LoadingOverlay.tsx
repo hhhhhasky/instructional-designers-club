@@ -7,7 +7,7 @@ export default function LoadingOverlay({ message = '加载中...' }: LoadingOver
     <div className="loading-overlay">
       <div className="flex flex-col items-center gap-4">
         <div className="loading-spinner" />
-        <p className="text-sm text-muted-foreground font-medium">{message}</p>
+        <p className="text-ds-sm text-txs font-ds-medium">{message}</p>
       </div>
     </div>
   );
