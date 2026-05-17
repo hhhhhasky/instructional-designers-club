@@ -68,9 +68,10 @@ export default function PricingSection() {
   ];
 
   return (
+    <>
     <section
       id="join"
-      className="py-12 md:py-20 xl:py-32 px-4 bg-aml relative overflow-hidden"
+      className="pt-12 md:pt-20 xl:pt-32 pb-0 px-4 bg-aml relative overflow-hidden"
     >
       {/* 装饰元素 */}
       <div className="hidden md:block absolute top-20 left-20 w-24 h-24 rounded-full bg-acl deco-circle animate-pulse-slow" />
@@ -91,49 +92,50 @@ export default function PricingSection() {
         <div className="mb-12 md:mb-16">
           <ComparisonTable />
         </div>
-
-        {/* CTA + 信任信息 */}
-        <div className="max-w-3xl mx-auto text-center">
-          {/* 主 CTA */}
-          <div className="animate-fade-in-up mb-8">
-            <h3 className="text-2xl md:text-3xl xl:text-4xl font-ds-black text-tx mb-3" style={{ fontFamily: 'var(--fd)' }}>
-              准备好了吗？
-            </h3>
-            <p className="text-sm md:text-base text-txs max-w-xl mx-auto mb-8 leading-relaxed">
-              加入<strong className="text-ac">教学设计师俱乐部</strong>，上出你的心中好课
-            </p>
-            <div className="relative group inline-block">
-              <div className="absolute -inset-1 bg-gradient-to-r from-ac to-tl rounded-full blur opacity-50 group-hover:opacity-80 transition duration-300" />
-              <Button
-                size="lg"
-                className="btn-super-cta animate-glow-pulse text-base md:text-xl xl:text-2xl px-10 md:px-16 xl:px-20 py-4 md:py-7 xl:py-8 !text-white font-ds-bold rounded-full border-0 relative z-10"
-                onClick={() => window.open('http://b50rtgy70nmgu05j.mikecrm.com/rPZN0Mb', '_blank')}
-              >
-                <span className="relative z-10 flex items-center gap-2 md:gap-3">
-                  <span>💎</span>
-                  <span>立即报名加入</span>
-                  <span className="text-lg md:text-xl xl:text-2xl">→</span>
-                </span>
-              </Button>
-            </div>
-            <p className="text-xs md:text-sm text-txs mt-4 font-medium">
-              点击按钮填写报名表单，开启你的学习之旅
-            </p>
-          </div>
-
-          {/* 信任信息栏 */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 pt-8 border-t border-bd animate-fade-in-up">
-            <div className="flex items-center gap-2 text-sm text-txs">
-              <span className="text-lg">🛡️</span>
-              <span><strong className="text-tx">7天无理由退款</strong>，不满意随时退</span>
-            </div>
-            <div className="hidden sm:block w-px h-4 bg-bd" />
-            <a href="#faq" className="flex items-center gap-1.5 text-sm text-ac font-medium hover:underline underline-offset-2 transition-colors">
-              还有疑问？查看常见问题 →
-            </a>
-          </div>
-        </div>
       </div>
     </section>
+
+    {/* CTA + 信任信息 — 全宽独立区块 */}
+    <div className="bg-warm py-10 md:py-14 px-4 text-center">
+      <div className="max-w-3xl mx-auto">
+        <div className="animate-fade-in-up mb-8">
+          <h3 className="text-2xl md:text-3xl xl:text-4xl font-ds-black text-tx mb-3" style={{ fontFamily: 'var(--fd)' }}>
+            准备好了吗？
+          </h3>
+          <p className="text-sm md:text-base text-txs max-w-xl mx-auto mb-8 leading-relaxed">
+            加入<strong className="text-ac">教学设计师俱乐部</strong>，上出你的心中好课
+          </p>
+          <div className="relative group inline-block">
+            <div className="absolute -inset-1 bg-gradient-to-r from-ac to-tl rounded-full blur opacity-50 group-hover:opacity-80 transition duration-300" />
+            <Button
+              size="lg"
+              className="btn-super-cta animate-glow-pulse text-base md:text-xl xl:text-2xl px-10 md:px-16 xl:px-20 py-4 md:py-7 xl:py-8 !text-white font-ds-bold rounded-full border-0 relative z-10"
+              onClick={() => window.open('http://b50rtgy70nmgu05j.mikecrm.com/rPZN0Mb', '_blank')}
+            >
+              <span className="relative z-10 flex items-center gap-2 md:gap-3">
+                <span>💎</span>
+                <span>立即报名加入</span>
+                <span className="text-lg md:text-xl xl:text-2xl">→</span>
+              </span>
+            </Button>
+          </div>
+          <p className="text-xs md:text-sm text-txs mt-4 font-medium">
+            点击按钮填写报名表单，开启你的学习之旅
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 pt-8 border-t border-bd">
+          <div className="flex items-center gap-2 text-sm text-txs">
+            <span className="text-lg">🛡️</span>
+            <span><strong className="text-tx">7天无理由退款</strong>，不满意随时退</span>
+          </div>
+          <div className="hidden sm:block w-px h-4 bg-bd" />
+          <a href="#faq" className="flex items-center gap-1.5 text-sm text-ac font-medium hover:underline underline-offset-2 transition-colors">
+            还有疑问？查看常见问题 →
+          </a>
+        </div>
+      </div>
+    </div>
+    </>
   );
 }

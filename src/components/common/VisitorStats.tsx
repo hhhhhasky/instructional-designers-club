@@ -54,42 +54,19 @@ export default function VisitorStats() {
   }, []);
 
   return (
-    <div className="flex flex-col xl:flex-row items-center justify-center gap-6 xl:gap-12 py-6">
-      {/* 访问人数 */}
-      <div className="flex items-center gap-3 group">
-        <div className="w-10 h-10 rounded-ds-full bg-acl flex items-center justify-center group-hover:bg-ac/20 transition-all duration-300">
-          <Users className="w-5 h-5 text-ac group-hover:scale-110 transition-transform duration-300" />
-        </div>
-        <div>
-          <p className="text-ds-sm text-txs">网站访问人数</p>
-          <p className="text-ds-3xl font-ds-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>
-            {isLoading ? (
-              <span className="animate-pulse">--</span>
-            ) : (
-              <CountUp end={uniqueVisitors} />
-            )}
-          </p>
-        </div>
+    <div className="flex items-center justify-center gap-6 xl:gap-8">
+      <div className="flex items-center gap-2">
+        <Users className="w-4 h-4 text-txt" />
+        <span className="text-sm text-txs">
+          访问人数 <strong className="text-tx font-semibold">{isLoading ? '--' : <CountUp end={uniqueVisitors} />}</strong>
+        </span>
       </div>
-
-      {/* 分隔线 */}
-      <div className="hidden xl:block w-px h-12 bg-bd" />
-
-      {/* 访问人次 */}
-      <div className="flex items-center gap-3 group">
-        <div className="w-10 h-10 rounded-ds-full bg-acl flex items-center justify-center group-hover:bg-ac/20 transition-all duration-300">
-          <Eye className="w-5 h-5 text-ac group-hover:scale-110 transition-transform duration-300" />
-        </div>
-        <div>
-          <p className="text-ds-sm text-txs">网站访问人次</p>
-          <p className="text-ds-3xl font-ds-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>
-            {isLoading ? (
-              <span className="animate-pulse">--</span>
-            ) : (
-              <CountUp end={totalVisits} />
-            )}
-          </p>
-        </div>
+      <div className="w-px h-3.5 bg-bd" />
+      <div className="flex items-center gap-2">
+        <Eye className="w-4 h-4 text-txt" />
+        <span className="text-sm text-txs">
+          访问人次 <strong className="text-tx font-semibold">{isLoading ? '--' : <CountUp end={totalVisits} />}</strong>
+        </span>
       </div>
     </div>
   );
