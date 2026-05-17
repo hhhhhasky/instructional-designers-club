@@ -1,5 +1,6 @@
 import PricingCard, { PricingTier } from "./PricingCard";
 import ComparisonTable from "./ComparisonTable";
+import { Button } from "@/components/ui/button";
 import { Gift, Sparkles, Crown } from "lucide-react";
 
 export default function PricingSection() {
@@ -91,20 +92,45 @@ export default function PricingSection() {
           <ComparisonTable />
         </div>
 
-        {/* 退款保障说明 - 信息卡片样式 */}
-        <div className="max-w-2xl mx-auto animate-fade-in-up">
-          <div className="bg-gradient-to-r from-acl via-ac/5 to-acl rounded-2xl p-6 border border-ac/20">
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-acl flex items-center justify-center">
-                <span className="text-2xl">🛡️</span>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-ds-bold text-tx mb-2" style={{ fontFamily: 'var(--fd)' }}>退款保障</h3>
-                <p className="text-sm text-txs leading-relaxed">
-                  购买后<strong className="text-ac">{"7天内"}</strong>不满意可随时申请退款，<strong className="text-ac">{"7天内"}</strong>体验我们的课程服务
-                </p>
-              </div>
+        {/* CTA + 信任信息 */}
+        <div className="max-w-3xl mx-auto text-center">
+          {/* 主 CTA */}
+          <div className="animate-fade-in-up mb-8">
+            <h3 className="text-2xl md:text-3xl xl:text-4xl font-ds-black text-tx mb-3" style={{ fontFamily: 'var(--fd)' }}>
+              准备好了吗？
+            </h3>
+            <p className="text-sm md:text-base text-txs max-w-xl mx-auto mb-8 leading-relaxed">
+              加入<strong className="text-ac">教学设计师俱乐部</strong>，上出你的心中好课
+            </p>
+            <div className="relative group inline-block">
+              <div className="absolute -inset-1 bg-gradient-to-r from-ac to-tl rounded-full blur opacity-50 group-hover:opacity-80 transition duration-300" />
+              <Button
+                size="lg"
+                className="btn-super-cta animate-glow-pulse text-base md:text-xl xl:text-2xl px-10 md:px-16 xl:px-20 py-4 md:py-7 xl:py-8 !text-white font-ds-bold rounded-full border-0 relative z-10"
+                onClick={() => window.open('http://b50rtgy70nmgu05j.mikecrm.com/rPZN0Mb', '_blank')}
+              >
+                <span className="relative z-10 flex items-center gap-2 md:gap-3">
+                  <span>💎</span>
+                  <span>立即报名加入</span>
+                  <span className="text-lg md:text-xl xl:text-2xl">→</span>
+                </span>
+              </Button>
             </div>
+            <p className="text-xs md:text-sm text-txs mt-4 font-medium">
+              点击按钮填写报名表单，开启你的学习之旅
+            </p>
+          </div>
+
+          {/* 信任信息栏 */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 pt-8 border-t border-bd animate-fade-in-up">
+            <div className="flex items-center gap-2 text-sm text-txs">
+              <span className="text-lg">🛡️</span>
+              <span><strong className="text-tx">7天无理由退款</strong>，不满意随时退</span>
+            </div>
+            <div className="hidden sm:block w-px h-4 bg-bd" />
+            <a href="#faq" className="flex items-center gap-1.5 text-sm text-ac font-medium hover:underline underline-offset-2 transition-colors">
+              还有疑问？查看常见问题 →
+            </a>
           </div>
         </div>
       </div>

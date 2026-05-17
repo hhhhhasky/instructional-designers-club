@@ -1,6 +1,5 @@
 import { Check, X, Minus, Gift, Sparkles, Crown, Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 
 interface ComparisonFeature {
   category: string;
@@ -316,17 +315,6 @@ export default function ComparisonTable() {
       </div>
 
 
-      {/* 常见问题链接 */}
-      <div className="text-center">
-        <p className="text-sm md:text-base text-txs mb-4">
-          还有疑问？查看我们的常见问题解答
-        </p>
-        <Button asChild variant="link" className="text-ac text-base">
-          <a href="#faq">
-            查看常见问题 →
-          </a>
-        </Button>
-      </div>
     </div>
   );
 }
