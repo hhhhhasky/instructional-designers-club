@@ -342,15 +342,15 @@ export default function ComparisonTable() {
               </ul>
               
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
-                <Button asChild size="lg" className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg text-base md:text-lg py-6">
+                <Button asChild size="lg" className="w-fit bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg text-sm md:text-lg py-6">
                   <a href="http://b50rtgy70nmgu05j.mikecrm.com/rPZN0Mb" target="_blank" rel="noopener noreferrer">
-                    <Crown className="w-5 h-5 mr-2" />
-                    成为教师AI课（Pro）专家（限额招募）
+                    <Crown className="w-5 h-5 mr-2 flex-shrink-0" />
+                    成为教师AI课（Pro）专家
                   </a>
                 </Button>
-                <Button asChild size="lg" variant="outline" className="border-2 border-blue-300 hover:border-blue-500 hover:bg-blue-50 text-base md:text-lg py-6">
+                <Button asChild size="lg" variant="outline" className="w-fit border-2 border-blue-300 hover:border-blue-500 hover:bg-blue-50 text-sm md:text-lg py-6">
                   <a href="http://b50rtgy70nmgu05j.mikecrm.com/rPZN0Mb" target="_blank" rel="noopener noreferrer">
-                    <Sparkles className="w-5 h-5 mr-2" />
+                    <Sparkles className="w-5 h-5 mr-2 flex-shrink-0" />
                     选择教学通识课（Plus）
                   </a>
                 </Button>

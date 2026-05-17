@@ -100,7 +100,7 @@ export default function HomePage() {
               <br />
               <span className="text-foreground">教学设计师俱乐部</span>
             </h1>
-            <p className="text-sm md:text-xl xl:text-3xl text-foreground/80 max-w-3xl mx-auto leading-relaxed font-medium">{"致力于实现备课流程化、教学工程化，让天下没有难备的课✌🏻"}</p>
+            <p className="text-sm md:text-xl xl:text-3xl text-foreground/80 max-w-3xl mx-auto leading-relaxed font-medium">{"一所AI时代的线上创新师范学院"}</p>
           </div>
           
           <div className="flex flex-col items-center gap-3 md:gap-6 animate-fade-in-up">
@@ -127,7 +127,7 @@ export default function HomePage() {
           <Card className="card-bordered shadow-[var(--shadow-card)] hover-lift">
             <CardHeader className="pb-2 md:pb-6">
               <CardTitle className="text-lg md:text-2xl xl:text-3xl font-bold">欢迎加入我们</CardTitle>
-              <CardDescription className="text-sm md:text-base xl:text-lg leading-relaxed text-foreground/70">{"我们是一个以「AI+教学设计」为学习实践主题的社区。我们希望帮助老师们从教学随性化、教学经验化，进阶到教学科学化（Plus会员课程目标），最后是教学工程化、备课流程化（Pro会员课程目标），让天下没有难备的课。"}</CardDescription>
+              <CardDescription className="text-sm md:text-base xl:text-lg leading-relaxed text-foreground/70">{"教学设计师俱乐部是一个专属老师们的陪伴式成长社区，很多老师平时备课没头绪、不知道怎么把知识讲透、不知道如何让学生爱上学科，我们就是来解决这些烦恼的。在这里，我们会用 CREATE 模型等实用的方法，帮你理清思路，把课备得更轻松。只要你想提升教学设计能力，无论教哪个学科，都能在这里找到懂你的同行者。期待你的加入，咱们一起享受教学。"}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 md:space-y-6">
               {/* 俱乐部价值观 */}
@@ -154,15 +154,15 @@ export default function HomePage() {
               </div>
 
               <div>
-                <h3 className="font-semibold text-sm md:text-lg mb-2 md:mb-3 text-foreground">在俱乐部中，包括Plus课程和Pro课程两大会员产品：</h3>
+                <h3 className="font-semibold text-sm md:text-lg mb-2 md:mb-3 text-foreground">{"在俱乐部中，包括 Plus 和 Pro 两大会员产品："}</h3>
                 <ul className="space-y-2 md:space-y-3 text-muted-foreground">
                   <li key="plus-course" className="flex items-start gap-2 md:gap-3">
                     <span className="inline-flex items-center justify-center w-5 h-5 md:w-6 md:h-6 rounded-full bg-primary/10 text-primary text-xs md:text-sm font-medium flex-shrink-0 mt-0.5">1</span>
-                    <span className="text-xs md:text-base text-foreground">{"Plus会员课程：让你获得教学设计的专业框架和审美，实现教学科学化。课程包括重构讲授法、教学法通识、AI通识、建构主义、真实任务设计、教学目标、学习科学等60余节课程，持续更新中；"}</span>
+                    <span className="text-xs md:text-base text-foreground">{"Plus会员：包含70+节教学通识课+专属答疑社区。它解决的是“怎么把课备好讲透”“如何让教学有效、高效、高参与度”的基础问题，适合想要扎实基本功、系统提升教学设计能力的老师，适合公开课、日常课、说课、创新教育等教学场景。"}</span>
                   </li>
                   <li key="pro-course" className="flex items-start gap-2 md:gap-3">
                     <span className="inline-flex items-center justify-center w-5 h-5 md:w-6 md:h-6 rounded-full bg-primary/10 text-primary text-xs md:text-sm font-medium flex-shrink-0 mt-0.5">2</span>
-                    <span className="text-xs md:text-base text-foreground">{"Pro会员课程：帮助你用AI赋能教学，实现教学工程化。课程包括ClaudeCode教程、AI科普、AI工具测评和演示，持续更新中。"}</span>
+                    <span className="text-xs md:text-base text-foreground">{"Pro会员：在 Plus 的基础上，增加了30+节教师 AI 课，以及我研发的AI工具、网站、skill等资源包。它帮你打破“AI 只能拿来写写教案大纲”的局限，解决的是怎么让 AI 帮你攻克以前觉得难啃的教学痛点，把课备得更有深度，适合追求 90 分教学水平、每天用 AI 至少 1 小时、探索教学新可能，并且愿意静下心来动手实践的老师们。"}</span>
                   </li>
                 </ul>
               </div>
@@ -342,7 +342,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
       {/* 会员课程 */}
       <section id="member-courses" className="py-6 md:py-16 xl:py-24 px-4 relative overflow-hidden bg-gradient-to-b from-background to-muted/20">
         {/* 装饰元素 */}
