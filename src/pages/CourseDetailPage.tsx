@@ -6,9 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, ExternalLink, Clock, Award, User, BookOpen, AlertCircle, Play } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
+import PasswordGate from '@/components/common/PasswordGate';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
 import CourseConfirmDialog from '@/components/course/CourseConfirmDialog';
+import Video from '@/components/ui/video';
 import { getCourseById, incrementCourseViewCount } from '@/db/api';
+import { isCourseAccessible } from '@/lib/course-auth';
 import type { Course } from '@/types/types';
 
 export default function CourseDetailPage() {
@@ -19,6 +22,8 @@ export default function CourseDetailPage() {
   const [isNavigating, setIsNavigating] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [needGate, setNeedGate] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
 
   useEffect(() => {
     const loadCourse = async () => {
@@ -32,15 +37,20 @@ export default function CourseDetailPage() {
         setIsLoading(true);
         setError(null);
 
-        // 获取课程详情
         const courseData = await getCourseById(id);
 
         if (!courseData) {
           setError('课程不存在');
         } else {
           setCourse(courseData);
-          // 增加浏览次数
           await incrementCourseViewCount(id);
+
+          // 仅 Pro 课程需要密码门控
+          if (courseData.membership_type === 'pro' && !isCourseAccessible()) {
+            setNeedGate(true);
+          } else {
+            setIsVerified(true);
+          }
         }
       } catch (err) {
         console.error('加载课程详情失败:', err);
@@ -53,7 +63,49 @@ export default function CourseDetailPage() {
     loadCourse();
   }, [id]);
 
-  // 处理返回按钮点击
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-cream flex flex-col">
+        <Header />
+        <LoadingOverlay message="正在加载课程详情..." />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-cream flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center pt-20 px-4">
+          <div className="text-center animate-fade-in max-w-md">
+            <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-tx mb-4" style={{ fontFamily: 'var(--fd)' }}>
+              {error}
+            </h1>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button onClick={() => navigate('/courses')} className="btn-press">
+                返回课程中心
+              </Button>
+              <Button
+                onClick={() => window.location.reload()}
+                variant="outline"
+                className="btn-press"
+              >
+                刷新页面
+              </Button>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Pro 课程密码门控
+  if (needGate && !isVerified) {
+    return <PasswordGate onSuccess={() => setIsVerified(true)} />;
+  }
+
   const handleBack = () => {
     if (isNavigating) return;
     setIsNavigating(true);
@@ -65,6 +117,7 @@ export default function CourseDetailPage() {
   // 处理开始学习按钮点击
   const handleStartLearning = () => {
     if (course?.video_url) {
+      // 有视频链接时，滚动到顶部播放视频
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -94,46 +147,6 @@ export default function CourseDetailPage() {
         return 'bg-gray-500';
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-cream flex flex-col">
-        <Header />
-        <LoadingOverlay message="正在加载课程详情..." />
-      </div>
-    );
-  }
-
-  if (error || !course) {
-    return (
-      <div className="min-h-screen bg-cream flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center pt-20 px-4">
-          <div className="text-center animate-fade-in max-w-md">
-            <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-tx mb-4" style={{ fontFamily: 'var(--fd)' }}>
-              {error || '课程不存在'}
-            </h1>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button onClick={handleBack} className="btn-press">
-                返回课程中心
-              </Button>
-              {error && (
-                <Button
-                  onClick={() => window.location.reload()}
-                  variant="outline"
-                  className="btn-press"
-                >
-                  刷新页面
-                </Button>
-              )}
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-cream flex flex-col">
@@ -181,7 +194,7 @@ export default function CourseDetailPage() {
                 </div>
               </div>
             ) : (
-              <div className="relative h-64 md:h-96 overflow-hidden bg-warm">
+              <div className="relative w-full aspect-video overflow-hidden bg-warm">
                 <img
                   src={course.image_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80'}
                   alt={course.title}

@@ -1,111 +1,164 @@
-/**
- * Video Player Component
- * 
- * Video player based on video-react wrapper, supports custom poster, autoplay, mute and other features
- * 
- * Usage example:
- * <Video
- *   src="" // Video resource URL, defaults to empty string
- *   poster="https://internal-amis-res.cdn.bcebos.com/images/2019-12/1577157239810/da6376bf988c.png" // Video poster image
- * />
- */
-
-import {
-    BigPlayButton,
-    ControlBar,
-    PlayToggle,
-    CurrentTimeDisplay,
-    TimeDivider,
-    DurationDisplay,
-    FullscreenToggle,
-    VolumeMenuButton,
-    ProgressControl
-} from 'video-react';
-import 'video-react/dist/video-react.css';
+import { useRef, useState } from 'react';
+import { Play, Pause, Volume2, VolumeX, Maximize, Minimize } from 'lucide-react';
 
 interface VideoProps {
-    /** Video resource URL */
-src: string;
-poster?: string; /** Video poster image URL */
-className?: string; /** Custom class name */
-autoPlay?: boolean; /** Whether to autoplay, defaults to false */
-muted?: boolean; /** Whether to mute, defaults to false */
-controls?: boolean; /** Whether to show controls, defaults to true */
-aspectRatio?: string | 'auto' | '16:9' | '4:3'; /** Video aspect ratio, defaults to 'auto' */
+  src: string;
+  poster?: string;
+  className?: string;
+  autoPlay?: boolean;
+  muted?: boolean;
+  controls?: boolean;
+  aspectRatio?: string;
 }
 
 export default function Video({
-className,
-src,
-poster,
-autoPlay = false,
-muted = false,
-controls = true,
-aspectRatio = 'auto'
+  className,
+  src,
+  poster,
+  autoPlay = false,
+  muted = false,
+  controls = true,
 }: VideoProps) {
-return (
-    <div className={`min-w-[100px] ${className}`} custom-component="video">
-    <style>
-        {`
-.video-react-paused .video-react-big-play-button.big-play-button-hide {
-    display: block;
-}
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [mutedState, setMutedState] = useState(muted);
+  const [fullscreen, setFullscreen] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [started, setStarted] = useState(false);
 
-.video-react .video-react-big-play-button {
-    width: 48px;
-    height: 40px;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    margin-left: -24px !important;
-    margin-top: -20px !important;
-    background: rgba(7, 12, 20, 0.6) !important;
-}
+  const togglePlay = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (v.paused) {
+      v.play();
+      setPlaying(true);
+      setStarted(true);
+    } else {
+      v.pause();
+      setPlaying(false);
+    }
+  };
 
-.video-react .video-react-big-play-button:hover {
-    background: rgba(7, 12, 20, 0.8) !important;
-}
+  const toggleMute = () => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = !v.muted;
+    setMutedState(v.muted);
+  };
 
-.video-react .video-react-big-play-button:before {
-display: block;
-    content: '';
-    background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAqCAYAAADBNhlmAAAACXBIWXMAACE4AAAhOAFFljFgAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAGVSURBVHgB7ZnhbYMwEIWPqAN0BHcDRiAbdASyQTpB6QRpJyAjdAO8QbsBbNBs4L6TcYtaUADb      +H7kk56cgKJ8sX0RHBmNYIwpMBT92w7RWZZ1lBoWQ1rzny/kGbmnVODLc3OdFikpBWZ85mSI9ku7htbY/RqNXT8WtA6FNJCsEUUR2FEYSqSNIRpK0FGSFT2FEg0t6DiSXfojeRJLkFHIybfiYwo6FFKvFd1C0KHIijZL9ueWgo6CFlR8CkFHSTNEUwo6SuTDTFyMSBBkWKwiK1oOT0gRdCj6rXh+LU7QocjOppIqyPCy15IFmUK6oNg9      +MNN0BMtWfCCHKQKdsiemwXSBHnWniD2gHzygTuSAYu9Ia8QuwxPSBBkseqvmCOloEYO15pSKfagJlsA+zkdsy1nUCMvkNJLPrSFYEdW7EwriCk4WZlLiCEYRMwRWvBMdjk7CoQT9P2lmlYUwGw8GphN7AbmULJdINZuJjYQnDOL3O33bqn5SOZm+jFEZRI8hsjGDkLkEUNO9taPL3veQ/xlrOEbeloBZoEUypwAAAAASUVORK5CYII=)
-    no-repeat;
-    background-size: contain;
-    width: 15px;
-    height: 16.25px;
-    margin: 0 auto;
-    position: relative;
-}
+  const toggleFullscreen = async () => {
+    const c = containerRef.current;
+    if (!c) return;
+    try {
+      if (!document.fullscreenElement) {
+        await c.requestFullscreen();
+        setFullscreen(true);
+      } else {
+        await document.exitFullscreen();
+        setFullscreen(false);
+      }
+    } catch {}
+  };
 
-.h-full > .video-react.video-react-fluid {
-    height: 100%;
-    padding-top: 0 !important;
-    aspect-ratio: 16 / 9;
-}
-`}
-    </style>
-    <Player
-        poster={poster}
+  const handleTimeUpdate = () => {
+    const v = videoRef.current;
+    if (!v || !v.duration) return;
+    setCurrentTime(v.currentTime);
+    setProgress((v.currentTime / v.duration) * 100);
+  };
+
+  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    const v = videoRef.current;
+    if (!v || !v.duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    v.currentTime = ratio * v.duration;
+  };
+
+  const formatTime = (s: number) => {
+    if (!s || isNaN(s)) return '0:00';
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className={`relative bg-black select-none group ${className || ''}`}
+    >
+      <video
+        ref={videoRef}
         src={src}
+        poster={poster}
         autoPlay={autoPlay}
         muted={muted}
-        aspectRatio={aspectRatio}
-    >
-        <ControlBar
-        disableDefaultControls
-        autoHide
-        disableCompletely={!controls}
+        playsInline
+        preload="auto"
+        controls={false}
+        style={{ display: 'block', width: '100%' }}
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={() => {
+          const v = videoRef.current;
+          if (v) setDuration(v.duration);
+        }}
+        onEnded={() => setPlaying(false)}
+      />
+
+      {/* 大播放按钮（未播放时显示） */}
+      {!started && (
+        <div
+          className="absolute inset-0 flex items-center justify-center cursor-pointer bg-black/30"
+          onClick={togglePlay}
         >
-        <PlayToggle key="play-toggle" />
-        <VolumeMenuButton key="volume-menu-button" vertical />
-        <CurrentTimeDisplay key="current-time-display" />
-        <TimeDivider key="time-divider" />
-        <DurationDisplay key="duration-display" />
-        <ProgressControl key="progress-control" />
-        <FullscreenToggle key="fullscreen-toggle" />
-        </ControlBar>
-        <BigPlayButton position="center" />
-    </Player>
+          <div className="w-16 h-16 rounded-full bg-black/60 flex items-center justify-center hover:bg-black/80 transition-colors">
+            <Play className="w-7 h-7 text-white ml-1" fill="white" />
+          </div>
+        </div>
+      )}
+
+      {/* 底部控制栏 */}
+      {controls && (
+        <div
+          className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-3 pb-2 pt-8 transition-opacity duration-200 ${
+            !playing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+          }`}
+        >
+          {/* 进度条 */}
+          <div
+            className="w-full h-1.5 bg-white/20 rounded-full cursor-pointer mb-2 hover:h-2.5 transition-all"
+            onClick={handleSeek}
+          >
+            <div
+              className="h-full bg-ac rounded-full relative"
+              style={{ width: `${progress}%` }}
+            >
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-ac rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+          </div>
+
+          {/* 按钮行 */}
+          <div className="flex items-center justify-between text-white text-sm">
+            <div className="flex items-center gap-3">
+              <button onClick={togglePlay} className="hover:text-ac transition-colors">
+                {playing ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+              </button>
+              <button onClick={toggleMute} className="hover:text-ac transition-colors">
+                {mutedState ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              </button>
+              <span className="text-xs text-white/70 tabular-nums">
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </span>
+            </div>
+            <button onClick={toggleFullscreen} className="hover:text-ac transition-colors">
+              {fullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
-);
+  );
 }

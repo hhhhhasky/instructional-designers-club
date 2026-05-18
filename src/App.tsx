@@ -5,41 +5,7 @@ import routes from './routes';
 import ScrollToTop from '@/components/common/ScrollToTop';
 import MobileTabBar from '@/components/navigation/MobileTabBar';
 
-// Uncomment these imports when using miaoda-auth-react for authentication
-// import { AuthProvider, RequireAuth } from 'miaoda-auth-react';
-// import { supabase } from 'supabase-js';
-// import Header from '@/components/common/Header';
-
 const App: React.FC = () => {
-{/*
-    // USING MIAODA-AUTH-REACT (Uncomment when auth is required):
-    // =========================================================
-    // Replace the current App structure with this when using miaoda-auth-react:
-
-    // 1. Wrap everything with AuthProvider (must be inside Router)
-    // 2. Use RequireAuth to protect routes that need authentication
-    // 3. Set whiteList prop for public routes that don't require auth
-
-    // Example structure:
-    // <Router>
-    //   <AuthProvider client={supabase}>
-    //     <ScrollToTop />
-    //     <Toaster />
-    //     <RequireAuth whiteList={["/login", "/403", "/404", "/public/*"]}>
-    //       <Header />
-    //       <Routes>
-    //         ... your routes here ...
-    //       </Routes>
-    //     </RequireAuth>
-    //   </AuthProvider>
-    // </Router>
-
-    // IMPORTANT:
-    // - AuthProvider must be INSIDE Router (it uses useNavigate)
-    // - RequireAuth should wrap Routes, not be inside it
-    // - Add all public paths to the whiteList array
-    // - Remove the custom PrivateRoute component when using RequireAuth
-*/}
   return (
     <Router>
       <ScrollToTop />
@@ -56,7 +22,7 @@ const App: React.FC = () => {
           <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
-        
+
         {/* 移动端底部Tab导航栏 */}
         <MobileTabBar />
       </div>
