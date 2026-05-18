@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ExternalLink, Clock, Award, User, BookOpen, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Clock, Award, User, BookOpen, AlertCircle, Play } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
@@ -64,6 +64,10 @@ export default function CourseDetailPage() {
 
   // 处理开始学习按钮点击
   const handleStartLearning = () => {
+    if (course?.video_url) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     setShowConfirmDialog(true);
   };
 
@@ -152,29 +156,54 @@ export default function CourseDetailPage() {
         {/* 课程详情 */}
         <div className="max-w-5xl mx-auto px-4 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
           <Card className="overflow-hidden border-2 border-bd shadow-ds-md">
-            {/* 课程配图 */}
-            <div className="relative h-64 md:h-96 overflow-hidden bg-warm">
-              <img
-                src={course.image_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80'}
-                alt={course.title}
-                loading="lazy"
-                decoding="async"
-                className="w-full h-full object-cover"
-              />
-              {/* 分类和难度标签 */}
-              <div className="absolute top-4 left-4 flex gap-2">
-                {course.category && (
-                  <Badge variant="secondary" className="bg-cream/90 backdrop-blur-sm text-tx font-semibold text-sm">
-                    {course.category}
-                  </Badge>
-                )}
-                {course.level && (
-                  <Badge className={`${getLevelColor(course.level)} text-white font-semibold text-sm`}>
-                    {course.level}
-                  </Badge>
-                )}
+            {/* 视频播放器 / 课程配图 */}
+            {course.video_url ? (
+              <div className="relative bg-black w-full">
+                <video
+                  src={course.video_url}
+                  controls
+                  playsInline
+                  preload="auto"
+                  className="w-full block"
+                />
+                {/* 分类和难度标签 */}
+                <div className="absolute top-4 left-4 flex gap-2 z-10">
+                  {course.category && (
+                    <Badge variant="secondary" className="bg-cream/90 backdrop-blur-sm text-tx font-semibold text-sm">
+                      {course.category}
+                    </Badge>
+                  )}
+                  {course.level && (
+                    <Badge className={`${getLevelColor(course.level)} text-white font-semibold text-sm`}>
+                      {course.level}
+                    </Badge>
+                  )}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="relative h-64 md:h-96 overflow-hidden bg-warm">
+                <img
+                  src={course.image_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80'}
+                  alt={course.title}
+                  loading="lazy"
+                  decoding="async"
+                  className="w-full h-full object-cover"
+                />
+                {/* 分类和难度标签 */}
+                <div className="absolute top-4 left-4 flex gap-2">
+                  {course.category && (
+                    <Badge variant="secondary" className="bg-cream/90 backdrop-blur-sm text-tx font-semibold text-sm">
+                      {course.category}
+                    </Badge>
+                  )}
+                  {course.level && (
+                    <Badge className={`${getLevelColor(course.level)} text-white font-semibold text-sm`}>
+                      {course.level}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            )}
 
             <CardContent className="p-6 md:p-8">
               {/* 课程标题 */}
@@ -287,10 +316,21 @@ export default function CourseDetailPage() {
                   size="lg"
                   className="flex-1 text-lg py-6 bg-gradient-to-r from-ac to-tl hover:opacity-90 transition-opacity btn-press"
                   onClick={handleStartLearning}
-                  disabled={!course.meeting_url}
+                  disabled={!course.video_url && !course.meeting_url}
                 >
-                  <ExternalLink className="w-5 h-5 mr-2" />
-                  {course.meeting_url ? '观看课程' : '暂无课程链接'}
+                  {course.video_url ? (
+                    <>
+                      <Play className="w-5 h-5 mr-2" />
+                      观看课程
+                    </>
+                  ) : course.meeting_url ? (
+                    <>
+                      <ExternalLink className="w-5 h-5 mr-2" />
+                      观看课程
+                    </>
+                  ) : (
+                    '暂无课程链接'
+                  )}
                 </Button>
                 <Button
                   size="lg"
@@ -303,7 +343,14 @@ export default function CourseDetailPage() {
               </div>
 
               {/* 提示信息 */}
-              {course.meeting_url && (
+              {course.video_url && (
+                <div className="mt-6 p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+                  <p className="text-sm text-green-900 dark:text-green-100">
+                    <strong>在线观看：</strong>本课程支持在线播放，点击上方按钮即可开始学习
+                  </p>
+                </div>
+              )}
+              {!course.video_url && course.meeting_url && (
                 <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                   <p className="text-sm text-blue-900 dark:text-blue-100">
                     💡 <strong>温馨提示：</strong>点击【观看课程】按钮将跳转到腾讯会议申请页面，申请回放时【务必备注自己的群名称】，以便做核对，否则申请不予通过
