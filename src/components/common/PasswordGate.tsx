@@ -4,10 +4,11 @@ import { GraduationCap, Lock, Eye, EyeOff } from 'lucide-react';
 import { verifyCoursePassword } from '@/lib/course-auth';
 
 interface PasswordGateProps {
+  gateType: 'pro' | 'plus';
   onSuccess: () => void;
 }
 
-export default function PasswordGate({ onSuccess }: PasswordGateProps) {
+export default function PasswordGate({ gateType, onSuccess }: PasswordGateProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -22,7 +23,7 @@ export default function PasswordGate({ onSuccess }: PasswordGateProps) {
       return;
     }
 
-    if (verifyCoursePassword(password)) {
+    if (verifyCoursePassword(password, gateType)) {
       onSuccess();
       return;
     }

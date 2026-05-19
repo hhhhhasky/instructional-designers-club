@@ -1,18 +1,37 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ExternalLink, Clock, Award, User, BookOpen, AlertCircle, Play } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Clock, Award, User, BookOpen, AlertCircle } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
 import PasswordGate from '@/components/common/PasswordGate';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
 import CourseConfirmDialog from '@/components/course/CourseConfirmDialog';
-import Video from '@/components/ui/video';
 import { getCourseById, incrementCourseViewCount } from '@/db/api';
-import { isCourseAccessible } from '@/lib/course-auth';
+import { isCourseAccessible, needsGate } from '@/lib/course-auth';
 import type { Course } from '@/types/types';
+
+const HIGHLIGHTS = [
+  { icon: '💡', title: '理论与实践结合', desc: '系统的理论框架配合丰富的实践案例' },
+  { icon: '🎯', title: '即学即用', desc: '学完即可应用到实际教学场景中' },
+  { icon: '👨‍🏫', title: '专家讲解', desc: '由经验丰富的教学设计专家授课' },
+  { icon: '🌟', title: '持续更新', desc: '课程内容持续优化和更新' },
+];
+
+const AUDIENCES = [
+  '中小学教师、高校教师',
+  '教学设计师、课程开发者',
+  '教育培训机构从业者',
+  '对教学设计感兴趣的学习者',
+];
+
+const LEVEL_STYLE: Record<string, string> = {
+  '入门': 'bg-bgs text-txs',
+  '初级': 'bg-tll text-tl',
+  '中级': 'bg-acl text-ac',
+  '高级': 'bg-aml text-am',
+};
 
 export default function CourseDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -22,7 +41,7 @@ export default function CourseDetailPage() {
   const [isNavigating, setIsNavigating] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [needGate, setNeedGate] = useState(false);
+  const [needGate, setNeedGate] = useState<'pro' | 'plus' | null>(null);
   const [isVerified, setIsVerified] = useState(false);
 
   useEffect(() => {
@@ -45,9 +64,9 @@ export default function CourseDetailPage() {
           setCourse(courseData);
           await incrementCourseViewCount(id);
 
-          // 仅 Pro 课程需要密码门控
-          if (courseData.membership_type === 'pro' && !isCourseAccessible()) {
-            setNeedGate(true);
+          const gateType = needsGate(courseData.membership_type);
+          if (gateType && !isCourseAccessible(gateType)) {
+            setNeedGate(gateType);
           } else {
             setIsVerified(true);
           }
@@ -78,19 +97,13 @@ export default function CourseDetailPage() {
         <Header />
         <main className="flex-1 flex items-center justify-center pt-20 px-4">
           <div className="text-center animate-fade-in max-w-md">
-            <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-tx mb-4" style={{ fontFamily: 'var(--fd)' }}>
-              {error}
-            </h1>
+            <AlertCircle className="w-14 h-14 text-ac/60 mx-auto mb-5" />
+            <h1 className="text-ds-2xl font-ds-bold text-tx font-serif mb-5">{error}</h1>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button onClick={() => navigate('/courses')} className="btn-press">
                 返回课程中心
               </Button>
-              <Button
-                onClick={() => window.location.reload()}
-                variant="outline"
-                className="btn-press"
-              >
+              <Button onClick={() => window.location.reload()} variant="outline" className="btn-press">
                 刷新页面
               </Button>
             </div>
@@ -101,285 +114,196 @@ export default function CourseDetailPage() {
     );
   }
 
-  // Pro 课程密码门控
   if (needGate && !isVerified) {
-    return <PasswordGate onSuccess={() => setIsVerified(true)} />;
+    return <PasswordGate gateType={needGate} onSuccess={() => setIsVerified(true)} />;
   }
 
   const handleBack = () => {
     if (isNavigating) return;
     setIsNavigating(true);
-    setTimeout(() => {
-      navigate('/courses');
-    }, 200);
+    setTimeout(() => navigate('/courses'), 200);
   };
 
-  // 处理开始学习按钮点击
   const handleStartLearning = () => {
-    if (course?.video_url) {
-      // 有视频链接时，滚动到顶部播放视频
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-    setShowConfirmDialog(true);
+    if (course?.meeting_url) setShowConfirmDialog(true);
   };
 
-  // 确认后跳转到课程链接
   const handleConfirmStart = () => {
     setShowConfirmDialog(false);
-    if (course?.meeting_url) {
-      window.open(course.meeting_url, '_blank');
-    }
+    if (course?.meeting_url) window.open(course.meeting_url, '_blank');
   };
 
-  // 难度级别对应的颜色
-  const getLevelColor = (level: string) => {
-    switch (level) {
-      case '入门':
-        return 'bg-gray-500';
-      case '初级':
-        return 'bg-green-500';
-      case '中级':
-        return 'bg-blue-500';
-      case '高级':
-        return 'bg-purple-500';
-      default:
-        return 'bg-gray-500';
-    }
-  };
+  const heroContent = course.video_url ? (
+    <video
+      src={course.video_url}
+      controls
+      playsInline
+      preload="auto"
+      className="w-full block"
+    />
+  ) : (
+    <img
+      src={course.image_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80'}
+      alt={course.title}
+      loading="lazy"
+      decoding="async"
+      className="w-full h-full object-cover aspect-video"
+    />
+  );
 
   return (
     <div className="min-h-screen bg-cream flex flex-col">
       <Header />
-      {/* 加载遮罩 */}
       {isNavigating && <LoadingOverlay message="正在返回..." />}
-      <main className="flex-1 pt-20 pb-12 page-transition fade-in">
-        {/* 返回按钮 */}
-        <div className="max-w-5xl mx-auto px-4 py-6 animate-fade-in-down">
-          <Button
-            variant="ghost"
+
+      <main className="flex-1 pt-20 pb-ds-11 page-transition fade-in">
+        {/* Back */}
+        <div className="max-w-4xl mx-auto px-4 pt-ds-6 animate-fade-in-down">
+          <button
             onClick={handleBack}
-            className="gap-2 btn-press"
+            className="inline-flex items-center gap-1.5 text-ds-sm text-txs hover:text-ac transition-colors group"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
             返回课程中心
-          </Button>
+          </button>
         </div>
 
-        {/* 课程详情 */}
-        <div className="max-w-5xl mx-auto px-4 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-          <Card className="overflow-hidden border-2 border-bd shadow-ds-md">
-            {/* 视频播放器 / 课程配图 */}
-            {course.video_url ? (
-              <div className="relative bg-black w-full">
-                <video
-                  src={course.video_url}
-                  controls
-                  playsInline
-                  preload="auto"
-                  className="w-full block"
-                />
-                {/* 分类和难度标签 */}
-                <div className="absolute top-4 left-4 flex gap-2 z-10">
-                  {course.category && (
-                    <Badge variant="secondary" className="bg-cream/90 backdrop-blur-sm text-tx font-semibold text-sm">
-                      {course.category}
-                    </Badge>
-                  )}
-                  {course.level && (
-                    <Badge className={`${getLevelColor(course.level)} text-white font-semibold text-sm`}>
-                      {course.level}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="relative w-full aspect-video overflow-hidden bg-warm">
-                <img
-                  src={course.image_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80'}
-                  alt={course.title}
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-full object-cover"
-                />
-                {/* 分类和难度标签 */}
-                <div className="absolute top-4 left-4 flex gap-2">
-                  {course.category && (
-                    <Badge variant="secondary" className="bg-cream/90 backdrop-blur-sm text-tx font-semibold text-sm">
-                      {course.category}
-                    </Badge>
-                  )}
-                  {course.level && (
-                    <Badge className={`${getLevelColor(course.level)} text-white font-semibold text-sm`}>
-                      {course.level}
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            )}
+        {/* Course Card */}
+        <article className="max-w-4xl mx-auto px-4 pt-ds-4 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+          <div className="bg-bc rounded-ds-lg border border-bd shadow-ds-elegant overflow-hidden">
 
-            <CardContent className="p-6 md:p-8">
-              {/* 课程标题 */}
-              <h1 className="text-2xl md:text-3xl xl:text-4xl font-ds-black text-tx mb-4" style={{ fontFamily: 'var(--fd)' }}>
+            {/* Hero */}
+            <div className="relative bg-black">
+              {heroContent}
+              <div className="absolute top-ds-3 left-ds-3 flex gap-1.5 z-10">
+                {course.category && (
+                  <Badge variant="secondary" className="bg-bc/90 backdrop-blur-sm text-tx text-ds-xs font-ds-medium rounded-ds-pill">
+                    {course.category}
+                  </Badge>
+                )}
+                {course.level && (
+                  <Badge className={`${LEVEL_STYLE[course.level] || 'bg-bgs text-txs'} text-ds-xs font-ds-medium rounded-ds-pill`}>
+                    {course.level}
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-ds-6 md:p-ds-8">
+
+              {/* Title */}
+              <h1 className="text-ds-3xl md:text-ds-4xl font-ds-black text-tx font-serif leading-tight">
                 {course.title}
               </h1>
 
-              {/* 课程统计信息 */}
-              <div className="flex flex-wrap items-center gap-6 text-sm text-txs mb-6 pb-6 border-b border-bd">
-                {/* 课程时长 */}
-                <div className="flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-ac" />
-                  <span className="font-medium">课程时长：</span>
-                  <span>{course.duration || 60}分钟</span>
-                </div>
-                {/* 课程学分 */}
+              {/* Meta */}
+              <div className="flex flex-wrap items-center gap-x-ds-5 gap-y-ds-2 text-ds-sm text-txs mt-ds-5 pb-ds-6 border-b border-bdl">
+                <span className="inline-flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-ac" />
+                  {course.duration || 60}分钟
+                </span>
                 {course.credits && (
-                  <div className="flex items-center gap-2">
-                    <Award className="w-5 h-5 text-ac" />
-                    <span className="font-medium">课程学分：</span>
-                    <span>{course.credits}学分</span>
-                  </div>
+                  <span className="inline-flex items-center gap-1.5">
+                    <Award className="w-4 h-4 text-ac" />
+                    {course.credits}学分
+                  </span>
                 )}
-                {/* 课程讲者 */}
                 {course.instructor && (
-                  <div className="flex items-center gap-2">
-                    <User className="w-5 h-5 text-ac" />
-                    <span className="font-medium">课程讲者：</span>
-                    <span>{course.instructor}</span>
-                  </div>
+                  <span className="inline-flex items-center gap-1.5">
+                    <User className="w-4 h-4 text-ac" />
+                    {course.instructor}
+                  </span>
                 )}
               </div>
 
-              {/* 课程描述 */}
-              <div className="mb-8">
-                <h2 className="text-xl font-ds-bold text-tx mb-4 flex items-center gap-2" style={{ fontFamily: 'var(--fd)' }}>
-                  <BookOpen className="w-5 h-5 text-ac" />
+              {/* Description */}
+              <section className="pt-ds-7 pb-ds-6 border-b border-bdl">
+                <h2 className="text-ds-xl font-ds-bold text-tx font-serif mb-ds-3 flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-ac" />
                   课程简介
                 </h2>
-                <div className="bg-warm/30 rounded-lg p-6">
-                  <p className="text-base text-tx leading-relaxed whitespace-pre-wrap">
+                <div className="bg-bgs rounded-ds-md p-ds-5">
+                  <p className="text-ds-lg text-tx leading-relaxed whitespace-pre-wrap font-body">
                     {course.description || '本课程将帮助您深入理解教学设计的核心概念和实践方法，通过系统化的学习，掌握AI时代的教学设计技能。'}
                   </p>
                 </div>
-              </div>
+              </section>
 
-              {/* 课程亮点 */}
-              <div className="mb-8">
-                <h2 className="text-xl font-ds-bold text-tx mb-4" style={{ fontFamily: 'var(--fd)' }}>课程亮点</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-start gap-3 p-4 bg-acl rounded-lg border border-ac/20">
-                    <span className="text-2xl">💡</span>
-                    <div>
-                      <h3 className="font-semibold text-tx mb-1">理论与实践结合</h3>
-                      <p className="text-sm text-txs">系统的理论框架配合丰富的实践案例</p>
+              {/* Highlights */}
+              <section className="py-ds-7 border-b border-bdl">
+                <h2 className="text-ds-xl font-ds-bold text-tx font-serif mb-ds-4">课程亮点</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-ds-3">
+                  {HIGHLIGHTS.map(item => (
+                    <div key={item.title} className="flex items-start gap-2.5 p-ds-4 rounded-ds-md bg-bgs">
+                      <span className="text-lg flex-shrink-0">{item.icon}</span>
+                      <div>
+                        <h3 className="text-ds-md font-ds-semibold text-tx">{item.title}</h3>
+                        <p className="text-ds-sm text-txs mt-0.5">{item.desc}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-start gap-3 p-4 bg-acl rounded-lg border border-ac/20">
-                    <span className="text-2xl">🎯</span>
-                    <div>
-                      <h3 className="font-semibold text-tx mb-1">即学即用</h3>
-                      <p className="text-sm text-txs">学完即可应用到实际教学场景中</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 p-4 bg-acl rounded-lg border border-ac/20">
-                    <span className="text-2xl">👨‍🏫</span>
-                    <div>
-                      <h3 className="font-semibold text-tx mb-1">专家讲解</h3>
-                      <p className="text-sm text-txs">由经验丰富的教学设计专家授课</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 p-4 bg-acl rounded-lg border border-ac/20">
-                    <span className="text-2xl">🌟</span>
-                    <div>
-                      <h3 className="font-semibold text-tx mb-1">持续更新</h3>
-                      <p className="text-sm text-txs">课程内容持续优化和更新</p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              </div>
+              </section>
 
-              {/* 适合人群 */}
-              <div className="mb-8">
-                <h2 className="text-xl font-ds-bold text-tx mb-4" style={{ fontFamily: 'var(--fd)' }}>适合人群</h2>
-                <div className="bg-warm/30 rounded-lg p-6">
-                  <ul className="space-y-3">
-                    <li className="flex items-start gap-3">
-                      <span className="text-ac text-xl">✓</span>
-                      <span className="text-tx">中小学教师、高校教师</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="text-ac text-xl">✓</span>
-                      <span className="text-tx">教学设计师、课程开发者</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="text-ac text-xl">✓</span>
-                      <span className="text-tx">教育培训机构从业者</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="text-ac text-xl">✓</span>
-                      <span className="text-tx">对教学设计感兴趣的学习者</span>
-                    </li>
+              {/* Audience */}
+              <section className="py-ds-7 border-b border-bdl">
+                <h2 className="text-ds-xl font-ds-bold text-tx font-serif mb-ds-4">适合人群</h2>
+                <div className="bg-bgs rounded-ds-md p-ds-5">
+                  <ul className="space-y-ds-2">
+                    {AUDIENCES.map(item => (
+                      <li key={item} className="flex items-start gap-2 text-ds-lg text-tx font-body">
+                        <span className="text-ac text-ds-md mt-px">✓</span>
+                        {item}
+                      </li>
+                    ))}
                   </ul>
                 </div>
-              </div>
+              </section>
 
-              {/* 开始学习按钮 */}
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  size="lg"
-                  className="flex-1 text-lg py-6 bg-gradient-to-r from-ac to-tl hover:opacity-90 transition-opacity btn-press"
-                  onClick={handleStartLearning}
-                  disabled={!course.video_url && !course.meeting_url}
-                >
-                  {course.video_url ? (
-                    <>
-                      <Play className="w-5 h-5 mr-2" />
-                      观看课程
-                    </>
-                  ) : course.meeting_url ? (
-                    <>
-                      <ExternalLink className="w-5 h-5 mr-2" />
-                      观看课程
-                    </>
-                  ) : (
-                    '暂无课程链接'
-                  )}
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="flex-1 text-lg py-6 btn-press"
-                  onClick={handleBack}
-                >
-                  浏览更多课程
-                </Button>
-              </div>
+              {/* CTA */}
+              <section className="pt-ds-7">
+                <div className="flex flex-col sm:flex-row gap-ds-3">
+                  <Button
+                    size="lg"
+                    className="flex-1 text-ds-lg py-ds-5 btn-super-cta btn-press"
+                    onClick={handleStartLearning}
+                    disabled={!course.meeting_url}
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    观看课程
+                  </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="flex-1 text-ds-lg py-ds-5 btn-press"
+                    onClick={handleBack}
+                  >
+                    浏览更多课程
+                  </Button>
+                </div>
 
-              {/* 提示信息 */}
-              {course.video_url && (
-                <div className="mt-6 p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
-                  <p className="text-sm text-green-900 dark:text-green-100">
-                    <strong>在线观看：</strong>本课程支持在线播放，点击上方按钮即可开始学习
-                  </p>
-                </div>
-              )}
-              {!course.video_url && course.meeting_url && (
-                <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                  <p className="text-sm text-blue-900 dark:text-blue-100">
-                    💡 <strong>温馨提示：</strong>点击【观看课程】按钮将跳转到腾讯会议申请页面，申请回放时【务必备注自己的群名称】，以便做核对，否则申请不予通过
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                {course.meeting_url && (
+                  <>
+                    <p className="mt-ds-3 text-ds-sm text-txt text-center">
+                      点击观看课程进入腾讯会议
+                    </p>
+                    <div className="mt-ds-5 p-ds-4 bg-bgs rounded-ds-md border border-bdl">
+                      <p className="text-ds-sm text-txs leading-relaxed">
+                        💡 <strong className="text-tx">温馨提示：</strong>点击【观看课程】将跳转至腾讯会议申请页面，申请回放时<strong className="text-ac">务必备注自己的群名称</strong>，否则申请不予通过
+                      </p>
+                    </div>
+                  </>
+                )}
+              </section>
+
+            </div>
+          </div>
+        </article>
       </main>
+
       <Footer />
-      {/* 确认对话框 */}
-      <CourseConfirmDialog
-        open={showConfirmDialog}
-        onConfirm={handleConfirmStart}
-      />
+      <CourseConfirmDialog open={showConfirmDialog} onConfirm={handleConfirmStart} />
     </div>
   );
 }
