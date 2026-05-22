@@ -92,9 +92,9 @@ export default function HomePage() {
         <div className="relative max-w-6xl mx-auto text-center space-y-6 md:space-y-10">
           <div className="space-y-4 md:space-y-6 animate-fade-in-down">
             <h1 className="text-4xl md:text-5xl xl:text-7xl font-ds-black text-tx tracking-tight leading-tight" style={{ fontFamily: 'var(--fd)' }}>
-              Hi，欢迎来到
+              让每一堂课，
               <br />
-              <span className="text-tx">教学设计师俱乐部</span>
+              <span className="text-tx">都值得被认真对待</span>
             </h1>
             <p className="text-lg md:text-2xl xl:text-3xl text-txs max-w-3xl mx-auto leading-relaxed font-medium">{"一所AI时代的线上创新师范学院"}</p>
           </div>
@@ -117,20 +117,22 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-6 md:mb-12">
             <h2 className="text-2xl md:text-4xl xl:text-5xl font-ds-black text-tx mb-2 md:mb-4" style={{ fontFamily: 'var(--fd)' }}>俱乐部介绍</h2>
-            <p className="text-sm md:text-xl xl:text-2xl text-txs">Hi，热爱教学的老师！</p>
+            <p className="text-sm md:text-xl xl:text-2xl text-txs">为认真对待每一堂课的老师而建</p>
           </div>
 
           <Card className="card-bordered shadow-ds-sm hover-lift">
             <CardHeader className="p-6 md:p-8 xl:p-10 pb-2 md:pb-6">
               <CardTitle className="text-xl md:text-3xl xl:text-4xl font-ds-bold" style={{ fontFamily: 'var(--fd)' }}>欢迎加入我们</CardTitle>
               <CardDescription className="text-sm md:text-base xl:text-lg leading-relaxed text-txs mt-3">
-                {"教学设计师俱乐部是一个专属老师们的陪伴式成长社区。很多老师平时备课没头绪、不知道怎么把知识讲透、不知道如何让学生爱上学科，我们就是来解决这些烦恼的。"}
+                {"教学设计师俱乐部是一个为教育者打造的共学社区。"}
                 <br /><br />
-                {"在这里，我们会用"}
-                <strong className="text-ac"> CREATE 模型</strong>
-                {"等实用的方法，帮你理清思路，把课备得更轻松。只要你想提升教学设计能力，无论教哪个学科，都能在这里找到懂你的同行者。"}
+                {"我们不认为教学只是“完成任务”——我们相信，好的教学是可以被设计、被打磨、被持续精进的技艺。"}
                 <br /><br />
-                {"期待你的加入，咱们一起享受教学。"}
+                {"在这里，你不会听到“三步搞定公开课”这样的承诺。你得到的是一套系统的"}
+                <strong className="text-ac"> 教学设计方法论（CREATE 模型）</strong>
+                {"，帮助你把对教育的理解，变成每一节课里真实发生的学习。"}
+                <br /><br />
+                {"无论你教什么学科、在什么类型的学校，只要你还在思考“怎样让学生真正学到东西”——这里就有懂你的同行者。"}
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6 md:p-8 xl:p-10 pt-2 md:pt-4 space-y-4 md:space-y-6">
@@ -138,8 +140,11 @@ export default function HomePage() {
               <div className="bg-gradient-to-br from-ac/5 to-ac/10 rounded-xl p-4 md:p-6 border border-ac/20">
                 <div className="flex items-center justify-center gap-2 mb-4 md:mb-6">
                   <span className="text-xl md:text-3xl">💎</span>
-                  <h3 className="font-ds-bold text-xl md:text-3xl text-tx" style={{ fontFamily: 'var(--fd)' }}>俱乐部价值观</h3>
+                  <h3 className="font-ds-bold text-xl md:text-3xl text-tx" style={{ fontFamily: 'var(--fd)' }}>我们相信的教学观</h3>
                 </div>
+                <p className="text-sm md:text-base text-txs text-center mb-4 md:mb-6 max-w-2xl mx-auto">
+                  这些信念塑造了我们教什么、怎么教。如果你也认同，我们可能是同行者。
+                </p>
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 md:gap-4">
                   {[
                     { emoji: '✨', text: <><strong className="text-ac">专业方法</strong>先于直觉和经验</> },
@@ -163,13 +168,13 @@ export default function HomePage() {
                   <li key="plus-course" className="flex items-start gap-3 md:gap-4">
                     <span className="inline-flex items-center justify-center w-6 h-6 md:w-8 md:h-8 rounded-full bg-acl text-ac text-sm md:text-base font-ds-bold flex-shrink-0 mt-0.5">1</span>
                     <span className="text-sm md:text-base text-tx leading-relaxed">
-                      <strong className="text-ac">Plus会员：</strong>包含{" "}<strong>70+节教学通识课</strong>{" "}+ 专属答疑社区。它解决的是{"“"}<strong className="underline decoration-ac/50 underline-offset-2">怎么把课备好讲透</strong>{"”"}{"“"}<strong className="underline decoration-ac/50 underline-offset-2">如何让教学有效、高效、高参与度</strong>{"”"}的基础问题，适合想要<strong>扎实基本功</strong>、系统提升教学设计能力的老师，适合公开课、日常课、说课、创新教育等教学场景。
+                      <strong className="text-ac">Plus会员：</strong>包含{" "}<strong>70+节教学通识课</strong>{" "}+ 专属答疑社区。它帮你建立一套完整的教学设计思维框架——从理解学生如何学习，到设计有效的学习活动，再到评估学习效果。适合想要<strong>系统精进教学设计能力</strong>、让日常教学更有章法的老师。
                     </span>
                   </li>
                   <li key="pro-course" className="flex items-start gap-3 md:gap-4">
                     <span className="inline-flex items-center justify-center w-6 h-6 md:w-8 md:h-8 rounded-full bg-aml text-am text-sm md:text-base font-ds-bold flex-shrink-0 mt-0.5">2</span>
                     <span className="text-sm md:text-base text-tx leading-relaxed">
-                      <strong className="text-am">Pro会员：</strong>在 Plus 的基础上，增加了{" "}<strong>30+节教师 AI 课</strong>{" "}，以及我研发的<strong>AI工具、网站、skill等资源包</strong>。它帮你打破{"“"}AI 只能拿来写写教案大纲{"”"}的局限，解决的是怎么让 AI 帮你攻克以前觉得<strong className="underline decoration-am/50 underline-offset-2">难啃的教学痛点</strong>，把课备得更有深度，适合追求{" "}<strong>90 分教学水平</strong>{" "}、每天用 AI 至少 1 小时、探索教学新可能，并且愿意静下心来动手实践的老师们。
+                      <strong className="text-am">Pro会员：</strong>在 Plus 的基础上，增加了{" "}<strong>30+节教师 AI 课</strong>{" "}，以及我研发的<strong>AI工具、网站、skill等资源包</strong>。它不是教你用AI"代替备课"，而是教你用AI延伸教学设计的深度和广度——从教学分析、活动设计到课程开发，让AI成为你教学思考的协作伙伴。适合愿意深度实践、探索教学新可能的老师。
                     </span>
                   </li>
                 </ul>
@@ -352,7 +357,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto relative">
           <div className="text-center mb-8 md:mb-20 animate-fade-in">
             <h2 className="text-2xl md:text-4xl xl:text-5xl font-ds-black text-tx mb-3 md:mb-4" style={{ fontFamily: 'var(--fd)' }}>会员课程体系</h2>
-            <p className="text-sm md:text-xl xl:text-2xl text-txs">从教学科学化到教学工程化的完整学习路径</p>
+            <p className="text-sm md:text-xl xl:text-2xl text-txs">从理解学习开始，到设计出真正有效的课堂</p>
           </div>
 
           {loadingCourses ? (
@@ -375,8 +380,8 @@ export default function HomePage() {
                 <div className="mb-5 md:mb-8 p-4 md:p-6 bg-acl/40 rounded-xl border border-ac/20">
                   <h4 className="text-base md:text-xl font-ds-bold text-tx mb-2 md:mb-3" style={{ fontFamily: 'var(--fd)' }}>课程定位</h4>
                   <p className="text-sm md:text-lg text-txs leading-relaxed">
-                    帮助教师从教学随性化、教学经验化，进阶到<strong className="text-ac">教学科学化</strong>。
-                    系统学习教学设计理论，掌握科学的教学方法，建立完整的教学设计思维框架。
+                    帮助你理解"学生是如何学习的"，并基于这些理解来设计课堂。
+                    系统学习教学设计理论，把直觉和经验变成可迁移、可迭代的专业方法。
                   </p>
                 </div>
 
@@ -455,8 +460,8 @@ export default function HomePage() {
                 <div className="mb-5 md:mb-8 p-4 md:p-6 bg-aml/40 rounded-xl border border-am/20">
                   <h4 className="text-base md:text-xl font-ds-bold text-tx mb-2 md:mb-3" style={{ fontFamily: 'var(--fd)' }}>课程定位</h4>
                   <p className="text-sm md:text-lg text-txs leading-relaxed">
-                    在教学通识课（Plus）基础上，进一步实现<strong className="text-am">教学工程化、备课流程化</strong>。
-                    全面掌握AI技术，学习ClaudeCode等先进工具，让备课更高效，让教学更智能。
+                    在教学通识课（Plus）基础上，用AI拓展教学设计的边界。
+                    学会用ClaudeCode等工具构建自己的备课工作流，让AI成为你思考和设计的协作伙伴。
                   </p>
                 </div>
 
@@ -648,7 +653,7 @@ export default function HomePage() {
 
               <div className="mt-6 md:mt-10 text-center">
                 <p className="text-sm md:text-base text-txt">
-                  🌟 这么多优秀的教育者都在这里学习，你还在等什么？
+                  🌟 他们来自不同学校、不同学科，但有一个共同点：都在认真思考怎样让学生真正学到东西
                 </p>
               </div>
             </CardContent>
@@ -734,7 +739,7 @@ export default function HomePage() {
               <CardContent>
                 <div className="bg-ac/5 border border-ac/20 rounded-lg p-4 md:p-5">
                   <p className="text-sm md:text-lg text-txs leading-relaxed">
-                    <strong className="text-tx font-ds-bold">A：</strong>适合全学段全学科，从小学到高校均可。为了做到差异化教学，我也会在课程中列举不同学段的例子做应用示范。同时我们也有不同的学科教研组，便于大家讨论更具体的学科备课上课问题。
+                    <strong className="text-tx font-ds-bold">A：</strong>适合全学段全学科，从小学到高校均可。课程聚焦的是教学设计的底层方法论——理解学习、设计教学、评估效果——这些能力在任何学科、任何学段都通用。我们也有不同的学科教研组，便于大家在具体的教学场景中讨论和应用。
                   </p>
                 </div>
               </CardContent>

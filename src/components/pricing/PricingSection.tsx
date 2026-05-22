@@ -12,7 +12,7 @@ export default function PricingSection() {
       icon: Gift,
       price: "¥0",
       period: "永远",
-      tagline: "适合想了解「教学设计」魅力的老师，先尝后买，零风险。",
+      tagline: "适合想了解「教学设计」魅力的老师，先看再决定。",
       features: [
         "🎁 <strong>精选试听课</strong>：免费解锁至少<strong>2节核心概念课</strong>，听懂底层逻辑",
         "📚 <strong>干货博客</strong>：只有内行才懂的<strong>教学洞察文章</strong>",
@@ -28,7 +28,7 @@ export default function PricingSection() {
       icon: Sparkles,
       price: "¥199",
       period: "年",
-      tagline: "适合自驱力强的「自学者」，用几本书的价格，换一套完整的课程体系。",
+      tagline: "适合想要系统精进教学设计的老师，用几本书的价格，换一套完整的课程体系。",
       features: [
         "🎯 <strong>全站录播课通关</strong>：解锁<strong>40+节体系化视频课</strong>，从入门到精通",
         "🔄 <strong>持续更新</strong>：会员期内新增的录播课程，<strong>全部免费看</strong>",
@@ -50,7 +50,7 @@ export default function PricingSection() {
       icon: Crown,
       price: "¥990",
       period: "年",
-      tagline: "适合全面拥抱 AI，且每天使用 AI 时长大于 1 小时的老师，帮助你全面掌握 AI 技术，帮助你用 AI 技术实现备课流程化，教学工程化。",
+      tagline: "适合想要用AI拓展教学设计边界的老师，帮你用AI技术实现更深度的教学分析和更高效的课程开发。",
       features: [
         "✅ 享有<strong>教学通识课（Plus）的所有权益</strong>",
         "🎥 <strong>闭门直播（12场/年）</strong>：每月至少一场，深度拆解<strong>名师好课、真实改课案例</strong>或进行「work with me」式备课过程公开",
@@ -59,7 +59,7 @@ export default function PricingSection() {
       notes: [
         "🎯 此版本每年仅服务于100名专业老师"
       ],
-      buttonText: "成为专业老师（限额招募）",
+      buttonText: "深度实践 AI 教学（限额招募）",
       buttonLink: "http://b50rtgy70nmgu05j.mikecrm.com/rPZN0Mb",
       highlighted: false,
       badge: "限额招募",
@@ -100,10 +100,10 @@ export default function PricingSection() {
       <div className="max-w-3xl mx-auto">
         <div className="animate-fade-in-up mb-8">
           <h3 className="text-2xl md:text-3xl xl:text-4xl font-ds-black text-tx mb-3" style={{ fontFamily: 'var(--fd)' }}>
-            准备好了吗？
+            如果你也相信教学值得被认真对待
           </h3>
           <p className="text-sm md:text-base text-txs max-w-xl mx-auto mb-8 leading-relaxed">
-            加入<strong className="text-ac">教学设计师俱乐部</strong>，上出你的心中好课
+            加入<strong className="text-ac">教学设计师俱乐部</strong>，和几百位教育者一起精进
           </p>
           <div className="relative group inline-block">
             <div className="absolute -inset-1 bg-gradient-to-r from-ac to-tl rounded-full blur opacity-50 group-hover:opacity-80 transition duration-300" />
