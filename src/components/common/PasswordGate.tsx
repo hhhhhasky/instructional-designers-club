@@ -13,8 +13,9 @@ export default function PasswordGate({ gateType, onSuccess }: PasswordGateProps)
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isShaking, setIsShaking] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -23,14 +24,21 @@ export default function PasswordGate({ gateType, onSuccess }: PasswordGateProps)
       return;
     }
 
-    if (verifyCoursePassword(password, gateType)) {
-      onSuccess();
-      return;
+    setIsVerifying(true);
+    try {
+      const valid = await verifyCoursePassword(password, gateType);
+      if (valid) {
+        onSuccess();
+        return;
+      }
+      setError('密码错误，请重试');
+      setIsShaking(true);
+      setTimeout(() => setIsShaking(false), 500);
+    } catch {
+      setError('验证失败，请重试');
+    } finally {
+      setIsVerifying(false);
     }
-
-    setError('密码错误，请重试');
-    setIsShaking(true);
-    setTimeout(() => setIsShaking(false), 500);
   };
 
   return (
@@ -94,9 +102,10 @@ export default function PasswordGate({ gateType, onSuccess }: PasswordGateProps)
 
               <Button
                 type="submit"
+                disabled={isVerifying}
                 className="w-full h-12 text-base font-ds-bold btn-super-cta !text-white rounded-ds-lg"
               >
-                解锁课程
+                {isVerifying ? '验证中...' : '解锁课程'}
               </Button>
             </form>
 
