@@ -1,10 +1,7 @@
-import VisitorStats from "./VisitorStats";
-
 const Footer = () => {
   return (
     <footer className="bg-bgs">
       <div className="max-w-6xl mx-auto px-4 py-8 md:py-10 flex flex-col items-center gap-4">
-        <VisitorStats />
         <p className="text-xs text-txt flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5">
           <span className="font-semibold" style={{ fontFamily: 'var(--fd)' }}>教学设计师俱乐部</span>
           <span>·</span>

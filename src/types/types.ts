@@ -1,18 +1,3 @@
-// 访问统计表类型
-export interface VisitorStats {
-  id: number;
-  visitor_uuid: string;
-  visit_count: number;
-  first_visit_at: string;
-  last_visit_at: string;
-}
-
-// 访问统计返回类型
-export interface VisitorStatsResult {
-  unique_visitors: number;
-  total_visits: number;
-}
-
 // 会员类型
 export type MembershipType = 'free' | 'plus' | 'pro';
 
