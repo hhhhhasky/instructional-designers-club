@@ -3,6 +3,8 @@ import { Users, Eye } from 'lucide-react';
 import CountUp from '@/components/ui/CountUp';
 import { recordVisit } from '@/db/api';
 
+let hasTrackedVisitInRuntime = false;
+
 export default function VisitorStats() {
   const [uniqueVisitors, setUniqueVisitors] = useState(0);
   const [totalVisits, setTotalVisits] = useState(0);
@@ -19,6 +21,9 @@ export default function VisitorStats() {
     };
 
     const trackVisit = async () => {
+      if (hasTrackedVisitInRuntime) return;
+      hasTrackedVisitInRuntime = true;
+
       try {
         setIsLoading(true);
         const userId = getUserId();

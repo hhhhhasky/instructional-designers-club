@@ -40,6 +40,10 @@ import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
 import { getCoursesByMembershipType, getCategoriesByMembershipType, getBatchCategoryTags } from '@/db/api';
 import type { Course, MembershipType } from '@/types/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { canAccessCourse } from '@/lib/access-control';
+import LockOverlay from '@/components/common/LockOverlay';
+import UpgradePopup from '@/components/common/UpgradePopup';
 
 // 课程系列图标配置（只配置图标，颜色由会员类型决定）
 const categoryIconConfig: Record<string, LucideIcon> = {
@@ -183,6 +187,9 @@ const scenarioConfigs: ScenarioConfig[] = [
 
 export default function CoursesPage() {
   const navigate = useNavigate();
+  const { user, accessLevel } = useAuth();
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [upgradeLevel, setUpgradeLevel] = useState<'plus' | 'pro'>('plus');
 
   // 一级导航：会员类型（默认显示 Plus 课程）
   const [selectedMembershipType, setSelectedMembershipType] = useState<MembershipType>('plus');
@@ -310,13 +317,22 @@ export default function CoursesPage() {
 
   // 处理课程点击
   const handleCourseClick = (courseId: string) => {
-    // 防止重复点击
     if (isNavigating) return;
+
+    // 访问控制检查
+    if (selectedMembershipType !== 'free' && !canAccessCourse(accessLevel, selectedMembershipType)) {
+      if (!user) {
+        navigate('/login', { state: { from: `/courses/${courseId}` } });
+        return;
+      }
+      setUpgradeLevel(selectedMembershipType as 'plus' | 'pro');
+      setShowUpgrade(true);
+      return;
+    }
 
     setClickedCourseId(courseId);
     setIsNavigating(true);
 
-    // 添加短暂延迟以显示点击效果
     setTimeout(() => {
       navigate(`/courses/${courseId}`);
     }, 200);
@@ -657,7 +673,8 @@ export default function CoursesPage() {
                                     "group flex items-center gap-4 p-4 rounded-lg border-2 border-bd",
                                     "hover:border-ac/50 hover:bg-warm/30 cursor-pointer transition-all duration-300",
                                     "hover:shadow-ds-md hover:-translate-y-0.5",
-                                    clickedCourseId === course.id && "border-ac bg-acl"
+                                    clickedCourseId === course.id && "border-ac bg-acl",
+                                    "relative"
                                   )}
                                 >
                                   {/* 课程序号 */}
@@ -709,6 +726,11 @@ export default function CoursesPage() {
         )}
       </main>
       <Footer />
+      <UpgradePopup
+        open={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        requiredLevel={upgradeLevel}
+      />
     </div>
   );
 }

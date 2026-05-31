@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, GraduationCap, Users, Sparkles, Quote, Play, TrendingUp, Clock, Calendar, UserCheck, Gift, Crown, Star, Brain, Lightbulb, Target, Bot } from "lucide-react";
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Header from "@/components/layout/Header";
 import PageNavigation from "@/components/common/PageNavigation";
 import CountUp from "@/components/ui/CountUp";
@@ -11,8 +11,34 @@ import PricingSection from "@/components/pricing/PricingSection";
 import { getClubStats, getCoursesByMembershipType } from '@/db/api';
 import type { Course } from '@/types/types';
 import { TestimonialCarousel } from '@/components/testimonials/TestimonialCarousel';
+import { useAuth } from '@/contexts/AuthContext';
+import { canAccessCourse } from '@/lib/access-control';
+import LockOverlay from '@/components/common/LockOverlay';
+import UpgradePopup from '@/components/common/UpgradePopup';
 
 export default function HomePage() {
+  const navigate = useNavigate();
+  const { user, accessLevel } = useAuth();
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [upgradeLevel, setUpgradeLevel] = useState<'plus' | 'pro'>('plus');
+
+  const handleCourseClick = useCallback((courseId: string, membershipType: string) => {
+    if (membershipType === 'free') {
+      navigate(`/courses/${courseId}`);
+      return;
+    }
+    if (!canAccessCourse(accessLevel, membershipType as 'free' | 'plus' | 'pro')) {
+      if (!user) {
+        navigate('/login', { state: { from: `/courses/${courseId}` } });
+        return;
+      }
+      setUpgradeLevel(membershipType as 'plus' | 'pro');
+      setShowUpgrade(true);
+      return;
+    }
+    navigate(`/courses/${courseId}`);
+  }, [navigate, user, accessLevel]);
+
   // 俱乐部统计数据状态
   const [stats, setStats] = useState({
     camps: 0,
@@ -394,9 +420,11 @@ export default function HomePage() {
                     {plusCourses.map((course, index) => (
                       <Card
                         key={course.id}
-                        className="group hover-lift animate-scale-in border-2 border-ac/20 hover:border-ac/40 transition-all duration-300"
+                        className="group hover-lift animate-scale-in border-2 border-ac/20 hover:border-ac/40 transition-all duration-300 relative cursor-pointer"
                         style={{ animationDelay: `${index * 0.1}s` }}
+                        onClick={() => handleCourseClick(course.id, 'plus')}
                       >
+                        {!canAccessCourse(accessLevel, 'plus') && <LockOverlay level="plus" />}
                         <CardHeader>
                           <div className="flex items-start justify-between gap-3 mb-2">
                             <CardTitle className="text-lg md:text-xl group-hover:text-ac transition-colors">
@@ -416,20 +444,13 @@ export default function HomePage() {
                           <p className="text-sm md:text-base text-txs mb-4 line-clamp-2">
                             {course.description || '系统学习教学设计理论，提升教学专业能力'}
                           </p>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4 text-xs text-txs">
-                              {course.duration && (
-                                <span className="flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
-                                  {course.duration}分钟
-                                </span>
-                              )}
-                            </div>
-                            <Button asChild size="sm" variant="outline" className="group-hover:bg-ac group-hover:text-white group-hover:border-ac transition-colors">
-                              <Link to={`/courses/${course.id}`}>
-                                查看详情
-                              </Link>
-                            </Button>
+                          <div className="flex items-center gap-4 text-xs text-txs">
+                            {course.duration && (
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {course.duration}分钟
+                              </span>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
@@ -474,9 +495,11 @@ export default function HomePage() {
                     {proCourses.map((course, index) => (
                       <Card
                         key={course.id}
-                        className="group hover-lift animate-scale-in border-2 border-am/20 hover:border-am/40 transition-all duration-300"
+                        className="group hover-lift animate-scale-in border-2 border-am/20 hover:border-am/40 transition-all duration-300 relative cursor-pointer"
                         style={{ animationDelay: `${index * 0.1}s` }}
+                        onClick={() => handleCourseClick(course.id, 'pro')}
                       >
+                        {!canAccessCourse(accessLevel, 'pro') && <LockOverlay level="pro" />}
                         <CardHeader>
                           <div className="flex items-start justify-between gap-3 mb-2">
                             <CardTitle className="text-lg md:text-xl group-hover:text-ac transition-colors">
@@ -496,20 +519,13 @@ export default function HomePage() {
                           <p className="text-sm md:text-base text-txs mb-4 line-clamp-2">
                             {course.description || '掌握AI技术，实现备课流程化和教学工程化'}
                           </p>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4 text-xs text-txs">
-                              {course.duration && (
-                                <span className="flex items-center gap-1">
-                                  <Clock className="w-3 h-3" />
-                                  {course.duration}分钟
-                                </span>
-                              )}
-                            </div>
-                            <Button asChild size="sm" variant="outline" className="group-hover:bg-am group-hover:text-white group-hover:border-am transition-colors">
-                              <Link to={`/courses/${course.id}`}>
-                                查看详情
-                              </Link>
-                            </Button>
+                          <div className="flex items-center gap-4 text-xs text-txs">
+                            {course.duration && (
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {course.duration}分钟
+                              </span>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
@@ -766,6 +782,11 @@ export default function HomePage() {
       {/* 立即加入 - 产品档位展示 */}
       <PricingSection />
       <Footer />
+      <UpgradePopup
+        open={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        requiredLevel={upgradeLevel}
+      />
     </div>
   );
 }
