@@ -1,15 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, ExternalLink, Clock, Award, User, BookOpen, AlertCircle } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
-import PasswordGate from '@/components/common/PasswordGate';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
 import CourseConfirmDialog from '@/components/course/CourseConfirmDialog';
 import { getCourseById, incrementCourseViewCount } from '@/db/api';
-import { isCourseAccessible, needsGate } from '@/lib/course-auth';
+import { canAccessCourse, recordCourseVisit, updateLearningProgress, getUserLearningRecords } from '@/lib/access-control';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Course } from '@/types/types';
 
 const HIGHLIGHTS = [
@@ -36,14 +36,47 @@ const LEVEL_STYLE: Record<string, string> = {
 export default function CourseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user, accessLevel } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isNavigating, setIsNavigating] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [needGate, setNeedGate] = useState<'pro' | 'plus' | null>(null);
-  const [isVerified, setIsVerified] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [upgradeLevel, setUpgradeLevel] = useState<'plus' | 'pro'>('plus');
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const lastSyncedProgress = useRef(0);
 
+  const syncProgress = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !video.duration || !user || !course) return;
+
+    const progress = Math.round((video.currentTime / video.duration) * 100);
+    if (progress <= lastSyncedProgress.current) return;
+
+    lastSyncedProgress.current = progress;
+    const status = progress >= 95 ? 'completed' : 'in_progress';
+    updateLearningProgress(user.id, course.id, progress, status);
+  }, [user, course]);
+
+  const handleTimeUpdate = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !video.duration) return;
+
+    const progress = Math.round((video.currentTime / video.duration) * 100);
+    if (progress - lastSyncedProgress.current >= 10 || progress >= 95) {
+      syncProgress();
+    }
+  }, [syncProgress]);
+
+  const handleVideoEnded = useCallback(() => {
+    lastSyncedProgress.current = 100;
+    if (user && course) {
+      updateLearningProgress(user.id, course.id, 100, 'completed');
+    }
+  }, [user, course]);
+
+  // 只在 id 变化时加载课程数据
   useEffect(() => {
     const loadCourse = async () => {
       if (!id) {
@@ -55,6 +88,7 @@ export default function CourseDetailPage() {
       try {
         setIsLoading(true);
         setError(null);
+        setShowUpgrade(false);
 
         const courseData = await getCourseById(id);
 
@@ -63,13 +97,6 @@ export default function CourseDetailPage() {
         } else {
           setCourse(courseData);
           await incrementCourseViewCount(id);
-
-          const gateType = needsGate(courseData.membership_type);
-          if (gateType && !isCourseAccessible(gateType)) {
-            setNeedGate(gateType);
-          } else {
-            setIsVerified(true);
-          }
         }
       } catch (err) {
         console.error('加载课程详情失败:', err);
@@ -81,6 +108,37 @@ export default function CourseDetailPage() {
 
     loadCourse();
   }, [id]);
+
+  // 访问控制检查独立于课程加载
+  useEffect(() => {
+    if (!course || isLoading) return;
+
+    if (!canAccessCourse(accessLevel, course.membership_type)) {
+      if (!user) {
+        navigate('/login', { state: { from: `/courses/${course.id}` }, replace: true });
+      } else {
+        setUpgradeLevel(course.membership_type as 'plus' | 'pro');
+        setShowUpgrade(true);
+      }
+    } else {
+      setShowUpgrade(false);
+      if (user) {
+        recordCourseVisit(user.id, course.id);
+        // 用已有进度初始化 lastSyncedProgress，防止从头播放时覆盖更高进度
+        getUserLearningRecords(user.id).then(records => {
+          const record = records.find(r => r.course_id === course.id);
+          if (record && record.progress > lastSyncedProgress.current) {
+            lastSyncedProgress.current = record.progress;
+          }
+        });
+      }
+    }
+  }, [course, user, accessLevel, isLoading, navigate]);
+
+  // 页面离开时同步最终进度
+  useEffect(() => {
+    return () => { syncProgress(); };
+  }, [syncProgress]);
 
   if (isLoading) {
     return (
@@ -114,8 +172,32 @@ export default function CourseDetailPage() {
     );
   }
 
-  if (needGate && !isVerified) {
-    return <PasswordGate gateType={needGate} onSuccess={() => setIsVerified(true)} />;
+  // 权限不足：显示升级提示页（所有 hooks 之后）
+  if (showUpgrade) {
+    return (
+      <div className="min-h-screen bg-cream flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center pt-20 px-4">
+          <div className="text-center animate-fade-in max-w-md">
+            <AlertCircle className="w-14 h-14 text-ac/60 mx-auto mb-5" />
+            <h1 className="text-ds-2xl font-ds-bold text-tx font-serif mb-5">
+              需要{upgradeLevel === 'pro' ? 'Pro 专家版' : 'Plus 会员版'}权限
+            </h1>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button onClick={() => navigate('/courses')} className="btn-press">
+                返回课程中心
+              </Button>
+              <Button asChild className="btn-super-cta !text-white btn-press">
+                <a href="http://b50rtgy70nmgu05j.mikecrm.com/rPZN0Mb" target="_blank" rel="noopener noreferrer">
+                  立即升级
+                </a>
+              </Button>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
   }
 
   const handleBack = () => {
@@ -135,11 +217,14 @@ export default function CourseDetailPage() {
 
   const heroContent = course.video_url ? (
     <video
+      ref={videoRef}
       src={course.video_url}
       controls
       playsInline
       preload="auto"
       className="w-full block"
+      onTimeUpdate={handleTimeUpdate}
+      onEnded={handleVideoEnded}
     />
   ) : (
     <img

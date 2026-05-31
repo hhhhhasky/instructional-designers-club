@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { VisitorStatsResult, Course, MembershipType } from "@/types/types";
+import type { VisitorStatsResult, Course, MembershipType, LearningOverview, SeriesProgress, SeriesCourseItem, RecentLearningItem } from "@/types/types";
 
 /**
  * 记录访问并获取统计数据
@@ -8,38 +8,19 @@ import type { VisitorStatsResult, Course, MembershipType } from "@/types/types";
  */
 export async function recordVisit(visitorUuid: string): Promise<VisitorStatsResult> {
   try {
-    console.log('[API] 调用 Edge Function 代理，参数:', { visitor_uuid: visitorUuid });
-    
-    // 使用 Edge Function 代理来避免 CORS 问题
-    const { data, error } = await supabase.functions.invoke('record-visit-proxy', {
-      body: { visitor_uuid: visitorUuid }
+    console.log('[API] 调用访问统计 RPC，参数:', { visitor_uuid: visitorUuid });
+
+    const { data, error } = await supabase.rpc('record_visit', {
+      p_visitor_uuid: visitorUuid
     });
-
-    console.log('[API] Edge Function 调用结果:', { data, error });
-
+    
     if (error) {
-      console.error('[API] 记录访问失败 - Edge Function 错误:', {
-        message: error.message,
-        context: error.context
-      });
-      
-      // 如果 Edge Function 失败，尝试直接调用 RPC（作为后备方案）
-      console.log('[API] 尝试直接调用 RPC 作为后备方案...');
-      const { data: rpcData, error: rpcError } = await supabase.rpc('record_visit', {
-        p_visitor_uuid: visitorUuid
-      });
-      
-      if (rpcError) {
-        console.error('[API] RPC 后备方案也失败:', rpcError);
-        throw rpcError;
-      }
-      
-      console.log('[API] RPC 后备方案成功:', rpcData);
-      return rpcData as VisitorStatsResult;
+      console.error('[API] 记录访问失败 - RPC 错误:', error);
+      throw error;
     }
 
     if (!data) {
-      console.warn('[API] Edge Function 返回数据为空');
+      console.warn('[API] RPC 返回数据为空');
       return {
         unique_visitors: 0,
         total_visits: 0
@@ -572,5 +553,159 @@ export async function getBatchCategoryTags(
   } catch (err) {
     console.error('批量获取课程分类标签异常:', err);
     return {};
+  }
+}
+
+// 学习主页数据缓存（5 分钟 TTL）
+const learningCache = new Map<string, { data: Promise<{ overview: LearningOverview; seriesProgress: SeriesProgress[]; recentLearning: RecentLearningItem[] }>; ts: number }>();
+const LEARNING_CACHE_TTL = 5 * 60 * 1000;
+
+/**
+ * 获取学员学习主页全部数据（概览 + 系列进度 + 最近学习）
+ * 仅 2 次 Supabase 查询，客户端聚合，带 5 分钟缓存
+ */
+export async function getLearningData(userId: string): Promise<{
+  overview: LearningOverview;
+  seriesProgress: SeriesProgress[];
+  recentLearning: RecentLearningItem[];
+}> {
+  const cached = learningCache.get(userId);
+  if (cached && Date.now() - cached.ts < LEARNING_CACHE_TTL) {
+    return cached.data;
+  }
+
+  const dataPromise = _fetchLearningData(userId);
+  learningCache.set(userId, { data: dataPromise, ts: Date.now() });
+  return dataPromise;
+}
+
+async function _fetchLearningData(userId: string): Promise<{
+  overview: LearningOverview;
+  seriesProgress: SeriesProgress[];
+  recentLearning: RecentLearningItem[];
+}> {
+  const empty = {
+    overview: { totalCredits: 0, completedCourses: 0, inProgressCourses: 0 },
+    seriesProgress: [],
+    recentLearning: [],
+  };
+
+  try {
+    const [recordsRes, coursesRes] = await Promise.all([
+      supabase
+        .from('learning_records')
+        .select('*')
+        .eq('user_id', userId),
+      supabase
+        .from('courses')
+        .select('id, title, credits, category, image_url, membership_type, sort_order')
+        .eq('status', 'published')
+        .order('sort_order', { ascending: true }),
+    ]);
+
+    if (recordsRes.error) {
+      console.error('获取学习记录失败:', recordsRes.error);
+      return empty;
+    }
+    if (coursesRes.error) {
+      console.error('获取课程列表失败:', coursesRes.error);
+      return empty;
+    }
+
+    const records = recordsRes.data || [];
+    const courses: Pick<Course, 'id' | 'title' | 'credits' | 'category' | 'image_url' | 'membership_type' | 'sort_order'>[] = coursesRes.data || [];
+
+    // courseId -> record 映射
+    const recordMap = new Map(records.map(r => [r.course_id, r]));
+
+    // 1. 概览统计
+    const completedRecords = records.filter(r => r.status === 'completed');
+    const inProgressRecords = records.filter(r => r.status === 'in_progress');
+    const completedCourseIds = new Set(completedRecords.map(r => r.course_id));
+    const totalCredits = courses
+      .filter(c => completedCourseIds.has(c.id))
+      .reduce((sum, c) => sum + parseFloat(c.credits || '0'), 0);
+
+    const overview: LearningOverview = {
+      totalCredits: Math.round(totalCredits * 10) / 10,
+      completedCourses: completedRecords.length,
+      inProgressCourses: inProgressRecords.length,
+    };
+
+    // 2. 系列进度（按 category 分组）
+    const categoryMap = new Map<string, {
+      totalCourses: number;
+      completedCourses: number;
+      inProgressCourses: number;
+      courses: SeriesCourseItem[];
+    }>();
+
+    for (const course of courses) {
+      const cat = course.category || '未分类';
+      if (!categoryMap.has(cat)) {
+        categoryMap.set(cat, {
+          totalCourses: 0,
+          completedCourses: 0,
+          inProgressCourses: 0,
+          courses: [],
+        });
+      }
+      const series = categoryMap.get(cat)!;
+      const record = recordMap.get(course.id);
+      const status = record?.status || 'not_started';
+      const progress = record?.progress || 0;
+
+      series.totalCourses++;
+      if (status === 'completed') series.completedCourses++;
+      if (status === 'in_progress') series.inProgressCourses++;
+
+      series.courses.push({
+        courseId: course.id,
+        title: course.title,
+        credits: parseFloat(course.credits || '0'),
+        status,
+        progress,
+        imageUrl: course.image_url,
+        membershipType: course.membership_type,
+        sortOrder: course.sort_order,
+      });
+    }
+
+    const seriesProgress: SeriesProgress[] = Array.from(categoryMap.entries())
+      .map(([categoryName, data]) => ({
+        categoryName,
+        totalCourses: data.totalCourses,
+        completedCourses: data.completedCourses,
+        inProgressCourses: data.inProgressCourses,
+        completionPercentage: data.totalCourses > 0
+          ? Math.round((data.completedCourses / data.totalCourses) * 100)
+          : 0,
+        courses: data.courses.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)),
+      }))
+      .sort((a, b) => b.completionPercentage - a.completionPercentage);
+
+    // 3. 最近学习（按 last_watched_at 降序取前 5）
+    const recentLearning: RecentLearningItem[] = records
+      .filter(r => r.last_watched_at)
+      .sort((a, b) => new Date(b.last_watched_at!).getTime() - new Date(a.last_watched_at!).getTime())
+      .slice(0, 5)
+      .map(r => {
+        const course = courses.find(c => c.id === r.course_id);
+        return {
+          courseId: r.course_id,
+          title: course?.title || '未知课程',
+          imageUrl: course?.image_url || null,
+          category: course?.category || null,
+          status: r.status,
+          progress: r.progress,
+          lastWatchedAt: r.last_watched_at,
+          membershipType: course?.membership_type || 'free',
+        };
+      });
+
+    return { overview, seriesProgress, recentLearning };
+  } catch (error) {
+    console.error('获取学习数据异常:', error);
+    return empty;
   }
 }

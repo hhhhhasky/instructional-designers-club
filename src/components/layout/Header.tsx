@@ -1,14 +1,24 @@
 import { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, Menu, X } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { GraduationCap, Menu, X, Settings, LogOut, User, BookOpen } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import routes from "@/routes";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, profile, signOut } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,6 +29,20 @@ export default function Header() {
   }, []);
 
   const visibleRoutes = routes.filter(route => route.visible);
+
+  const handleSignOut = async () => {
+    await signOut();
+    setIsOpen(false);
+    navigate('/');
+  };
+
+  const avatarEl = profile?.avatar_url ? (
+    <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+  ) : (
+    <span className="text-sm font-ds-bold text-ac">
+      {profile?.nickname?.[0] || '?'}
+    </span>
+  );
 
   return (
     <header
@@ -62,19 +86,62 @@ export default function Header() {
 
           {/* 右侧按钮 */}
           <div className="flex items-center gap-3">
-            <Button
-              asChild
-              size="sm"
-              className="hidden xl:inline-flex btn-super-cta !text-white font-ds-bold text-ds-sm rounded-ds-lg"
-            >
-              <a
-                href="http://b50rtgy70nmgu05j.mikecrm.com/rPZN0Mb"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                立即加入
-              </a>
-            </Button>
+            {user ? (
+              /* 已登录：头像 + 下拉菜单 */
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="w-8 h-8 rounded-ds-full bg-acl flex items-center justify-center overflow-hidden ring-2 ring-transparent hover:ring-ac/30 transition-all">
+                    {avatarEl}
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <div className="px-2 py-1.5">
+                    <p className="text-sm font-ds-semibold text-tx">{profile?.nickname}</p>
+                    <p className="text-xs text-txs">
+                      {profile?.access_level === 'pro' ? 'Pro 专家版' :
+                       profile?.access_level === 'plus' ? 'Plus 会员版' : '免费版'}
+                    </p>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate('/learning')} className="cursor-pointer">
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    我的学习
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
+                    <Settings className="w-4 h-4 mr-2" />
+                    账号设置
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-red-600">
+                    <LogOut className="w-4 h-4 mr-2" />
+                    退出登录
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              /* 未登录：登录按钮 + 加入CTA */
+              <>
+                <Link
+                  to="/login"
+                  className="inline-flex px-3 py-1.5 text-ds-sm font-ds-semibold text-txs hover:text-ac hover:bg-acl rounded-ds-pill transition-all"
+                >
+                  登录
+                </Link>
+                <Button
+                  asChild
+                  size="sm"
+                  className="inline-flex btn-super-cta !text-white font-ds-bold text-ds-sm rounded-ds-lg"
+                >
+                  <a
+                    href="http://b50rtgy70nmgu05j.mikecrm.com/rPZN0Mb"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    立即加入
+                  </a>
+                </Button>
+              </>
+            )}
 
             {/* 移动端菜单按钮 */}
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -93,14 +160,30 @@ export default function Header() {
               </SheetTrigger>
               <SheetContent side="right" className="w-64">
                 <div className="flex flex-col gap-4 mt-8">
-                  <div className="flex items-center gap-2 pb-4 border-b border-bd">
-                    <div className="w-10 h-10 rounded-ds-full flex items-center justify-center bg-acl">
-                      <GraduationCap className="w-6 h-6 text-ac" />
+                  {/* 用户信息 or Logo */}
+                  {user ? (
+                    <div className="flex items-center gap-2 pb-4 border-b border-bd">
+                      <div className="w-10 h-10 rounded-ds-full bg-acl flex items-center justify-center overflow-hidden">
+                        {avatarEl}
+                      </div>
+                      <div>
+                        <p className="text-sm font-ds-bold text-tx">{profile?.nickname}</p>
+                        <p className="text-xs text-txs">
+                          {profile?.access_level === 'pro' ? 'Pro 专家版' :
+                           profile?.access_level === 'plus' ? 'Plus 会员版' : '免费版'}
+                        </p>
+                      </div>
                     </div>
-                    <span className="text-ds-lg font-ds-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>
-                      教学设计师俱乐部
-                    </span>
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-2 pb-4 border-b border-bd">
+                      <div className="w-10 h-10 rounded-ds-full flex items-center justify-center bg-acl">
+                        <GraduationCap className="w-6 h-6 text-ac" />
+                      </div>
+                      <span className="text-ds-lg font-ds-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>
+                        教学设计师俱乐部
+                      </span>
+                    </div>
+                  )}
 
                   <nav className="flex flex-col gap-2">
                     {visibleRoutes.map((route) => (
@@ -117,21 +200,60 @@ export default function Header() {
                         {route.name}
                       </Link>
                     ))}
-                  </nav>
 
-                  <Button
-                    asChild
-                    size="lg"
-                    className="w-full mt-4 btn-super-cta !text-white font-ds-bold rounded-ds-lg"
-                  >
-                    <a
-                      href="http://b50rtgy70nmgu05j.mikecrm.com/rPZN0Mb"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      立即加入
-                    </a>
-                  </Button>
+                    {/* 移动端用户菜单 */}
+                    {user ? (
+                      <>
+                        <Link
+                          to="/learning"
+                          onClick={() => setIsOpen(false)}
+                          className="px-4 py-3 text-left text-ds-base font-ds-medium rounded-ds-lg text-tx hover:bg-bgs transition-all flex items-center gap-2"
+                        >
+                          <BookOpen className="w-4 h-4" />
+                          我的学习
+                        </Link>
+                        <Link
+                          to="/settings"
+                          onClick={() => setIsOpen(false)}
+                          className="px-4 py-3 text-left text-ds-base font-ds-medium rounded-ds-lg text-tx hover:bg-bgs transition-all flex items-center gap-2"
+                        >
+                          <Settings className="w-4 h-4" />
+                          账号设置
+                        </Link>
+                        <button
+                          onClick={handleSignOut}
+                          className="px-4 py-3 text-left text-ds-base font-ds-medium rounded-ds-lg text-red-600 hover:bg-red-50 transition-all flex items-center gap-2"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          退出登录
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          to="/login"
+                          onClick={() => setIsOpen(false)}
+                          className="px-4 py-3 text-left text-ds-base font-ds-medium rounded-ds-lg text-tx hover:bg-bgs transition-all flex items-center gap-2"
+                        >
+                          <User className="w-4 h-4" />
+                          登录
+                        </Link>
+                        <Button
+                          asChild
+                          size="lg"
+                          className="w-full mt-4 btn-super-cta !text-white font-ds-bold rounded-ds-lg"
+                        >
+                          <a
+                            href="http://b50rtgy70nmgu05j.mikecrm.com/rPZN0Mb"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            立即加入
+                          </a>
+                        </Button>
+                      </>
+                    )}
+                  </nav>
                 </div>
               </SheetContent>
             </Sheet>

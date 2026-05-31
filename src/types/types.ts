@@ -54,3 +54,69 @@ export interface Course {
   created_at: string | null;
   updated_at: string | null;
 }
+
+// 用户资料类型
+export interface Profile {
+  id: string;
+  phone: string;
+  nickname: string;
+  avatar_url: string | null;
+  access_level: MembershipType;
+  status: 'active' | 'banned';
+  created_at: string;
+  updated_at: string;
+}
+
+// 学习记录类型
+export interface LearningRecord {
+  id: string;
+  user_id: string;
+  course_id: string;
+  status: 'not_started' | 'in_progress' | 'completed';
+  watch_count: number;
+  progress: number;
+  last_watched_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// 学习概览统计
+export interface LearningOverview {
+  totalCredits: number;
+  completedCourses: number;
+  inProgressCourses: number;
+}
+
+// 系列课中的单课条目
+export interface SeriesCourseItem {
+  courseId: string;
+  title: string;
+  credits: number;
+  status: 'not_started' | 'in_progress' | 'completed';
+  progress: number;
+  imageUrl: string | null;
+  membershipType: MembershipType;
+  sortOrder: number | null;
+}
+
+// 系列课进度
+export interface SeriesProgress {
+  categoryName: string;
+  totalCourses: number;
+  completedCourses: number;
+  inProgressCourses: number;
+  completionPercentage: number;
+  courses: SeriesCourseItem[];
+}
+
+// 最近学习条目
+export interface RecentLearningItem {
+  courseId: string;
+  title: string;
+  imageUrl: string | null;
+  category: string | null;
+  status: 'not_started' | 'in_progress' | 'completed';
+  progress: number;
+  lastWatchedAt: string | null;
+  membershipType: MembershipType;
+}
