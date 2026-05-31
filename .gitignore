@@ -1,5 +1,6 @@
 # Environment variables
 .env
+.env.upload
 
 # Logs
 logs
@@ -32,3 +33,12 @@ history/*.json
 .vite_cache
 dist/
 node_modules/
+
+# Vite temp build artifacts
+vite.config.*.timestamp-*.mjs
+
+# Supabase CLI temp
+supabase/.temp/
+
+# Playwright MCP
+.playwright-mcp/
