@@ -72,6 +72,9 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.5",
     "@tailwindcss/container-queries": "^0.1.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/lodash": "^4.17.20",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
@@ -79,11 +82,13 @@
     "@typescript/native-preview": "7.0.0-dev.20251103.1",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.21",
+    "jsdom": "^29.1.1",
     "miaoda-sc-plugin": "^1.0.4",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.11",
     "typescript": "~5.9.3",
     "vite": "^5.1.4",
-    "vite-plugin-svgr": "^4.5.0"
+    "vite-plugin-svgr": "^4.5.0",
+    "vitest": "^3.2.4"
   }
 }

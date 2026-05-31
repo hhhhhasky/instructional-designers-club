@@ -2,15 +2,16 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ExternalLink, Clock, Award, User, BookOpen, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Clock, Award, User, BookOpen, AlertCircle, ChevronLeft, ChevronRight, List, CheckCircle2, PlayCircle } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
 import CourseConfirmDialog from '@/components/course/CourseConfirmDialog';
-import { getCourseById, incrementCourseViewCount } from '@/db/api';
+import { getCourseById, incrementCourseViewCount, getCoursesByMembershipAndCategory } from '@/db/api';
 import { canAccessCourse, recordCourseVisit, updateLearningProgress, getUserLearningRecords } from '@/lib/access-control';
 import { useAuth } from '@/contexts/AuthContext';
-import type { Course } from '@/types/types';
+import type { Course, LearningRecord } from '@/types/types';
+import { cn } from '@/lib/utils';
 
 const HIGHLIGHTS = [
   { icon: '💡', title: '理论与实践结合', desc: '系统的理论框架配合丰富的实践案例' },
@@ -39,13 +40,16 @@ export default function CourseDetailPage() {
   const { user, accessLevel } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isNavigating, setIsNavigating] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeLevel, setUpgradeLevel] = useState<'plus' | 'pro'>('plus');
   const videoRef = useRef<HTMLVideoElement>(null);
   const lastSyncedProgress = useRef(0);
+
+  // 同系列课程列表
+  const [siblingCourses, setSiblingCourses] = useState<Course[]>([]);
+  const [learningRecords, setLearningRecords] = useState<LearningRecord[]>([]);
 
   const syncProgress = useCallback(() => {
     const video = videoRef.current;
@@ -97,6 +101,15 @@ export default function CourseDetailPage() {
         } else {
           setCourse(courseData);
           await incrementCourseViewCount(id);
+
+          // 加载同系列课程
+          if (courseData.category && courseData.membership_type) {
+            const siblings = await getCoursesByMembershipAndCategory(
+              courseData.membership_type,
+              courseData.category
+            );
+            setSiblingCourses(siblings);
+          }
         }
       } catch (err) {
         console.error('加载课程详情失败:', err);
@@ -124,8 +137,8 @@ export default function CourseDetailPage() {
       setShowUpgrade(false);
       if (user) {
         recordCourseVisit(user.id, course.id);
-        // 用已有进度初始化 lastSyncedProgress，防止从头播放时覆盖更高进度
         getUserLearningRecords(user.id).then(records => {
+          setLearningRecords(records);
           const record = records.find(r => r.course_id === course.id);
           if (record && record.progress > lastSyncedProgress.current) {
             lastSyncedProgress.current = record.progress;
@@ -139,6 +152,27 @@ export default function CourseDetailPage() {
   useEffect(() => {
     return () => { syncProgress(); };
   }, [syncProgress]);
+
+  // 计算当前课程在系列中的位置
+  const currentIndex = siblingCourses.findIndex(c => c.id === id);
+  const prevCourse = currentIndex > 0 ? siblingCourses[currentIndex - 1] : null;
+  const nextCourse = currentIndex < siblingCourses.length - 1 ? siblingCourses[currentIndex + 1] : null;
+
+  const getProgress = (courseId: string): number => {
+    const record = learningRecords.find(r => r.course_id === courseId);
+    return record?.progress || 0;
+  };
+
+  const getStatus = (courseId: string): string => {
+    const record = learningRecords.find(r => r.course_id === courseId);
+    return record?.status || 'not_started';
+  };
+
+  // 侧边栏内切换课程：直接跳转，不走 isNavigating 状态
+  const handleNavigateToCourse = (courseId: string) => {
+    if (courseId === id) return;
+    navigate(`/courses/${courseId}`);
+  };
 
   if (isLoading) {
     return (
@@ -172,7 +206,6 @@ export default function CourseDetailPage() {
     );
   }
 
-  // 权限不足：显示升级提示页（所有 hooks 之后）
   if (showUpgrade) {
     return (
       <div className="min-h-screen bg-cream flex flex-col">
@@ -201,9 +234,7 @@ export default function CourseDetailPage() {
   }
 
   const handleBack = () => {
-    if (isNavigating) return;
-    setIsNavigating(true);
-    setTimeout(() => navigate('/courses'), 200);
+    navigate('/courses');
   };
 
   const handleStartLearning = () => {
@@ -239,152 +270,340 @@ export default function CourseDetailPage() {
   return (
     <div className="min-h-screen bg-cream flex flex-col">
       <Header />
-      {isNavigating && <LoadingOverlay message="正在返回..." />}
 
-      <main className="flex-1 pt-20 pb-ds-11 page-transition fade-in">
-        {/* Back */}
-        <div className="max-w-4xl mx-auto px-4 pt-ds-6 animate-fade-in-down">
-          <button
-            onClick={handleBack}
-            className="inline-flex items-center gap-1.5 text-ds-sm text-txs hover:text-ac transition-colors group"
-          >
-            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
-            返回课程中心
-          </button>
+      <main className="flex-1 pt-20 pb-ds-11">
+        {/* Breadcrumb — 不用动画，避免叠层上下文问题 */}
+        <div className="max-w-7xl mx-auto px-4 pt-5 pb-1">
+          <div className="flex items-center gap-1.5 text-sm text-tx/60">
+            <button
+              onClick={handleBack}
+              className="inline-flex items-center gap-1 hover:text-ac transition-colors group"
+            >
+              <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+              课程中心
+            </button>
+            {course.category && (
+              <>
+                <ChevronRight className="w-3.5 h-3.5 text-tx/30" />
+                <span className="text-tx/80 font-medium">{course.category}</span>
+              </>
+            )}
+            <ChevronRight className="w-3.5 h-3.5 text-tx/30" />
+            <span className="truncate max-w-[200px] text-tx/60">{course.title}</span>
+          </div>
         </div>
 
-        {/* Course Card */}
-        <article className="max-w-4xl mx-auto px-4 pt-ds-4 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-          <div className="bg-bc rounded-ds-lg border border-bd shadow-ds-elegant overflow-hidden">
+        {/* Main Content: Video + Sidebar */}
+        <div className="max-w-7xl mx-auto px-4 pt-4">
+          <div className="flex gap-5">
+            {/* Left: Video + Details */}
+            <div className="flex-1 min-w-0">
+              <div className="bg-bc rounded-ds-lg border border-bd shadow-ds-elegant overflow-hidden">
 
-            {/* Hero */}
-            <div className="relative bg-black">
-              {heroContent}
-              <div className="absolute top-ds-3 left-ds-3 flex gap-1.5 z-10">
-                {course.category && (
-                  <Badge variant="secondary" className="bg-bc/90 backdrop-blur-sm text-tx text-ds-xs font-ds-medium rounded-ds-pill">
-                    {course.category}
-                  </Badge>
-                )}
-                {course.level && (
-                  <Badge className={`${LEVEL_STYLE[course.level] || 'bg-bgs text-txs'} text-ds-xs font-ds-medium rounded-ds-pill`}>
-                    {course.level}
-                  </Badge>
-                )}
-              </div>
-            </div>
-
-            {/* Body */}
-            <div className="p-ds-6 md:p-ds-8">
-
-              {/* Title */}
-              <h1 className="text-ds-3xl md:text-ds-4xl font-ds-black text-tx font-serif leading-tight">
-                {course.title}
-              </h1>
-
-              {/* Meta */}
-              <div className="flex flex-wrap items-center gap-x-ds-5 gap-y-ds-2 text-ds-sm text-txs mt-ds-5 pb-ds-6 border-b border-bdl">
-                <span className="inline-flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-ac" />
-                  {course.duration || 60}分钟
-                </span>
-                {course.credits && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <Award className="w-4 h-4 text-ac" />
-                    {course.credits}学分
-                  </span>
-                )}
-                {course.instructor && (
-                  <span className="inline-flex items-center gap-1.5">
-                    <User className="w-4 h-4 text-ac" />
-                    {course.instructor}
-                  </span>
-                )}
-              </div>
-
-              {/* Description */}
-              <section className="pt-ds-7 pb-ds-6 border-b border-bdl">
-                <h2 className="text-ds-xl font-ds-bold text-tx font-serif mb-ds-3 flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-ac" />
-                  课程简介
-                </h2>
-                <div className="bg-bgs rounded-ds-md p-ds-5">
-                  <p className="text-ds-lg text-tx leading-relaxed whitespace-pre-wrap font-body">
-                    {course.description || '本课程将帮助您深入理解教学设计的核心概念和实践方法，通过系统化的学习，掌握AI时代的教学设计技能。'}
-                  </p>
+                {/* Hero Video */}
+                <div className="relative bg-black">
+                  {heroContent}
+                  <div className="absolute top-3 left-3 flex gap-1.5 z-10">
+                    {course.category && (
+                      <Badge variant="secondary" className="bg-bc/90 backdrop-blur-sm text-tx text-xs font-medium rounded-full">
+                        {course.category}
+                      </Badge>
+                    )}
+                    {course.level && (
+                      <Badge className={`${LEVEL_STYLE[course.level] || 'bg-bgs text-txs'} text-xs font-medium rounded-full`}>
+                        {course.level}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-              </section>
 
-              {/* Highlights */}
-              <section className="py-ds-7 border-b border-bdl">
-                <h2 className="text-ds-xl font-ds-bold text-tx font-serif mb-ds-4">课程亮点</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-ds-3">
-                  {HIGHLIGHTS.map(item => (
-                    <div key={item.title} className="flex items-start gap-2.5 p-ds-4 rounded-ds-md bg-bgs">
-                      <span className="text-lg flex-shrink-0">{item.icon}</span>
-                      <div>
-                        <h3 className="text-ds-md font-ds-semibold text-tx">{item.title}</h3>
-                        <p className="text-ds-sm text-txs mt-0.5">{item.desc}</p>
-                      </div>
+                {/* Prev/Next Navigation */}
+                {siblingCourses.length > 1 && (
+                  <div className="flex items-center justify-between px-5 py-3 border-b border-bdl bg-warm/30">
+                    <button
+                      onClick={() => prevCourse && handleNavigateToCourse(prevCourse.id)}
+                      disabled={!prevCourse}
+                      className={cn(
+                        "flex items-center gap-2 text-sm font-medium transition-colors",
+                        prevCourse ? "text-ac hover:text-ac/80" : "text-txs/40 cursor-not-allowed"
+                      )}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      <span className="hidden sm:inline truncate max-w-[200px]">
+                        {prevCourse ? prevCourse.title : '已是第一节'}
+                      </span>
+                      <span className="sm:hidden">上一节</span>
+                    </button>
+
+                    <span className="text-xs text-txs px-3">
+                      {currentIndex + 1} / {siblingCourses.length}
+                    </span>
+
+                    <button
+                      onClick={() => nextCourse && handleNavigateToCourse(nextCourse.id)}
+                      disabled={!nextCourse}
+                      className={cn(
+                        "flex items-center gap-2 text-sm font-medium transition-colors",
+                        nextCourse ? "text-ac hover:text-ac/80" : "text-txs/40 cursor-not-allowed"
+                      )}
+                    >
+                      <span className="hidden sm:inline truncate max-w-[200px]">
+                        {nextCourse ? nextCourse.title : '已是最后一节'}
+                      </span>
+                      <span className="sm:hidden">下一节</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Mobile: Inline course list below video */}
+                {siblingCourses.length > 1 && (
+                  <div className="lg:hidden border-b border-bdl">
+                    <div className="px-4 py-2.5 bg-warm/30 flex items-center justify-between">
+                      <h3 className="font-bold text-tx text-sm flex items-center gap-2">
+                        <List className="w-4 h-4 text-ac" />
+                        {course.category || '课程目录'}
+                      </h3>
+                      <span className="text-xs text-txs">{currentIndex + 1} / {siblingCourses.length}</span>
                     </div>
-                  ))}
-                </div>
-              </section>
+                    <div className="max-h-60 overflow-y-auto overscroll-contain">
+                      {siblingCourses.map((sibling, index) => {
+                        const isCurrent = sibling.id === id;
+                        const progress = getProgress(sibling.id);
+                        const status = getStatus(sibling.id);
 
-              {/* Audience */}
-              <section className="py-ds-7 border-b border-bdl">
-                <h2 className="text-ds-xl font-ds-bold text-tx font-serif mb-ds-4">适合人群</h2>
-                <div className="bg-bgs rounded-ds-md p-ds-5">
-                  <ul className="space-y-ds-2">
-                    {AUDIENCES.map(item => (
-                      <li key={item} className="flex items-start gap-2 text-ds-lg text-tx font-body">
-                        <span className="text-ac text-ds-md mt-px">✓</span>
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </section>
+                        return (
+                          <button
+                            key={sibling.id}
+                            onClick={() => handleNavigateToCourse(sibling.id)}
+                            className={cn(
+                              "w-full text-left px-4 py-2.5 border-b border-bdl/30 transition-all",
+                              "hover:bg-warm/50 active:bg-warm",
+                              isCurrent && "bg-acl"
+                            )}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <div className="flex-shrink-0">
+                                {isCurrent ? (
+                                  <PlayCircle className="w-4 h-4 text-ac" />
+                                ) : status === 'completed' ? (
+                                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                ) : (
+                                  <span className={cn(
+                                    "inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold",
+                                    progress > 0 ? "bg-ac/10 text-ac" : "bg-bgs text-txs"
+                                  )}>
+                                    {index + 1}
+                                  </span>
+                                )}
+                              </div>
 
-              {/* CTA */}
-              <section className="pt-ds-7">
-                <div className="flex flex-col sm:flex-row gap-ds-3">
-                  <Button
-                    size="lg"
-                    className="flex-1 text-ds-lg py-ds-5 btn-super-cta btn-press"
-                    onClick={handleStartLearning}
-                    disabled={!course.meeting_url}
-                  >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    观看课程
-                  </Button>
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="flex-1 text-ds-lg py-ds-5 btn-press"
-                    onClick={handleBack}
-                  >
-                    浏览更多课程
-                  </Button>
-                </div>
+                              <div className="flex-1 min-w-0 flex items-center gap-2">
+                                <p className={cn(
+                                  "text-sm truncate",
+                                  isCurrent ? "text-ac font-semibold" : "text-tx"
+                                )}>
+                                  {sibling.title}
+                                </p>
+                                {status === 'completed' && !isCurrent && (
+                                  <span className="text-[10px] text-green-500 flex-shrink-0">已完成</span>
+                                )}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
-                {course.meeting_url && (
-                  <>
-                    <p className="mt-ds-3 text-ds-sm text-txt text-center">
-                      点击观看课程进入腾讯会议
-                    </p>
-                    <div className="mt-ds-5 p-ds-4 bg-bgs rounded-ds-md border border-bdl">
-                      <p className="text-ds-sm text-txs leading-relaxed">
-                        💡 <strong className="text-tx">温馨提示：</strong>点击【观看课程】将跳转至腾讯会议申请页面，申请回放时<strong className="text-ac">务必备注自己的群名称</strong>，否则申请不予通过
+                {/* Course Info */}
+                <div className="p-6 md:p-8">
+
+                  {/* Title */}
+                  <h1 className="text-2xl md:text-3xl font-black text-tx font-serif leading-tight">
+                    {course.title}
+                  </h1>
+
+                  {/* Meta */}
+                  <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-txs mt-5 pb-6 border-b border-bdl">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Clock className="w-4 h-4 text-ac" />
+                      {course.duration || 60}分钟
+                    </span>
+                    {course.credits && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <Award className="w-4 h-4 text-ac" />
+                        {course.credits}学分
+                      </span>
+                    )}
+                    {course.instructor && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <User className="w-4 h-4 text-ac" />
+                        {course.instructor}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Description */}
+                  <section className="pt-7 pb-6 border-b border-bdl">
+                    <h2 className="text-xl font-bold text-tx font-serif mb-3 flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-ac" />
+                      课程简介
+                    </h2>
+                    <div className="bg-bgs rounded-md p-5">
+                      <p className="text-lg text-tx leading-relaxed whitespace-pre-wrap font-body">
+                        {course.description || '本课程将帮助您深入理解教学设计的核心概念和实践方法，通过系统化的学习，掌握AI时代的教学设计技能。'}
                       </p>
                     </div>
-                  </>
-                )}
-              </section>
+                  </section>
 
+                  {/* Highlights */}
+                  <section className="py-7 border-b border-bdl">
+                    <h2 className="text-xl font-bold text-tx font-serif mb-4">课程亮点</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {HIGHLIGHTS.map(item => (
+                        <div key={item.title} className="flex items-start gap-2.5 p-4 rounded-md bg-bgs">
+                          <span className="text-lg flex-shrink-0">{item.icon}</span>
+                          <div>
+                            <h3 className="text-base font-semibold text-tx">{item.title}</h3>
+                            <p className="text-sm text-txs mt-0.5">{item.desc}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  {/* Audience */}
+                  <section className="py-7 border-b border-bdl">
+                    <h2 className="text-xl font-bold text-tx font-serif mb-4">适合人群</h2>
+                    <div className="bg-bgs rounded-md p-5">
+                      <ul className="space-y-2">
+                        {AUDIENCES.map(item => (
+                          <li key={item} className="flex items-start gap-2 text-lg text-tx font-body">
+                            <span className="text-ac text-base mt-px">✓</span>
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </section>
+
+                  {/* CTA */}
+                  <section className="pt-7">
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Button
+                        size="lg"
+                        className="flex-1 text-lg py-5 btn-super-cta btn-press"
+                        onClick={handleStartLearning}
+                        disabled={!course.meeting_url}
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        观看课程
+                      </Button>
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        className="flex-1 text-lg py-5 btn-press"
+                        onClick={handleBack}
+                      >
+                        浏览更多课程
+                      </Button>
+                    </div>
+
+                    {course.meeting_url && (
+                      <>
+                        <p className="mt-3 text-sm text-txt text-center">
+                          点击观看课程进入腾讯会议
+                        </p>
+                        <div className="mt-5 p-4 bg-bgs rounded-md border border-bdl">
+                          <p className="text-sm text-txs leading-relaxed">
+                            💡 <strong className="text-tx">温馨提示：</strong>点击【观看课程】将跳转至腾讯会议申请页面，申请回放时<strong className="text-ac">务必备注自己的群名称</strong>，否则申请不予通过
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </section>
+
+                </div>
+              </div>
             </div>
+
+            {/* Right: Sidebar - Desktop */}
+            {siblingCourses.length > 0 && (
+              <aside className="hidden lg:block w-72 flex-shrink-0">
+                <div className="sticky top-24 bg-bc rounded-lg border border-bd shadow-ds-elegant overflow-hidden">
+                  {/* Sidebar Header */}
+                  <div className="px-4 py-3 border-b border-bdl bg-warm/30">
+                    <h3 className="font-bold text-tx text-sm flex items-center gap-2">
+                      <List className="w-4 h-4 text-ac" />
+                      {course.category || '课程目录'}
+                    </h3>
+                    <p className="text-xs text-txs mt-1">共 {siblingCourses.length} 节课程</p>
+                  </div>
+
+                  {/* Course List */}
+                  <div className="max-h-[calc(100vh-160px)] overflow-y-auto">
+                    {siblingCourses.map((sibling, index) => {
+                      const isCurrent = sibling.id === id;
+                      const progress = getProgress(sibling.id);
+                      const status = getStatus(sibling.id);
+
+                      return (
+                        <button
+                          key={sibling.id}
+                          onClick={() => handleNavigateToCourse(sibling.id)}
+                          className={cn(
+                            "w-full text-left px-4 py-3 border-b border-bdl/50 transition-all",
+                            "hover:bg-warm/50",
+                            isCurrent && "bg-acl border-l-[3px] border-l-ac"
+                          )}
+                        >
+                          <div className="flex items-start gap-2.5">
+                            <div className="flex-shrink-0 mt-0.5">
+                              {isCurrent ? (
+                                <PlayCircle className="w-5 h-5 text-ac" />
+                              ) : status === 'completed' ? (
+                                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                              ) : (
+                                <span className={cn(
+                                  "inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold",
+                                  progress > 0 ? "bg-ac/10 text-ac" : "bg-bgs text-txs"
+                                )}>
+                                  {index + 1}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <p className={cn(
+                                "text-sm leading-snug",
+                                isCurrent ? "text-ac font-semibold" : "text-tx"
+                              )}>
+                                {sibling.title}
+                              </p>
+                              {progress > 0 && progress < 100 && (
+                                <div className="mt-1.5 h-1 bg-bgs rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-ac rounded-full transition-all"
+                                    style={{ width: `${progress}%` }}
+                                  />
+                                </div>
+                              )}
+                              {status === 'completed' && !isCurrent && (
+                                <p className="text-xs text-green-500 mt-0.5">已完成</p>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </aside>
+            )}
           </div>
-        </article>
+        </div>
       </main>
 
       <Footer />
