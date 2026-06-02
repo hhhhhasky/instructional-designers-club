@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { Search, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { getAdminStudentList } from "@/db/admin-api";
+import { getAdminStudentList, adminUpdateUserAccessLevel } from "@/db/admin-api";
 import type { StudentItem } from "@/db/admin-api";
+import type { MembershipType } from "@/types/types";
 
 const PAGE_SIZE = 20;
 
@@ -89,6 +91,25 @@ export default function StudentListSection() {
   const handleStatusChange = (v: string) => {
     setStatusFilter(v);
     setPage(1);
+  };
+
+  // 内联编辑用户等级
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [pendingLevel, setPendingLevel] = useState<MembershipType | null>(null);
+
+  const handleSaveLevel = async (userId: string, newLevel: MembershipType) => {
+    try {
+      await adminUpdateUserAccessLevel(userId, newLevel);
+      setStudents((prev) =>
+        prev.map((s) => (s.id === userId ? { ...s, access_level: newLevel } : s))
+      );
+      toast.success(`已将用户等级修改为 ${newLevel.toUpperCase()}`);
+    } catch {
+      toast.error("修改等级失败，请重试");
+    } finally {
+      setEditingId(null);
+      setPendingLevel(null);
+    }
   };
 
   if (loading) return <LoadingOverlay message="正在加载学员数据..." />;
@@ -209,7 +230,40 @@ export default function StudentListSection() {
                     {maskPhone(student.phone)}
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <LevelBadge level={student.access_level} />
+                    {editingId === student.id ? (
+                      <div className="flex items-center justify-center gap-1">
+                        <select
+                          value={pendingLevel || student.access_level}
+                          onChange={(e) => setPendingLevel(e.target.value as MembershipType)}
+                          className="px-2 py-1 text-ds-xs border border-bd rounded-ds-md bg-white focus:outline-none focus:border-ac"
+                          autoFocus
+                        >
+                          <option value="free">Free</option>
+                          <option value="plus">Plus</option>
+                          <option value="pro">Pro</option>
+                        </select>
+                        <button
+                          onClick={() => handleSaveLevel(student.id, pendingLevel || student.access_level)}
+                          className="text-ds-xs text-tl hover:text-tl/80 font-ds-semibold"
+                        >
+                          保存
+                        </button>
+                        <button
+                          onClick={() => { setEditingId(null); setPendingLevel(null); }}
+                          className="text-ds-xs text-txs hover:text-tx"
+                        >
+                          取消
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => { setEditingId(student.id); setPendingLevel(null); }}
+                        className="cursor-pointer hover:opacity-80 transition-opacity"
+                        title="点击修改等级"
+                      >
+                        <LevelBadge level={student.access_level} />
+                      </button>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <StatusBadge status={student.status} />

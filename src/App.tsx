@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'sonner';
 
 import routes from './routes';
 import ScrollToTop from '@/components/common/ScrollToTop';
@@ -25,6 +26,9 @@ const App: React.FC = () => {
 
         {/* 移动端底部Tab导航栏 */}
         <MobileTabBar />
+
+        {/* 全局 Toast 通知 */}
+        <Toaster position="top-right" richColors />
       </div>
     </Router>
   );

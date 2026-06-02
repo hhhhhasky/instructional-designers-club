@@ -12,6 +12,7 @@ import CourseRankingsSection from "@/components/admin/CourseRankingsSection";
 import StudentListSection from "@/components/admin/StudentListSection";
 import InactiveStudentsSection from "@/components/admin/InactiveStudentsSection";
 import StudentLeaderboardSection from "@/components/admin/StudentLeaderboardSection";
+import CourseManagementSection from "@/components/admin/CourseManagementSection";
 
 export default function AdminPage() {
   const navigate = useNavigate();
@@ -132,6 +133,7 @@ export default function AdminPage() {
             <TabsList className="mb-6 flex-wrap">
               <TabsTrigger value="overview">会员总览</TabsTrigger>
               <TabsTrigger value="courses">课程排行</TabsTrigger>
+              <TabsTrigger value="course-manage">课程管理</TabsTrigger>
               <TabsTrigger value="students">学员名单</TabsTrigger>
               <TabsTrigger value="inactive">沉默学员</TabsTrigger>
               <TabsTrigger value="leaderboard">学员排行榜</TabsTrigger>
@@ -143,6 +145,10 @@ export default function AdminPage() {
 
             <TabsContent value="courses">
               <CourseRankingsSection />
+            </TabsContent>
+
+            <TabsContent value="course-manage">
+              <CourseManagementSection />
             </TabsContent>
 
             <TabsContent value="students">

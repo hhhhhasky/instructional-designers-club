@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { MembershipType } from "@/types/types";
+import type { MembershipType, Course } from "@/types/types";
 
 // ==================== 响应类型 ====================
 
@@ -135,4 +135,86 @@ export async function getAdminStudentLeaderboard(): Promise<LeaderboardStudentIt
     throw error;
   }
   return data || [];
+}
+
+// ==================== 用户权限管理 ====================
+
+/**
+ * 管理员修改用户等级
+ */
+export async function adminUpdateUserAccessLevel(
+  userId: string,
+  newLevel: MembershipType
+): Promise<void> {
+  const { error } = await supabase.rpc("admin_update_user_access_level", {
+    p_user_id: userId,
+    p_new_level: newLevel,
+  });
+  if (error) {
+    console.error("adminUpdateUserAccessLevel error:", error);
+    throw error;
+  }
+}
+
+// ==================== 课程管理 ====================
+
+/**
+ * 管理员获取所有课程（含草稿和已归档）
+ */
+export async function getAdminCourseList(): Promise<Course[]> {
+  const { data, error } = await supabase.rpc("admin_course_list");
+  if (error) {
+    console.error("getAdminCourseList error:", error);
+    throw error;
+  }
+  return data || [];
+}
+
+/**
+ * 管理员创建课程
+ */
+export async function adminCreateCourse(
+  course: Omit<Course, "id" | "view_count" | "created_at" | "updated_at">
+): Promise<Course> {
+  const { data, error } = await supabase
+    .from("courses")
+    .insert(course)
+    .select()
+    .single();
+  if (error) {
+    console.error("adminCreateCourse error:", error);
+    throw error;
+  }
+  return data;
+}
+
+/**
+ * 管理员更新课程
+ */
+export async function adminUpdateCourse(
+  courseId: string,
+  updates: Partial<Course>
+): Promise<void> {
+  const { error } = await supabase
+    .from("courses")
+    .update(updates)
+    .eq("id", courseId);
+  if (error) {
+    console.error("adminUpdateCourse error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 管理员归档课程
+ */
+export async function adminArchiveCourse(courseId: string): Promise<void> {
+  const { error } = await supabase
+    .from("courses")
+    .update({ status: "archived" })
+    .eq("id", courseId);
+  if (error) {
+    console.error("adminArchiveCourse error:", error);
+    throw error;
+  }
 }
