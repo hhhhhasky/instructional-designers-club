@@ -114,7 +114,7 @@ export default function PricingSection() {
             >
               <span className="relative z-10 flex items-center gap-2 md:gap-3">
                 <span>💎</span>
-                <span>立即报名加入</span>
+                <span>申请成为会员</span>
                 <span className="text-lg md:text-xl xl:text-2xl">→</span>
               </span>
             </Button>

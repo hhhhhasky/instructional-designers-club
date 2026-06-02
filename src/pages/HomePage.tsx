@@ -131,7 +131,7 @@ export default function HomePage() {
               className="btn-pill text-base md:text-xl xl:text-2xl px-8 md:px-12 xl:px-16 py-3 md:py-7 xl:py-8 bg-ac !text-white font-ds-bold hover:bg-acd shadow-ds-accent border-2 border-ac"
               onClick={() => window.open('http://b50rtgy70nmgu05j.mikecrm.com/rPZN0Mb', '_blank')}
             >
-              立即加入俱乐部
+              申请成为会员
               <span className="ml-2">→</span>
             </Button>
           </div>
@@ -684,7 +684,7 @@ export default function HomePage() {
             >
               <span className="relative z-10 flex items-center gap-2 md:gap-3">
                 <span>💎</span>
-                <span>立刻报名加入</span>
+                <span>申请成为会员</span>
                 <span className="text-xl md:text-2xl xl:text-3xl">→</span>
               </span>
             </Button>

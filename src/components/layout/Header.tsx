@@ -119,28 +119,14 @@ export default function Header() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              /* 未登录：登录按钮 + 加入CTA */
-              <>
-                <Link
-                  to="/login"
-                  className="inline-flex px-3 py-1.5 text-ds-sm font-ds-semibold text-txs hover:text-ac hover:bg-acl rounded-ds-pill transition-all"
-                >
-                  登录
-                </Link>
-                <Button
-                  asChild
-                  size="sm"
-                  className="inline-flex btn-super-cta !text-white font-ds-bold text-ds-sm rounded-ds-lg"
-                >
-                  <a
-                    href="http://b50rtgy70nmgu05j.mikecrm.com/rPZN0Mb"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    立即加入
-                  </a>
-                </Button>
-              </>
+              /* 未登录：注册/登录 */
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 text-ds-sm font-ds-semibold text-txs hover:text-ac hover:bg-acl rounded-ds-pill transition-all"
+              >
+                <User className="w-4 h-4" />
+                注册/登录
+              </Link>
             )}
 
             {/* 移动端菜单按钮 */}
@@ -236,21 +222,8 @@ export default function Header() {
                           className="px-4 py-3 text-left text-ds-base font-ds-medium rounded-ds-lg text-tx hover:bg-bgs transition-all flex items-center gap-2"
                         >
                           <User className="w-4 h-4" />
-                          登录
+                          注册/登录
                         </Link>
-                        <Button
-                          asChild
-                          size="lg"
-                          className="w-full mt-4 btn-super-cta !text-white font-ds-bold rounded-ds-lg"
-                        >
-                          <a
-                            href="http://b50rtgy70nmgu05j.mikecrm.com/rPZN0Mb"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            立即加入
-                          </a>
-                        </Button>
                       </>
                     )}
                   </nav>
