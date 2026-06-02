@@ -16,9 +16,9 @@ interface Props {
 }
 
 const STATUS_CONFIG = {
-  completed: { icon: CheckCircle, color: 'text-emerald-500', label: '已完成' },
-  in_progress: { icon: PlayCircle, color: 'text-blue-500', label: '学习中' },
-  not_started: { icon: Circle, color: 'text-gray-300', label: '未开始' },
+  completed: { icon: CheckCircle, color: 'text-tl', label: '已完成' },
+  in_progress: { icon: PlayCircle, color: 'text-ac', label: '学习中' },
+  not_started: { icon: Circle, color: 'text-txt', label: '未开始' },
 };
 
 export default function SeriesProgressCard({ series, accessLevel }: Props) {
@@ -88,7 +88,7 @@ export default function SeriesProgressCard({ series, accessLevel }: Props) {
                     {/* 学分 */}
                     {course.credits > 0 && (
                       <span className={`text-ds-xs shrink-0 ${
-                        course.status === 'completed' ? 'text-amber-600 font-ds-semibold' : 'text-txs'
+                        course.status === 'completed' ? 'text-am font-ds-semibold bg-yellow-soft px-1.5 py-0.5 rounded-ds-sm' : 'text-txs'
                       }`}>
                         {course.credits}学分
                       </span>

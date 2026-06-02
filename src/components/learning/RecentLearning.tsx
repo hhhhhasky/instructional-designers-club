@@ -7,9 +7,9 @@ interface Props {
 }
 
 const STATUS_LABEL = {
-  completed: { icon: CheckCircle, text: '已完成', color: 'text-emerald-500' },
-  in_progress: { icon: PlayCircle, text: '学习中', color: 'text-blue-500' },
-  not_started: { icon: BookOpen, text: '未开始', color: 'text-gray-400' },
+  completed: { icon: CheckCircle, text: '已完成', color: 'text-tl' },
+  in_progress: { icon: PlayCircle, text: '学习中', color: 'text-ac' },
+  not_started: { icon: BookOpen, text: '未开始', color: 'text-txt' },
 };
 
 export default function RecentLearning({ items }: Props) {
@@ -19,8 +19,11 @@ export default function RecentLearning({ items }: Props) {
 
   return (
     <div>
-      <h2 className="text-ds-base font-ds-bold text-tx mb-2">最近学习</h2>
-      <div className="bg-white rounded-ds-lg shadow-ds-sm border border-bd divide-y divide-bd/50">
+      <h2 className="text-ds-base font-ds-bold text-tx mb-2 flex items-center gap-2">
+        <span className="w-1 h-4 rounded-full bg-tl inline-block"></span>
+        最近学习
+      </h2>
+      <div className="bg-white rounded-ds-lg shadow-ds-sm border border-bd divide-y divide-bdl overflow-hidden">
         {items.map((item) => {
           const cfg = STATUS_LABEL[item.status];
           const Icon = cfg.icon;
@@ -28,7 +31,7 @@ export default function RecentLearning({ items }: Props) {
             <button
               key={item.courseId}
               onClick={() => navigate(`/courses/${item.courseId}`)}
-              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-bgs/50 transition-colors text-left"
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-bgs/50 transition-colors text-left group"
             >
               {/* 缩略图 */}
               <div className="w-12 h-8 rounded-ds-md overflow-hidden bg-bgs shrink-0 flex items-center justify-center">

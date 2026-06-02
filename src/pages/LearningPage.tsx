@@ -102,18 +102,18 @@ export default function LearningPage() {
     <div className="min-h-screen bg-cream flex flex-col">
       <Header />
       <main className="flex-1 pt-20 pb-24 md:pb-12 px-4">
-        <div className="max-w-4xl mx-auto pt-4 md:pt-8">
+        <div className="max-w-4xl mx-auto pt-4 md:pt-8 animate-fade-in">
           {/* 返回 + 标题 */}
           <button
             onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-1.5 text-ds-sm text-txs hover:text-ac transition-colors mb-4"
+            className="inline-flex items-center gap-1.5 text-ds-sm text-txs hover:text-ac transition-colors mb-4 group"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
             返回
           </button>
 
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-ds-full bg-acl flex items-center justify-center">
+            <div className="w-10 h-10 rounded-ds-full bg-acl flex items-center justify-center shadow-ds-sm">
               <GraduationCap className="w-5 h-5 text-ac" />
             </div>
             <div>
@@ -128,8 +128,11 @@ export default function LearningPage() {
           {/* 加载失败 */}
           {error && !isLoading && (
             <div className="text-center py-12">
+              <div className="w-14 h-14 rounded-ds-full bg-pink-soft flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">⚠️</span>
+              </div>
               <p className="text-txs mb-4">{error}</p>
-              <Button onClick={() => window.location.reload()}>刷新页面</Button>
+              <Button className="btn-super-cta !text-white rounded-ds-lg">刷新页面</Button>
             </div>
           )}
 
@@ -141,7 +144,7 @@ export default function LearningPage() {
               ) : (
                 <>
                   {/* 统计概览 */}
-                  <div className="mb-6">
+                  <div className="mb-8">
                     <LearningOverview overview={overview} />
                   </div>
 
@@ -149,13 +152,17 @@ export default function LearningPage() {
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* 左侧：系列进度 */}
                     <div className="lg:col-span-2 space-y-3">
-                      <h2 className="text-ds-base font-ds-bold text-tx mb-2">系列课进度</h2>
-                      {seriesProgress.map((series) => (
-                        <SeriesProgressCard
-                          key={series.categoryName}
-                          series={series}
-                          accessLevel={profile.access_level}
-                        />
+                      <h2 className="text-ds-base font-ds-bold text-tx mb-3 flex items-center gap-2">
+                        <span className="w-1 h-4 rounded-full bg-ac inline-block"></span>
+                        系列课进度
+                      </h2>
+                      {seriesProgress.map((series, idx) => (
+                        <div key={series.categoryName} className="animate-fade-in-up" style={{ animationDelay: `${idx * 0.08}s` }}>
+                          <SeriesProgressCard
+                            series={series}
+                            accessLevel={profile.access_level}
+                          />
+                        </div>
                       ))}
                     </div>
 

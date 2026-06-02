@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { GraduationCap, Menu, X, Settings, LogOut, User, BookOpen } from "lucide-react";
+import { GraduationCap, Menu, X, Settings, LogOut, User, BookOpen, ShieldCheck } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import routes from "@/routes";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,6 +19,7 @@ export default function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, signOut } = useAuth();
+  const isAdmin = profile?.role === 'admin';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -111,6 +112,15 @@ export default function Header() {
                     <Settings className="w-4 h-4 mr-2" />
                     账号设置
                   </DropdownMenuItem>
+                  {isAdmin && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer text-ac">
+                        <ShieldCheck className="w-4 h-4 mr-2" />
+                        管理后台
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-red-600">
                     <LogOut className="w-4 h-4 mr-2" />
@@ -206,6 +216,16 @@ export default function Header() {
                           <Settings className="w-4 h-4" />
                           账号设置
                         </Link>
+                        {isAdmin && (
+                          <Link
+                            to="/admin"
+                            onClick={() => setIsOpen(false)}
+                            className="px-4 py-3 text-left text-ds-base font-ds-medium rounded-ds-lg text-ac hover:bg-acl transition-all flex items-center gap-2"
+                          >
+                            <ShieldCheck className="w-4 h-4" />
+                            管理后台
+                          </Link>
+                        )}
                         <button
                           onClick={handleSignOut}
                           className="px-4 py-3 text-left text-ds-base font-ds-medium rounded-ds-lg text-red-600 hover:bg-red-50 transition-all flex items-center gap-2"

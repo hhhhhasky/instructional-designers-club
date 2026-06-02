@@ -138,29 +138,29 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-cream flex flex-col">
       <Header />
       <main className="flex-1 pt-20 pb-12 px-4">
-        <div className="max-w-lg mx-auto pt-8">
+        <div className="max-w-lg mx-auto pt-8 animate-fade-in">
           {/* 返回 */}
           <button
             onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-1.5 text-ds-sm text-txs hover:text-ac transition-colors mb-6"
+            className="inline-flex items-center gap-1.5 text-ds-sm text-txs hover:text-ac transition-colors mb-6 group"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
             返回
           </button>
 
           {/* 用户信息卡片 */}
-          <div className="bg-white rounded-ds-lg shadow-ds-md border border-bd p-6 mb-6">
+          <div className="bg-white rounded-ds-lg shadow-ds-md border border-bd p-6 mb-6 hover-lift">
             <div className="flex items-center gap-4">
               <div className="relative">
-                <div className="w-16 h-16 rounded-ds-full bg-acl flex items-center justify-center overflow-hidden">
+                <div className="w-16 h-16 rounded-ds-full bg-acl flex items-center justify-center overflow-hidden ring-2 ring-acl/40">
                   {profile.avatar_url ? (
                     <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-2xl font-ds-bold text-ac">{profile.nickname[0]}</span>
                   )}
                 </div>
-                <label className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-ac text-white flex items-center justify-center cursor-pointer hover:bg-acd transition-colors">
-                  <Camera className="w-3 h-3" />
+                <label className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-ac text-white flex items-center justify-center cursor-pointer hover:bg-acd transition-colors shadow-ds-sm">
+                  <Camera className="w-3.5 h-3.5" />
                   <input
                     type="file"
                     accept="image/*"
@@ -172,8 +172,8 @@ export default function SettingsPage() {
               </div>
               <div>
                 <h2 className="text-lg font-ds-bold text-tx">{profile.nickname}</h2>
-                <p className="text-sm text-txs">{profile.phone}</p>
-                <span className="inline-block mt-1 px-2 py-0.5 rounded-ds-pill text-xs font-ds-semibold bg-acl text-ac">
+                <p className="text-ds-sm text-txs mt-0.5">{profile.phone}</p>
+                <span className="inline-block mt-1.5 px-2.5 py-0.5 rounded-ds-pill text-xs font-ds-semibold bg-acl text-ac">
                   {accessLabel}
                 </span>
               </div>
@@ -181,8 +181,9 @@ export default function SettingsPage() {
           </div>
 
           {/* 修改昵称 */}
-          <div className="bg-white rounded-ds-lg shadow-ds-md border border-bd p-6 mb-6">
-            <h3 className="text-base font-ds-bold text-tx mb-4 flex items-center gap-2">
+          <div className="bg-white rounded-ds-lg shadow-ds-md border border-bd p-6 mb-6 hover-lift">
+            <h3 className="text-ds-base font-ds-bold text-tx mb-4 flex items-center gap-2">
+              <span className="w-1 h-4 rounded-full bg-ac inline-block"></span>
               <User className="w-4 h-4 text-ac" />
               修改昵称
             </h3>
@@ -191,18 +192,18 @@ export default function SettingsPage() {
                 type="text"
                 maxLength={20}
                 {...nicknameForm.register('nickname')}
-                className="w-full h-10 px-3 text-sm border border-bd rounded-ds-lg bg-bg text-tx placeholder:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+                className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx placeholder:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
               />
               {nicknameForm.formState.errors.nickname && (
-                <p className="text-xs text-red-500">{nicknameForm.formState.errors.nickname.message}</p>
+                <p className="text-ds-xs text-error-tx flex items-center gap-1">{nicknameForm.formState.errors.nickname.message}</p>
               )}
-              {nicknameError && <p className="text-xs text-red-500">{nicknameError}</p>}
-              {nicknameSuccess && <p className="text-xs text-green-600">昵称修改成功</p>}
+              {nicknameError && <p className="text-ds-xs text-error-tx flex items-center gap-1">{nicknameError}</p>}
+              {nicknameSuccess && <p className="text-ds-xs text-tl flex items-center gap-1">✓ 昵称修改成功</p>}
               <Button
                 type="submit"
                 disabled={nicknameForm.formState.isSubmitting}
                 size="sm"
-                className="btn-super-cta !text-white rounded-ds-lg"
+                className="btn-super-cta !text-white rounded-ds-lg px-6"
               >
                 保存
               </Button>
@@ -210,9 +211,10 @@ export default function SettingsPage() {
           </div>
 
           {/* 修改密码 */}
-          <div className="bg-white rounded-ds-lg shadow-ds-md border border-bd p-6">
-            <h3 className="text-base font-ds-bold text-tx mb-4 flex items-center gap-2">
-              <Lock className="w-4 h-4 text-ac" />
+          <div className="bg-white rounded-ds-lg shadow-ds-md border border-bd p-6 hover-lift">
+            <h3 className="text-ds-base font-ds-bold text-tx mb-4 flex items-center gap-2">
+              <span className="w-1 h-4 rounded-full bg-tl inline-block"></span>
+              <Lock className="w-4 h-4 text-tl" />
               修改密码
             </h3>
             <form onSubmit={passwordForm.handleSubmit(handlePasswordSubmit)} className="space-y-3">
@@ -220,27 +222,27 @@ export default function SettingsPage() {
                 type="password"
                 placeholder="新密码（至少6位）"
                 {...passwordForm.register('newPassword')}
-                className="w-full h-10 px-3 text-sm border border-bd rounded-ds-lg bg-bg text-tx placeholder:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+                className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx placeholder:text-txt focus:outline-none focus:border-tl focus:ring-2 focus:ring-tl/20 transition-all"
               />
               {passwordForm.formState.errors.newPassword && (
-                <p className="text-xs text-red-500">{passwordForm.formState.errors.newPassword.message}</p>
+                <p className="text-ds-xs text-error-tx">{passwordForm.formState.errors.newPassword.message}</p>
               )}
               <input
                 type="password"
                 placeholder="确认新密码"
                 {...passwordForm.register('confirmPassword')}
-                className="w-full h-10 px-3 text-sm border border-bd rounded-ds-lg bg-bg text-tx placeholder:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+                className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx placeholder:text-txt focus:outline-none focus:border-tl focus:ring-2 focus:ring-tl/20 transition-all"
               />
               {passwordForm.formState.errors.confirmPassword && (
-                <p className="text-xs text-red-500">{passwordForm.formState.errors.confirmPassword.message}</p>
+                <p className="text-ds-xs text-error-tx">{passwordForm.formState.errors.confirmPassword.message}</p>
               )}
-              {passwordError && <p className="text-xs text-red-500">{passwordError}</p>}
-              {passwordSuccess && <p className="text-xs text-green-600">密码修改成功</p>}
+              {passwordError && <p className="text-ds-xs text-error-tx">{passwordError}</p>}
+              {passwordSuccess && <p className="text-ds-xs text-tl flex items-center gap-1">✓ 密码修改成功</p>}
               <Button
                 type="submit"
                 disabled={passwordForm.formState.isSubmitting}
                 size="sm"
-                className="btn-super-cta !text-white rounded-ds-lg"
+                className="btn-super-cta !text-white rounded-ds-lg px-6"
               >
                 修改密码
               </Button>
@@ -248,9 +250,9 @@ export default function SettingsPage() {
           </div>
 
           {/* 底部 */}
-          <div className="flex items-center justify-center gap-2 mt-8 opacity-50">
+          <div className="flex items-center justify-center gap-2 mt-10 opacity-40">
             <GraduationCap className="w-4 h-4 text-txs" />
-            <span className="text-xs text-txt">教学设计师俱乐部</span>
+            <span className="text-ds-xs text-txt">教学设计师俱乐部</span>
           </div>
         </div>
       </main>

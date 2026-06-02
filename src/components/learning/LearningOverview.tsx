@@ -11,37 +11,40 @@ export default function LearningOverview({ overview }: Props) {
       icon: Award,
       value: overview.totalCredits,
       label: '累计学分',
-      color: 'text-amber-600',
-      bg: 'bg-amber-50',
+      color: 'text-am',
+      accentBg: 'bg-yellow-soft',
     },
     {
       icon: CheckCircle,
       value: overview.completedCourses,
       label: '已完成',
       suffix: '节',
-      color: 'text-emerald-600',
-      bg: 'bg-emerald-50',
+      color: 'text-tl',
+      accentBg: 'bg-mint-soft',
     },
     {
       icon: PlayCircle,
       value: overview.inProgressCourses,
       label: '学习中',
       suffix: '节',
-      color: 'text-blue-600',
-      bg: 'bg-blue-50',
+      color: 'text-ac',
+      accentBg: 'bg-pink-soft',
     },
   ];
 
   return (
     <div className="grid grid-cols-3 gap-3">
-      {cards.map((card) => {
+      {cards.map((card, idx) => {
         const Icon = card.icon;
         return (
           <div
             key={card.label}
-            className={`${card.bg} rounded-ds-lg border border-bd/50 p-3 md:p-4 text-center`}
+            className="bg-white rounded-ds-lg border border-bd p-3 md:p-4 text-center hover-lift animate-fade-in-up"
+            style={{ animationDelay: `${idx * 0.1}s` }}
           >
-            <Icon className={`w-5 h-5 mx-auto mb-1.5 ${card.color}`} />
+            <div className={`w-9 h-9 rounded-ds-full ${card.accentBg} flex items-center justify-center mx-auto mb-2`}>
+              <Icon className={`w-4.5 h-4.5 ${card.color}`} />
+            </div>
             <p className={`text-ds-xl md:text-ds-2xl font-ds-black ${card.color}`}>
               {card.value}
               {card.suffix && (

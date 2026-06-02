@@ -1,6 +1,9 @@
 // 会员类型
 export type MembershipType = 'free' | 'plus' | 'pro';
 
+// 用户角色
+export type UserRole = 'member' | 'admin';
+
 // 课程分类类型
 export interface CourseCategory {
   id: string;
@@ -47,6 +50,7 @@ export interface Profile {
   nickname: string;
   avatar_url: string | null;
   access_level: MembershipType;
+  role: UserRole;
   status: 'active' | 'banned';
   created_at: string;
   updated_at: string;

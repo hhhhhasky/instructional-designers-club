@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import SettingsPage from './pages/SettingsPage';
 import LearningPage from './pages/LearningPage';
+import AdminPage from './pages/AdminPage';
 import type { ReactNode } from 'react';
 
 interface RouteConfig {
@@ -69,6 +70,12 @@ const routes: RouteConfig[] = [
     name: '学习主页',
     path: '/learning',
     element: <LearningPage />,
+    visible: false
+  },
+  {
+    name: '管理后台',
+    path: '/admin',
+    element: <AdminPage />,
     visible: false
   }
 ];
