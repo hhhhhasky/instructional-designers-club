@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Plus, Edit2, Archive, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Edit2, Archive, Eye, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
 import { Button } from "@/components/ui/button";
@@ -336,6 +336,13 @@ export default function CourseManagementSection() {
                   </td>
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => window.open(`/courses/${course.id}`, '_blank')}
+                        className="p-1.5 rounded-ds-md hover:bg-warm transition-colors text-txs hover:text-tl"
+                        title="预览"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => handleEdit(course)}
                         className="p-1.5 rounded-ds-md hover:bg-warm transition-colors text-txs hover:text-ac"

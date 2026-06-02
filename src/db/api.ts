@@ -52,6 +52,31 @@ export async function getCourseById(courseId: string): Promise<Course | null> {
 }
 
 /**
+ * 管理员获取任意状态的课程详情（不限制 status）
+ * @param courseId 课程ID
+ * @returns 课程详情（含草稿和已归档）
+ */
+export async function getCourseByIdAdmin(courseId: string): Promise<Course | null> {
+  try {
+    const { data, error } = await supabase
+      .from('courses')
+      .select('*')
+      .eq('id', courseId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('getCourseByIdAdmin error:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('获取课程详情异常:', error);
+    return null;
+  }
+}
+
+/**
  * 获取所有课程分类（按 sort_order 排序）
  * @returns 分类列表
  */

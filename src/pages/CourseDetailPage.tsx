@@ -2,12 +2,12 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ExternalLink, Clock, Award, User, BookOpen, AlertCircle, ChevronLeft, ChevronRight, List, CheckCircle2, PlayCircle } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Clock, Award, User, BookOpen, AlertCircle, ChevronLeft, ChevronRight, List, CheckCircle2, PlayCircle, Eye } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
 import CourseConfirmDialog from '@/components/course/CourseConfirmDialog';
-import { getCourseById, incrementCourseViewCount, getCoursesByMembershipAndCategory } from '@/db/api';
+import { getCourseById, getCourseByIdAdmin, incrementCourseViewCount, getCoursesByMembershipAndCategory } from '@/db/api';
 import { canAccessCourse, recordCourseVisit, updateLearningProgress, getUserLearningRecords } from '@/lib/access-control';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Course, LearningRecord } from '@/types/types';
@@ -37,7 +37,7 @@ const LEVEL_STYLE: Record<string, string> = {
 export default function CourseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, accessLevel } = useAuth();
+  const { user, profile, accessLevel } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -94,7 +94,12 @@ export default function CourseDetailPage() {
         setError(null);
         setShowUpgrade(false);
 
-        const courseData = await getCourseById(id);
+        let courseData = await getCourseById(id);
+
+        // 管理员预览：常规 API 找不到时查所有状态
+        if (!courseData && profile?.role === 'admin') {
+          courseData = await getCourseByIdAdmin(id);
+        }
 
         if (!courseData) {
           setError('课程不存在');
@@ -120,7 +125,7 @@ export default function CourseDetailPage() {
     };
 
     loadCourse();
-  }, [id]);
+  }, [id, profile?.role]);
 
   // 访问控制检查独立于课程加载
   useEffect(() => {
@@ -292,6 +297,18 @@ export default function CourseDetailPage() {
             <span className="truncate max-w-[200px] text-tx/60">{course.title}</span>
           </div>
         </div>
+
+        {/* 管理员预览横幅 */}
+        {profile?.role === 'admin' && course.status !== 'published' && (
+          <div className="max-w-7xl mx-auto px-4 pt-3">
+            <div className="bg-am/10 border border-am/30 rounded-ds-lg px-4 py-2.5 flex items-center gap-2 text-ds-sm text-am">
+              <Eye className="w-4 h-4 flex-shrink-0" />
+              <span>
+                你正在预览未发布内容（状态：<strong>{course.status === 'draft' ? '草稿' : '已归档'}</strong>）— 普通用户看不到此页面
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Main Content: Video + Sidebar */}
         <div className="max-w-7xl mx-auto px-4 pt-4">
