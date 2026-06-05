@@ -15,6 +15,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { canAccessCourse } from '@/lib/access-control';
 import LockOverlay from '@/components/common/LockOverlay';
 import UpgradePopup from '@/components/common/UpgradePopup';
+import PageMeta from '@/components/common/PageMeta';
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -107,6 +108,13 @@ export default function HomePage() {
   ];
 
   return (
+    <>
+      <PageMeta
+        title="教学设计师俱乐部"
+        description="一所AI时代的线上创新师范学院。提供系统化教学设计课程、教师AI课、学习营和共学社区，帮助教育者提升教学专业能力。"
+        canonicalPath="/"
+        keywords="教学设计,教师培训,AI教学,课程设计,教学设计师俱乐部"
+      />
     <div className="min-h-screen bg-cream">
       <Header />
       <PageNavigation items={navItems} />
@@ -788,5 +796,6 @@ export default function HomePage() {
         requiredLevel={upgradeLevel}
       />
     </div>
+    </>
   );
 }

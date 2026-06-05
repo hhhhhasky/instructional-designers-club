@@ -5,6 +5,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/common/Footer";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
 import { Button } from "@/components/ui/button";
+import PageMeta from '@/components/common/PageMeta';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import MemberOverviewSection from "@/components/admin/MemberOverviewSection";
@@ -99,6 +100,8 @@ export default function AdminPage() {
   }
 
   return (
+    <>
+      <PageMeta title="管理后台" description="" noIndex />
     <div className="min-h-screen bg-cream flex flex-col">
       <Header />
       <main className="flex-1 pt-20 pb-12 px-4">
@@ -167,5 +170,6 @@ export default function AdminPage() {
       </main>
       <Footer />
     </div>
+    </>
   );
 }

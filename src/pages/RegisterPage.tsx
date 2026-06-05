@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { GraduationCap, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import PageMeta from '@/components/common/PageMeta';
 
 const registerSchema = z
   .object({
@@ -47,6 +48,8 @@ export default function RegisterPage() {
   };
 
   return (
+    <>
+      <PageMeta title="注册" description="" noIndex />
     <div className="min-h-screen bg-cream flex flex-col">
       <main className="flex-1 flex items-center justify-center pt-20 pb-12 px-4">
         <div className="w-full max-w-sm animate-fade-in" style={{ animation: 'fade-in 0.6s ease-out' }}>
@@ -157,5 +160,6 @@ export default function RegisterPage() {
         </div>
       </main>
     </div>
+    </>
   );
 }

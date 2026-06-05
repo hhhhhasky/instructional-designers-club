@@ -38,6 +38,7 @@ import { cn } from '@/lib/utils';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
+import PageMeta from '@/components/common/PageMeta';
 import { getCoursesByMembershipType, getCategoriesByMembershipType, getBatchCategoryTags } from '@/db/api';
 import type { Course, MembershipType } from '@/types/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -339,6 +340,13 @@ export default function CoursesPage() {
   };
 
   return (
+    <>
+      <PageMeta
+        title="课程中心"
+        description="探索AI时代的教学设计课程，涵盖教学通识课(Plus)、教师AI课(Pro)和免费课程。系统学习教学设计方法论，提升教学专业能力。"
+        canonicalPath="/courses"
+        keywords="教学设计课程,教师培训课程,AI教学课程,免费教学课程"
+      />
     <div className="min-h-screen bg-cream flex flex-col">
       <Header />
       {/* 加载遮罩 */}
@@ -732,5 +740,6 @@ export default function CoursesPage() {
         requiredLevel={upgradeLevel}
       />
     </div>
+    </>
   );
 }

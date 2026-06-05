@@ -9,6 +9,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
 import { useAuth } from '@/contexts/AuthContext';
+import PageMeta from '@/components/common/PageMeta';
 import { updateNickname, updateAvatar, changePassword } from '@/lib/access-control';
 
 const nicknameSchema = z.object({
@@ -135,6 +136,8 @@ export default function SettingsPage() {
         : '免费版';
 
   return (
+    <>
+      <PageMeta title="账号设置" description="" noIndex />
     <div className="min-h-screen bg-cream flex flex-col">
       <Header />
       <main className="flex-1 pt-20 pb-12 px-4">
@@ -258,5 +261,6 @@ export default function SettingsPage() {
       </main>
       <Footer />
     </div>
+    </>
   );
 }

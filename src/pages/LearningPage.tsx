@@ -5,6 +5,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
 import MobileTabBar from '@/components/navigation/MobileTabBar';
+import PageMeta from '@/components/common/PageMeta';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { getLearningData } from '@/db/api';
@@ -99,6 +100,8 @@ export default function LearningPage() {
   const hasRecords = recentLearning.length > 0 || (overview && (overview.completedCourses > 0 || overview.inProgressCourses > 0));
 
   return (
+    <>
+      <PageMeta title="学习主页" description="" noIndex />
     <div className="min-h-screen bg-cream flex flex-col">
       <Header />
       <main className="flex-1 pt-20 pb-24 md:pb-12 px-4">
@@ -185,5 +188,6 @@ export default function LearningPage() {
       <Footer />
       <MobileTabBar />
     </div>
+    </>
   );
 }

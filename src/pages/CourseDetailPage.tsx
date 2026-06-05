@@ -6,6 +6,7 @@ import { ArrowLeft, ExternalLink, Clock, Award, User, BookOpen, AlertCircle, Che
 import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
+import PageMeta from '@/components/common/PageMeta';
 import CourseConfirmDialog from '@/components/course/CourseConfirmDialog';
 import { getCourseById, getCourseByIdAdmin, incrementCourseViewCount, getCoursesByMembershipAndCategory } from '@/db/api';
 import { canAccessCourse, recordCourseVisit, updateLearningProgress, getUserLearningRecords } from '@/lib/access-control';
@@ -273,6 +274,17 @@ export default function CourseDetailPage() {
   );
 
   return (
+    <>
+      {course && (
+        <PageMeta
+          title={course.title}
+          description={course.description || `${course.title} - 教学设计师俱乐部课程`}
+          canonicalPath={`/courses/${course.id}`}
+          ogType="article"
+          ogImage={course.image_url || undefined}
+          keywords={course.category || undefined}
+        />
+      )}
     <div className="min-h-screen bg-cream flex flex-col">
       <Header />
 
@@ -626,5 +638,6 @@ export default function CourseDetailPage() {
       <Footer />
       <CourseConfirmDialog open={showConfirmDialog} onConfirm={handleConfirmStart} />
     </div>
+    </>
   );
 }

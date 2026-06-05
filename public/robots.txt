@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /login
+Disallow: /register
+Disallow: /settings
+Disallow: /learning
+Disallow: /admin
+
+Sitemap: https://idclub.hasky.top/sitemap.xml

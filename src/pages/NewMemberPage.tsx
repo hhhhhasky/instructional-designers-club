@@ -6,6 +6,7 @@ import { Calendar, BookOpen, TrendingUp, Sparkles, CheckCircle2 } from "lucide-r
 import Header from "@/components/layout/Header";
 import PageNavigation from "@/components/common/PageNavigation";
 import Footer from "@/components/common/Footer";
+import PageMeta from "@/components/common/PageMeta";
 
 export default function NewMemberPage() {
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
@@ -17,6 +18,13 @@ export default function NewMemberPage() {
   ];
 
   return (
+    <>
+      <PageMeta
+        title="新会员必读"
+        description="教学设计师俱乐部新会员指南。了解近期活动、新手村教程和专业进阶地图，快速融入共学社区。"
+        canonicalPath="/new-member"
+        keywords="新会员,教学设计入门,新手教程,教学设计师俱乐部"
+      />
     <div className="min-h-screen bg-cream">
       <Header />
       <PageNavigation items={navItems} />
@@ -369,5 +377,6 @@ export default function NewMemberPage() {
       </section>
       <Footer />
     </div>
+    </>
   );
 }

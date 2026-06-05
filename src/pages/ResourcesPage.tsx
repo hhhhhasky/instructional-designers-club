@@ -2,8 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BookOpen, ExternalLink, FileText } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/common/Footer";
-
-// 文章数据
+import PageMeta from "@/components/common/PageMeta";
 const articles = [
   {
     title: "教师主导的教学与以学生为中心的学习是对立的？",
@@ -308,6 +307,13 @@ export default function ResourcesPage() {
   };
 
   return (
+    <>
+      <PageMeta
+        title="资源中心"
+        description="精选教学设计文章与翻译作品，涵盖认知负荷理论、建构主义、PBL项目式学习等教学设计前沿话题。"
+        canonicalPath="/resources"
+        keywords="教学设计文章,教育翻译,教学理论,教学资源"
+      />
     <div className="min-h-screen bg-cream">
       <Header />
       {/* Hero Section */}
@@ -373,5 +379,6 @@ export default function ResourcesPage() {
       </section>
       <Footer />
     </div>
+    </>
   );
 }
