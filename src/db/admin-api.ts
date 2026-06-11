@@ -1,5 +1,5 @@
+import type { Course, MembershipType } from "@/types/types";
 import { supabase } from "./supabase";
-import type { MembershipType, Course } from "@/types/types";
 
 // ==================== 响应类型 ====================
 
@@ -42,6 +42,13 @@ export interface StudentItem {
   last_active_at: string | null;
   completed_courses: number;
   in_progress_courses: number;
+}
+
+export interface AccessLevelUpdateResult {
+  id: string;
+  access_level: MembershipType;
+  status?: StudentItem["status"];
+  updated_at?: string;
 }
 
 export interface InactiveStudentItem {
@@ -145,8 +152,8 @@ export async function getAdminStudentLeaderboard(): Promise<LeaderboardStudentIt
 export async function adminUpdateUserAccessLevel(
   userId: string,
   newLevel: MembershipType
-): Promise<void> {
-  const { error } = await supabase.rpc("admin_update_user_access_level", {
+): Promise<AccessLevelUpdateResult> {
+  const { data, error } = await supabase.rpc("admin_update_user_access_level", {
     p_user_id: userId,
     p_new_level: newLevel,
   });
@@ -154,6 +161,13 @@ export async function adminUpdateUserAccessLevel(
     console.error("adminUpdateUserAccessLevel error:", error);
     throw error;
   }
+
+  const result = Array.isArray(data) ? data[0] : data;
+  if (!result || result.id !== userId || result.access_level !== newLevel) {
+    throw new Error("用户等级未更新，请刷新后重试");
+  }
+
+  return result as AccessLevelUpdateResult;
 }
 
 // ==================== 课程管理 ====================

@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo } from "react";
-import { Search, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { getAdminStudentList, adminUpdateUserAccessLevel } from "@/db/admin-api";
 import type { StudentItem } from "@/db/admin-api";
+import { adminUpdateUserAccessLevel, getAdminStudentList } from "@/db/admin-api";
+import { cn } from "@/lib/utils";
 import type { MembershipType } from "@/types/types";
 
 const PAGE_SIZE = 20;
@@ -96,17 +96,33 @@ export default function StudentListSection() {
   // 内联编辑用户等级
   const [editingId, setEditingId] = useState<string | null>(null);
   const [pendingLevel, setPendingLevel] = useState<MembershipType | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   const handleSaveLevel = async (userId: string, newLevel: MembershipType) => {
+    const previousLevel = students.find((s) => s.id === userId)?.access_level;
+    if (previousLevel === newLevel) {
+      setEditingId(null);
+      setPendingLevel(null);
+      return;
+    }
+
     try {
-      await adminUpdateUserAccessLevel(userId, newLevel);
+      setSavingId(userId);
+      const result = await adminUpdateUserAccessLevel(userId, newLevel);
       setStudents((prev) =>
-        prev.map((s) => (s.id === userId ? { ...s, access_level: newLevel } : s))
+        prev.map((s) =>
+          s.id === userId ? { ...s, access_level: result.access_level } : s
+        )
       );
-      toast.success(`已将用户等级修改为 ${newLevel.toUpperCase()}`);
-    } catch {
-      toast.error("修改等级失败，请重试");
+      toast.success(`已将用户等级修改为 ${result.access_level.toUpperCase()}`);
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "修改等级失败，请重试";
+      toast.error(message);
     } finally {
+      setSavingId(null);
       setEditingId(null);
       setPendingLevel(null);
     }
@@ -244,12 +260,14 @@ export default function StudentListSection() {
                         </select>
                         <button
                           onClick={() => handleSaveLevel(student.id, pendingLevel || student.access_level)}
+                          disabled={savingId === student.id}
                           className="text-ds-xs text-tl hover:text-tl/80 font-ds-semibold"
                         >
-                          保存
+                          {savingId === student.id ? "保存中" : "保存"}
                         </button>
                         <button
                           onClick={() => { setEditingId(null); setPendingLevel(null); }}
+                          disabled={savingId === student.id}
                           className="text-ds-xs text-txs hover:text-tx"
                         >
                           取消
@@ -257,7 +275,7 @@ export default function StudentListSection() {
                       </div>
                     ) : (
                       <button
-                        onClick={() => { setEditingId(student.id); setPendingLevel(null); }}
+                        onClick={() => { setEditingId(student.id); setPendingLevel(student.access_level); }}
                         className="cursor-pointer hover:opacity-80 transition-opacity"
                         title="点击修改等级"
                       >
