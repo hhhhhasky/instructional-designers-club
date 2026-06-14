@@ -5,6 +5,7 @@ import { BookOpen, GraduationCap, Users, Sparkles, Quote, Play, TrendingUp, Cloc
 import { Link, useNavigate } from 'react-router-dom';
 import Header from "@/components/layout/Header";
 import MemberHomeHero from "@/components/home/MemberHomeHero";
+import AnnouncementFeed from "@/components/home/AnnouncementFeed";
 import PageNavigation from "@/components/common/PageNavigation";
 import CountUp from "@/components/ui/CountUp";
 import Footer from "@/components/common/Footer";
@@ -150,6 +151,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ========== 最新动态 / 上新信息流（R-P0-03）—— 仅未登录访客 ========== */}
+      {!loading && !user && <AnnouncementFeed variant="section" />}
 
       {/* ========== 俱乐部介绍 ========== */}
       <section id="introduction" className="py-8 md:py-16 xl:py-24 px-4 bg-aml">

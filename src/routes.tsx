@@ -3,6 +3,7 @@ import NewMemberPage from './pages/NewMemberPage';
 import ResourcesPage from './pages/ResourcesPage';
 import CoursesPage from './pages/CoursesPage';
 import CourseDetailPage from './pages/CourseDetailPage';
+import ActivityDetailPage from './pages/ActivityDetailPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import SettingsPage from './pages/SettingsPage';
@@ -34,6 +35,12 @@ const routes: RouteConfig[] = [
     name: '课程详情',
     path: '/courses/:id',
     element: <CourseDetailPage />,
+    visible: false
+  },
+  {
+    name: '活动详情',
+    path: '/activities/:id',
+    element: <ActivityDetailPage />,
     visible: false
   },
   {

@@ -772,6 +772,37 @@ export async function getTestimonials(): Promise<Testimonial[]> {
 }
 
 /**
+ * 读取最近上架的课程（R-P0-03 动态流自动汇聚）。
+ * 按 created_at 倒序取已发布课程，仅保留 withinDays 天内上架的，
+ * 避免把陈旧课程当作「上新」展示。created_at 为空的课程自动被过滤。
+ */
+export async function getLatestCourses(
+  limit = 4,
+  withinDays = 60
+): Promise<Course[]> {
+  try {
+    const since = new Date(
+      Date.now() - withinDays * 24 * 60 * 60 * 1000
+    ).toISOString();
+    const { data, error } = await supabase
+      .from('courses')
+      .select('id, title, description, category, image_url, membership_type, created_at, is_trial')
+      .eq('status', 'published')
+      .gte('created_at', since)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) {
+      console.error('getLatestCourses 失败:', error);
+      return [];
+    }
+    return (data as Course[]) ?? [];
+  } catch (error) {
+    console.error('getLatestCourses 异常:', error);
+    return [];
+  }
+}
+
+/**
  * 读取有效动态（已发布、未过期、激活），置顶优先 + 发布时间倒序
  */
 export async function getActiveAnnouncements(limit = 20): Promise<Announcement[]> {
@@ -815,6 +846,28 @@ export async function getActivities(limit = 20): Promise<Activity[]> {
   } catch (error) {
     console.error('getActivities 异常:', error);
     return [];
+  }
+}
+
+/**
+ * 读取单个活动详情（按 id，不过滤 is_active，是否可见由页面层判断）。
+ * 找不到返回 null；出错同样返回 null（页面统一兜底为「不存在或已下架」）。
+ */
+export async function getActivityById(id: string): Promise<Activity | null> {
+  try {
+    const { data, error } = await supabase
+      .from('activities')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) {
+      console.error('getActivityById 失败:', error);
+      return null;
+    }
+    return (data as Activity) ?? null;
+  } catch (error) {
+    console.error('getActivityById 异常:', error);
+    return null;
   }
 }
 

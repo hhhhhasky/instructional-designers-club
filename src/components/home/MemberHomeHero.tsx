@@ -13,6 +13,7 @@ import LearningOverview from "@/components/learning/LearningOverview";
 import EmptyLearningState from "@/components/learning/EmptyLearningState";
 import ContinueLearningCard from "./ContinueLearningCard";
 import NextCourseCard from "./NextCourseCard";
+import AnnouncementFeed from "./AnnouncementFeed";
 
 interface LearningData {
   overview: LearningOverviewType;
@@ -179,6 +180,9 @@ export default function MemberHomeHero() {
             <EmptyLearningState />
           )
         )}
+
+        {/* 最新动态 / 上新信息流（R-P0-03）：自管理加载，无数据不渲染 */}
+        {!loading && <AnnouncementFeed variant="compact" />}
       </div>
     </section>
   );
