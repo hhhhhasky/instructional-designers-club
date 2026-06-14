@@ -1,5 +1,19 @@
 import { supabase } from "./supabase";
-import type { Course, MembershipType, LearningOverview, SeriesProgress, SeriesCourseItem, RecentLearningItem } from "@/types/types";
+import type {
+  Course,
+  MembershipType,
+  LearningOverview,
+  SeriesProgress,
+  SeriesCourseItem,
+  RecentLearningItem,
+  MemberProfile,
+  Faq,
+  Testimonial,
+  Announcement,
+  Activity,
+  Resource,
+  SiteContent,
+} from "@/types/types";
 
 /**
  * 获取所有已发布的课程列表
@@ -407,8 +421,9 @@ export async function getClubStats(): Promise<{
       }, 0);
     }
 
-    // 会员人数固定为500
-    const members = 500;
+    // 会员人数：优先取后台 site_content.stats.member_count 手填值；
+    // 未配置时回退到 profiles 表真实会员数。
+    const members = await getMemberCount();
 
     return {
       camps,
@@ -423,7 +438,7 @@ export async function getClubStats(): Promise<{
       camps: 0,
       courses: 0,
       totalMinutes: 0,
-      members: 500
+      members: 0
     };
   }
 }
@@ -659,4 +674,162 @@ async function _fetchLearningData(userId: string): Promise<{
     console.error('获取学习数据异常:', error);
     return empty;
   }
+}
+
+// ==================== 内容运营后台 · 前台读取（R-P0-02） ====================
+
+/**
+ * 会员人数：优先取后台 site_content.stats.member_count 手填值，
+ * 否则用公开计数 RPC（public_member_count，SECURITY DEFINER 绕过 profiles RLS，
+ * 匿名用户也能拿到真实活跃会员数）。全部失败时回退 0。
+ */
+export async function getMemberCount(): Promise<number> {
+  try {
+    const { data } = await supabase
+      .from('site_content')
+      .select('data')
+      .eq('section_key', 'stats')
+      .maybeSingle();
+    const override = (data?.data as Record<string, unknown> | null)?.member_count;
+    if (typeof override === 'number' && override >= 0) return override;
+
+    const { data: rpcCount, error } = await supabase.rpc('public_member_count');
+    if (!error && typeof rpcCount === 'number') return rpcCount;
+    return 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * 读取首页某个单例区块内容（不存在时返回 null，调用方走兜底）
+ */
+export async function getSiteContent<T = Record<string, unknown>>(
+  sectionKey: string
+): Promise<SiteContent | null> {
+  try {
+    const { data, error } = await supabase
+      .from('site_content')
+      .select('*')
+      .eq('section_key', sectionKey)
+      .maybeSingle();
+    if (error) {
+      console.error(`getSiteContent(${sectionKey}) 失败:`, error);
+      return null;
+    }
+    return (data as SiteContent | null) ?? null;
+  } catch (error) {
+    console.error(`getSiteContent(${sectionKey}) 异常:`, error);
+    return null;
+  }
+}
+
+/**
+ * 读取首页会员风采（仅激活项，按 sort_order 排序）。
+ * 注意：查询出错时抛出异常（不静默返回空），便于调用方区分
+ * 「运营清空」与「表缺失/网络异常」——前者应显示空，后者应走兜底。
+ */
+export async function getMemberProfiles(): Promise<MemberProfile[]> {
+  const { data, error } = await supabase
+    .from('member_profiles')
+    .select('*')
+    .order('sort_order', { ascending: true });
+  if (error) {
+    console.error('getMemberProfiles 失败:', error);
+    throw error;
+  }
+  return (data as MemberProfile[]) ?? [];
+}
+
+/**
+ * 读取 FAQ（仅激活项）。同上，出错抛异常。
+ */
+export async function getFaqs(): Promise<Faq[]> {
+  const { data, error } = await supabase
+    .from('faqs')
+    .select('*')
+    .order('sort_order', { ascending: true });
+  if (error) {
+    console.error('getFaqs 失败:', error);
+    throw error;
+  }
+  return (data as Faq[]) ?? [];
+}
+
+/**
+ * 读取会员评价（仅激活项）。同上，出错抛异常。
+ */
+export async function getTestimonials(): Promise<Testimonial[]> {
+  const { data, error } = await supabase
+    .from('testimonials')
+    .select('*')
+    .order('sort_order', { ascending: true });
+  if (error) {
+    console.error('getTestimonials 失败:', error);
+    throw error;
+  }
+  return (data as Testimonial[]) ?? [];
+}
+
+/**
+ * 读取有效动态（已发布、未过期、激活），置顶优先 + 发布时间倒序
+ */
+export async function getActiveAnnouncements(limit = 20): Promise<Announcement[]> {
+  try {
+    const nowIso = new Date().toISOString();
+    const { data, error } = await supabase
+      .from('announcements')
+      .select('*')
+      .eq('is_active', true)
+      .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
+      .order('is_pinned', { ascending: false })
+      .order('published_at', { ascending: false })
+      .limit(limit);
+    if (error) {
+      console.error('getActiveAnnouncements 失败:', error);
+      return [];
+    }
+    return (data as Announcement[]) ?? [];
+  } catch (error) {
+    console.error('getActiveAnnouncements 异常:', error);
+    return [];
+  }
+}
+
+/**
+ * 读取近期活动（仅激活项，按开始时间升序）
+ */
+export async function getActivities(limit = 20): Promise<Activity[]> {
+  try {
+    const { data, error } = await supabase
+      .from('activities')
+      .select('*')
+      .order('start_time', { ascending: true, nullsFirst: false })
+      .order('sort_order', { ascending: true })
+      .limit(limit);
+    if (error) {
+      console.error('getActivities 失败:', error);
+      return [];
+    }
+    return (data as Activity[]) ?? [];
+  } catch (error) {
+    console.error('getActivities 异常:', error);
+    return [];
+  }
+}
+
+/**
+ * 读取资源中心文章（仅激活项，按 sort_order 排序）。
+ * 出错抛异常，便于调用方区分「运营清空」与「表缺失/网络异常」。
+ */
+export async function getResources(): Promise<Resource[]> {
+  const { data, error } = await supabase
+    .from('resources')
+    .select('*')
+    .order('sort_order', { ascending: true });
+  if (error) {
+    console.error('getResources 失败:', error);
+    throw error;
+  }
+  return (data as Resource[]) ?? [];
 }

@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, GraduationCap, Users, Sparkles, Quote, Play, TrendingUp, Clock, Calendar, UserCheck, Gift, Crown, Star, Brain, Lightbulb, Target, Bot } from "lucide-react";
+import { BookOpen, GraduationCap, Users, Sparkles, Quote, Play, TrendingUp, Clock, Calendar, UserCheck, Gift, Crown, Star } from "lucide-react";
 import { Link, useNavigate } from 'react-router-dom';
 import Header from "@/components/layout/Header";
+import MemberHomeHero from "@/components/home/MemberHomeHero";
 import PageNavigation from "@/components/common/PageNavigation";
 import CountUp from "@/components/ui/CountUp";
 import Footer from "@/components/common/Footer";
@@ -16,12 +17,15 @@ import { canAccessCourse } from '@/lib/access-control';
 import LockOverlay from '@/components/common/LockOverlay';
 import UpgradePopup from '@/components/common/UpgradePopup';
 import PageMeta from '@/components/common/PageMeta';
+import { useHomeContent } from '@/hooks/useHomeContent';
+import { getIcon, getColor, renderInline } from '@/lib/content-render';
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { user, accessLevel } = useAuth();
+  const { user, accessLevel, profile, loading } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeLevel, setUpgradeLevel] = useState<'plus' | 'pro'>('plus');
+  const content = useHomeContent();
 
   const handleCourseClick = useCallback((courseId: string, membershipType: string) => {
     if (membershipType === 'free') {
@@ -118,6 +122,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-cream">
       <Header />
       <PageNavigation items={navItems} />
+      {user && profile && !loading && <MemberHomeHero />}
       {/* ========== Hero Section ========== */}
       <section className="relative py-20 md:py-24 xl:py-40 px-4 overflow-hidden pt-28 md:pt-32 xl:pt-48 gradient-animate border-b-2 border-bd">
         <div className="absolute top-20 right-10 w-72 h-72 bg-acl rounded-full blur-3xl pointer-events-none animate-pulse-slow" />
@@ -126,20 +131,20 @@ export default function HomePage() {
         <div className="relative max-w-6xl mx-auto text-center space-y-6 md:space-y-10">
           <div className="space-y-4 md:space-y-6 animate-fade-in-down">
             <h1 className="text-4xl md:text-5xl xl:text-7xl font-ds-black text-tx tracking-tight leading-tight" style={{ fontFamily: 'var(--fd)' }}>
-              让每一堂课，
+              {content.hero.title_line1}
               <br />
-              <span className="text-tx">都值得被认真对待</span>
+              <span className="text-tx">{content.hero.title_line2}</span>
             </h1>
-            <p className="text-lg md:text-2xl xl:text-3xl text-txs max-w-3xl mx-auto leading-relaxed font-medium">{"一所AI时代的线上创新师范学院"}</p>
+            <p className="text-lg md:text-2xl xl:text-3xl text-txs max-w-3xl mx-auto leading-relaxed font-medium">{content.hero.subtitle}</p>
           </div>
 
           <div className="flex flex-col items-center gap-3 md:gap-6 animate-fade-in-up">
             <Button
               size="lg"
               className="btn-pill text-base md:text-xl xl:text-2xl px-8 md:px-12 xl:px-16 py-3 md:py-7 xl:py-8 bg-ac !text-white font-ds-bold hover:bg-acd shadow-ds-accent border-2 border-ac"
-              onClick={() => window.open('http://b50rtgy70nmgu05j.mikecrm.com/rPZN0Mb', '_blank')}
+              onClick={() => window.open(content.hero.cta_link, '_blank')}
             >
-              申请成为会员
+              {content.hero.cta_text}
               <span className="ml-2">→</span>
             </Button>
           </div>
@@ -150,23 +155,20 @@ export default function HomePage() {
       <section id="introduction" className="py-8 md:py-16 xl:py-24 px-4 bg-aml">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-6 md:mb-12">
-            <h2 className="text-2xl md:text-4xl xl:text-5xl font-ds-black text-tx mb-2 md:mb-4" style={{ fontFamily: 'var(--fd)' }}>俱乐部介绍</h2>
-            <p className="text-sm md:text-xl xl:text-2xl text-txs">为认真对待每一堂课的老师而建</p>
+            <h2 className="text-2xl md:text-4xl xl:text-5xl font-ds-black text-tx mb-2 md:mb-4" style={{ fontFamily: 'var(--fd)' }}>{content.intro.section_title}</h2>
+            <p className="text-sm md:text-xl xl:text-2xl text-txs">{content.intro.section_subtitle}</p>
           </div>
 
           <Card className="card-bordered shadow-ds-sm hover-lift">
             <CardHeader className="p-6 md:p-8 xl:p-10 pb-2 md:pb-6">
-              <CardTitle className="text-xl md:text-3xl xl:text-4xl font-ds-bold" style={{ fontFamily: 'var(--fd)' }}>欢迎加入我们</CardTitle>
+              <CardTitle className="text-xl md:text-3xl xl:text-4xl font-ds-bold" style={{ fontFamily: 'var(--fd)' }}>{content.intro.welcome_title}</CardTitle>
               <CardDescription className="text-sm md:text-base xl:text-lg leading-relaxed text-txs mt-3">
-                {"教学设计师俱乐部是一个为教育者打造的共学社区。"}
-                <br /><br />
-                {"我们不认为教学只是“完成任务”——我们相信，好的教学是可以被设计、被打磨、被持续精进的技艺。"}
-                <br /><br />
-                {"在这里，你不会听到“三步搞定公开课”这样的承诺。你得到的是一套系统的"}
-                <strong className="text-ac"> 教学设计方法论（CREATE 模型）</strong>
-                {"，帮助你把对教育的理解，变成每一节课里真实发生的学习。"}
-                <br /><br />
-                {"无论你教什么学科、在什么类型的学校，只要你还在思考“怎样让学生真正学到东西”——这里就有懂你的同行者。"}
+                {content.intro.welcome_paragraphs.map((p, i) => (
+                  <span key={i}>
+                    {i > 0 && <><br /><br /></>}
+                    {renderInline(p)}
+                  </span>
+                ))}
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6 md:p-8 xl:p-10 pt-2 md:pt-4 space-y-4 md:space-y-6">
@@ -174,41 +176,34 @@ export default function HomePage() {
               <div className="bg-gradient-to-br from-ac/5 to-ac/10 rounded-xl p-4 md:p-6 border border-ac/20">
                 <div className="flex items-center justify-center gap-2 mb-4 md:mb-6">
                   <span className="text-xl md:text-3xl">💎</span>
-                  <h3 className="font-ds-bold text-xl md:text-3xl text-tx" style={{ fontFamily: 'var(--fd)' }}>我们相信的教学观</h3>
+                  <h3 className="font-ds-bold text-xl md:text-3xl text-tx" style={{ fontFamily: 'var(--fd)' }}>{content.values.values_title}</h3>
                 </div>
                 <p className="text-sm md:text-base text-txs text-center mb-4 md:mb-6 max-w-2xl mx-auto">
-                  这些信念塑造了我们教什么、怎么教。如果你也认同，我们可能是同行者。
+                  {content.values.values_subtitle}
                 </p>
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 md:gap-4">
-                  {[
-                    { emoji: '✨', text: <><strong className="text-ac">专业方法</strong>先于直觉和经验</> },
-                    { emoji: '🎯', text: <><strong className="text-ac">学习是可以被优化的</strong></> },
-                    { emoji: '🔬', text: <>有效的教学是<strong className="text-ac">科学循证的</strong></> },
-                    { emoji: '⚡', text: <>优质的教学是<strong className="text-ac">有效果、有参与度、有效率的</strong></> },
-                    { emoji: '🤝', text: <><strong className="text-ac">尊重学习者的主体性</strong></> },
-                    { emoji: '🧩', text: <><strong className="text-ac">复杂的事物可以被拆解</strong></> },
-                  ].map((item, i) => (
+                  {content.values.items.map((item, i) => (
                     <div key={i} className="flex items-start gap-3 bg-bc rounded-ds-md p-3 md:p-5 border border-bd shadow-ds-xs hover:shadow-ds-sm hover:border-ac/30 transition-all duration-200">
                       <span className="text-lg md:text-2xl flex-shrink-0">{item.emoji}</span>
-                      <p className="text-sm md:text-base text-tx leading-snug">相信{item.text}</p>
+                      <p className="text-sm md:text-base text-tx leading-snug">相信{renderInline(item.text)}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
               <div>
-                <h3 className="font-ds-bold text-lg md:text-2xl mb-3 md:mb-4 text-tx" style={{ fontFamily: 'var(--fd)' }}>{"在俱乐部中，包括 Plus 和 Pro 两大会员产品："}</h3>
+                <h3 className="font-ds-bold text-lg md:text-2xl mb-3 md:mb-4 text-tx" style={{ fontFamily: 'var(--fd)' }}>{content.intro.product_intro_heading}</h3>
                 <ul className="space-y-3 md:space-y-4">
                   <li key="plus-course" className="flex items-start gap-3 md:gap-4">
                     <span className="inline-flex items-center justify-center w-6 h-6 md:w-8 md:h-8 rounded-full bg-acl text-ac text-sm md:text-base font-ds-bold flex-shrink-0 mt-0.5">1</span>
                     <span className="text-sm md:text-base text-tx leading-relaxed">
-                      <strong className="text-ac">Plus会员：</strong>包含{" "}<strong>70+节教学通识课</strong>{" "}+ 专属答疑社区。它帮你建立一套完整的教学设计思维框架——从理解学生如何学习，到设计有效的学习活动，再到评估学习效果。适合想要<strong>系统精进教学设计能力</strong>、让日常教学更有章法的老师。
+                      {renderInline(content.intro.plus_text)}
                     </span>
                   </li>
                   <li key="pro-course" className="flex items-start gap-3 md:gap-4">
                     <span className="inline-flex items-center justify-center w-6 h-6 md:w-8 md:h-8 rounded-full bg-aml text-am text-sm md:text-base font-ds-bold flex-shrink-0 mt-0.5">2</span>
                     <span className="text-sm md:text-base text-tx leading-relaxed">
-                      <strong className="text-am">Pro会员：</strong>在 Plus 的基础上，增加了{" "}<strong>30+节教师 AI 课</strong>{" "}，以及我研发的<strong>AI工具、网站、skill等资源包</strong>。它不是教你用AI"代替备课"，而是教你用AI延伸教学设计的深度和广度——从教学分析、活动设计到课程开发，让AI成为你教学思考的协作伙伴。适合愿意深度实践、探索教学新可能的老师。
+                      {renderInline(content.intro.pro_text, "text-am font-semibold")}
                     </span>
                   </li>
                 </ul>
@@ -223,7 +218,7 @@ export default function HomePage() {
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-center gap-2 md:gap-3 mb-6 md:mb-10">
             <Sparkles className="w-5 h-5 md:w-6 md:h-6 xl:w-8 xl:h-8 text-ac" />
-            <h2 className="text-2xl md:text-4xl xl:text-5xl font-ds-black text-tx" style={{ fontFamily: 'var(--fd)' }}>俱乐部创始人</h2>
+            <h2 className="text-2xl md:text-4xl xl:text-5xl font-ds-black text-tx" style={{ fontFamily: 'var(--fd)' }}>{content.founder.section_title}</h2>
           </div>
 
           <Card className="border-bd shadow-ds-md overflow-hidden">
@@ -232,8 +227,8 @@ export default function HomePage() {
                 <div className="relative">
                   <div className="absolute inset-0 bg-gradient-to-br from-ac/20 to-aml/20 rounded-2xl blur-2xl" />
                   <img
-                    src="https://miaoda-conversation-file.cdn.bcebos.com/user-75tmduypbkzk/app-7iwdhpt0pypt/20260512/ChatGPT Image 2026年4月22日 12_26_23.png"
-                    alt="哈老师"
+                    src={content.founder.avatar_url}
+                    alt={content.founder.avatar_alt}
                     className="relative w-32 h-32 md:w-48 md:h-48 xl:w-64 xl:h-64 rounded-2xl object-cover shadow-ds-md border-4 border-cream"
                   />
                 </div>
@@ -241,59 +236,56 @@ export default function HomePage() {
 
               <div className="xl:col-span-2 p-4 md:p-6 xl:p-8 flex flex-col gap-4 md:gap-5">
                 <div>
-                  <h3 className="text-xl md:text-2xl xl:text-3xl font-ds-bold text-tx mb-2 md:mb-3" style={{ fontFamily: 'var(--fd)' }}>哈老师</h3>
+                  <h3 className="text-xl md:text-2xl xl:text-3xl font-ds-bold text-tx mb-2 md:mb-3" style={{ fontFamily: 'var(--fd)' }}>{content.founder.name}</h3>
                   <div className="flex flex-wrap gap-1.5 md:gap-2">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-semibold bg-acl text-ac border border-ac/20">
-                      <GraduationCap className="w-3.5 h-3.5" />教学专家
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-semibold bg-aml text-am border border-am/20">
-                      <Bot className="w-3.5 h-3.5" />开发小白
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-semibold bg-ppl text-pp border border-pp/20">
-                      <TrendingUp className="w-3.5 h-3.5" />一人公司
-                    </span>
+                    {content.founder.tags.map((tag, i) => {
+                      const c = getColor(tag.color);
+                      const Icon = getIcon(tag.icon);
+                      return (
+                        <span key={i} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-semibold border ${c.badge}`}>
+                          <Icon className="w-3.5 h-3.5" />{tag.label}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
 
                 <div className="relative pl-3 md:pl-4 border-l-4 border-ac/40">
                   <Quote className="absolute -top-1 -left-1 w-3.5 h-3.5 md:w-4 md:h-4 text-ac/30" />
                   <p className="text-sm md:text-base xl:text-lg text-txs italic leading-relaxed text-pretty">
-                    教学是艺术和科学，更是工程和技术
+                    {content.founder.motto}
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  {[
-                    { icon: Lightbulb, label: '愿景', text: '做一所 AI 时代的创新师范学院', bg: 'bg-aml', color: 'text-am' },
-                    { icon: BookOpen, label: '产品', text: '教学通识课 / 教师AI课', bg: 'bg-acl', color: 'text-ac' },
-                    { icon: Users, label: '社区', text: '教学设计师俱乐部', bg: 'bg-tll', color: 'text-tl' },
-                  ].map(({ icon: Icon, label, text, bg, color }) => (
-                    <div key={label} className="flex items-center gap-2.5 md:gap-3">
-                      <div className={`flex-shrink-0 w-7 h-7 md:w-8 md:h-8 rounded-lg ${bg} flex items-center justify-center`}>
-                        <Icon className={`w-4 h-4 md:w-4.5 md:h-4.5 ${color}`} />
+                  {content.founder.info_items.map((item, i) => {
+                    const c = getColor(item.color);
+                    const Icon = getIcon(item.icon);
+                    return (
+                      <div key={i} className="flex items-center gap-2.5 md:gap-3">
+                        <div className={`flex-shrink-0 w-7 h-7 md:w-8 md:h-8 rounded-lg ${c.iconWrap} flex items-center justify-center`}>
+                          <Icon className={`w-4 h-4 md:w-4.5 md:h-4.5 ${c.iconColor}`} />
+                        </div>
+                        <div className="min-w-0 flex items-baseline gap-2">
+                          <span className="text-sm font-semibold text-txt uppercase tracking-wide flex-shrink-0">{item.label}</span>
+                          <p className="text-sm md:text-base text-tx leading-relaxed">{item.text}</p>
+                        </div>
                       </div>
-                      <div className="min-w-0 flex items-baseline gap-2">
-                        <span className="text-sm font-semibold text-txt uppercase tracking-wide flex-shrink-0">{label}</span>
-                        <p className="text-sm md:text-base text-tx leading-relaxed">{text}</p>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div className="grid grid-cols-5 gap-2 pt-2 border-t border-bd">
-                  {[
-                    { icon: Brain, value: '6h+', label: '每日AI', color: 'text-pp' },
-                    { icon: Bot, value: '80%', label: 'AI外包', color: 'text-am' },
-                    { icon: BookOpen, value: '数百节', label: '师培课', color: 'text-ac' },
-                    { icon: UserCheck, value: '数千名', label: '师支持', color: 'text-tl' },
-                    { icon: TrendingUp, value: '数万名', label: '全网粉', color: 'text-rose-500' },
-                  ].map(({ icon: Icon, value, label, color }) => (
-                    <div key={label} className="flex flex-col items-center text-center gap-0.5 py-2 px-1 rounded-lg bg-warm/40">
-                      <Icon className={`w-3.5 h-3.5 md:w-4 md:h-4 ${color}`} />
-                      <span className="text-sm md:text-base font-bold text-tx leading-tight">{value}</span>
-                      <span className="text-[10px] md:text-xs text-txt leading-tight">{label}</span>
-                    </div>
-                  ))}
+                  {content.founder.stats.map((s, i) => {
+                    const c = getColor(s.color);
+                    return (
+                      <div key={i} className="flex flex-col items-center text-center gap-0.5 py-2 px-1 rounded-lg bg-warm/40">
+                        {(() => { const Icon = getIcon(s.icon); return <Icon className={`w-3.5 h-3.5 md:w-4 md:h-4 ${c.iconColor}`} />; })()}
+                        <span className="text-sm md:text-base font-bold text-tx leading-tight">{s.value}</span>
+                        <span className="text-[10px] md:text-xs text-txt leading-tight">{s.label}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -562,8 +554,8 @@ export default function HomePage() {
 
         <div className="max-w-6xl mx-auto relative">
           <div className="text-center mb-6 md:mb-16 animate-fade-in">
-            <h2 className="text-2xl md:text-4xl xl:text-5xl font-ds-black text-tx mb-2 md:mb-4" style={{ fontFamily: 'var(--fd)' }}>俱乐部数据</h2>
-            <p className="text-sm md:text-xl xl:text-2xl text-txs">持续成长的学习社区</p>
+            <h2 className="text-2xl md:text-4xl xl:text-5xl font-ds-black text-tx mb-2 md:mb-4" style={{ fontFamily: 'var(--fd)' }}>{content.stats.section_title}</h2>
+            <p className="text-sm md:text-xl xl:text-2xl text-txs">{content.stats.section_subtitle}</p>
           </div>
 
           <div className="grid grid-cols-2 xl:grid-cols-5 gap-3 md:gap-6 xl:gap-8">
@@ -620,7 +612,7 @@ export default function HomePage() {
                 <Calendar className="w-7 h-7 md:w-12 md:h-12 xl:w-14 xl:h-14 text-ac mx-auto transition-transform duration-300 hover:scale-110" />
                 <div>
                   <p className="text-2xl md:text-5xl xl:text-6xl font-ds-black text-tx mb-0.5 md:mb-2">
-                    <CountUp end={Math.floor((new Date().getTime() - new Date('2025-03-31').getTime()) / (1000 * 60 * 60 * 24))} />
+                    <CountUp end={Math.max(0, Math.floor((new Date().getTime() - new Date(content.stats.start_date).getTime()) / (1000 * 60 * 60 * 24)))} />
                   </p>
                   <p className="text-xs md:text-base text-txs font-semibold">运行天数</p>
                 </div>
@@ -629,7 +621,7 @@ export default function HomePage() {
           </div>
 
           <div className="mt-6 md:mt-12 text-center">
-            <p className="text-txs text-sm md:text-lg font-medium">💪 持续成长的学习社群，与几百位教育者一起探索AI时代的教学设计</p>
+            <p className="text-txs text-sm md:text-lg font-medium">{content.stats.footnote}</p>
           </div>
         </div>
       </section>
@@ -639,37 +631,25 @@ export default function HomePage() {
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-center gap-2 md:gap-3 mb-6 md:mb-10 animate-fade-in">
             <UserCheck className="w-5 h-5 md:w-6 md:h-6 xl:w-8 xl:h-8 text-ac" />
-            <h2 className="text-2xl md:text-4xl xl:text-5xl font-ds-black text-tx" style={{ fontFamily: 'var(--fd)' }}>部分会员简介</h2>
+            <h2 className="text-2xl md:text-4xl xl:text-5xl font-ds-black text-tx" style={{ fontFamily: 'var(--fd)' }}>{content.membersMeta.section_title}</h2>
           </div>
 
           <Card className="border-bd shadow-ds-sm hover-lift animate-fade-in-up">
             <CardContent className="p-4 md:p-8">
               <p className="text-center text-sm md:text-lg text-txs mb-6 md:mb-10">
-                来自不同领域的优秀教育者都在这里学习成长
+                {content.membersMeta.subtitle}
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-5">
-                {[
-                  { icon: "👶", name: "某高校幼儿教育L老师", desc: "专注幼儿教育理论与实践研究" },
-                  { icon: "💭", name: "独立人文思辨教育Z老师", desc: "致力于培养学生批判性思维" },
-                  { icon: "📐", name: "某小学数学教研员M老师", desc: "小学数学教学研究与指导专家" },
-                  { icon: "⚛️", name: "某高中物理L老师", desc: "高中物理教学创新实践者" },
-                  { icon: "🏛️", name: "某中学政治R老师", desc: "中学政治课程设计与教学" },
-                  { icon: "🌍", name: "某高中英语M老师", desc: "高中英语教学与跨文化交流" },
-                  { icon: "🎯", name: "广州一土数学老师", desc: "创新教育理念的践行者" },
-                  { icon: "💡", name: "青少年创新PBL课程L老师", desc: "项目式学习课程设计专家" },
-                  { icon: "🌱", name: "厌学青少年疗愈导师J老师", desc: "青少年心理疗愈与学习动力激发" },
-                  { icon: "🌐", name: "某IB学校L老师", desc: "国际文凭课程教学实践者" },
-                  { icon: "🎓", name: "某大学教学设计在读博士", desc: "教学设计理论深度研究者" },
-                ].map((member, index) => (
+                {content.members.map((member, index) => (
                   <div
-                    key={index}
+                    key={member.id || index}
                     className="flex items-start gap-3 md:gap-4 p-3 md:p-5 rounded-ds-md bg-bc border border-bd shadow-ds-xs hover:shadow-ds-sm hover-lift transition-all duration-200 group"
                   >
                     <div className="text-2xl md:text-3xl flex-shrink-0 transition-transform duration-300 group-hover:scale-125">{member.icon}</div>
                     <div className="flex-1 min-w-0">
                       <p className="font-ds-bold text-tx mb-1 md:mb-1.5 text-sm md:text-base">{member.name}</p>
-                      <p className="text-xs md:text-sm text-txt leading-relaxed">{member.desc}</p>
+                      <p className="text-xs md:text-sm text-txt leading-relaxed">{member.description}</p>
                     </div>
                   </div>
                 ))}
@@ -677,7 +657,7 @@ export default function HomePage() {
 
               <div className="mt-6 md:mt-10 text-center">
                 <p className="text-sm md:text-base text-txt">
-                  🌟 他们来自不同学校、不同学科，但有一个共同点：都在认真思考怎样让学生真正学到东西
+                  {content.membersMeta.footnote}
                 </p>
               </div>
             </CardContent>
@@ -688,16 +668,16 @@ export default function HomePage() {
             <Button
               size="lg"
               className="btn-super-cta animate-glow-pulse text-base md:text-2xl xl:text-3xl px-8 md:px-16 xl:px-20 py-4 md:py-8 xl:py-10 !text-white font-ds-black rounded-full border-0 relative z-10"
-              onClick={() => window.open('http://b50rtgy70nmgu05j.mikecrm.com/rPZN0Mb', '_blank')}
+              onClick={() => window.open(content.membersMeta.cta_link, '_blank')}
             >
               <span className="relative z-10 flex items-center gap-2 md:gap-3">
                 <span>💎</span>
-                <span>申请成为会员</span>
+                <span>{content.membersMeta.cta_text}</span>
                 <span className="text-xl md:text-2xl xl:text-3xl">→</span>
               </span>
             </Button>
             <p className="text-sm md:text-base text-txs mt-3 md:mt-6 font-medium">
-              点击按钮填写报名表单，开启你的学习之旅
+              {content.membersMeta.cta_hint}
             </p>
           </div>
         </div>
@@ -708,38 +688,17 @@ export default function HomePage() {
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-center gap-2 md:gap-3 mb-6 md:mb-10">
             <Quote className="w-5 h-5 md:w-6 md:h-6 xl:w-8 xl:h-8 text-ac" />
-            <h2 className="text-2xl md:text-4xl xl:text-5xl font-ds-black text-tx" style={{ fontFamily: 'var(--fd)' }}>会员老师们这么说</h2>
+            <h2 className="text-2xl md:text-4xl xl:text-5xl font-ds-black text-tx" style={{ fontFamily: 'var(--fd)' }}>{content.testimonialsMeta.section_title}</h2>
           </div>
 
           <TestimonialCarousel
-            images={[
-              {
-                url: "https://miaoda-conversation-file.cdn.bcebos.com/user-75tmduypbkzk/conv-7iwdhpt0pyps/20260403/file-apcr3vmf78xs.jpg",
-                alt: "会员评价：新一期大大的期待！上一期的真实任务实操性真是受益匪浅"
-              },
-              {
-                url: "https://miaoda-conversation-file.cdn.bcebos.com/user-75tmduypbkzk/conv-7iwdhpt0pyps/20260403/file-apcr3vmf78xu.jpg",
-                alt: "会员评价：你真是做了好多非常好的归纳总结提炼"
-              },
-              {
-                url: "https://miaoda-conversation-file.cdn.bcebos.com/user-75tmduypbkzk/conv-7iwdhpt0pyps/20260403/file-apcr3vmf083k.jpg",
-                alt: "会员评价：感觉把你的课吃透，我一家B轮融资的企业去做内训师"
-              },
-              {
-                url: "https://miaoda-conversation-file.cdn.bcebos.com/user-75tmduypbkzk/conv-7iwdhpt0pyps/20260403/file-apcr3vmf78xt.jpg",
-                alt: "会员评价：哈老师您的思路真的很好，但是我有点疑问"
-              },
-              {
-                url: "https://miaoda-conversation-file.cdn.bcebos.com/user-75tmduypbkzk/conv-7iwdhpt0pyps/20260403/file-apcr3vmf1gcg.jpg",
-                alt: "会员评价：很喜欢您的课，接地气，也有深度"
-              }
-            ]}
-            autoplayDelay={5000}
+            images={content.testimonials.map((t) => ({ url: t.image_url, alt: t.alt_text }))}
+            autoplayDelay={content.testimonialsMeta.autoplay_ms}
           />
 
           <div className="mt-8 text-center">
             <p className="text-txt text-sm md:text-base">
-              来自俱乐部会员老师的真实反馈，他们在这里收获了专业成长和教学突破
+              {content.testimonialsMeta.footnote}
             </p>
           </div>
         </div>
@@ -750,39 +709,26 @@ export default function HomePage() {
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-center gap-2 md:gap-3 mb-6 md:mb-10">
             <span className="text-2xl md:text-3xl">❓</span>
-            <h2 className="text-2xl md:text-4xl xl:text-5xl font-ds-black text-tx" style={{ fontFamily: 'var(--fd)' }}>FAQ 常见问题解答</h2>
+            <h2 className="text-2xl md:text-4xl xl:text-5xl font-ds-black text-tx" style={{ fontFamily: 'var(--fd)' }}>{content.faqTitle}</h2>
           </div>
 
           <div className="space-y-4 md:space-y-6">
-            <Card className="border-bd shadow-ds-sm hover-lift">
-              <CardHeader className="pb-2 md:pb-6">
-                <CardTitle className="text-base md:text-xl xl:text-2xl text-tx" style={{ fontFamily: 'var(--fd)' }}>
-                  Q1：俱乐部的课程适合哪些学段、哪些学科的老师？
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="bg-ac/5 border border-ac/20 rounded-lg p-4 md:p-5">
-                  <p className="text-sm md:text-lg text-txs leading-relaxed">
-                    <strong className="text-tx font-ds-bold">A：</strong>适合全学段全学科，从小学到高校均可。课程聚焦的是教学设计的底层方法论——理解学习、设计教学、评估效果——这些能力在任何学科、任何学段都通用。我们也有不同的学科教研组，便于大家在具体的教学场景中讨论和应用。
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-bd shadow-ds-sm hover-lift">
-              <CardHeader className="pb-2 md:pb-6">
-                <CardTitle className="text-base md:text-xl xl:text-2xl text-tx" style={{ fontFamily: 'var(--fd)' }}>
-                  Q2：俱乐部能提供一对一的课程指导吗？
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="bg-ac/5 border border-ac/20 rounded-lg p-4 md:p-5">
-                  <p className="text-sm md:text-lg text-txs leading-relaxed">
-                    <strong className="text-tx font-ds-bold">A：</strong>不提供一对一指导，但是很欢迎大家在俱乐部内主动发起你的磨课会议。
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            {content.faqs.map((faq, index) => (
+              <Card key={faq.id || index} className="border-bd shadow-ds-sm hover-lift">
+                <CardHeader className="pb-2 md:pb-6">
+                  <CardTitle className="text-base md:text-xl xl:text-2xl text-tx" style={{ fontFamily: 'var(--fd)' }}>
+                    {faq.question}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="bg-ac/5 border border-ac/20 rounded-lg p-4 md:p-5">
+                    <p className="text-sm md:text-lg text-txs leading-relaxed">
+                      <strong className="text-tx font-ds-bold">A：</strong>{renderInline(faq.answer, "text-tx font-semibold")}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>

@@ -14,6 +14,7 @@ import StudentListSection from "@/components/admin/StudentListSection";
 import InactiveStudentsSection from "@/components/admin/InactiveStudentsSection";
 import StudentLeaderboardSection from "@/components/admin/StudentLeaderboardSection";
 import CourseManagementSection from "@/components/admin/CourseManagementSection";
+import ContentManagementSection from "@/components/admin/content/ContentManagementSection";
 
 export default function AdminPage() {
   const navigate = useNavigate();
@@ -137,6 +138,7 @@ export default function AdminPage() {
               <TabsTrigger value="overview">会员总览</TabsTrigger>
               <TabsTrigger value="courses">课程排行</TabsTrigger>
               <TabsTrigger value="course-manage">课程管理</TabsTrigger>
+              <TabsTrigger value="content">内容运营</TabsTrigger>
               <TabsTrigger value="students">学员名单</TabsTrigger>
               <TabsTrigger value="inactive">沉默学员</TabsTrigger>
               <TabsTrigger value="leaderboard">学员排行榜</TabsTrigger>
@@ -152,6 +154,10 @@ export default function AdminPage() {
 
             <TabsContent value="course-manage">
               <CourseManagementSection />
+            </TabsContent>
+
+            <TabsContent value="content">
+              <ContentManagementSection />
             </TabsContent>
 
             <TabsContent value="students">
