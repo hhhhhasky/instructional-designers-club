@@ -239,6 +239,30 @@ export default function CourseDetailPage() {
     );
   }
 
+  // 兜底：加载完成且无错误，但 course 仍为 null（课程不存在 / 已下架）
+  // 同时让 TS 在下方 JSX 中把 course 收窄为非 null
+  if (!course) {
+    return (
+      <div className="min-h-screen bg-cream flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center pt-20 px-4">
+          <div className="text-center animate-fade-in max-w-md">
+            <AlertCircle className="w-14 h-14 text-ac/60 mx-auto mb-5" />
+            <h1 className="text-ds-2xl font-ds-bold text-tx font-serif mb-5">
+              课程不存在或已下架
+            </h1>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button onClick={() => navigate('/courses')} className="btn-press">
+                返回课程中心
+              </Button>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   const handleBack = () => {
     navigate('/courses');
   };
