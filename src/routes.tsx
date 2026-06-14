@@ -8,6 +8,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import SettingsPage from './pages/SettingsPage';
 import LearningPage from './pages/LearningPage';
+import LearningMapPage from './pages/LearningMapPage';
 import AdminPage from './pages/AdminPage';
 import type { ReactNode } from 'react';
 
@@ -77,6 +78,12 @@ const routes: RouteConfig[] = [
     name: '学习主页',
     path: '/learning',
     element: <LearningPage />,
+    visible: false
+  },
+  {
+    name: '学习地图',
+    path: '/learning-map',
+    element: <LearningMapPage />,
     visible: false
   },
   {

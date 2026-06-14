@@ -38,6 +38,7 @@ import { cn } from '@/lib/utils';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
+import MapPreviewCard from '@/components/learning/map/MapPreviewCard';
 import PageMeta from '@/components/common/PageMeta';
 import { getCoursesByMembershipType, getCategoriesByMembershipType, getBatchCategoryTags } from '@/db/api';
 import type { Course, MembershipType } from '@/types/types';
@@ -365,6 +366,9 @@ export default function CoursesPage() {
             </p>
           </div>
         </div>
+
+        {/* 学习地图预览卡（仅登录用户，R-P1-01） */}
+        <MapPreviewCard />
 
         {/* 加载状态 */}
         {isLoading && (

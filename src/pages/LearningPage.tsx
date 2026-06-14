@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, GraduationCap } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { ArrowLeft, GraduationCap, Map as MapIcon, ChevronRight } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
@@ -124,6 +124,21 @@ export default function LearningPage() {
               <p className="text-ds-sm text-txs">{profile.nickname} 的学习主页</p>
             </div>
           </div>
+
+          {/* 学习地图入口（R-P1-01） */}
+          <Link
+            to="/learning-map"
+            className="flex items-center gap-3 p-4 rounded-ds-lg bg-gradient-primary text-white mb-6 hover-lift transition-all group"
+          >
+            <span className="w-10 h-10 rounded-ds-full bg-white/20 flex items-center justify-center shrink-0">
+              <MapIcon className="w-5 h-5" />
+            </span>
+            <div className="flex-1">
+              <p className="font-ds-bold text-ds-md">教学设计学习地图</p>
+              <p className="text-ds-xs text-white/80">看清你在哪里、下一步学什么</p>
+            </div>
+            <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
+          </Link>
 
           {/* 数据加载中 */}
           {isLoading && <LoadingOverlay message="正在加载学习数据..." />}

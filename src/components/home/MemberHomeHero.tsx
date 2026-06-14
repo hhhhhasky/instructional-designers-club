@@ -120,6 +120,12 @@ export default function MemberHomeHero() {
               👋 Hi {nickname}，欢迎回来
             </h2>
             <p className="text-ds-sm text-txs mt-1">继续你的教学设计精进之旅</p>
+            <Link
+              to="/learning-map"
+              className="text-ds-sm text-ac font-ds-semibold hover:underline mt-2 inline-block"
+            >
+              🗺️ 学习地图 →
+            </Link>
           </div>
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-ds-pill text-ds-xs font-ds-bold bg-white text-ac border border-ac/20 self-start md:self-auto">
             <Sparkles className="w-3.5 h-3.5" />
