@@ -31,6 +31,12 @@ export default function Header() {
 
   const visibleRoutes = routes.filter(route => route.visible);
 
+  const isRouteActive = (path: string) => {
+    if (path === '/') return location.pathname === '/';
+    if (path === '/courses') return location.pathname === '/courses' || location.pathname.startsWith('/courses/plus');
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
+  };
+
   const handleSignOut = async () => {
     await signOut();
     setIsOpen(false);
@@ -75,7 +81,7 @@ export default function Header() {
                 key={route.path}
                 to={route.path}
                 className={`px-3 py-1.5 text-ds-sm font-ds-semibold rounded-ds-pill transition-all ${
-                  location.pathname === route.path
+                  isRouteActive(route.path)
                     ? "text-ac bg-acl"
                     : "text-txs hover:text-ac hover:bg-acl"
                 }`}
@@ -188,7 +194,7 @@ export default function Header() {
                         to={route.path}
                         onClick={() => setIsOpen(false)}
                         className={`px-4 py-3 text-left text-ds-base font-ds-medium rounded-ds-lg transition-all ${
-                          location.pathname === route.path
+                          isRouteActive(route.path)
                             ? "text-ac bg-acl"
                             : "text-tx hover:bg-bgs"
                         }`}

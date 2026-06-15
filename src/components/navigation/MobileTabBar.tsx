@@ -1,7 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, BookOpen, UserPlus, FolderOpen, GraduationCap } from 'lucide-react';
+import { Home, BookOpen, FolderOpen, GraduationCap, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface TabItem {
   name: string;
@@ -11,15 +10,12 @@ interface TabItem {
 
 export default function MobileTabBar() {
   const location = useLocation();
-  const { user } = useAuth();
 
   const tabs: TabItem[] = [
     { name: '首页', path: '/', icon: Home },
-    { name: '课程', path: '/courses', icon: BookOpen },
-    ...(user
-      ? [{ name: '学习', path: '/learning', icon: GraduationCap }]
-      : [{ name: '新手', path: '/new-member', icon: UserPlus }]
-    ),
+    { name: '通识课', path: '/courses', icon: BookOpen },
+    { name: 'AI课', path: '/teacher-ai-courses', icon: Sparkles },
+    { name: '学习', path: '/learning', icon: GraduationCap },
     { name: '资源', path: '/resources', icon: FolderOpen },
   ];
 

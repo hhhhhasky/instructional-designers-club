@@ -19,7 +19,9 @@ import {
   adminArchiveCourse,
 } from "@/db/admin-api";
 import { getCourseCategories } from "@/db/api";
-import type { Course, MembershipType } from "@/types/types";
+import MarkdownEditor from "@/components/admin/MarkdownEditor";
+import { PLUS_TRACKS, getPlusModule, getPlusTrack } from "@/lib/plusCourseStructure";
+import type { Course, MembershipType, PlusCourseTrackId } from "@/types/types";
 
 const PAGE_SIZE = 20;
 
@@ -58,6 +60,15 @@ const EMPTY_FORM: Omit<Course, "id" | "view_count" | "created_at" | "updated_at"
   is_trial: false,
   image_url: null,
   video_url: null,
+  audio_url: null,
+  body: null,
+  essence: null,
+  images: [],
+  plus_track_id: null,
+  plus_module_id: null,
+  plus_module_order: null,
+  plus_lesson_order: null,
+  plus_representative: false,
   meeting_url: null,
   sort_order: 0,
 };
@@ -164,6 +175,15 @@ export default function CourseManagementSection() {
       is_trial: course.is_trial,
       image_url: course.image_url,
       video_url: course.video_url,
+      audio_url: course.audio_url,
+      body: course.body,
+      essence: course.essence,
+      images: course.images ?? [],
+      plus_track_id: course.plus_track_id,
+      plus_module_id: course.plus_module_id,
+      plus_module_order: course.plus_module_order,
+      plus_lesson_order: course.plus_lesson_order,
+      plus_representative: course.plus_representative ?? false,
       meeting_url: course.meeting_url,
       sort_order: course.sort_order,
     });
@@ -178,15 +198,28 @@ export default function CourseManagementSection() {
     }
     try {
       setSaving(true);
+      const payload: CourseForm = form.membership_type === "plus"
+        ? form
+        : {
+            ...form,
+            plus_track_id: null,
+            plus_module_id: null,
+            plus_module_order: null,
+            plus_lesson_order: null,
+            plus_representative: false,
+          };
       if (editingCourse) {
-        await adminUpdateCourse(editingCourse.id, form);
+        const updatedCourse = await adminUpdateCourse(editingCourse.id, payload);
+        setCourses((prev) =>
+          prev.map((course) => (course.id === updatedCourse.id ? updatedCourse : course))
+        );
         toast.success("课程更新成功");
       } else {
-        await adminCreateCourse(form);
+        const createdCourse = await adminCreateCourse(payload);
+        setCourses((prev) => [createdCourse, ...prev]);
         toast.success("课程创建成功");
       }
       setDialogOpen(false);
-      await loadCourses();
     } catch {
       toast.error(editingCourse ? "更新课程失败" : "创建课程失败");
     } finally {
@@ -202,8 +235,10 @@ export default function CourseManagementSection() {
     }
     try {
       await adminArchiveCourse(course.id);
+      setCourses((prev) =>
+        prev.map((item) => (item.id === course.id ? { ...item, status: "archived" } : item))
+      );
       toast.success("课程已归档");
-      await loadCourses();
     } catch {
       toast.error("归档失败");
     }
@@ -212,6 +247,42 @@ export default function CourseManagementSection() {
   // Form field updater
   const updateForm = <K extends keyof CourseForm>(key: K, value: CourseForm[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleMembershipChange = (value: MembershipType) => {
+    setForm((prev) => ({
+      ...prev,
+      membership_type: value,
+      ...(value === "plus"
+        ? {}
+        : {
+            plus_track_id: null,
+            plus_module_id: null,
+            plus_module_order: null,
+            plus_lesson_order: null,
+            plus_representative: false,
+          }),
+    }));
+  };
+
+  const handlePlusTrackChange = (trackId: PlusCourseTrackId | "") => {
+    const nextTrackId = trackId || null;
+    const firstModule = nextTrackId ? getPlusTrack(nextTrackId)?.modules[0] : null;
+    setForm((prev) => ({
+      ...prev,
+      plus_track_id: nextTrackId,
+      plus_module_id: firstModule?.id ?? null,
+      plus_module_order: firstModule?.order ?? null,
+    }));
+  };
+
+  const handlePlusModuleChange = (moduleId: string) => {
+    const module = form.plus_track_id ? getPlusModule(form.plus_track_id, moduleId) : undefined;
+    setForm((prev) => ({
+      ...prev,
+      plus_module_id: moduleId || null,
+      plus_module_order: module?.order ?? prev.plus_module_order,
+    }));
   };
 
   // Handle category select: set both category text and category_id
@@ -290,6 +361,9 @@ export default function CourseManagementSection() {
                 <th className="text-left px-4 py-3 font-ds-semibold text-tx">
                   分类
                 </th>
+                <th className="text-left px-4 py-3 font-ds-semibold text-tx">
+                  Plus结构
+                </th>
                 <th className="text-center px-4 py-3 font-ds-semibold text-tx">
                   等级
                 </th>
@@ -322,6 +396,9 @@ export default function CourseManagementSection() {
                   <td className="px-4 py-3 text-txs">
                     {course.category || "—"}
                   </td>
+                  <td className="px-4 py-3 text-txs">
+                    <PlusStructureLabel course={course} />
+                  </td>
                   <td className="px-4 py-3 text-center text-txs">
                     {course.level}
                   </td>
@@ -337,6 +414,7 @@ export default function CourseManagementSection() {
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-2">
                       <button
+                        type="button"
                         onClick={() => window.open(`/courses/${course.id}`, '_blank')}
                         className="p-1.5 rounded-ds-md hover:bg-warm transition-colors text-txs hover:text-tl"
                         title="预览"
@@ -344,6 +422,7 @@ export default function CourseManagementSection() {
                         <Eye className="w-4 h-4" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => handleEdit(course)}
                         className="p-1.5 rounded-ds-md hover:bg-warm transition-colors text-txs hover:text-ac"
                         title="编辑"
@@ -351,6 +430,7 @@ export default function CourseManagementSection() {
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
+                        type="button"
                         onClick={() => handleArchive(course)}
                         className="p-1.5 rounded-ds-md hover:bg-warm transition-colors text-txs hover:text-am"
                         title="归档"
@@ -364,7 +444,7 @@ export default function CourseManagementSection() {
               {paged.length === 0 && (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-4 py-12 text-center text-txs"
                   >
                     没有匹配的课程
@@ -519,7 +599,7 @@ export default function CourseManagementSection() {
                   <label className="block text-ds-xs text-txs mb-1">会员类型</label>
                   <select
                     value={form.membership_type}
-                    onChange={(e) => updateForm("membership_type", e.target.value as MembershipType)}
+                    onChange={(e) => handleMembershipChange(e.target.value as MembershipType)}
                     className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
                   >
                     {MEMBERSHIP_OPTIONS.map((opt) => (
@@ -567,6 +647,82 @@ export default function CourseManagementSection() {
               </div>
             </div>
 
+            {/* Plus 结构：仅 Plus 课程显示，Free/Pro 不写入这些字段 */}
+            {form.membership_type === "plus" && (
+              <div className="space-y-3 border border-ac/20 bg-acl/20 rounded-ds-lg p-4">
+                <div>
+                  <h4 className="text-ds-sm font-ds-semibold text-tx">Plus课程结构</h4>
+                  <p className="text-ds-xs text-txs mt-1">
+                    只影响教学通识课 Plus 的课程地图与篇章详情页，不改变 Pro / Free 课程展示。
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-ds-xs text-txs mb-1">篇章</label>
+                    <select
+                      value={form.plus_track_id || ""}
+                      onChange={(e) => handlePlusTrackChange(e.target.value as PlusCourseTrackId | "")}
+                      className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+                    >
+                      <option value="">按旧分类自动归属</option>
+                      {PLUS_TRACKS.map((track) => (
+                        <option key={track.id} value={track.id}>
+                          {track.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-ds-xs text-txs mb-1">模块</label>
+                    <select
+                      value={form.plus_module_id || ""}
+                      onChange={(e) => handlePlusModuleChange(e.target.value)}
+                      disabled={!form.plus_track_id}
+                      className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx disabled:bg-warm disabled:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+                    >
+                      <option value="">按旧分类自动归属</option>
+                      {(form.plus_track_id ? getPlusTrack(form.plus_track_id)?.modules ?? [] : []).map((module) => (
+                        <option key={module.id} value={module.id}>
+                          {module.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-ds-xs text-txs mb-1">模块排序</label>
+                    <input
+                      type="number"
+                      value={form.plus_module_order ?? ""}
+                      onChange={(e) => updateForm("plus_module_order", e.target.value === "" ? null : parseInt(e.target.value))}
+                      min={0}
+                      placeholder="默认按模块配置排序"
+                      className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx placeholder:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-ds-xs text-txs mb-1">模块内单课排序</label>
+                    <input
+                      type="number"
+                      value={form.plus_lesson_order ?? ""}
+                      onChange={(e) => updateForm("plus_lesson_order", e.target.value === "" ? null : parseInt(e.target.value))}
+                      min={0}
+                      placeholder="默认使用课程排序号"
+                      className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx placeholder:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+                    />
+                  </div>
+                  <div className="md:col-span-2 flex items-center gap-2 pt-1">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(form.plus_representative)}
+                      onChange={(e) => updateForm("plus_representative", e.target.checked)}
+                      className="w-4 h-4 rounded border-bd text-ac focus:ring-ac"
+                    />
+                    <span className="text-ds-sm text-tx">作为 Plus 首页代表课程候选</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* 链接信息 */}
             <div className="space-y-3">
               <h4 className="text-ds-sm font-ds-semibold text-tx">链接信息</h4>
@@ -592,6 +748,16 @@ export default function CourseManagementSection() {
                   />
                 </div>
                 <div>
+                  <label className="block text-ds-xs text-txs mb-1">音频 URL</label>
+                  <input
+                    type="text"
+                    value={form.audio_url || ""}
+                    onChange={(e) => updateForm("audio_url", e.target.value || null)}
+                    placeholder="音频文件链接（R2 上传后填入，如 mp3/m4a）"
+                    className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx placeholder:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+                  />
+                </div>
+                <div>
                   <label className="block text-ds-xs text-txs mb-1">会议链接</label>
                   <input
                     type="text"
@@ -603,17 +769,79 @@ export default function CourseManagementSection() {
                 </div>
               </div>
             </div>
+
+            {/* 正文（长文） */}
+            <div className="space-y-3">
+              <h4 className="text-ds-sm font-ds-semibold text-tx">正文（长文）</h4>
+              <MarkdownEditor
+                value={form.body || ""}
+                onChange={(v) => updateForm("body", v || null)}
+              />
+            </div>
+
+            {/* 图片集 */}
+            <div className="space-y-3">
+              <h4 className="text-ds-sm font-ds-semibold text-tx">图片集</h4>
+              <p className="text-ds-xs text-txs -mt-1">添加图片 URL（R2 上传后填入），可添加多张。</p>
+              <div className="space-y-2">
+                {(form.images ?? []).map((url, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={url}
+                      onChange={(e) => {
+                        const next = [...(form.images ?? [])];
+                        next[idx] = e.target.value;
+                        updateForm("images", next);
+                      }}
+                      placeholder={`图片 ${idx + 1} URL`}
+                      className="flex-1 h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx placeholder:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = (form.images ?? []).filter((_, i) => i !== idx);
+                        updateForm("images", next);
+                      }}
+                      className="px-2.5 py-1.5 text-ds-xs text-am hover:text-ac border border-bd rounded-ds-md hover:bg-bgs transition-colors flex-shrink-0"
+                    >
+                      删除
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => updateForm("images", [...(form.images ?? []), ""])}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-ds-xs text-ac border border-ac/30 rounded-ds-md hover:bg-acl transition-colors"
+                >
+                  + 添加一张图片
+                </button>
+              </div>
+            </div>
+
+            {/* 课程精华（选填） */}
+            <div className="space-y-3">
+              <h4 className="text-ds-sm font-ds-semibold text-tx">课程精华（选填）</h4>
+              <p className="text-ds-xs text-txs -mt-1">
+                思维导图等看课参考材料，留空则详情页不显示该板块。可插入图片说明。
+              </p>
+              <MarkdownEditor
+                value={form.essence || ""}
+                onChange={(v) => updateForm("essence", v || null)}
+              />
+            </div>
           </div>
 
           <DialogFooter>
             <Button
+              type="button"
               variant="outline"
               onClick={() => setDialogOpen(false)}
               disabled={saving}
             >
               取消
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button type="button" onClick={handleSave} disabled={saving}>
               {saving ? "保存中..." : editingCourse ? "保存修改" : "创建课程"}
             </Button>
           </DialogFooter>
@@ -658,5 +886,27 @@ function StatusBadge({ status }: { status: string }) {
     >
       {STATUS_LABELS[status] || status}
     </span>
+  );
+}
+
+function PlusStructureLabel({ course }: { course: Course }) {
+  if (course.membership_type !== "plus") {
+    return <span className="text-txt">—</span>;
+  }
+
+  const track = course.plus_track_id ? getPlusTrack(course.plus_track_id) : null;
+  const module = course.plus_track_id && course.plus_module_id
+    ? getPlusModule(course.plus_track_id, course.plus_module_id)
+    : null;
+
+  if (!track && !module) {
+    return <span className="text-txt">自动归属</span>;
+  }
+
+  return (
+    <div className="space-y-0.5">
+      <p className="text-tx">{track?.title || "自动篇章"}</p>
+      <p className="text-ds-xs text-txs">{module?.title || "自动模块"}</p>
+    </div>
   );
 }

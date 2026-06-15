@@ -21,16 +21,16 @@ const routes = {
     keywords: '教学设计,教师培训,AI教学,课程设计,教学设计师俱乐部',
   },
   '/courses': {
-    title: `课程中心 | ${SITE_NAME}`,
+    title: `教学通识课 | ${SITE_NAME}`,
     description:
-      '探索AI时代的教学设计课程，涵盖教学通识课(Plus)、教师AI课(Pro)和免费课程。系统学习教学设计方法论，提升教学专业能力。',
-    keywords: '教学设计课程,教师培训课程,AI教学课程,免费教学课程',
+      '系统学习教学通识课 Plus：从底层理论、教学设计方法，到日常课、说课、公开课等真实教学场景。',
+    keywords: '教学通识课,教学设计课程,教师培训课程,Plus课程',
   },
-  '/new-member': {
-    title: `新会员必读 | ${SITE_NAME}`,
+  '/teacher-ai-courses': {
+    title: `教师AI课 | ${SITE_NAME}`,
     description:
-      '教学设计师俱乐部新会员指南。了解近期活动、新手村教程和专业进阶地图，快速融入共学社区。',
-    keywords: '新会员,教学设计入门,新手教程,教学设计师俱乐部',
+      '教师 AI 课 Pro 专属学习页，系统学习 AI 科普、AI 工具测评和 ClaudeCode 教程，让 AI 成为教学设计协作伙伴。',
+    keywords: '教师AI课,AI教学课程,Pro课程,ClaudeCode教程,AI工具测评',
   },
   '/resources': {
     title: `资源中心 | ${SITE_NAME}`,

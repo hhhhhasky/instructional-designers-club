@@ -1,7 +1,9 @@
+import { Navigate } from 'react-router-dom';
 import HomePage from './pages/HomePage';
-import NewMemberPage from './pages/NewMemberPage';
 import ResourcesPage from './pages/ResourcesPage';
 import CoursesPage from './pages/CoursesPage';
+import TeacherAiCoursesPage from './pages/TeacherAiCoursesPage';
+import PlusTrackPage from './pages/PlusTrackPage';
 import CourseDetailPage from './pages/CourseDetailPage';
 import ActivityDetailPage from './pages/ActivityDetailPage';
 import LoginPage from './pages/LoginPage';
@@ -27,10 +29,22 @@ const routes: RouteConfig[] = [
     visible: true
   },
   {
-    name: '课程中心',
+    name: '教学通识课',
     path: '/courses',
     element: <CoursesPage />,
     visible: true
+  },
+  {
+    name: '教师AI课',
+    path: '/teacher-ai-courses',
+    element: <TeacherAiCoursesPage />,
+    visible: true
+  },
+  {
+    name: 'Plus篇章',
+    path: '/courses/plus/:trackId',
+    element: <PlusTrackPage />,
+    visible: false
   },
   {
     name: '课程详情',
@@ -45,10 +59,10 @@ const routes: RouteConfig[] = [
     visible: false
   },
   {
-    name: '新会员必读',
+    name: '教师AI课跳转',
     path: '/new-member',
-    element: <NewMemberPage />,
-    visible: true
+    element: <Navigate to="/teacher-ai-courses" replace />,
+    visible: false
   },
   {
     name: '资源中心',

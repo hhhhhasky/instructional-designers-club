@@ -99,7 +99,9 @@ function ConfirmDialogInner({
             )}
             <DialogTitle>{title}</DialogTitle>
           </div>
-          {description && <DialogDescription>{description}</DialogDescription>}
+          <DialogDescription className={description ? undefined : "sr-only"}>
+            {description || "请确认当前操作。"}
+          </DialogDescription>
         </DialogHeader>
 
         {confirmWord && (

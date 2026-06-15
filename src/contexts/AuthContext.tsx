@@ -93,7 +93,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 监听认证状态变化
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, s) => {
+    } = supabase.auth.onAuthStateChange((event, s) => {
+      if (import.meta.env.DEV) {
+        console.info("[auth-diagnostics] supabase auth state changed", {
+          at: new Date().toISOString(),
+          event,
+          hasSession: Boolean(s),
+          userId: s?.user?.id ?? null,
+          expiresAt: s?.expires_at ?? null,
+        });
+      }
       setTimeout(() => {
         void applySession(s);
       }, 0);

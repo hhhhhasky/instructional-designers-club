@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * 课程视频上传到 Cloudflare R2 + 同步 Supabase 数据库
+ * 课程素材上传到 Cloudflare R2 + 同步 Supabase 数据库
+ * 支持视频 / 音频 / 图片三类素材
  *
- * 用法: node scripts/upload-r2.mjs <视频文件夹> [--dry-run]
+ * 用法: node scripts/upload-r2.mjs <素材文件夹> [--dry-run] [--type=pro]
  *
  * 环境变量（通过 .env.upload 或命令行设置）：
  *   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY
@@ -19,6 +20,17 @@ import { join, extname, basename } from 'node:path';
 // ==================== 配置 ====================
 
 const VIDEO_EXTENSIONS = new Set(['.mp4', '.webm', '.mov']);
+const AUDIO_EXTENSIONS = new Set(['.mp3', '.m4a', '.wav', '.aac', '.flac', '.ogg']);
+const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
+
+// 扩展名 → R2 Content-Type 映射
+const CONTENT_TYPE_MAP = {
+  '.mp4': 'video/mp4', '.webm': 'video/webm', '.mov': 'video/quicktime',
+  '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4', '.wav': 'audio/wav',
+  '.aac': 'audio/aac', '.flac': 'audio/flac', '.ogg': 'audio/ogg',
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
+  '.webp': 'image/webp', '.gif': 'image/gif',
+};
 
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
@@ -163,13 +175,13 @@ function matchVideoWithAliases(filename, courses) {
 
 // ==================== 上传到 R2 ====================
 
-async function uploadToR2(filePath, key) {
+async function uploadToR2(filePath, key, contentType = 'application/octet-stream') {
   const fileBuffer = await readFile(filePath);
   await r2.send(new PutObjectCommand({
     Bucket: R2_BUCKET_NAME,
     Key: key,
     Body: fileBuffer,
-    ContentType: 'video/mp4',
+    ContentType: contentType,
   }));
   return `${R2_PUBLIC_URL}/${key}`;
 }
@@ -190,79 +202,174 @@ async function updateVideoUrl(courseId, url) {
       body: JSON.stringify({ video_url: url }),
     }
   );
-  if (!res.ok) throw new Error(`更新数据库失败: ${res.status} ${await res.text()}`);
+  if (!res.ok) throw new Error(`更新视频 URL 失败: ${res.status} ${await res.text()}`);
+}
+
+async function updateAudioUrl(courseId, url) {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/courses?id=eq.${courseId}`,
+    {
+      method: 'PATCH',
+      headers: {
+        apikey: SUPABASE_SERVICE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({ audio_url: url }),
+    }
+  );
+  if (!res.ok) throw new Error(`更新音频 URL 失败: ${res.status} ${await res.text()}`);
 }
 
 // ==================== 主流程 ====================
 
 async function main() {
-  const videoDir = process.argv[2];
+  const assetDir = process.argv[2];
   const dryRun = process.argv.includes('--dry-run');
   const membershipType = process.argv.find(a => a.startsWith('--type='))?.split('=')[1] || null;
 
-  if (!videoDir) {
-    console.error('❌ 用法: node scripts/upload-r2.mjs <视频文件夹> [--dry-run] [--type=pro]');
+  if (!assetDir) {
+    console.error('❌ 用法: node scripts/upload-r2.mjs <素材文件夹> [--dry-run] [--type=pro]');
     process.exit(1);
   }
 
-  console.log(`\n🎬 课程视频上传工具 (R2 + Supabase REST)\n`);
-  console.log(`📁 视频目录: ${videoDir}`);
+  console.log(`\n📦 课程素材上传工具 (R2 + Supabase REST)\n`);
+  console.log(`📁 素材目录: ${assetDir}`);
   console.log(`☁️  R2: ${R2_BUCKET_NAME}`);
   if (dryRun) console.log('🔍 试运行模式\n');
   else console.log('');
 
-  const files = await readdir(videoDir);
+  const files = await readdir(assetDir);
   const videoFiles = files.filter(f => VIDEO_EXTENSIONS.has(extname(f).toLowerCase()));
-  console.log(`📊 找到 ${videoFiles.length} 个视频文件`);
+  const audioFiles = files.filter(f => AUDIO_EXTENSIONS.has(extname(f).toLowerCase()));
+  const imageFiles = files.filter(f => IMAGE_EXTENSIONS.has(extname(f).toLowerCase()));
+
+  console.log(`📊 视频 ${videoFiles.length} | 音频 ${audioFiles.length} | 图片 ${imageFiles.length}`);
 
   const courses = await getCourses(membershipType);
   console.log(`📚 数据库 ${membershipType ? membershipType + ' ' : ''}课程: ${len(courses)} 门\n`);
 
   let matched = 0, unmatched = 0, uploaded = 0, failed = 0;
-  const results = [];
+  const imageUrls = []; // 图片只收集 URL，不自动写库
 
-  for (const file of videoFiles) {
-    const filePath = join(videoDir, file);
-    const fileStat = await stat(filePath);
-    if (!fileStat.isFile()) continue;
-
-    const course = matchVideoWithAliases(file, courses);
-    if (!course) {
-      console.log(`  ⚠️  未匹配: ${file}`);
-      unmatched++;
-      continue;
-    }
-
-    const ext = extname(file);
-    const key = `${course.id}${ext}`;
-    const publicUrl = `${R2_PUBLIC_URL}/${key}`;
-    const sizeMB = (fileStat.size / 1024 / 1024).toFixed(1);
-
-    matched++;
-    if (dryRun) {
-      console.log(`  ✅ ${file} → ${course.title} (${sizeMB}MB)`);
-      console.log(`     URL: ${publicUrl}`);
-      uploaded++;
-    } else {
-      try {
-        console.log(`  ⬆️  上传: ${file} (${sizeMB}MB) → ${course.title}`);
-        await uploadToR2(filePath, key);
-        await updateVideoUrl(course.id, publicUrl);
-        console.log(`  ✅ 完成: ${publicUrl}`);
+  // ---- 视频处理（写 video_url） ----
+  if (videoFiles.length > 0) {
+    console.log('🎬 --- 视频 ---');
+    for (const file of videoFiles) {
+      const result = await processMediaFile(assetDir, file, courses, 'video');
+      if (result.skip) { unmatched++; continue; }
+      if (result.error) { failed++; continue; }
+      matched++;
+      if (!dryRun) {
+        try {
+          await uploadToR2(result.filePath, result.key, result.contentType);
+          await updateVideoUrl(result.course.id, result.publicUrl);
+          console.log(`  ✅ ${result.publicUrl}`);
+          uploaded++;
+        } catch (err) { console.log(`  ❌ ${err.message}`); failed++; }
+      } else {
+        console.log(`     URL: ${result.publicUrl}`);
         uploaded++;
-      } catch (err) {
-        console.log(`  ❌ 失败: ${err.message}`);
-        failed++;
       }
     }
+    console.log('');
   }
 
-  console.log('\n' + '═'.repeat(50));
+  // ---- 音频处理（写 audio_url） ----
+  if (audioFiles.length > 0) {
+    console.log('🎧 --- 音频 ---');
+    for (const file of audioFiles) {
+      const result = await processMediaFile(assetDir, file, courses, 'audio');
+      if (result.skip) { unmatched++; continue; }
+      if (result.error) { failed++; continue; }
+      matched++;
+      if (!dryRun) {
+        try {
+          await uploadToR2(result.filePath, result.key, result.contentType);
+          await updateAudioUrl(result.course.id, result.publicUrl);
+          console.log(`  ✅ ${result.publicUrl}`);
+          uploaded++;
+        } catch (err) { console.log(`  ❌ ${err.message}`); failed++; }
+      } else {
+        console.log(`     URL: ${result.publicUrl}`);
+        uploaded++;
+      }
+    }
+    console.log('');
+  }
+
+  // ---- 图片处理（上传 + 打印 URL，不自动写库） ----
+  if (imageFiles.length > 0) {
+    console.log('🖼️  --- 图片 ---');
+    for (const file of imageFiles) {
+      const filePath = join(assetDir, file);
+      const fileStat = await stat(filePath);
+      if (!fileStat.isFile()) continue;
+
+      const course = matchVideoWithAliases(file, courses);
+      const ext = extname(file).toLowerCase();
+      const key = course ? `${course.id}/${basename(file)}` : basename(file);
+      const publicUrl = `${R2_PUBLIC_URL}/${key}`;
+      const sizeKB = (fileStat.size / 1024).toFixed(0);
+      const contentType = CONTENT_TYPE_MAP[ext] || 'image/jpeg';
+
+      const label = course ? course.title : '未匹配';
+      console.log(`  📷 ${file} (${sizeKB}KB) → ${label}`);
+
+      if (!dryRun) {
+        try {
+          await uploadToR2(filePath, key, contentType);
+          console.log(`     ✅ ${publicUrl}`);
+          uploaded++;
+        } catch (err) { console.log(`  ❌ ${err.message}`); failed++; }
+      } else {
+        console.log(`     URL: ${publicUrl}`);
+        uploaded++;
+      }
+      imageUrls.push({ file, url: publicUrl, course: course?.title || null });
+    }
+    if (imageUrls.length > 0) {
+      console.log('\n📋 图片 URL 汇总（请在后台「图片集」中手动填入）：');
+      for (const img of imageUrls) {
+        console.log(`   ${img.course ? `【${img.course}】` : '【未匹配】'} ${img.url}`);
+      }
+    }
+    console.log('');
+  }
+
+  console.log('═'.repeat(50));
   console.log(`📊 结果: 匹配 ${matched} | 未匹配 ${unmatched} | 成功 ${uploaded} | 失败 ${failed}`);
   console.log('═'.repeat(50));
 
   if (unmatched > 0) console.log('\n💡 未匹配的文件请检查文件名是否与课程标题对应');
   if (!dryRun && uploaded > 0) console.log('\n🎉 上传完成！');
+}
+
+/**
+ * 处理单个视频/音频文件：匹配课程、生成 key、打印信息
+ */
+async function processMediaFile(assetDir, file, courses, type) {
+  const filePath = join(assetDir, file);
+  const fileStat = await stat(filePath);
+  if (!fileStat.isFile()) return { skip: true };
+
+  const course = matchVideoWithAliases(file, courses);
+  if (!course) {
+    console.log(`  ⚠️  未匹配: ${file}`);
+    return { skip: true };
+  }
+
+  const ext = extname(file).toLowerCase();
+  const sizeMB = (fileStat.size / 1024 / 1024).toFixed(1);
+  const key = `${course.id}${ext}`;
+  const publicUrl = `${R2_PUBLIC_URL}/${key}`;
+  const contentType = CONTENT_TYPE_MAP[ext] || 'application/octet-stream';
+
+  const tag = type === 'video' ? '🎬' : '🎧';
+  console.log(`  ${tag} ${file} (${sizeMB}MB) → ${course.title}`);
+
+  return { filePath, key, publicUrl, contentType, course };
 }
 
 main().catch(err => { console.error('💥', err); process.exit(1); });

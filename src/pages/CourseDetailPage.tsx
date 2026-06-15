@@ -2,31 +2,19 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ExternalLink, Clock, Award, User, BookOpen, AlertCircle, ChevronLeft, ChevronRight, List, CheckCircle2, PlayCircle, Eye } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Clock, Award, User, BookOpen, AlertCircle, ChevronLeft, ChevronRight, List, CheckCircle2, PlayCircle, Eye, Sparkles } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
 import PageMeta from '@/components/common/PageMeta';
+import MarkdownRenderer from '@/components/common/MarkdownRenderer';
 import CourseConfirmDialog from '@/components/course/CourseConfirmDialog';
+import CourseContentStack from '@/components/course/CourseContentStack';
 import { getCourseById, getCourseByIdAdmin, incrementCourseViewCount, getCoursesByMembershipAndCategory } from '@/db/api';
 import { canAccessCourse, recordCourseVisit, updateLearningProgress, getUserLearningRecords } from '@/lib/access-control';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Course, LearningRecord } from '@/types/types';
 import { cn } from '@/lib/utils';
-
-const HIGHLIGHTS = [
-  { icon: '💡', title: '理论与实践结合', desc: '系统的理论框架配合丰富的实践案例' },
-  { icon: '🎯', title: '即学即用', desc: '学完即可应用到实际教学场景中' },
-  { icon: '👨‍🏫', title: '专家讲解', desc: '由经验丰富的教学设计专家授课' },
-  { icon: '🌟', title: '持续更新', desc: '课程内容持续优化和更新' },
-];
-
-const AUDIENCES = [
-  '中小学教师、高校教师',
-  '教学设计师、课程开发者',
-  '教育培训机构从业者',
-  '对教学设计感兴趣的学习者',
-];
 
 const LEVEL_STYLE: Record<string, string> = {
   '入门': 'bg-bgs text-txs',
@@ -47,6 +35,8 @@ export default function CourseDetailPage() {
   const [upgradeLevel, setUpgradeLevel] = useState<'plus' | 'pro'>('plus');
   const videoRef = useRef<HTMLVideoElement>(null);
   const lastSyncedProgress = useRef(0);
+  const lastSyncedAudioProgress = useRef(0);
+  const [manuallyMarked, setManuallyMarked] = useState(false);
 
   // 同系列课程列表
   const [siblingCourses, setSiblingCourses] = useState<Course[]>([]);
@@ -81,6 +71,24 @@ export default function CourseDetailPage() {
     }
   }, [user, course]);
 
+  // 音频进度：每 10% 或到 95% 同步一次（与视频逻辑一致，独立计数器）
+  const handleAudioProgress = useCallback((percent: number) => {
+    if (!user || !course) return;
+    if (percent <= lastSyncedAudioProgress.current) return;
+    if (percent - lastSyncedAudioProgress.current >= 10 || percent >= 95) {
+      lastSyncedAudioProgress.current = percent;
+      const status = percent >= 95 ? 'completed' : 'in_progress';
+      updateLearningProgress(user.id, course.id, percent, status);
+    }
+  }, [user, course]);
+
+  const handleAudioEnded = useCallback(() => {
+    lastSyncedAudioProgress.current = 100;
+    if (user && course) {
+      updateLearningProgress(user.id, course.id, 100, 'completed');
+    }
+  }, [user, course]);
+
   // 只在 id 变化时加载课程数据
   useEffect(() => {
     const loadCourse = async () => {
@@ -94,6 +102,7 @@ export default function CourseDetailPage() {
         setIsLoading(true);
         setError(null);
         setShowUpgrade(false);
+        setManuallyMarked(false);
 
         let courseData = await getCourseById(id);
 
@@ -149,6 +158,9 @@ export default function CourseDetailPage() {
           if (record && record.progress > lastSyncedProgress.current) {
             lastSyncedProgress.current = record.progress;
           }
+          if (record && record.progress > lastSyncedAudioProgress.current) {
+            lastSyncedAudioProgress.current = record.progress;
+          }
         });
       }
     }
@@ -172,6 +184,14 @@ export default function CourseDetailPage() {
   const getStatus = (courseId: string): string => {
     const record = learningRecords.find(r => r.course_id === courseId);
     return record?.status || 'not_started';
+  };
+
+  const getCourseListPath = (membershipType?: string | null) => {
+    return membershipType === 'pro' ? '/teacher-ai-courses' : '/courses';
+  };
+
+  const getCourseListName = (membershipType?: string | null) => {
+    return membershipType === 'pro' ? '教师AI课' : '教学通识课';
   };
 
   // 侧边栏内切换课程：直接跳转，不走 isNavigating 状态
@@ -199,7 +219,7 @@ export default function CourseDetailPage() {
             <h1 className="text-ds-2xl font-ds-bold text-tx font-serif mb-5">{error}</h1>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button onClick={() => navigate('/courses')} className="btn-press">
-                返回课程中心
+                返回教学通识课
               </Button>
               <Button onClick={() => window.location.reload()} variant="outline" className="btn-press">
                 刷新页面
@@ -223,8 +243,8 @@ export default function CourseDetailPage() {
               需要{upgradeLevel === 'pro' ? 'Pro 专家版' : 'Plus 会员版'}权限
             </h1>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button onClick={() => navigate('/courses')} className="btn-press">
-                返回课程中心
+              <Button onClick={() => navigate(getCourseListPath(upgradeLevel))} className="btn-press">
+                返回{getCourseListName(upgradeLevel)}
               </Button>
               <Button asChild className="btn-super-cta !text-white btn-press">
                 <a href="http://b50rtgy70nmgu05j.mikecrm.com/rPZN0Mb" target="_blank" rel="noopener noreferrer">
@@ -253,7 +273,7 @@ export default function CourseDetailPage() {
             </h1>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button onClick={() => navigate('/courses')} className="btn-press">
-                返回课程中心
+                返回教学通识课
               </Button>
             </div>
           </div>
@@ -263,8 +283,17 @@ export default function CourseDetailPage() {
     );
   }
 
+  // 纯文本/图集课：手动标记完成（乐观更新本地状态，学习记录已落库）
+  const isCurrentCompleted = manuallyMarked || getStatus(course.id) === 'completed';
+
+  const handleMarkComplete = () => {
+    if (!user) return;
+    updateLearningProgress(user.id, course.id, 100, 'completed');
+    setManuallyMarked(true);
+  };
+
   const handleBack = () => {
-    navigate('/courses');
+    navigate(getCourseListPath(course.membership_type));
   };
 
   const handleStartLearning = () => {
@@ -321,7 +350,7 @@ export default function CourseDetailPage() {
               className="inline-flex items-center gap-1 hover:text-ac transition-colors group"
             >
               <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
-              课程中心
+              {getCourseListName(course.membership_type)}
             </button>
             {course.category && (
               <>
@@ -511,36 +540,27 @@ export default function CourseDetailPage() {
                     </div>
                   </section>
 
-                  {/* Highlights */}
-                  <section className="py-7 border-b border-bdl">
-                    <h2 className="text-xl font-bold text-tx font-serif mb-4">课程亮点</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {HIGHLIGHTS.map(item => (
-                        <div key={item.title} className="flex items-start gap-2.5 p-4 rounded-md bg-bgs">
-                          <span className="text-lg flex-shrink-0">{item.icon}</span>
-                          <div>
-                            <h3 className="text-base font-semibold text-tx">{item.title}</h3>
-                            <p className="text-sm text-txs mt-0.5">{item.desc}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
+                  {/* 多载体内容栈：音频 / 正文 / 图集（按存在性叠加渲染） */}
+                  <CourseContentStack
+                    course={course}
+                    onAudioProgress={handleAudioProgress}
+                    onAudioEnded={handleAudioEnded}
+                    onMarkComplete={handleMarkComplete}
+                    isCompleted={isCurrentCompleted}
+                  />
 
-                  {/* Audience */}
-                  <section className="py-7 border-b border-bdl">
-                    <h2 className="text-xl font-bold text-tx font-serif mb-4">适合人群</h2>
-                    <div className="bg-bgs rounded-md p-5">
-                      <ul className="space-y-2">
-                        {AUDIENCES.map(item => (
-                          <li key={item} className="flex items-start gap-2 text-lg text-tx font-body">
-                            <span className="text-ac text-base mt-px">✓</span>
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </section>
+                  {/* 课程精华（可选）：思维导图等看课参考材料，有内容才显示 */}
+                  {course.essence?.trim() && (
+                    <section className="py-7 border-b border-bdl">
+                      <h2 className="text-xl font-bold text-tx font-serif mb-3 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-ac" />
+                        课程精华
+                      </h2>
+                      <article className="bg-bgs/40 rounded-ds-md px-5 py-4">
+                        <MarkdownRenderer content={course.essence} />
+                      </article>
+                    </section>
+                  )}
 
                   {/* CTA */}
                   <section className="pt-7">

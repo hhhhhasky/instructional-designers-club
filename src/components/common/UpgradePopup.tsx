@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
@@ -69,6 +70,9 @@ export default function UpgradePopup({ open, onClose, requiredLevel }: UpgradePo
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="sm:max-w-[400px] p-0 gap-0" hideCloseButton>
         <DialogTitle className="sr-only">升级提示</DialogTitle>
+        <DialogDescription className="sr-only">
+          当前课程需要升级会员权限后才能访问。
+        </DialogDescription>
         <UpgradeBody requiredLevel={requiredLevel} onClose={onClose} />
       </DialogContent>
     </Dialog>

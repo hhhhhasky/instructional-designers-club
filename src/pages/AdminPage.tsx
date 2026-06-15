@@ -20,7 +20,131 @@ export default function AdminPage() {
   const navigate = useNavigate();
   const { user, profile, loading, session } = useAuth();
   const initialCheckDone = useRef(false);
+  const activeTabRef = useRef("overview");
   const [activeTab, setActiveTab] = useState("overview");
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+
+    const prefix = "[admin-refresh-diagnostics]";
+    const log = (event: string, data?: Record<string, unknown>) => {
+      console.info(prefix, event, {
+        at: new Date().toISOString(),
+        path: window.location.pathname,
+        visibilityState: document.visibilityState,
+        ...data,
+      });
+    };
+
+    const navigation = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+    log("admin page mounted", {
+      navigationType: navigation?.type,
+      activeTab: activeTabRef.current,
+    });
+
+    const handleBeforeUnload = () => {
+      log("beforeunload: browser is about to leave/reload this page", {
+        activeTab: activeTabRef.current,
+      });
+    };
+    const handlePageHide = (event: PageTransitionEvent) => {
+      log("pagehide: page is being hidden/unloaded", {
+        persisted: event.persisted,
+        activeTab: activeTabRef.current,
+      });
+    };
+    const handleVisibilityChange = () => {
+      log("visibilitychange", {
+        hidden: document.hidden,
+        activeTab: activeTabRef.current,
+      });
+    };
+    const handleError = (event: ErrorEvent) => {
+      log("window error", {
+        message: event.message,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+      });
+    };
+    const handleResourceError = (event: Event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+
+      const resourceUrl =
+        target instanceof HTMLScriptElement ? target.src :
+        target instanceof HTMLLinkElement ? target.href :
+        target instanceof HTMLImageElement ? target.currentSrc || target.src :
+        null;
+
+      if (!resourceUrl) return;
+
+      const recentResources = performance
+        .getEntriesByType("resource")
+        .filter((entry): entry is PerformanceResourceTiming => "initiatorType" in entry)
+        .filter((entry) => entry.name === resourceUrl || entry.name.includes(new URL(resourceUrl).pathname))
+        .slice(-3)
+        .map((entry) => ({
+          name: entry.name,
+          initiatorType: entry.initiatorType,
+          transferSize: entry.transferSize,
+          duration: Math.round(entry.duration),
+          responseStatus: "responseStatus" in entry
+            ? (entry as PerformanceResourceTiming & { responseStatus?: number }).responseStatus
+            : undefined,
+        }));
+
+      log("resource load error", {
+        tagName: target.tagName,
+        resourceUrl,
+        recentResources,
+      });
+    };
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      log("unhandled promise rejection", {
+        reason: String(event.reason),
+      });
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("pagehide", handlePageHide);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("error", handleError);
+    window.addEventListener("error", handleResourceError, true);
+    window.addEventListener("unhandledrejection", handleUnhandledRejection);
+
+    const hot = import.meta.hot;
+    const handleViteBeforeUpdate = (payload: unknown) => {
+      log("vite:beforeUpdate", { payload });
+    };
+    const handleViteBeforeFullReload = (payload: unknown) => {
+      log("vite:beforeFullReload", { payload });
+    };
+    const handleViteError = (payload: unknown) => {
+      log("vite:error", { payload });
+    };
+
+    hot?.on("vite:beforeUpdate", handleViteBeforeUpdate);
+    hot?.on("vite:beforeFullReload", handleViteBeforeFullReload);
+    hot?.on("vite:error", handleViteError);
+
+    return () => {
+      log("admin page unmounted", { activeTab: activeTabRef.current });
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("pagehide", handlePageHide);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("error", handleError);
+      window.removeEventListener("error", handleResourceError, true);
+      window.removeEventListener("unhandledrejection", handleUnhandledRejection);
+      hot?.off("vite:beforeUpdate", handleViteBeforeUpdate);
+      hot?.off("vite:beforeFullReload", handleViteBeforeFullReload);
+      hot?.off("vite:error", handleViteError);
+    };
+  }, []);
 
   // 认证守卫：等待 loading 结束
   useEffect(() => {

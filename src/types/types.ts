@@ -1,6 +1,9 @@
 // 会员类型
 export type MembershipType = 'free' | 'plus' | 'pro';
 
+// Plus 课程三层结构
+export type PlusCourseTrackId = 'theory' | 'design-principles' | 'scenarios';
+
 // 用户角色
 export type UserRole = 'member' | 'admin';
 
@@ -36,6 +39,15 @@ export interface Course {
   is_trial: boolean; // 是否试看课程
   image_url: string | null;
   video_url: string | null;
+  audio_url: string | null; // 音频讲解文件 URL（多载体）
+  body: string | null; // 长文正文（Markdown）
+  essence: string | null; // 课程精华（可选 Markdown：思维导图等看课参考材料，为空不显示）
+  images: string[] | null; // 图片集 URL 数组
+  plus_track_id: PlusCourseTrackId | null; // Plus 篇章：theory / design-principles / scenarios
+  plus_module_id: string | null; // Plus 模块 ID，例如 learning-science / goals / shuoke
+  plus_module_order: number | null; // Plus 模块排序
+  plus_lesson_order: number | null; // Plus 模块内单课排序
+  plus_representative: boolean | null; // 是否作为 Plus 首页代表课程
   meeting_url: string | null;
   sort_order: number | null;
   view_count: number | null;

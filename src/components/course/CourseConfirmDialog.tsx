@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
@@ -68,6 +69,9 @@ export default function CourseConfirmDialog({ open, onConfirm }: CourseConfirmDi
         hideCloseButton
       >
         <DialogTitle className="sr-only">跳转确认</DialogTitle>
+        <DialogDescription className="sr-only">
+          确认后将打开腾讯会议回放申请页面。
+        </DialogDescription>
         <DialogBody onConfirm={onConfirm} />
       </DialogContent>
     </Dialog>

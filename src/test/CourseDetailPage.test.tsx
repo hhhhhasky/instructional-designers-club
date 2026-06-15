@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import CourseDetailPage from '@/pages/CourseDetailPage';
@@ -35,6 +35,7 @@ vi.mock('@/components/layout/Header', () => ({ default: () => <div data-testid="
 vi.mock('@/components/common/Footer', () => ({ default: () => <div data-testid="footer" /> }));
 vi.mock('@/components/common/LoadingOverlay', () => ({ default: ({ message }: { message: string }) => <div data-testid="loading">{message}</div> }));
 vi.mock('@/components/course/CourseConfirmDialog', () => ({ default: () => <div data-testid="confirm-dialog" /> }));
+vi.mock('@/components/common/PageMeta', () => ({ default: () => null }));
 
 // --- Test Data ---
 
@@ -57,6 +58,15 @@ const makeCourse = (overrides: Record<string, unknown> = {}): import('@/types/ty
   is_trial: false,
   image_url: null,
   video_url: 'https://example.com/video.mp4',
+  audio_url: null,
+  body: null,
+  essence: null,
+  images: null,
+  plus_track_id: null,
+  plus_module_id: null,
+  plus_module_order: null,
+  plus_lesson_order: null,
+  plus_representative: false,
   meeting_url: null,
   sort_order: 1,
   view_count: 10,
@@ -104,24 +114,24 @@ describe('CourseDetailPage — 课程导航功能', () => {
   // ============================
   // 测试点 1：面包屑导航显示
   // ============================
-  it('面包屑显示「课程中心 > 分类名 > 课程标题」', async () => {
+  it('面包屑显示「教师AI课 > 分类名 > 课程标题」', async () => {
     await renderAndWait('c1');
 
-    expect(screen.getByText('课程中心')).toBeInTheDocument();
+    expect(screen.getByText('教师AI课')).toBeInTheDocument();
     // "教学设计" 出现在多个位置（面包屑、Badge、目录标题），用 getAllByText
     expect(screen.getAllByText('教学设计').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('第一节：导入').length).toBeGreaterThanOrEqual(1);
   });
 
   // ============================
-  // 测试点 2：面包屑点击返回课程中心
+  // 测试点 2：面包屑点击返回教师AI课
   // ============================
-  it('点击面包屑中的「课程中心」导航到 /courses', async () => {
+  it('点击面包屑中的「教师AI课」导航到 /teacher-ai-courses', async () => {
     const user = userEvent.setup();
     await renderAndWait('c1');
 
-    await user.click(screen.getByText('课程中心'));
-    expect(mockNavigate).toHaveBeenCalledWith('/courses');
+    await user.click(screen.getByText('教师AI课'));
+    expect(mockNavigate).toHaveBeenCalledWith('/teacher-ai-courses');
   });
 
   // ============================
@@ -264,6 +274,57 @@ describe('CourseDetailPage — 课程导航功能', () => {
     await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
 
     expect(screen.getByText('课程不存在')).toBeInTheDocument();
-    expect(screen.getByText('返回课程中心')).toBeInTheDocument();
+    expect(screen.getByText('返回教学通识课')).toBeInTheDocument();
+  });
+});
+
+describe('CourseDetailPage — 正文板块精简与课程精华', () => {
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // ============================
+  // 删除项：「课程亮点」「适合人群」不再渲染
+  // ============================
+  it('不再显示「课程亮点」和「适合人群」板块', async () => {
+    await renderAndWait('c1');
+
+    expect(screen.queryByText('课程亮点')).not.toBeInTheDocument();
+    expect(screen.queryByText('适合人群')).not.toBeInTheDocument();
+  });
+
+  // ============================
+  // 必显项：课程简介仍在
+  // ============================
+  it('仍显示「课程简介」板块', async () => {
+    await renderAndWait('c1');
+
+    expect(screen.getByText('课程简介')).toBeInTheDocument();
+  });
+
+  // ============================
+  // 课程精华：为空时不渲染
+  // ============================
+  it('essence 为空时不显示「课程精华」', async () => {
+    await renderAndWait('c1');
+
+    expect(screen.queryByText('课程精华')).not.toBeInTheDocument();
+  });
+
+  // ============================
+  // 课程精华：有内容时渲染
+  // ============================
+  it('essence 有内容时显示「课程精华」', async () => {
+    vi.mocked(getCourseById).mockResolvedValue(
+      makeCourse({ id: 'c1', essence: '## 测试思维导图\n![](https://example.com/mindmap.png)' })
+    );
+    vi.mocked(getCoursesByMembershipAndCategory).mockResolvedValue(siblingCourses);
+    vi.mocked(getUserLearningRecords).mockResolvedValue([]);
+
+    renderCourseDetail('c1');
+    await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
+
+    expect(screen.getByText('课程精华')).toBeInTheDocument();
   });
 });

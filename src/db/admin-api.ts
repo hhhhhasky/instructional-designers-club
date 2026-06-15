@@ -218,15 +218,18 @@ export async function adminCreateCourse(
 export async function adminUpdateCourse(
   courseId: string,
   updates: Partial<Course>
-): Promise<void> {
-  const { error } = await supabase
+): Promise<Course> {
+  const { data, error } = await supabase
     .from("courses")
     .update(updates)
-    .eq("id", courseId);
+    .eq("id", courseId)
+    .select()
+    .single();
   if (error) {
     console.error("adminUpdateCourse error:", error);
     throw error;
   }
+  return data;
 }
 
 /**
