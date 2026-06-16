@@ -1,19 +1,21 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import EmptyLearningState from "@/components/learning/EmptyLearningState";
+import GamificationPanel from "@/components/learning/gamification/GamificationPanel";
+import LearningOverview from "@/components/learning/LearningOverview";
 import { useAuth } from "@/contexts/AuthContext";
 import { getLearningData } from "@/db/api";
+import { buildGamificationSnapshot } from "@/lib/gamification";
 import type {
   LearningOverview as LearningOverviewType,
-  SeriesProgress,
   RecentLearningItem,
   SeriesCourseItem,
+  SeriesProgress,
 } from "@/types/types";
-import LearningOverview from "@/components/learning/LearningOverview";
-import EmptyLearningState from "@/components/learning/EmptyLearningState";
+import AnnouncementFeed from "./AnnouncementFeed";
 import ContinueLearningCard from "./ContinueLearningCard";
 import NextCourseCard from "./NextCourseCard";
-import AnnouncementFeed from "./AnnouncementFeed";
 
 interface LearningData {
   overview: LearningOverviewType;
@@ -95,7 +97,15 @@ export default function MemberHomeHero() {
 
   const continueItem =
     data?.recentLearning.find((r) => r.status === "in_progress") ?? null;
-  const nextCourse = data ? pickNext(data.seriesProgress) : null;
+  const gamificationSnapshot = data && profile
+    ? buildGamificationSnapshot({
+      overview: data.overview,
+      seriesProgress: data.seriesProgress,
+      recentLearning: data.recentLearning,
+      accessLevel: profile.access_level,
+    })
+    : null;
+  const nextCourse = gamificationSnapshot?.nextCourse ?? (data ? pickNext(data.seriesProgress) : null);
   const hasRecords =
     !!data &&
     (data.recentLearning.length > 0 ||
@@ -120,6 +130,11 @@ export default function MemberHomeHero() {
               👋 Hi {nickname}，欢迎回来
             </h2>
             <p className="text-ds-sm text-txs mt-1">继续你的教学设计精进之旅</p>
+            {gamificationSnapshot && (
+              <p className="text-ds-sm text-tx mt-2 max-w-2xl">
+                {gamificationSnapshot.statusLine}
+              </p>
+            )}
             <Link
               to="/learning-map"
               className="text-ds-sm text-ac font-ds-semibold hover:underline mt-2 inline-block"
@@ -144,6 +159,8 @@ export default function MemberHomeHero() {
         {!loading && data && (
           hasRecords ? (
             <div className="space-y-4 md:space-y-6 animate-fade-in">
+              {gamificationSnapshot && <GamificationPanel snapshot={gamificationSnapshot} variant="compact" />}
+
               <LearningOverview overview={data.overview} />
 
               {(continueItem || nextCourse) && (

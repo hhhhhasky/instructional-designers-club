@@ -1,8 +1,8 @@
 // 会员类型
 export type MembershipType = 'free' | 'plus' | 'pro';
 
-// Plus 课程三层结构
-export type PlusCourseTrackId = 'theory' | 'design-principles' | 'scenarios';
+// Plus 课程三层结构。具体篇章 ID 由 Supabase plus_course_tracks 表维护。
+export type PlusCourseTrackId = string;
 
 // 用户角色
 export type UserRole = 'member' | 'admin';
@@ -55,6 +55,36 @@ export interface Course {
   updated_at: string | null;
 }
 
+export interface PlusCourseTrackRow {
+  id: string;
+  title: string;
+  short_title: string;
+  subtitle: string;
+  description: string;
+  audience: string;
+  icon_key: string;
+  accent: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PlusCourseModuleRow {
+  id: string;
+  track_id: string;
+  title: string;
+  short_title: string | null;
+  description: string;
+  sort_order: number;
+  category_names: string[];
+  representative_titles: string[];
+  icon_key: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // 用户资料类型
 export interface Profile {
   id: string;
@@ -98,6 +128,7 @@ export interface SeriesCourseItem {
   imageUrl: string | null;
   membershipType: MembershipType;
   sortOrder: number | null;
+  duration: number | null;
 }
 
 // 系列课进度

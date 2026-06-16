@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Theory badge">
+  <defs>
+    <linearGradient id="g" x1="20" y1="18" x2="104" y2="112" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#e8e0f0"/>
+      <stop offset="1" stop-color="#6b4d8a"/>
+    </linearGradient>
+  </defs>
+  <circle cx="64" cy="64" r="54" fill="#fffaf4" stroke="#6b4d8a" stroke-width="6"/>
+  <circle cx="64" cy="64" r="42" fill="url(#g)" opacity=".95"/>
+  <path d="M35 83h58M42 72h44M49 61h30" stroke="#fffaf4" stroke-width="9" stroke-linecap="round"/>
+  <path d="M64 30l31 20H33z" fill="#fffaf4"/>
+  <path d="M44 50v33M64 50v33M84 50v33" stroke="#3d2c51" stroke-width="7" stroke-linecap="round"/>
+</svg>

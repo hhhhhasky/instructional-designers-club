@@ -20,8 +20,11 @@ vi.mock('@/contexts/AuthContext', () => ({
 
 vi.mock('@/db/api', () => ({
   getCourseById: vi.fn(),
+  getCourseByIdAdmin: vi.fn(),
   incrementCourseViewCount: vi.fn(),
   getCoursesByMembershipAndCategory: vi.fn(),
+  getCoursesByMembershipType: vi.fn(),
+  getPlusCourseStructure: vi.fn(),
 }));
 
 vi.mock('@/lib/access-control', () => ({
@@ -39,7 +42,7 @@ vi.mock('@/components/common/PageMeta', () => ({ default: () => null }));
 
 // --- Test Data ---
 
-import { getCourseById, getCoursesByMembershipAndCategory } from '@/db/api';
+import { getCourseById, getCoursesByMembershipAndCategory, getCoursesByMembershipType, getPlusCourseStructure } from '@/db/api';
 import { getUserLearningRecords } from '@/lib/access-control';
 
 const makeCourse = (overrides: Record<string, unknown> = {}): import('@/types/types').Course => ({
@@ -254,6 +257,50 @@ describe('CourseDetailPage — 课程导航功能', () => {
 
     expect(screen.queryByText('上一节')).not.toBeInTheDocument();
     expect(screen.queryByText('下一节')).not.toBeInTheDocument();
+  });
+
+  it('Plus 课程按新 Plus 模块加载目录并返回篇章锚点', async () => {
+    const user = userEvent.setup();
+    const plusCourses = [
+      makeCourse({
+        id: 'p1',
+        title: '说课篇01：整体结构',
+        category: '教学原理篇',
+        membership_type: 'plus',
+        plus_track_id: 'scenarios',
+        plus_module_id: 'shuoke',
+        plus_module_order: 20,
+        plus_lesson_order: 1,
+        sort_order: 101,
+      }),
+      makeCourse({
+        id: 'p2',
+        title: '说课篇02：教材分析',
+        category: '教学原理篇',
+        membership_type: 'plus',
+        plus_track_id: 'scenarios',
+        plus_module_id: 'shuoke',
+        plus_module_order: 20,
+        plus_lesson_order: 2,
+        sort_order: 102,
+      }),
+    ];
+    vi.mocked(getCourseById).mockResolvedValue(plusCourses[0]);
+    vi.mocked(getCoursesByMembershipType).mockResolvedValue(plusCourses);
+    vi.mocked(getPlusCourseStructure).mockResolvedValue([]);
+    vi.mocked(getCoursesByMembershipAndCategory).mockResolvedValue([]);
+    vi.mocked(getUserLearningRecords).mockResolvedValue([]);
+
+    renderCourseDetail('p1');
+    await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
+
+    expect(getCoursesByMembershipType).toHaveBeenCalledWith('plus');
+    expect(getCoursesByMembershipAndCategory).not.toHaveBeenCalled();
+    expect(screen.getAllByText('说课篇').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('说课篇02：教材分析').length).toBeGreaterThanOrEqual(1);
+
+    await user.click(screen.getByText('场景篇'));
+    expect(mockNavigate).toHaveBeenCalledWith('/courses/plus/scenarios#shuoke');
   });
 
   // ============================

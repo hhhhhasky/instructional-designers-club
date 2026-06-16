@@ -13,7 +13,7 @@ import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
 import MapPreviewCard from '@/components/learning/map/MapPreviewCard';
 import PageMeta from '@/components/common/PageMeta';
-import { getCoursesByMembershipType } from '@/db/api';
+import { getCoursesByMembershipType, getPlusCourseStructure } from '@/db/api';
 import type { Course, PlusCourseTrackId } from '@/types/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { canAccessCourse } from '@/lib/access-control';
@@ -24,10 +24,12 @@ import {
   PLUS_TOOLBOX_MODULE,
   PLUS_TRACKS,
   buildPlusTrackUrl,
+  getEffectivePlusTracks,
   getModuleCourseCount,
   getModuleIcon,
   getRepresentativeCourses,
   getTrackCourseCount,
+  type PlusTrackConfig,
 } from '@/lib/plusCourseStructure';
 
 export default function CoursesPage() {
@@ -36,6 +38,7 @@ export default function CoursesPage() {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeLevel, setUpgradeLevel] = useState<'plus' | 'pro'>('plus');
   const [allCourses, setAllCourses] = useState<Course[]>([]);
+  const [plusTracks, setPlusTracks] = useState<PlusTrackConfig[]>(PLUS_TRACKS);
   const [isNavigating, setIsNavigating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,8 +48,12 @@ export default function CoursesPage() {
       try {
         setIsLoading(true);
         setError(null);
-        const coursesData = await getCoursesByMembershipType('plus');
+        const [coursesData, structureData] = await Promise.all([
+          getCoursesByMembershipType('plus'),
+          getPlusCourseStructure(),
+        ]);
         setAllCourses(coursesData);
+        setPlusTracks(getEffectivePlusTracks(coursesData, structureData.length > 0 ? structureData : PLUS_TRACKS));
       } catch (err) {
         console.error('加载课程数据失败:', err);
         setError('加载课程数据失败，请刷新页面重试');
@@ -129,7 +136,7 @@ export default function CoursesPage() {
           )}
 
           {!isLoading && !error && (
-            <PlusCourseMap courses={allCourses} onTrackOpen={handlePlusDestination} onCourseOpen={handleCourseClick} />
+            <PlusCourseMap courses={allCourses} tracks={plusTracks} onTrackOpen={handlePlusDestination} onCourseOpen={handleCourseClick} />
           )}
         </main>
         <Footer />
@@ -141,10 +148,12 @@ export default function CoursesPage() {
 
 function PlusCourseMap({
   courses,
+  tracks,
   onTrackOpen,
   onCourseOpen,
 }: {
   courses: Course[];
+  tracks: PlusTrackConfig[];
   onTrackOpen: (trackId: PlusCourseTrackId, moduleId?: string) => void;
   onCourseOpen: (course: Course) => void;
 }) {
@@ -164,9 +173,9 @@ function PlusCourseMap({
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-          {PLUS_TRACKS.map((track) => {
+          {tracks.map((track) => {
             const Icon = track.icon;
-            const count = getTrackCourseCount(courses, track.id);
+            const count = getTrackCourseCount(courses, track.id, tracks);
             return (
               <article key={track.id} className="bg-bc border border-bd rounded-lg overflow-hidden shadow-ds-sm hover:shadow-ds-md transition-shadow">
                 <div className={cn('h-2 bg-gradient-to-r', track.accent)} />
@@ -191,8 +200,8 @@ function PlusCourseMap({
 
                   <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-2.5">
                     {track.modules.map((module) => {
-                      const moduleCount = getModuleCourseCount(courses, track.id, module.id);
-                      const ModuleIcon = getModuleIcon(module.id);
+                      const moduleCount = getModuleCourseCount(courses, track.id, module.id, tracks);
+                      const ModuleIcon = getModuleIcon(module.iconKey || module.id);
                       return (
                         <button
                           key={module.id}
@@ -223,7 +232,7 @@ function PlusCourseMap({
                   <div className="mt-5 space-y-2">
                     <p className="text-xs font-semibold text-txs">可以先看</p>
                     <div className="space-y-1.5">
-                      {track.modules.flatMap((module) => getRepresentativeCourses(courses, module, 1)).slice(0, 3).map((course) => (
+                      {track.modules.flatMap((module) => getRepresentativeCourses(courses, module, 1, tracks)).slice(0, 3).map((course) => (
                         <button
                           key={course.id}
                           onClick={() => onCourseOpen(course)}

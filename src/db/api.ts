@@ -1,19 +1,22 @@
-import { supabase } from "./supabase";
+import { normalizePlusCourseStructure, type PlusTrackConfig } from "@/lib/plusCourseStructure";
 import type {
-  Course,
-  MembershipType,
-  LearningOverview,
-  SeriesProgress,
-  SeriesCourseItem,
-  RecentLearningItem,
-  MemberProfile,
-  Faq,
-  Testimonial,
-  Announcement,
   Activity,
+  Announcement,
+  Course,
+  Faq,
+  LearningOverview,
+  MemberProfile,
+  MembershipType,
+  PlusCourseModuleRow,
+  PlusCourseTrackRow,
+  RecentLearningItem,
   Resource,
+  SeriesCourseItem,
+  SeriesProgress,
   SiteContent,
+  Testimonial,
 } from "@/types/types";
+import { supabase } from "./supabase";
 
 /**
  * 获取所有已发布的课程列表
@@ -186,6 +189,43 @@ export async function getCoursesByMembershipType(membershipType: MembershipType)
     return Array.isArray(data) ? data : [];
   } catch (error) {
     console.error('获取会员类型课程异常:', error);
+    return [];
+  }
+}
+
+/**
+ * 获取 Plus 课程篇章 / 模块定义。
+ * 数据库表不存在或读取失败时返回空数组，调用方会回退到本地默认配置。
+ */
+export async function getPlusCourseStructure(): Promise<PlusTrackConfig[]> {
+  try {
+    const [{ data: tracks, error: tracksError }, { data: modules, error: modulesError }] = await Promise.all([
+      supabase
+        .from('plus_course_tracks')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true })
+        .order('id', { ascending: true }),
+      supabase
+        .from('plus_course_modules')
+        .select('*')
+        .eq('is_active', true)
+        .order('track_id', { ascending: true })
+        .order('sort_order', { ascending: true })
+        .order('id', { ascending: true }),
+    ]);
+
+    if (tracksError || modulesError) {
+      console.warn('获取 Plus 课程结构失败，将使用本地默认结构:', tracksError || modulesError);
+      return [];
+    }
+
+    return normalizePlusCourseStructure(
+      Array.isArray(tracks) ? tracks as PlusCourseTrackRow[] : [],
+      Array.isArray(modules) ? modules as PlusCourseModuleRow[] : [],
+    );
+  } catch (error) {
+    console.warn('获取 Plus 课程结构异常，将使用本地默认结构:', error);
     return [];
   }
 }
@@ -526,6 +566,10 @@ export async function getBatchCategoryTags(
 const learningCache = new Map<string, { data: Promise<{ overview: LearningOverview; seriesProgress: SeriesProgress[]; recentLearning: RecentLearningItem[] }>; ts: number }>();
 const LEARNING_CACHE_TTL = 5 * 60 * 1000;
 
+export function clearLearningDataCache(userId: string): void {
+  learningCache.delete(userId);
+}
+
 /**
  * 获取学员学习主页全部数据（概览 + 系列进度 + 最近学习）
  * 仅 2 次 Supabase 查询，客户端聚合，带 5 分钟缓存
@@ -564,7 +608,7 @@ async function _fetchLearningData(userId: string): Promise<{
         .eq('user_id', userId),
       supabase
         .from('courses')
-        .select('id, title, credits, category, image_url, membership_type, sort_order')
+        .select('id, title, credits, category, image_url, membership_type, sort_order, duration')
         .eq('status', 'published')
         .order('sort_order', { ascending: true }),
     ]);
@@ -579,7 +623,7 @@ async function _fetchLearningData(userId: string): Promise<{
     }
 
     const records = recordsRes.data || [];
-    const courses: Pick<Course, 'id' | 'title' | 'credits' | 'category' | 'image_url' | 'membership_type' | 'sort_order'>[] = coursesRes.data || [];
+    const courses: Pick<Course, 'id' | 'title' | 'credits' | 'category' | 'image_url' | 'membership_type' | 'sort_order' | 'duration'>[] = coursesRes.data || [];
 
     // courseId -> record 映射
     const recordMap = new Map(records.map(r => [r.course_id, r]));
@@ -634,6 +678,7 @@ async function _fetchLearningData(userId: string): Promise<{
         imageUrl: course.image_url,
         membershipType: course.membership_type,
         sortOrder: course.sort_order,
+        duration: course.duration,
       });
     }
 

@@ -10,11 +10,28 @@ import PageMeta from '@/components/common/PageMeta';
 import MarkdownRenderer from '@/components/common/MarkdownRenderer';
 import CourseConfirmDialog from '@/components/course/CourseConfirmDialog';
 import CourseContentStack from '@/components/course/CourseContentStack';
-import { getCourseById, getCourseByIdAdmin, incrementCourseViewCount, getCoursesByMembershipAndCategory } from '@/db/api';
+import CourseCompletionDialog from '@/components/course/CourseCompletionDialog';
+import { getCourseById, getCourseByIdAdmin, incrementCourseViewCount, getCoursesByMembershipAndCategory, getCoursesByMembershipType, getPlusCourseStructure, getLearningData } from '@/db/api';
 import { canAccessCourse, recordCourseVisit, updateLearningProgress, getUserLearningRecords } from '@/lib/access-control';
+import {
+  buildGamificationSnapshot,
+  findAchievementForCourse,
+  type Achievement,
+  type GamificationSnapshot,
+} from '@/lib/gamification';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Course, LearningRecord } from '@/types/types';
 import { cn } from '@/lib/utils';
+import {
+  buildPlusTrackUrl,
+  getCoursesForModule,
+  getEffectivePlusTracks,
+  getPlusModule,
+  getPlusTrack,
+  PLUS_TRACKS,
+  resolvePlusCoursePlacement,
+  type PlusTrackConfig,
+} from '@/lib/plusCourseStructure';
 
 const LEVEL_STYLE: Record<string, string> = {
   '入门': 'bg-bgs text-txs',
@@ -37,10 +54,14 @@ export default function CourseDetailPage() {
   const lastSyncedProgress = useRef(0);
   const lastSyncedAudioProgress = useRef(0);
   const [manuallyMarked, setManuallyMarked] = useState(false);
+  const [completionOpen, setCompletionOpen] = useState(false);
+  const [completionSnapshot, setCompletionSnapshot] = useState<GamificationSnapshot | null>(null);
+  const [completionAchievement, setCompletionAchievement] = useState<Achievement | null>(null);
 
   // 同系列课程列表
   const [siblingCourses, setSiblingCourses] = useState<Course[]>([]);
   const [learningRecords, setLearningRecords] = useState<LearningRecord[]>([]);
+  const [plusTracks, setPlusTracks] = useState<PlusTrackConfig[]>(PLUS_TRACKS);
 
   const syncProgress = useCallback(() => {
     const video = videoRef.current;
@@ -54,6 +75,38 @@ export default function CourseDetailPage() {
     updateLearningProgress(user.id, course.id, progress, status);
   }, [user, course]);
 
+  const showCompletionFeedback = useCallback(async () => {
+    if (!user || !course || !profile) return;
+    const data = await getLearningData(user.id);
+    const snapshot = buildGamificationSnapshot({
+      overview: data.overview,
+      seriesProgress: data.seriesProgress,
+      recentLearning: data.recentLearning,
+      accessLevel: profile.access_level,
+    });
+    setCompletionSnapshot(snapshot);
+    setCompletionAchievement(findAchievementForCourse(course, snapshot.achievements));
+    setCompletionOpen(true);
+  }, [user, course, profile]);
+
+  const completeCurrentCourse = useCallback(async () => {
+    if (!user || !course) return;
+    lastSyncedProgress.current = 100;
+    lastSyncedAudioProgress.current = 100;
+    await updateLearningProgress(user.id, course.id, 100, 'completed');
+    setManuallyMarked(true);
+    setLearningRecords((records) => {
+      const existing = records.find((record) => record.course_id === course.id);
+      if (!existing) return records;
+      return records.map((record) =>
+        record.course_id === course.id
+          ? { ...record, progress: 100, status: 'completed' as const, last_watched_at: new Date().toISOString() }
+          : record,
+      );
+    });
+    await showCompletionFeedback();
+  }, [user, course, showCompletionFeedback]);
+
   const handleTimeUpdate = useCallback(() => {
     const video = videoRef.current;
     if (!video || !video.duration) return;
@@ -65,11 +118,8 @@ export default function CourseDetailPage() {
   }, [syncProgress]);
 
   const handleVideoEnded = useCallback(() => {
-    lastSyncedProgress.current = 100;
-    if (user && course) {
-      updateLearningProgress(user.id, course.id, 100, 'completed');
-    }
-  }, [user, course]);
+    void completeCurrentCourse();
+  }, [completeCurrentCourse]);
 
   // 音频进度：每 10% 或到 95% 同步一次（与视频逻辑一致，独立计数器）
   const handleAudioProgress = useCallback((percent: number) => {
@@ -83,11 +133,8 @@ export default function CourseDetailPage() {
   }, [user, course]);
 
   const handleAudioEnded = useCallback(() => {
-    lastSyncedAudioProgress.current = 100;
-    if (user && course) {
-      updateLearningProgress(user.id, course.id, 100, 'completed');
-    }
-  }, [user, course]);
+    void completeCurrentCourse();
+  }, [completeCurrentCourse]);
 
   // 只在 id 变化时加载课程数据
   useEffect(() => {
@@ -103,6 +150,7 @@ export default function CourseDetailPage() {
         setError(null);
         setShowUpgrade(false);
         setManuallyMarked(false);
+        setSiblingCourses([]);
 
         let courseData = await getCourseById(id);
 
@@ -117,8 +165,30 @@ export default function CourseDetailPage() {
           setCourse(courseData);
           await incrementCourseViewCount(id);
 
-          // 加载同系列课程
-          if (courseData.category && courseData.membership_type) {
+          // Plus 课程按新篇章/模块结构加载同模块课程；Pro/Free 保持旧分类目录。
+          if (courseData.membership_type === 'plus') {
+            const [plusCourses, structureData] = await Promise.all([
+              getCoursesByMembershipType('plus'),
+              getPlusCourseStructure(),
+            ]);
+            const moduleSourceCourses = plusCourses.some((item) => item.id === courseData.id)
+              ? plusCourses
+              : [...plusCourses, courseData];
+            const effectiveTracks = getEffectivePlusTracks(
+              moduleSourceCourses,
+              structureData.length > 0 ? structureData : PLUS_TRACKS,
+            );
+            setPlusTracks(effectiveTracks);
+            const placement = resolvePlusCoursePlacement(courseData, effectiveTracks);
+            if (placement) {
+              setSiblingCourses(getCoursesForModule(
+                moduleSourceCourses,
+                placement.resolvedTrackId,
+                placement.resolvedModuleId,
+                effectiveTracks,
+              ));
+            }
+          } else if (courseData.category && courseData.membership_type) {
             const siblings = await getCoursesByMembershipAndCategory(
               courseData.membership_type,
               courseData.category
@@ -174,7 +244,13 @@ export default function CourseDetailPage() {
   // 计算当前课程在系列中的位置
   const currentIndex = siblingCourses.findIndex(c => c.id === id);
   const prevCourse = currentIndex > 0 ? siblingCourses[currentIndex - 1] : null;
-  const nextCourse = currentIndex < siblingCourses.length - 1 ? siblingCourses[currentIndex + 1] : null;
+  const nextCourse = currentIndex >= 0 && currentIndex < siblingCourses.length - 1 ? siblingCourses[currentIndex + 1] : null;
+  const currentPosition = currentIndex >= 0 ? currentIndex + 1 : 1;
+  const plusPlacement = course?.membership_type === 'plus' ? resolvePlusCoursePlacement(course, plusTracks) : null;
+  const plusTrack = plusPlacement ? getPlusTrack(plusPlacement.resolvedTrackId, plusTracks) : undefined;
+  const plusModule = plusPlacement ? getPlusModule(plusPlacement.resolvedTrackId, plusPlacement.resolvedModuleId, plusTracks) : undefined;
+  const courseCollectionLabel = plusModule?.title || course?.category || '课程目录';
+  const courseBadgeLabel = course?.membership_type === 'plus' ? courseCollectionLabel : course?.category;
 
   const getProgress = (courseId: string): number => {
     const record = learningRecords.find(r => r.course_id === courseId);
@@ -187,10 +263,14 @@ export default function CourseDetailPage() {
   };
 
   const getCourseListPath = (membershipType?: string | null) => {
+    if (membershipType === 'plus' && plusPlacement) {
+      return buildPlusTrackUrl(plusPlacement.resolvedTrackId, plusPlacement.resolvedModuleId);
+    }
     return membershipType === 'pro' ? '/teacher-ai-courses' : '/courses';
   };
 
   const getCourseListName = (membershipType?: string | null) => {
+    if (membershipType === 'plus' && plusTrack) return plusTrack.title;
     return membershipType === 'pro' ? '教师AI课' : '教学通识课';
   };
 
@@ -287,9 +367,7 @@ export default function CourseDetailPage() {
   const isCurrentCompleted = manuallyMarked || getStatus(course.id) === 'completed';
 
   const handleMarkComplete = () => {
-    if (!user) return;
-    updateLearningProgress(user.id, course.id, 100, 'completed');
-    setManuallyMarked(true);
+    void completeCurrentCourse();
   };
 
   const handleBack = () => {
@@ -352,10 +430,10 @@ export default function CourseDetailPage() {
               <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
               {getCourseListName(course.membership_type)}
             </button>
-            {course.category && (
+            {courseCollectionLabel && (
               <>
                 <ChevronRight className="w-3.5 h-3.5 text-tx/30" />
-                <span className="text-tx/80 font-medium">{course.category}</span>
+                <span className="text-tx/80 font-medium">{courseCollectionLabel}</span>
               </>
             )}
             <ChevronRight className="w-3.5 h-3.5 text-tx/30" />
@@ -386,9 +464,9 @@ export default function CourseDetailPage() {
                 <div className="relative bg-black">
                   {heroContent}
                   <div className="absolute top-3 left-3 flex gap-1.5 z-10">
-                    {course.category && (
+                    {courseBadgeLabel && (
                       <Badge variant="secondary" className="bg-bc/90 backdrop-blur-sm text-tx text-xs font-medium rounded-full">
-                        {course.category}
+                        {courseBadgeLabel}
                       </Badge>
                     )}
                     {course.level && (
@@ -418,7 +496,7 @@ export default function CourseDetailPage() {
                     </button>
 
                     <span className="text-xs text-txs px-3">
-                      {currentIndex + 1} / {siblingCourses.length}
+                      {currentPosition} / {siblingCourses.length}
                     </span>
 
                     <button
@@ -444,9 +522,9 @@ export default function CourseDetailPage() {
                     <div className="px-4 py-2.5 bg-warm/30 flex items-center justify-between">
                       <h3 className="font-bold text-tx text-sm flex items-center gap-2">
                         <List className="w-4 h-4 text-ac" />
-                        {course.category || '课程目录'}
+                        {courseCollectionLabel}
                       </h3>
-                      <span className="text-xs text-txs">{currentIndex + 1} / {siblingCourses.length}</span>
+                      <span className="text-xs text-txs">{currentPosition} / {siblingCourses.length}</span>
                     </div>
                     <div className="max-h-60 overflow-y-auto overscroll-contain">
                       {siblingCourses.map((sibling, index) => {
@@ -610,7 +688,7 @@ export default function CourseDetailPage() {
                   <div className="px-4 py-3 border-b border-bdl bg-warm/30">
                     <h3 className="font-bold text-tx text-sm flex items-center gap-2">
                       <List className="w-4 h-4 text-ac" />
-                      {course.category || '课程目录'}
+                      {courseCollectionLabel}
                     </h3>
                     <p className="text-xs text-txs mt-1">共 {siblingCourses.length} 节课程</p>
                   </div>
@@ -681,6 +759,13 @@ export default function CourseDetailPage() {
 
       <Footer />
       <CourseConfirmDialog open={showConfirmDialog} onConfirm={handleConfirmStart} />
+      <CourseCompletionDialog
+        open={completionOpen}
+        onOpenChange={setCompletionOpen}
+        courseTitle={course.title}
+        achievement={completionAchievement}
+        snapshot={completionSnapshot}
+      />
     </div>
     </>
   );

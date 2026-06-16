@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Student analysis badge">
+  <defs>
+    <linearGradient id="g" x1="20" y1="18" x2="104" y2="112" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#d4ede8"/>
+      <stop offset="1" stop-color="#2a7a6e"/>
+    </linearGradient>
+  </defs>
+  <circle cx="64" cy="64" r="54" fill="#fffaf4" stroke="#2a7a6e" stroke-width="6"/>
+  <circle cx="64" cy="64" r="42" fill="url(#g)" opacity=".95"/>
+  <circle cx="50" cy="53" r="12" fill="#fffaf4"/>
+  <circle cx="78" cy="53" r="12" fill="#fffaf4"/>
+  <path d="M36 92c4-17 20-25 28-25s24 8 28 25" fill="none" stroke="#174d46" stroke-width="8" stroke-linecap="round"/>
+  <path d="M64 28v16M42 35l10 13M86 35L76 48" stroke="#fffaf4" stroke-width="6" stroke-linecap="round"/>
+</svg>

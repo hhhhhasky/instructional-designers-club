@@ -666,6 +666,26 @@ type ProblemEntry = {
 > 本节记录 2026-06-15 当前 session 已经完成的研发结果，供下个 session 接手。  
 > 之前“尚未改代码 / 先不动数据库”的状态已经过期；本 session 已完成前端、后台和远端 Supabase 的第一轮落地。
 
+### 10.0 研发功能进度表
+
+| 研发功能 | 当前进展 | 完成 / 更新时间 | 证据位置 | 下一步 |
+| --- | --- | --- | --- | --- |
+| Plus 三层课程结构产品决策 | 已完成 | 2026-06-15 | 本文第 2-7 节 | 后续内容精修时继续沿用“理论篇 / 教学设计原理篇 / 场景篇”主干 |
+| `/courses` 课程地图页 | 已完成 | 2026-06-15 | `src/pages/CoursesPage.tsx`、本文 10.1.1 | 继续避免开发者视角文案，按用户任务优化入口文案 |
+| Plus 信息架构前端配置 | 已完成 | 2026-06-15 | `src/lib/plusCourseStructure.ts`、本文 10.1.3 | 持续补充模块介绍、代表课程和复用规则 |
+| Plus 篇章详情页 | 已完成 | 2026-06-15 | `src/pages/PlusTrackPage.tsx`、`src/routes.tsx`、本文 10.1.2 | 增加继续学习、模块流转和内容形态提示 |
+| 说课篇 01-08 归属修正 | 已完成 | 2026-06-15 | `resolvePlusCoursePlacement()`、远端回填结果、本文 10.1.4 | 新增说课内容时继续按“场景任务”归类 |
+| Supabase Plus 结构字段与回填 | 已完成 | 2026-06-15 | `supabase/migrations/20260615_plus_course_structure.sql`、本文 10.1.6 | 若运营需要配置学习路径，再评估独立表 |
+| Plus 篇章 / 模块定义后台动态化 | 已完成 | 2026-06-16 | `supabase/migrations/20260616024859_dynamic_plus_course_structure.sql`、`src/db/api.ts`、`src/lib/plusCourseStructure.ts` | 后续可加后台表单管理这两张结构表 |
+| 管理后台 Plus 字段编辑与数据库同步 | 已完成 | 2026-06-16 | `src/components/admin/CourseManagementSection.tsx`、`src/db/admin-api.ts`、本文 10.1.5 / 10.1.8 | 继续做篇章 / 模块筛选、批量调整和结构预览 |
+| 单课页多载体内容与课程精华 | 已完成 | 2026-06-15 | `src/components/course/CourseContentStack.tsx`、`src/pages/CourseDetailPage.tsx`、`supabase/migrations/20260615_course_multiformat.sql`、`supabase/migrations/20260615_course_essence.sql` | 在课程列表卡片上显示视频 / 图文 / 音频 / 精华等形态 |
+| Plus 单课页目录接入新模块结构 | 已完成 | 2026-06-16 | `src/pages/CourseDetailPage.tsx`、`src/test/CourseDetailPage.test.tsx` | 可继续补“上一个模块 / 下一个模块”跨模块流转 |
+| 后台 Plus 篇章 / 模块筛选 | 已完成 | 2026-06-16 | `src/components/admin/CourseManagementSection.tsx`、`src/test/CourseManagementSection.test.tsx`、本文 10.1.9 | 继续做批量调整和结构预览入口 |
+| 后台批量调整 Plus 模块归属与排序 | 已完成 | 2026-06-16 | `src/components/admin/CourseManagementSection.tsx`、`src/test/CourseManagementSection.test.tsx`、本文 10.1.10 | 后续如需更强事务一致性，可评估批量 RPC |
+| 后台 Plus 结构预览入口 | 已完成 | 2026-06-16 | `src/components/admin/CourseManagementSection.tsx`、`src/test/CourseManagementSection.test.tsx`、本文 10.1.10 | 后续可在结构表单管理页增加更细预览 |
+| 70 门 Plus 课程归属人工复核 | 未完成 | 暂无 | 本文 10.4 优先级 2 | 重点检查公开课、选修课、AI 工具类内容 |
+| 推荐路径 / 问题入口后台化 | 暂缓 | 暂无 | 本文 10.4 优先级 4 | 运营配置需求稳定后再做，当前继续放前端配置 |
+
 ### 10.1 已完成范围
 
 #### 10.1.1 前台课程中心
@@ -810,9 +830,13 @@ src/lib/plusCourseStructure.ts
 
 - 篇章
 - 模块
+- 篇章 ID（`plus_track_id`）
+- 模块 ID（`plus_module_id`）
 - 模块排序
 - 模块内单课排序
 - 是否作为 Plus 首页代表课程候选
+
+其中“篇章 / 模块”下拉使用 `plus_course_tracks` 和 `plus_course_modules` 的动态结构；“篇章 ID / 模块 ID”允许直接写入新 ID。只要两个 ID 同时填写，保存后会通过 `adminUpdateCourse()` 更新到 `courses.plus_track_id` 和 `courses.plus_module_id`。
 
 如果课程类型切回 Pro / Free，后台保存时会清空这些 Plus 字段，避免污染非 Plus 课程。
 
@@ -840,10 +864,11 @@ plus_lesson_order integer
 plus_representative boolean default false
 ```
 
-约束与索引：
+历史约束与索引：
 
 - `courses_plus_track_id_check`
-  - 允许值：`theory` / `design-principles` / `scenarios`
+  - 早期允许值：`theory` / `design-principles` / `scenarios`
+  - 已在 2026-06-16 的动态结构迁移中移除，当前允许后端新增篇章 ID
 - `idx_courses_plus_structure`
 - `idx_courses_plus_representative`
 
@@ -859,12 +884,165 @@ pro: 31 门课，0 门写入 Plus 字段
 
 这说明 Pro 和 Free 没有被 Plus 结构字段污染。
 
+#### 10.1.7 Plus 篇章 / 模块定义已改为数据库动态配置
+
+新增迁移文件：
+
+```txt
+supabase/migrations/20260616024859_dynamic_plus_course_structure.sql
+```
+
+新增结构表：
+
+```sql
+public.plus_course_tracks
+public.plus_course_modules
+```
+
+当前职责：
+
+- `plus_course_tracks` 维护篇章定义，例如 `theory` / `design-principles` / `scenarios` 的标题、说明、图标、排序。
+- `plus_course_modules` 维护模块定义，例如 `learning-science` / `goals` / `shuoke` 的标题、说明、排序、旧分类映射和代表课程标题。
+- `courses.plus_track_id` / `courses.plus_module_id` 仍维护每门课的归属。
+
+前端读取方式：
+
+- `/courses` 课程地图页优先读取 `plus_course_tracks` 和 `plus_course_modules`。
+- `/courses/plus/:trackId` 篇章页优先读取数据库模块定义。
+- 单课详情页的同模块目录也读取同一套动态结构。
+- 如果数据库结构表读取失败，前端会回退到 `src/lib/plusCourseStructure.ts` 里的默认结构，避免页面不可用。
+- 如果某门 Plus 课程写入了新的 `plus_module_id`，但 `plus_course_modules` 里还没有对应定义，前端会自动生成一个临时模块组块，标题暂用 module id。
+
+新增模块推荐操作：
+
+```sql
+insert into public.plus_course_modules (
+  track_id,
+  id,
+  title,
+  description,
+  sort_order,
+  category_names,
+  representative_titles,
+  icon_key,
+  is_active
+) values (
+  'scenarios',
+  'review-lesson',
+  '复习课篇',
+  '帮助老师设计期末复习、单元复习和专题复习课。',
+  40,
+  array['复习课篇'],
+  array[]::text[],
+  'refresh-ccw',
+  true
+) on conflict (track_id, id) do update set
+  title = excluded.title,
+  description = excluded.description,
+  sort_order = excluded.sort_order,
+  category_names = excluded.category_names,
+  representative_titles = excluded.representative_titles,
+  icon_key = excluded.icon_key,
+  is_active = excluded.is_active;
+
+update public.courses
+set
+  plus_track_id = 'scenarios',
+  plus_module_id = 'review-lesson',
+  plus_module_order = 40,
+  plus_lesson_order = 1
+where id = '课程ID'
+  and membership_type = 'plus';
+```
+
+注意：
+
+- 新增模块不再需要改前端代码，但需要数据库迁移已部署到远端 Supabase。
+- 新增全新篇章时，先插入 `plus_course_tracks`，再插入对应 `plus_course_modules`，最后更新课程的 `plus_track_id` / `plus_module_id`。
+- 旧的 `courses_plus_track_id_check` 固定篇章约束已在新迁移中移除，以支持后端动态扩展篇章。
+
+#### 10.1.8 管理后台课程编辑已支持直接同步 Plus 字段
+
+后台课程编辑弹窗已支持两种修改路径：
+
+- 从动态下拉中选择已配置的篇章 / 模块。
+- 直接填写 `plus_track_id` 和 `plus_module_id`，用于先创建课程归属、后补模块定义的场景。
+
+保存路径：
+
+```txt
+CourseManagementSection -> adminUpdateCourse() -> Supabase public.courses
+```
+
+保存校验：
+
+- Plus 课程必须同时填写篇章 ID 和模块 ID，或者同时留空走旧分类自动归属。
+- Pro / Free 课程保存时会自动清空 Plus 字段。
+- 保存成功后，本页课程列表会立即用最新课程数据重新推导 Plus 结构；如果新模块还没有在 `plus_course_modules` 中定义，列表仍会显示临时模块 ID。
+
+远端数据库核对：
+
+- `courses.plus_track_id` / `courses.plus_module_id` / `plus_module_order` / `plus_lesson_order` / `plus_representative` 字段均存在。
+- `courses` 表已有 authenticated 管理员 UPDATE policy：`Admin can update courses`。
+- `adminUpdateCourse()` 继续走 PostgREST 更新，不需要额外新增 RPC。
+
+#### 10.1.9 管理后台课程列表已支持 Plus 篇章 / 模块筛选
+
+课程管理列表工具栏已新增两个筛选器：
+
+- Plus 篇章筛选：读取当前动态 Plus 结构，显示全部已配置篇章。
+- Plus 模块筛选：选择篇章后联动显示该篇章下的模块。
+
+筛选规则：
+
+- 默认展示全部课程，Pro / Free 不受影响。
+- 选择某个 Plus 篇章后，只显示归属于该篇章的 Plus 课程，Pro / Free 会被排除。
+- 再选择模块后，只显示该模块下的 Plus 课程。
+- 筛选使用 `resolvePlusCoursePlacement(course, plusTracks)`，所以兼容显式数据库归属、旧分类自动归属和动态结构中的临时模块。
+- 搜索、状态筛选和 Plus 结构筛选可以组合使用；切换筛选条件会重置分页到第 1 页。
+
+涉及文件：
+
+- `src/components/admin/CourseManagementSection.tsx`
+- `src/test/CourseManagementSection.test.tsx`
+
+#### 10.1.10 管理后台已支持批量调整与结构预览
+
+课程管理列表新增 Plus 批量操作能力：
+
+- 表格左侧增加选择列，只有 Plus 课程可以被选择；Pro / Free 课程不可被批量写入 Plus 结构字段。
+- 工具栏下方增加批量操作面板，显示当前已选择的 Plus 课程数量。
+- 支持选择批量目标篇章、目标模块、模块排序、模块内单课起始序号。
+- 点击“批量保存”后，按当前列表顺序逐门调用 `adminUpdateCourse()` 写回：
+  - `plus_track_id`
+  - `plus_module_id`
+  - `plus_module_order`
+  - `plus_lesson_order`
+- 如果填写了单课起始序号，会按所选课程顺序递增写入；如果留空，则保留原来的 `plus_lesson_order`。
+- 保存成功后本地列表立即用返回数据刷新，并清空选择。
+
+课程管理列表也新增“预览结构”入口：
+
+- 未选择 Plus 篇章筛选时，打开 `/courses`。
+- 已选择篇章时，打开 `/courses/plus/:trackId`。
+- 已选择篇章和模块时，打开 `/courses/plus/:trackId#moduleId`。
+
+当前设计边界：
+
+- 批量保存复用现有 `adminUpdateCourse()`，不新增 RPC。
+- 批量更新不是数据库事务；如果后续运营一次性调整大量课程并要求全成全败，再评估新增批量 RPC。
+- 结构预览走新标签页，不改变后台当前筛选和编辑状态。
+
 ### 10.2 当前验证结果
 
 已通过：
 
 - `./node_modules/.bin/tsgo -p tsconfig.check.json`
+- `./node_modules/.bin/vitest run src/test/CourseManagementSection.test.tsx src/test/CourseDetailPage.test.tsx src/test/plusCourseStructure.test.ts`
+- `./node_modules/.bin/biome lint --only=correctness/noUndeclaredDependencies src/components/admin/CourseManagementSection.tsx src/test/CourseManagementSection.test.tsx`
+- `npm run build`
 - Supabase 远端 SQL 回填验证
+- Supabase 远端 `courses` Plus 字段与管理员更新策略核对
 - 浏览器烟测：
   - `/courses` 无开发者视角文案
   - Plus 三条主线正常显示
@@ -875,8 +1053,8 @@ pro: 31 门课，0 门写入 Plus 字段
 
 验证边界：
 
-- `npm run build` / `vite build` / `biome` / `vitest` 在当前环境里曾出现长时间无输出或命令不可用，未作为最终验收依据。
-- 当前有效验证以 `tsgo`、Supabase 远端查询、浏览器烟测为准。
+- `npm run lint` 的 `tsgo` 和 `biome lint --only=correctness/noUndeclaredDependencies` 已执行通过，但最后一步 `ast-grep scan` 失败，原因是当前项目没有安装 `ast-grep` 可执行命令，`node_modules/.bin` 中也没有对应二进制。
+- 当前本次功能有效验证以 `tsgo`、目标 Vitest、生产构建和既有 Supabase / 浏览器验证记录为准。
 
 ### 10.3 当前已知产品 / 技术判断
 
@@ -894,10 +1072,11 @@ pro: 31 门课，0 门写入 Plus 字段
 
 优先级 1：管理后台体验完善
 
+已完成：
+
 - 在课程列表中增加 Plus 篇章 / 模块筛选。
 - 允许后台批量调整 Plus 模块归属和排序。
 - 增加“按当前 Plus 结构预览”的后台入口。
-- 对 `plus_track_id` / `plus_module_id` 增加更明确的校验提示。
 
 优先级 2：内容结构精修
 
@@ -930,8 +1109,8 @@ pro: 31 门课，0 门写入 Plus 字段
 可以直接使用：
 
 > 请阅读 `docs/教学通识课Plus-课程结构重构接手文档.md`。  
-> 当前 Plus 课程结构第一轮已经完成：前台课程地图页、篇章详情页、后台 Plus 字段、远端 Supabase 字段和说课篇 01-08 归属修正均已落地。  
-> 请不要重复做第一阶段。下一步优先继续优化管理后台的 Plus 结构管理能力：增加 Plus 篇章 / 模块筛选、批量调整模块归属和排序、后台结构预览入口。  
+> 当前 Plus 课程结构第一轮和管理后台优先级 1 已经完成：前台课程地图页、篇章详情页、后台 Plus 字段编辑、列表筛选、批量调整、结构预览入口、远端 Supabase 字段和说课篇 01-08 归属修正均已落地。  
+> 请不要重复做第一阶段和后台优先级 1。下一步优先做内容结构精修：检查 70 门 Plus 课程的模块归属，重点核对公开课、选修课和 AI 工具类内容，并为每个模块补更像用户语言的模块介绍。  
 > 保持 Pro / Free 课程展示逻辑不受影响。  
 > 修改后继续用 `tsgo`、Supabase 远端查询和浏览器烟测验证。
 

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Activity badge">
+  <defs>
+    <linearGradient id="g" x1="22" y1="18" x2="104" y2="112" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f0d5cc"/>
+      <stop offset="1" stop-color="#c45d3e"/>
+    </linearGradient>
+  </defs>
+  <circle cx="64" cy="64" r="54" fill="#fffaf4" stroke="#c45d3e" stroke-width="6"/>
+  <circle cx="64" cy="64" r="42" fill="url(#g)" opacity=".92"/>
+  <path d="M36 50h22v22H36zM70 36h22v22H70zM70 74h22v22H70z" fill="#fffaf4"/>
+  <path d="M58 61h12M81 58v16" stroke="#7b3724" stroke-width="7" stroke-linecap="round"/>
+  <path d="M47 72c7 17 24 21 34 8" fill="none" stroke="#7b3724" stroke-width="6" stroke-linecap="round"/>
+</svg>

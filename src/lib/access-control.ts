@@ -1,6 +1,7 @@
-import { supabase } from '@/db/supabase';
-import type { Profile, LearningRecord, MembershipType } from '@/types/types';
 import type { Session, User } from '@supabase/supabase-js';
+import { clearLearningDataCache } from '@/db/api';
+import { supabase } from '@/db/supabase';
+import type { LearningRecord, MembershipType, Profile } from '@/types/types';
 
 // ==================== 访问控制 ====================
 
@@ -165,6 +166,7 @@ export async function recordCourseVisit(
       last_watched_at: new Date().toISOString(),
     });
   }
+  clearLearningDataCache(userId);
 }
 
 // 更新进度（不增加 watch_count）
@@ -183,6 +185,7 @@ export async function updateLearningProgress(
     })
     .eq('user_id', userId)
     .eq('course_id', courseId);
+  clearLearningDataCache(userId);
 }
 
 export async function getUserLearningRecords(userId: string): Promise<LearningRecord[]> {

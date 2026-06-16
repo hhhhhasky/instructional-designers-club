@@ -1,19 +1,21 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, GraduationCap, Map as MapIcon, ChevronRight } from 'lucide-react';
-import Header from '@/components/layout/Header';
+import { ArrowLeft, ChevronRight, GraduationCap, Map as MapIcon } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
-import MobileTabBar from '@/components/navigation/MobileTabBar';
 import PageMeta from '@/components/common/PageMeta';
+import Header from '@/components/layout/Header';
+import EmptyLearningState from '@/components/learning/EmptyLearningState';
+import GamificationPanel from '@/components/learning/gamification/GamificationPanel';
+import LearningOverview from '@/components/learning/LearningOverview';
+import RecentLearning from '@/components/learning/RecentLearning';
+import SeriesProgressCard from '@/components/learning/SeriesProgressCard';
+import MobileTabBar from '@/components/navigation/MobileTabBar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { getLearningData } from '@/db/api';
-import LearningOverview from '@/components/learning/LearningOverview';
-import SeriesProgressCard from '@/components/learning/SeriesProgressCard';
-import RecentLearning from '@/components/learning/RecentLearning';
-import EmptyLearningState from '@/components/learning/EmptyLearningState';
-import type { LearningOverview as LearningOverviewType, SeriesProgress, RecentLearningItem } from '@/types/types';
+import { buildGamificationSnapshot } from '@/lib/gamification';
+import type { LearningOverview as LearningOverviewType, RecentLearningItem, SeriesProgress } from '@/types/types';
 
 export default function LearningPage() {
   const navigate = useNavigate();
@@ -98,6 +100,14 @@ export default function LearningPage() {
   }
 
   const hasRecords = recentLearning.length > 0 || (overview && (overview.completedCourses > 0 || overview.inProgressCourses > 0));
+  const gamificationSnapshot = overview && profile
+    ? buildGamificationSnapshot({
+      overview,
+      seriesProgress,
+      recentLearning,
+      accessLevel: profile.access_level,
+    })
+    : null;
 
   return (
     <>
@@ -161,6 +171,12 @@ export default function LearningPage() {
                 <EmptyLearningState />
               ) : (
                 <>
+                  {gamificationSnapshot && (
+                    <div className="mb-8">
+                      <GamificationPanel snapshot={gamificationSnapshot} />
+                    </div>
+                  )}
+
                   {/* 统计概览 */}
                   <div className="mb-8">
                     <LearningOverview overview={overview} />

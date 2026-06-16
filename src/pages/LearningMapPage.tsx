@@ -1,22 +1,24 @@
-import { useState, useEffect, useRef } from 'react';
+import { ArrowLeft, Map as MapIcon, PartyPopper, Sparkles } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Map as MapIcon, Sparkles, PartyPopper } from 'lucide-react';
-import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
-import MobileTabBar from '@/components/navigation/MobileTabBar';
 import PageMeta from '@/components/common/PageMeta';
+import Header from '@/components/layout/Header';
+import GamificationPanel from '@/components/learning/gamification/GamificationPanel';
+import LearningMap from '@/components/learning/map/LearningMap';
+import type { MapNodeConfig } from '@/components/learning/map/learningMapConfig';
+import { getMapNodeById } from '@/components/learning/map/learningMapConfig';
+import MobileTabBar from '@/components/navigation/MobileTabBar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { getLearningData } from '@/db/api';
-import LearningMap from '@/components/learning/map/LearningMap';
-import { buildLearningMapData, isAllElementsExplored } from '@/lib/learningMap';
-import { getMapNodeById } from '@/components/learning/map/learningMapConfig';
-import type { MapNodeConfig } from '@/components/learning/map/learningMapConfig';
+import { buildGamificationSnapshot, type GamificationSnapshot } from '@/lib/gamification';
 import type {
   LearningMapData,
   RecommendedNextCourse,
 } from '@/lib/learningMap';
+import { isAllElementsExplored } from '@/lib/learningMap';
 
 export default function LearningMapPage() {
   const navigate = useNavigate();
@@ -25,6 +27,7 @@ export default function LearningMapPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [mapData, setMapData] = useState<LearningMapData | null>(null);
+  const [gamificationSnapshot, setGamificationSnapshot] = useState<GamificationSnapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -41,7 +44,14 @@ export default function LearningMapPage() {
       setError(null);
       try {
         const data = await getLearningData(user.id);
-        setMapData(buildLearningMapData(data.seriesProgress, profile.access_level));
+        const snapshot = buildGamificationSnapshot({
+          overview: data.overview,
+          seriesProgress: data.seriesProgress,
+          recentLearning: data.recentLearning,
+          accessLevel: profile.access_level,
+        });
+        setGamificationSnapshot(snapshot);
+        setMapData(snapshot.mapData);
       } catch {
         setError('加载学习地图失败，请刷新页面重试');
       } finally {
@@ -143,6 +153,9 @@ export default function LearningMapPage() {
 
             {!isLoading && !error && mapData && (
               <div className="space-y-5">
+                {gamificationSnapshot && (
+                  <GamificationPanel snapshot={gamificationSnapshot} variant="compact" />
+                )}
                 <CurrentPositionCard
                   currentNode={currentNode}
                   nextCourse={nextCourse}

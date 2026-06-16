@@ -16,13 +16,14 @@ import {
   Target,
   type LucideIcon,
 } from 'lucide-react';
-import type { Course, PlusCourseTrackId } from '@/types/types';
+import type { Course, PlusCourseModuleRow, PlusCourseTrackId, PlusCourseTrackRow } from '@/types/types';
 
 export interface PlusModuleConfig {
   id: string;
   title: string;
   description: string;
   shortTitle?: string;
+  iconKey?: string;
   order: number;
   categoryNames: string[];
   representativeTitles: string[];
@@ -35,8 +36,10 @@ export interface PlusTrackConfig {
   subtitle: string;
   description: string;
   audience: string;
+  iconKey?: string;
   icon: LucideIcon;
   accent: string;
+  order?: number;
   modules: PlusModuleConfig[];
 }
 
@@ -288,6 +291,21 @@ export const TRACK_FLOW = [
 ];
 
 const MODULE_ICONS: Record<string, LucideIcon> = {
+  'award': Award,
+  'book-open': BookOpen,
+  'brain': Brain,
+  'clipboard-check': ClipboardCheck,
+  'compass': Compass,
+  'file-text': FileText,
+  'graduation-cap': GraduationCap,
+  'layers': Layers,
+  'lightbulb': Lightbulb,
+  'list-checks': ListChecks,
+  'message-square': MessageSquare,
+  'presentation': Presentation,
+  'refresh-ccw': RefreshCcw,
+  'sparkles': Sparkles,
+  'target': Target,
   'learning-science': GraduationCap,
   constructivism: Lightbulb,
   'cognitive-load': Brain,
@@ -307,12 +325,120 @@ const MODULE_ICONS: Record<string, LucideIcon> = {
   toolbox: Sparkles,
 };
 
-export function getPlusTrack(trackId: string | undefined): PlusTrackConfig | undefined {
-  return PLUS_TRACKS.find((track) => track.id === trackId);
+function clonePlusTracks(tracks: PlusTrackConfig[]): PlusTrackConfig[] {
+  return tracks.map((track) => ({
+    ...track,
+    modules: track.modules.map((module) => ({ ...module })),
+  }));
 }
 
-export function getPlusModule(trackId: PlusCourseTrackId, moduleId: string | null | undefined): PlusModuleConfig | undefined {
-  return getPlusTrack(trackId)?.modules.find((module) => module.id === moduleId);
+function getIcon(iconKey: string | null | undefined): LucideIcon {
+  if (!iconKey) return BookOpen;
+  return MODULE_ICONS[iconKey] || BookOpen;
+}
+
+export function normalizePlusCourseStructure(
+  trackRows: PlusCourseTrackRow[],
+  moduleRows: PlusCourseModuleRow[],
+): PlusTrackConfig[] {
+  const modulesByTrack = new Map<string, PlusCourseModuleRow[]>();
+  moduleRows.forEach((module) => {
+    const modules = modulesByTrack.get(module.track_id) || [];
+    modules.push(module);
+    modulesByTrack.set(module.track_id, modules);
+  });
+
+  return trackRows
+    .map((track) => ({
+      id: track.id,
+      title: track.title,
+      shortTitle: track.short_title || track.title,
+      subtitle: track.subtitle,
+      description: track.description,
+      audience: track.audience,
+      iconKey: track.icon_key,
+      icon: getIcon(track.icon_key),
+      accent: track.accent || 'from-[#2a7a6e] to-[#c45d3e]',
+      order: track.sort_order,
+      modules: (modulesByTrack.get(track.id) || [])
+        .sort((a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id))
+        .map((module) => ({
+          id: module.id,
+          title: module.title,
+          shortTitle: module.short_title || undefined,
+          description: module.description,
+          iconKey: module.icon_key || undefined,
+          order: module.sort_order,
+          categoryNames: module.category_names || [],
+          representativeTitles: module.representative_titles || [],
+        })),
+    }))
+    .sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || a.id.localeCompare(b.id));
+}
+
+export function getEffectivePlusTracks(
+  courses: Course[],
+  baseTracks: PlusTrackConfig[] = PLUS_TRACKS,
+): PlusTrackConfig[] {
+  const tracks = clonePlusTracks(baseTracks.length > 0 ? baseTracks : PLUS_TRACKS);
+  const trackById = new Map(tracks.map((track) => [track.id, track]));
+
+  courses
+    .filter((course) => course.membership_type === 'plus' && course.plus_track_id && course.plus_module_id)
+    .forEach((course) => {
+      const trackId = course.plus_track_id as string;
+      const moduleId = course.plus_module_id as string;
+      let track = trackById.get(trackId);
+
+      if (!track) {
+        track = {
+          id: trackId,
+          title: trackId,
+          shortTitle: trackId,
+          subtitle: '',
+          description: '',
+          audience: '',
+          iconKey: 'book-open',
+          icon: BookOpen,
+          accent: 'from-[#2a7a6e] to-[#c45d3e]',
+          order: course.plus_module_order ?? 999,
+          modules: [],
+        };
+        tracks.push(track);
+        trackById.set(trackId, track);
+      }
+
+      if (!track.modules.some((module) => module.id === moduleId)) {
+        track.modules.push({
+          id: moduleId,
+          title: moduleId,
+          description: '这个模块正在整理中，相关课程会陆续补充到这里。',
+          iconKey: 'book-open',
+          order: course.plus_module_order ?? 999,
+          categoryNames: [],
+          representativeTitles: [],
+        });
+      }
+    });
+
+  return tracks
+    .map((track) => ({
+      ...track,
+      modules: [...track.modules].sort((a, b) => a.order - b.order || a.id.localeCompare(b.id)),
+    }))
+    .sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || a.id.localeCompare(b.id));
+}
+
+export function getPlusTrack(trackId: string | undefined, tracks: PlusTrackConfig[] = PLUS_TRACKS): PlusTrackConfig | undefined {
+  return tracks.find((track) => track.id === trackId);
+}
+
+export function getPlusModule(
+  trackId: PlusCourseTrackId,
+  moduleId: string | null | undefined,
+  tracks: PlusTrackConfig[] = PLUS_TRACKS,
+): PlusModuleConfig | undefined {
+  return getPlusTrack(trackId, tracks)?.modules.find((module) => module.id === moduleId);
 }
 
 export function getModuleIcon(moduleId: string): LucideIcon {
@@ -323,7 +449,10 @@ export function buildPlusTrackUrl(trackId: PlusCourseTrackId, moduleId?: string)
   return `/courses/plus/${trackId}${moduleId ? `#${moduleId}` : ''}`;
 }
 
-export function resolvePlusCoursePlacement(course: Course): StructuredPlusCourse | null {
+export function resolvePlusCoursePlacement(
+  course: Course,
+  tracks: PlusTrackConfig[] = PLUS_TRACKS,
+): StructuredPlusCourse | null {
   if (course.membership_type !== 'plus') return null;
 
   const normalizedTitle = course.title.replace(/\s+/g, '');
@@ -341,7 +470,7 @@ export function resolvePlusCoursePlacement(course: Course): StructuredPlusCourse
   const explicitModuleId = course.plus_module_id || undefined;
 
   if (explicitTrackId && explicitModuleId) {
-    const module = getPlusModule(explicitTrackId, explicitModuleId);
+    const module = getPlusModule(explicitTrackId, explicitModuleId, tracks);
     if (module) {
       return {
         ...course,
@@ -354,7 +483,7 @@ export function resolvePlusCoursePlacement(course: Course): StructuredPlusCourse
   }
 
   const category = course.category || '';
-  for (const track of PLUS_TRACKS) {
+  for (const track of tracks) {
     for (const module of track.modules) {
       if (module.categoryNames.includes(category)) {
         return {
@@ -387,9 +516,9 @@ export function resolvePlusCoursePlacement(course: Course): StructuredPlusCourse
   };
 }
 
-export function structurePlusCourses(courses: Course[]): StructuredPlusCourse[] {
+export function structurePlusCourses(courses: Course[], tracks: PlusTrackConfig[] = PLUS_TRACKS): StructuredPlusCourse[] {
   return courses
-    .map(resolvePlusCoursePlacement)
+    .map((course) => resolvePlusCoursePlacement(course, tracks))
     .filter((course): course is StructuredPlusCourse => Boolean(course))
     .sort((a, b) => (
       a.resolvedModuleOrder - b.resolvedModuleOrder ||
@@ -398,13 +527,22 @@ export function structurePlusCourses(courses: Course[]): StructuredPlusCourse[] 
     ));
 }
 
-export function getCoursesForTrack(courses: Course[], trackId: PlusCourseTrackId): StructuredPlusCourse[] {
-  return structurePlusCourses(courses).filter((course) => course.resolvedTrackId === trackId);
+export function getCoursesForTrack(
+  courses: Course[],
+  trackId: PlusCourseTrackId,
+  tracks: PlusTrackConfig[] = PLUS_TRACKS,
+): StructuredPlusCourse[] {
+  return structurePlusCourses(courses, tracks).filter((course) => course.resolvedTrackId === trackId);
 }
 
-export function getCoursesForModule(courses: Course[], trackId: PlusCourseTrackId, moduleId: string): StructuredPlusCourse[] {
-  const module = getPlusModule(trackId, moduleId);
-  const structured = structurePlusCourses(courses);
+export function getCoursesForModule(
+  courses: Course[],
+  trackId: PlusCourseTrackId,
+  moduleId: string,
+  tracks: PlusTrackConfig[] = PLUS_TRACKS,
+): StructuredPlusCourse[] {
+  const module = getPlusModule(trackId, moduleId, tracks);
+  const structured = structurePlusCourses(courses, tracks);
   const matched = structured.filter((course) => (
     course.resolvedTrackId === trackId && course.resolvedModuleId === moduleId
   ));
@@ -433,11 +571,16 @@ export function getCoursesForModule(courses: Course[], trackId: PlusCourseTrackI
     ));
 }
 
-export function getRepresentativeCourses(courses: Course[], module: PlusModuleConfig, max = 3): Course[] {
+export function getRepresentativeCourses(
+  courses: Course[],
+  module: PlusModuleConfig,
+  max = 3,
+  tracks: PlusTrackConfig[] = PLUS_TRACKS,
+): Course[] {
   const normalized = courses.filter((course) => course.membership_type === 'plus');
   const explicit = normalized.filter((course) => {
     if (!course.plus_representative) return false;
-    return resolvePlusCoursePlacement(course)?.resolvedModuleId === module.id;
+    return resolvePlusCoursePlacement(course, tracks)?.resolvedModuleId === module.id;
   });
   const byTitle = module.representativeTitles
     .map((title) => normalized.find((course) => course.title.includes(title)))
@@ -452,16 +595,25 @@ export function getRepresentativeCourses(courses: Course[], module: PlusModuleCo
   }).slice(0, max);
 }
 
-export function getTrackCourseCount(courses: Course[], trackId: PlusCourseTrackId): number {
-  const track = getPlusTrack(trackId);
+export function getTrackCourseCount(
+  courses: Course[],
+  trackId: PlusCourseTrackId,
+  tracks: PlusTrackConfig[] = PLUS_TRACKS,
+): number {
+  const track = getPlusTrack(trackId, tracks);
   if (!track) return 0;
   const seen = new Set<string>();
   track.modules.forEach((module) => {
-    getCoursesForModule(courses, trackId, module.id).forEach((course) => seen.add(course.id));
+    getCoursesForModule(courses, trackId, module.id, tracks).forEach((course) => seen.add(course.id));
   });
   return seen.size;
 }
 
-export function getModuleCourseCount(courses: Course[], trackId: PlusCourseTrackId, moduleId: string): number {
-  return getCoursesForModule(courses, trackId, moduleId).length;
+export function getModuleCourseCount(
+  courses: Course[],
+  trackId: PlusCourseTrackId,
+  moduleId: string,
+  tracks: PlusTrackConfig[] = PLUS_TRACKS,
+): number {
+  return getCoursesForModule(courses, trackId, moduleId, tracks).length;
 }

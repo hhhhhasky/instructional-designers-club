@@ -8,7 +8,7 @@ import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
 import PageMeta from '@/components/common/PageMeta';
 import UpgradePopup from '@/components/common/UpgradePopup';
-import { getCoursesByMembershipType } from '@/db/api';
+import { getCoursesByMembershipType, getPlusCourseStructure } from '@/db/api';
 import { canAccessCourse } from '@/lib/access-control';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,9 +18,11 @@ import {
   buildPlusTrackUrl,
   getCoursesForModule,
   getCoursesForTrack,
+  getEffectivePlusTracks,
   getModuleIcon,
   getPlusTrack,
   getTrackCourseCount,
+  type PlusTrackConfig,
 } from '@/lib/plusCourseStructure';
 import { AlertCircle, ArrowLeft, BookOpen, ChevronRight, Clock, LockKeyhole, PlayCircle } from 'lucide-react';
 
@@ -28,7 +30,8 @@ export default function PlusTrackPage() {
   const { trackId } = useParams<{ trackId: PlusCourseTrackId }>();
   const navigate = useNavigate();
   const { user, accessLevel } = useAuth();
-  const track = getPlusTrack(trackId);
+  const [plusTracks, setPlusTracks] = useState<PlusTrackConfig[]>(PLUS_TRACKS);
+  const track = getPlusTrack(trackId, plusTracks);
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +42,12 @@ export default function PlusTrackPage() {
       try {
         setIsLoading(true);
         setError(null);
-        setCourses(await getCoursesByMembershipType('plus'));
+        const [coursesData, structureData] = await Promise.all([
+          getCoursesByMembershipType('plus'),
+          getPlusCourseStructure(),
+        ]);
+        setCourses(coursesData);
+        setPlusTracks(getEffectivePlusTracks(coursesData, structureData.length > 0 ? structureData : PLUS_TRACKS));
       } catch (err) {
         console.error('加载 Plus 篇章课程失败:', err);
         setError('加载课程数据失败，请刷新页面重试');
@@ -61,9 +69,9 @@ export default function PlusTrackPage() {
 
   const trackCourses = useMemo(() => {
     if (!track) return [];
-    return getCoursesForTrack(courses, track.id);
-  }, [courses, track]);
-  const visibleTrackCourseCount = track ? getTrackCourseCount(courses, track.id) : 0;
+    return getCoursesForTrack(courses, track.id, plusTracks);
+  }, [courses, track, plusTracks]);
+  const visibleTrackCourseCount = track ? getTrackCourseCount(courses, track.id, plusTracks) : 0;
   const initialMobileModules = track
     ? [decodeURIComponent(window.location.hash.replace('#', '')) || track.modules[0]?.id].filter(Boolean)
     : [];
@@ -79,6 +87,15 @@ export default function PlusTrackPage() {
     }
     navigate(`/courses/${course.id}`);
   };
+
+  if (!track && isLoading) {
+    return (
+      <div className="min-h-screen bg-cream flex flex-col">
+        <Header />
+        <LoadingOverlay message="正在加载 Plus 篇章..." />
+      </div>
+    );
+  }
 
   if (!track) {
     return (
@@ -152,7 +169,7 @@ export default function PlusTrackPage() {
               </div>
 
               <div className="mt-8 flex flex-wrap gap-2">
-                {PLUS_TRACKS.map((item) => (
+                {plusTracks.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => navigate(buildPlusTrackUrl(item.id))}
@@ -186,8 +203,8 @@ export default function PlusTrackPage() {
                   <p className="text-sm font-semibold text-txs mb-3">模块导航</p>
                   <nav className="space-y-1">
                     {track.modules.map((module) => {
-                      const count = getCoursesForModule(courses, track.id, module.id).length;
-                      const Icon = getModuleIcon(module.id);
+                      const count = getCoursesForModule(courses, track.id, module.id, plusTracks).length;
+                      const Icon = getModuleIcon(module.iconKey || module.id);
                       return (
                         <a
                           key={module.id}
@@ -211,7 +228,7 @@ export default function PlusTrackPage() {
                       moduleId={module.id}
                       title={module.title}
                       description={module.description}
-                      courses={getCoursesForModule(courses, track.id, module.id)}
+                      courses={getCoursesForModule(courses, track.id, module.id, plusTracks)}
                       onCourseClick={handleCourseClick}
                     />
                   ))}
@@ -221,8 +238,8 @@ export default function PlusTrackPage() {
               <div className="lg:hidden">
                 <Accordion type="multiple" defaultValue={initialMobileModules} className="space-y-3">
                   {track.modules.map((module) => {
-                    const moduleCourses = getCoursesForModule(courses, track.id, module.id);
-                    const Icon = getModuleIcon(module.id);
+                    const moduleCourses = getCoursesForModule(courses, track.id, module.id, plusTracks);
+                    const Icon = getModuleIcon(module.iconKey || module.id);
                     return (
                       <AccordionItem key={module.id} value={module.id} className="bg-bc border border-bd rounded-lg overflow-hidden">
                         <AccordionTrigger className="px-4 py-3 hover:no-underline">
