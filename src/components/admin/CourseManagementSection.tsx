@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Plus, Edit2, Archive, Eye, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Edit2, Archive, Eye, Search, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
 import { Button } from "@/components/ui/button";
@@ -18,9 +18,16 @@ import {
   adminUpdateCourse,
   adminArchiveCourse,
 } from "@/db/admin-api";
-import { getCourseCategories } from "@/db/api";
+import { getCourseCategories, getPlusCourseStructure } from "@/db/api";
 import MarkdownEditor from "@/components/admin/MarkdownEditor";
-import { PLUS_TRACKS, getPlusModule, getPlusTrack } from "@/lib/plusCourseStructure";
+import {
+  PLUS_TRACKS,
+  getEffectivePlusTracks,
+  getPlusModule,
+  getPlusTrack,
+  resolvePlusCoursePlacement,
+  type PlusTrackConfig,
+} from "@/lib/plusCourseStructure";
 import type { Course, MembershipType, PlusCourseTrackId } from "@/types/types";
 
 const PAGE_SIZE = 20;
@@ -38,6 +45,17 @@ const MEMBERSHIP_OPTIONS: { value: MembershipType; label: string }[] = [
   { value: "plus", label: "Plus" },
   { value: "pro", label: "Pro" },
 ];
+
+const LEVEL_LABELS: Record<Course["level"], string> = {
+  entry: "入门",
+  beginner: "初级",
+  intermediate: "中级",
+  advanced: "高级",
+  入门: "入门",
+  初级: "初级",
+  中级: "中级",
+  高级: "高级",
+};
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "草稿",
@@ -75,12 +93,35 @@ const EMPTY_FORM: Omit<Course, "id" | "view_count" | "created_at" | "updated_at"
 
 type CourseForm = typeof EMPTY_FORM;
 
+function normalizeId(value: string | null | undefined): string | null {
+  const trimmed = value?.trim() ?? "";
+  return trimmed ? trimmed : null;
+}
+
+function parseOptionalInteger(value: string): number | null {
+  if (value.trim() === "") return null;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export default function CourseManagementSection() {
   const [courses, setCourses] = useState<Course[]>([]);
+  const [structureTracks, setStructureTracks] = useState<PlusTrackConfig[]>(PLUS_TRACKS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [levelFilter, setLevelFilter] = useState("all");
+  const [membershipFilter, setMembershipFilter] = useState("all");
+  const [plusTrackFilter, setPlusTrackFilter] = useState("all");
+  const [plusModuleFilter, setPlusModuleFilter] = useState("all");
+  const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set());
+  const [batchTrackId, setBatchTrackId] = useState("");
+  const [batchModuleId, setBatchModuleId] = useState("");
+  const [batchModuleOrder, setBatchModuleOrder] = useState("");
+  const [batchLessonStart, setBatchLessonStart] = useState("1");
+  const [batchSaving, setBatchSaving] = useState(false);
   const [page, setPage] = useState(1);
 
   // Dialog
@@ -91,12 +132,42 @@ export default function CourseManagementSection() {
 
   // Category list for dropdown
   const [categories, setCategories] = useState<string[]>([]);
+  const categoryOptions = useMemo(() => {
+    const categorySet = new Set<string>();
+    categories.forEach((category) => categorySet.add(category));
+    courses.forEach((course) => {
+      if (course.category) categorySet.add(course.category);
+    });
+    return Array.from(categorySet).sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
+  }, [categories, courses]);
+  const levelOptions = useMemo(() => {
+    const levelSet = new Set<Course["level"]>();
+    LEVEL_OPTIONS.forEach((level) => levelSet.add(level));
+    courses.forEach((course) => levelSet.add(course.level));
+    return Array.from(levelSet);
+  }, [courses]);
+  const plusTracks = useMemo(
+    () => getEffectivePlusTracks(courses, structureTracks),
+    [courses, structureTracks]
+  );
+  const plusFilterModules = useMemo(
+    () => plusTrackFilter === "all" ? [] : getPlusTrack(plusTrackFilter, plusTracks)?.modules ?? [],
+    [plusTrackFilter, plusTracks]
+  );
+  const batchModules = useMemo(
+    () => batchTrackId ? getPlusTrack(batchTrackId, plusTracks)?.modules ?? [] : [],
+    [batchTrackId, plusTracks]
+  );
 
   const loadCourses = useCallback(async () => {
     try {
       setLoading(true);
-      const result = await getAdminCourseList();
+      const [result, structureData] = await Promise.all([
+        getAdminCourseList(),
+        getPlusCourseStructure(),
+      ]);
       setCourses(result);
+      setStructureTracks(structureData.length > 0 ? structureData : PLUS_TRACKS);
     } catch {
       setError("加载课程数据失败，请刷新重试");
     } finally {
@@ -120,17 +191,59 @@ export default function CourseManagementSection() {
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       result = result.filter(
-        (c) =>
-          c.title.toLowerCase().includes(q) ||
-          (c.instructor || "").toLowerCase().includes(q) ||
-          (c.category || "").toLowerCase().includes(q)
+        (c) => {
+          const placement = resolvePlusCoursePlacement(c, plusTracks);
+          const track = placement ? getPlusTrack(placement.resolvedTrackId, plusTracks) : null;
+          const module = placement
+            ? getPlusModule(placement.resolvedTrackId, placement.resolvedModuleId, plusTracks)
+            : null;
+          return [
+            c.title,
+            c.instructor,
+            c.category,
+            c.level,
+            c.membership_type,
+            track?.title,
+            module?.title,
+            placement?.resolvedTrackId,
+            placement?.resolvedModuleId,
+          ]
+            .filter(Boolean)
+            .some((value) => String(value).toLowerCase().includes(q));
+        }
       );
     }
     if (statusFilter !== "all") {
       result = result.filter((c) => c.status === statusFilter);
     }
+    if (categoryFilter !== "all") {
+      result = result.filter((c) => c.category === categoryFilter);
+    }
+    if (levelFilter !== "all") {
+      result = result.filter((c) => c.level === levelFilter);
+    }
+    if (membershipFilter !== "all") {
+      result = result.filter((c) => c.membership_type === membershipFilter);
+    }
+    if (plusTrackFilter !== "all") {
+      result = result.filter((c) => {
+        const placement = resolvePlusCoursePlacement(c, plusTracks);
+        if (!placement || placement.resolvedTrackId !== plusTrackFilter) return false;
+        return plusModuleFilter === "all" || placement.resolvedModuleId === plusModuleFilter;
+      });
+    }
     return result;
-  }, [courses, search, statusFilter]);
+  }, [
+    courses,
+    search,
+    statusFilter,
+    categoryFilter,
+    levelFilter,
+    membershipFilter,
+    plusTrackFilter,
+    plusModuleFilter,
+    plusTracks,
+  ]);
 
   // Pagination
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -139,6 +252,23 @@ export default function CourseManagementSection() {
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE
   );
+  const selectedCourses = useMemo(
+    () => filtered.filter((course) => selectedCourseIds.has(course.id) && course.membership_type === "plus"),
+    [filtered, selectedCourseIds]
+  );
+  const pagedPlusCourseIds = useMemo(
+    () => paged.filter((course) => course.membership_type === "plus").map((course) => course.id),
+    [paged]
+  );
+  const allPagedPlusSelected = pagedPlusCourseIds.length > 0 && pagedPlusCourseIds.every((id) => selectedCourseIds.has(id));
+  const hasActiveFilters =
+    search.trim() !== "" ||
+    statusFilter !== "all" ||
+    categoryFilter !== "all" ||
+    levelFilter !== "all" ||
+    membershipFilter !== "all" ||
+    plusTrackFilter !== "all" ||
+    plusModuleFilter !== "all";
 
   // Reset page on filter change
   const handleSearchChange = (v: string) => {
@@ -148,6 +278,114 @@ export default function CourseManagementSection() {
   const handleStatusChange = (v: string) => {
     setStatusFilter(v);
     setPage(1);
+  };
+  const handleCategoryChange = (v: string) => {
+    setCategoryFilter(v);
+    setPage(1);
+  };
+  const handleLevelChange = (v: string) => {
+    setLevelFilter(v);
+    setPage(1);
+  };
+  const handleMembershipChangeFilter = (v: string) => {
+    setMembershipFilter(v);
+    setPage(1);
+  };
+  const handlePlusTrackFilterChange = (v: string) => {
+    setPlusTrackFilter(v);
+    setPlusModuleFilter("all");
+    setPage(1);
+  };
+  const handlePlusModuleFilterChange = (v: string) => {
+    setPlusModuleFilter(v);
+    setPage(1);
+  };
+  const handleClearFilters = () => {
+    setSearch("");
+    setStatusFilter("all");
+    setCategoryFilter("all");
+    setLevelFilter("all");
+    setMembershipFilter("all");
+    setPlusTrackFilter("all");
+    setPlusModuleFilter("all");
+    setPage(1);
+  };
+  const handlePreviewCurrentStructure = () => {
+    const url = plusTrackFilter === "all"
+      ? "/courses"
+      : `/courses/plus/${plusTrackFilter}${plusModuleFilter !== "all" ? `#${plusModuleFilter}` : ""}`;
+    window.open(url, "_blank");
+  };
+  const handleToggleCourseSelection = (course: Course, checked: boolean) => {
+    if (course.membership_type !== "plus") return;
+    setSelectedCourseIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(course.id);
+      } else {
+        next.delete(course.id);
+      }
+      return next;
+    });
+  };
+  const handleTogglePagedSelection = (checked: boolean) => {
+    setSelectedCourseIds((prev) => {
+      const next = new Set(prev);
+      pagedPlusCourseIds.forEach((id) => {
+        if (checked) {
+          next.add(id);
+        } else {
+          next.delete(id);
+        }
+      });
+      return next;
+    });
+  };
+  const handleClearSelection = () => {
+    setSelectedCourseIds(new Set());
+  };
+  const handleBatchTrackChange = (trackId: string) => {
+    const firstModule = trackId ? getPlusTrack(trackId, plusTracks)?.modules[0] : null;
+    setBatchTrackId(trackId);
+    setBatchModuleId(firstModule?.id ?? "");
+    setBatchModuleOrder(firstModule?.order == null ? "" : String(firstModule.order));
+  };
+  const handleBatchModuleChange = (moduleId: string) => {
+    const module = batchTrackId ? getPlusModule(batchTrackId, moduleId, plusTracks) : undefined;
+    setBatchModuleId(moduleId);
+    setBatchModuleOrder(module?.order == null ? batchModuleOrder : String(module.order));
+  };
+  const handleBatchApply = async () => {
+    if (selectedCourses.length === 0) {
+      toast.error("请先选择需要批量调整的 Plus 课程");
+      return;
+    }
+    if (!batchTrackId || !batchModuleId) {
+      toast.error("请选择目标篇章和模块");
+      return;
+    }
+
+    const module = getPlusModule(batchTrackId, batchModuleId, plusTracks);
+    const moduleOrder = parseOptionalInteger(batchModuleOrder) ?? module?.order ?? null;
+    const lessonStart = parseOptionalInteger(batchLessonStart);
+
+    try {
+      setBatchSaving(true);
+      const updates = await Promise.all(selectedCourses.map((course, index) => adminUpdateCourse(course.id, {
+        plus_track_id: batchTrackId,
+        plus_module_id: batchModuleId,
+        plus_module_order: moduleOrder,
+        plus_lesson_order: lessonStart == null ? course.plus_lesson_order : lessonStart + index,
+      })));
+      const updatedById = new Map(updates.map((course) => [course.id, course]));
+      setCourses((prev) => prev.map((course) => updatedById.get(course.id) ?? course));
+      setSelectedCourseIds(new Set());
+      toast.success(`已批量更新 ${updates.length} 门 Plus 课程`);
+    } catch {
+      toast.error("批量更新失败，请稍后重试");
+    } finally {
+      setBatchSaving(false);
+    }
   };
 
   // Open dialog for new course
@@ -196,12 +434,27 @@ export default function CourseManagementSection() {
       toast.error("课程名称不能为空");
       return;
     }
+    const normalizedPlusTrackId = normalizeId(form.plus_track_id);
+    const normalizedPlusModuleId = normalizeId(form.plus_module_id);
+    if (
+      form.membership_type === "plus" &&
+      ((normalizedPlusTrackId && !normalizedPlusModuleId) ||
+        (!normalizedPlusTrackId && normalizedPlusModuleId))
+    ) {
+      toast.error("Plus 篇章 ID 和模块 ID 需要同时填写或同时留空");
+      return;
+    }
     try {
       setSaving(true);
-      const payload: CourseForm = form.membership_type === "plus"
-        ? form
+      const normalizedForm: CourseForm = {
+        ...form,
+        plus_track_id: normalizedPlusTrackId,
+        plus_module_id: normalizedPlusModuleId,
+      };
+      const payload: CourseForm = normalizedForm.membership_type === "plus"
+        ? normalizedForm
         : {
-            ...form,
+            ...normalizedForm,
             plus_track_id: null,
             plus_module_id: null,
             plus_module_order: null,
@@ -267,7 +520,7 @@ export default function CourseManagementSection() {
 
   const handlePlusTrackChange = (trackId: PlusCourseTrackId | "") => {
     const nextTrackId = trackId || null;
-    const firstModule = nextTrackId ? getPlusTrack(nextTrackId)?.modules[0] : null;
+    const firstModule = nextTrackId ? getPlusTrack(nextTrackId, plusTracks)?.modules[0] : null;
     setForm((prev) => ({
       ...prev,
       plus_track_id: nextTrackId,
@@ -277,10 +530,30 @@ export default function CourseManagementSection() {
   };
 
   const handlePlusModuleChange = (moduleId: string) => {
-    const module = form.plus_track_id ? getPlusModule(form.plus_track_id, moduleId) : undefined;
+    const module = form.plus_track_id ? getPlusModule(form.plus_track_id, moduleId, plusTracks) : undefined;
     setForm((prev) => ({
       ...prev,
       plus_module_id: moduleId || null,
+      plus_module_order: module?.order ?? prev.plus_module_order,
+    }));
+  };
+
+  const handlePlusTrackIdInput = (value: string) => {
+    const nextTrackId = normalizeId(value);
+    setForm((prev) => ({
+      ...prev,
+      plus_track_id: nextTrackId,
+    }));
+  };
+
+  const handlePlusModuleIdInput = (value: string) => {
+    const nextModuleId = normalizeId(value);
+    const module = form.plus_track_id && nextModuleId
+      ? getPlusModule(form.plus_track_id, nextModuleId, plusTracks)
+      : undefined;
+    setForm((prev) => ({
+      ...prev,
+      plus_module_id: nextModuleId,
       plus_module_order: module?.order ?? prev.plus_module_order,
     }));
   };
@@ -289,6 +562,12 @@ export default function CourseManagementSection() {
   const handleCategorySelect = (catName: string) => {
     setForm((prev) => ({ ...prev, category: catName }));
   };
+
+  const selectedTrack = form.plus_track_id ? getPlusTrack(form.plus_track_id, plusTracks) : undefined;
+  const selectedModules = selectedTrack?.modules ?? [];
+  const selectedModuleInOptions = Boolean(
+    form.plus_module_id && selectedModules.some((module) => module.id === form.plus_module_id)
+  );
 
   if (loading) return <LoadingOverlay message="正在加载课程数据..." />;
   if (error)
@@ -307,25 +586,71 @@ export default function CourseManagementSection() {
   return (
     <div className="space-y-4">
       {/* 工具栏 */}
-      <div className="flex flex-col md:flex-row gap-3 items-start md:items-center justify-between">
-        <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center flex-1">
+      <div className="flex flex-col xl:flex-row gap-3 items-start xl:items-center justify-between">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-2 flex-1 w-full xl:w-auto">
           {/* 搜索框 */}
-          <div className="relative">
+          <div className="relative sm:col-span-2 lg:col-span-2 xl:col-span-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-txt" />
             <input
               type="text"
-              placeholder="搜索课程名、讲师、分类..."
+              placeholder="搜索课程、讲师、分类、篇章、模块..."
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="pl-9 pr-3 py-2 text-ds-sm bg-white border border-bd rounded-ds-md w-64 focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+              className="w-full h-10 pl-9 pr-3 text-ds-sm bg-white border border-bd rounded-ds-md focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
             />
           </div>
+
+          {/* 分类筛选 */}
+          <select
+            value={categoryFilter}
+            onChange={(e) => handleCategoryChange(e.target.value)}
+            aria-label="筛选课程分类"
+            className="h-10 px-3 text-ds-sm bg-white border border-bd rounded-ds-md focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+          >
+            <option value="all">全部分类</option>
+            {categoryOptions.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+
+          {/* 等级筛选 */}
+          <select
+            value={levelFilter}
+            onChange={(e) => handleLevelChange(e.target.value)}
+            aria-label="筛选课程等级"
+            className="h-10 px-3 text-ds-sm bg-white border border-bd rounded-ds-md focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+          >
+            <option value="all">全部等级</option>
+            {levelOptions.map((level) => (
+              <option key={level} value={level}>
+                {LEVEL_LABELS[level] ?? level}
+              </option>
+            ))}
+          </select>
+
+          {/* 类型筛选 */}
+          <select
+            value={membershipFilter}
+            onChange={(e) => handleMembershipChangeFilter(e.target.value)}
+            aria-label="筛选课程类型"
+            className="h-10 px-3 text-ds-sm bg-white border border-bd rounded-ds-md focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+          >
+            <option value="all">全部类型</option>
+            {MEMBERSHIP_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
 
           {/* 状态筛选 */}
           <select
             value={statusFilter}
             onChange={(e) => handleStatusChange(e.target.value)}
-            className="px-3 py-2 text-ds-sm bg-white border border-bd rounded-ds-md focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+            aria-label="筛选课程状态"
+            className="h-10 px-3 text-ds-sm bg-white border border-bd rounded-ds-md focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
           >
             {STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -333,16 +658,132 @@ export default function CourseManagementSection() {
               </option>
             ))}
           </select>
+
+          {/* Plus 篇章筛选 */}
+          <select
+            value={plusTrackFilter}
+            onChange={(e) => handlePlusTrackFilterChange(e.target.value)}
+            aria-label="筛选 Plus 篇章"
+            className="h-10 px-3 text-ds-sm bg-white border border-bd rounded-ds-md focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+          >
+            <option value="all">全部 Plus 篇章</option>
+            {plusTracks.map((track) => (
+              <option key={track.id} value={track.id}>
+                {track.title}
+              </option>
+            ))}
+          </select>
+
+          {/* Plus 模块筛选 */}
+          <select
+            value={plusModuleFilter}
+            onChange={(e) => handlePlusModuleFilterChange(e.target.value)}
+            disabled={plusTrackFilter === "all"}
+            aria-label="筛选 Plus 模块"
+            className="h-10 px-3 text-ds-sm bg-white border border-bd rounded-ds-md disabled:bg-warm disabled:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+          >
+            <option value="all">全部模块</option>
+            {plusFilterModules.map((module) => (
+              <option key={module.id} value={module.id}>
+                {module.title}
+              </option>
+            ))}
+          </select>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 self-stretch xl:self-auto">
           <span className="text-ds-sm text-txs">
             共 {filtered.length} 门课程
           </span>
+          {hasActiveFilters && (
+            <Button variant="ghost" onClick={handleClearFilters}>
+              清空筛选
+            </Button>
+          )}
           <Button onClick={handleAdd}>
             <Plus className="w-4 h-4 mr-1" />
             添加课程
           </Button>
+          <Button variant="outline" onClick={handlePreviewCurrentStructure}>
+            <ExternalLink className="w-4 h-4 mr-1" />
+            预览结构
+          </Button>
+        </div>
+      </div>
+
+      <div className="border border-bd bg-white rounded-ds-lg p-3 shadow-ds-xs">
+        <div className="flex flex-col lg:flex-row gap-3 lg:items-end">
+          <div className="min-w-36">
+            <p className="text-ds-xs text-txs">已选择</p>
+            <p className="text-ds-sm font-ds-semibold text-tx">{selectedCourses.length} 门 Plus 课程</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 flex-1">
+            <div>
+              <label className="block text-ds-xs text-txs mb-1">批量目标篇章</label>
+              <select
+                value={batchTrackId}
+                onChange={(e) => handleBatchTrackChange(e.target.value)}
+                aria-label="批量目标篇章"
+                className="w-full h-10 px-3 text-ds-sm bg-bg border border-bd rounded-ds-md focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+              >
+                <option value="">选择篇章</option>
+                {plusTracks.map((track) => (
+                  <option key={track.id} value={track.id}>
+                    {track.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-ds-xs text-txs mb-1">批量目标模块</label>
+              <select
+                value={batchModuleId}
+                onChange={(e) => handleBatchModuleChange(e.target.value)}
+                disabled={!batchTrackId}
+                aria-label="批量目标模块"
+                className="w-full h-10 px-3 text-ds-sm bg-bg border border-bd rounded-ds-md disabled:bg-warm disabled:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+              >
+                <option value="">选择模块</option>
+                {batchModules.map((module) => (
+                  <option key={module.id} value={module.id}>
+                    {module.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-ds-xs text-txs mb-1">模块排序</label>
+              <input
+                type="number"
+                value={batchModuleOrder}
+                onChange={(e) => setBatchModuleOrder(e.target.value)}
+                aria-label="批量模块排序"
+                placeholder="默认使用模块排序"
+                className="w-full h-10 px-3 text-ds-sm bg-bg border border-bd rounded-ds-md placeholder:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-ds-xs text-txs mb-1">单课起始序号</label>
+              <input
+                type="number"
+                value={batchLessonStart}
+                onChange={(e) => setBatchLessonStart(e.target.value)}
+                aria-label="批量单课起始序号"
+                placeholder="留空则不改"
+                className="w-full h-10 px-3 text-ds-sm bg-bg border border-bd rounded-ds-md placeholder:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {selectedCourses.length > 0 && (
+              <Button variant="ghost" onClick={handleClearSelection} disabled={batchSaving}>
+                清空选择
+              </Button>
+            )}
+            <Button onClick={handleBatchApply} disabled={batchSaving || selectedCourses.length === 0}>
+              {batchSaving ? "批量保存中..." : "批量保存"}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -352,6 +793,16 @@ export default function CourseManagementSection() {
           <table className="w-full text-ds-sm">
             <thead>
               <tr className="border-b border-bd bg-warm">
+                <th className="text-left px-4 py-3 font-ds-semibold text-tx w-12">
+                  <input
+                    type="checkbox"
+                    checked={allPagedPlusSelected}
+                    onChange={(e) => handleTogglePagedSelection(e.target.checked)}
+                    disabled={pagedPlusCourseIds.length === 0}
+                    aria-label="选择当前页 Plus 课程"
+                    className="w-4 h-4 rounded border-bd text-ac focus:ring-ac"
+                  />
+                </th>
                 <th className="text-left px-4 py-3 font-ds-semibold text-tx">
                   课程名称
                 </th>
@@ -387,6 +838,16 @@ export default function CourseManagementSection() {
                   key={course.id}
                   className="border-b border-bdl hover:bg-bgs/50 transition-colors"
                 >
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedCourseIds.has(course.id)}
+                      onChange={(e) => handleToggleCourseSelection(course, e.target.checked)}
+                      disabled={course.membership_type !== "plus"}
+                      aria-label={`选择 ${course.title}`}
+                      className="w-4 h-4 rounded border-bd text-ac focus:ring-ac disabled:opacity-40"
+                    />
+                  </td>
                   <td className="px-4 py-3 font-ds-medium text-tx max-w-[200px] truncate">
                     {course.title}
                   </td>
@@ -397,7 +858,7 @@ export default function CourseManagementSection() {
                     {course.category || "—"}
                   </td>
                   <td className="px-4 py-3 text-txs">
-                    <PlusStructureLabel course={course} />
+                    <PlusStructureLabel course={course} tracks={plusTracks} />
                   </td>
                   <td className="px-4 py-3 text-center text-txs">
                     {course.level}
@@ -444,7 +905,7 @@ export default function CourseManagementSection() {
               {paged.length === 0 && (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="px-4 py-12 text-center text-txs"
                   >
                     没有匹配的课程
@@ -660,12 +1121,12 @@ export default function CourseManagementSection() {
                   <div>
                     <label className="block text-ds-xs text-txs mb-1">篇章</label>
                     <select
-                      value={form.plus_track_id || ""}
+                      value={selectedTrack ? form.plus_track_id || "" : ""}
                       onChange={(e) => handlePlusTrackChange(e.target.value as PlusCourseTrackId | "")}
                       className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
                     >
                       <option value="">按旧分类自动归属</option>
-                      {PLUS_TRACKS.map((track) => (
+                      {plusTracks.map((track) => (
                         <option key={track.id} value={track.id}>
                           {track.title}
                         </option>
@@ -675,18 +1136,38 @@ export default function CourseManagementSection() {
                   <div>
                     <label className="block text-ds-xs text-txs mb-1">模块</label>
                     <select
-                      value={form.plus_module_id || ""}
+                      value={selectedModuleInOptions ? form.plus_module_id || "" : ""}
                       onChange={(e) => handlePlusModuleChange(e.target.value)}
                       disabled={!form.plus_track_id}
                       className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx disabled:bg-warm disabled:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
                     >
                       <option value="">按旧分类自动归属</option>
-                      {(form.plus_track_id ? getPlusTrack(form.plus_track_id)?.modules ?? [] : []).map((module) => (
+                      {selectedModules.map((module) => (
                         <option key={module.id} value={module.id}>
                           {module.title}
                         </option>
                       ))}
                     </select>
+                  </div>
+                  <div>
+                    <label className="block text-ds-xs text-txs mb-1">篇章 ID</label>
+                    <input
+                      type="text"
+                      value={form.plus_track_id || ""}
+                      onChange={(e) => handlePlusTrackIdInput(e.target.value)}
+                      placeholder="scenarios"
+                      className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx placeholder:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-ds-xs text-txs mb-1">模块 ID</label>
+                    <input
+                      type="text"
+                      value={form.plus_module_id || ""}
+                      onChange={(e) => handlePlusModuleIdInput(e.target.value)}
+                      placeholder="shuoke"
+                      className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx placeholder:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+                    />
                   </div>
                   <div>
                     <label className="block text-ds-xs text-txs mb-1">模块排序</label>
@@ -889,14 +1370,14 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function PlusStructureLabel({ course }: { course: Course }) {
+function PlusStructureLabel({ course, tracks }: { course: Course; tracks: PlusTrackConfig[] }) {
   if (course.membership_type !== "plus") {
     return <span className="text-txt">—</span>;
   }
 
-  const track = course.plus_track_id ? getPlusTrack(course.plus_track_id) : null;
+  const track = course.plus_track_id ? getPlusTrack(course.plus_track_id, tracks) : null;
   const module = course.plus_track_id && course.plus_module_id
-    ? getPlusModule(course.plus_track_id, course.plus_module_id)
+    ? getPlusModule(course.plus_track_id, course.plus_module_id, tracks)
     : null;
 
   if (!track && !module) {
