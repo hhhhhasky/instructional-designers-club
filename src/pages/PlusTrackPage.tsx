@@ -159,7 +159,7 @@ export default function PlusTrackPage() {
                 <div className="grid grid-cols-2 gap-3 min-w-[260px]">
                   <div className="bg-bc/85 border border-bd rounded-lg p-4">
                     <p className="text-2xl font-ds-black text-tx">{track.modules.length}</p>
-                    <p className="text-xs text-txs">模块</p>
+                    <p className="text-xs text-txs">系列课</p>
                   </div>
                   <div className="bg-bc/85 border border-bd rounded-lg p-4">
                     <p className="text-2xl font-ds-black text-tx">{visibleTrackCourseCount}</p>
@@ -200,7 +200,7 @@ export default function PlusTrackPage() {
             <section className="max-w-7xl mx-auto px-4 py-8">
               <div className="hidden lg:grid lg:grid-cols-[280px_1fr] gap-6">
                 <aside className="self-start sticky top-24 bg-bc border border-bd rounded-lg p-4 shadow-ds-sm">
-                  <p className="text-sm font-semibold text-txs mb-3">模块导航</p>
+                  <p className="text-sm font-semibold text-txs mb-3">系列课导航</p>
                   <nav className="space-y-1">
                     {track.modules.map((module) => {
                       const count = getCoursesForModule(courses, track.id, module.id, plusTracks).length;
@@ -208,7 +208,7 @@ export default function PlusTrackPage() {
                       return (
                         <a
                           key={module.id}
-                          href={`#${module.id}`}
+                          href={`#${encodeURIComponent(module.id)}`}
                           className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-tx hover:bg-acl hover:text-ac transition-colors"
                         >
                           <Icon className="w-4 h-4" />
@@ -318,7 +318,7 @@ function CourseList({
       <div className="rounded-lg border border-dashed border-bd bg-bgs/40 p-5 text-center">
         <BookOpen className="w-8 h-8 text-txt mx-auto mb-2" />
         <p className="font-semibold text-tx">规划中</p>
-        <p className="text-sm text-txs mt-1">这个模块会用于承接后续重录、图文课或案例材料。</p>
+        <p className="text-sm text-txs mt-1">这个系列课会用于承接后续重录、图文课或案例材料。</p>
       </div>
     );
   }

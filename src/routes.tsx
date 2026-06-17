@@ -12,6 +12,7 @@ import SettingsPage from './pages/SettingsPage';
 import LearningPage from './pages/LearningPage';
 import LearningMapPage from './pages/LearningMapPage';
 import AdminPage from './pages/AdminPage';
+import AdminManagePage from './pages/AdminManagePage';
 import type { ReactNode } from 'react';
 
 interface RouteConfig {
@@ -101,9 +102,15 @@ const routes: RouteConfig[] = [
     visible: false
   },
   {
-    name: '管理后台',
+    name: '数据看板',
     path: '/admin',
     element: <AdminPage />,
+    visible: false
+  },
+  {
+    name: '数据维护',
+    path: '/admin/manage',
+    element: <AdminManagePage />,
     visible: false
   }
 ];

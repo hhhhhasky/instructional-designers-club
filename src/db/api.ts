@@ -3,6 +3,7 @@ import type {
   Activity,
   Announcement,
   Course,
+  CourseCategory,
   Faq,
   LearningOverview,
   MemberProfile,
@@ -194,12 +195,16 @@ export async function getCoursesByMembershipType(membershipType: MembershipType)
 }
 
 /**
- * 获取 Plus 课程篇章 / 模块定义。
+ * 获取 Plus 课程篇章 / 分类定义。
  * 数据库表不存在或读取失败时返回空数组，调用方会回退到本地默认配置。
  */
 export async function getPlusCourseStructure(): Promise<PlusTrackConfig[]> {
   try {
-    const [{ data: tracks, error: tracksError }, { data: modules, error: modulesError }] = await Promise.all([
+    const [
+      { data: tracks, error: tracksError },
+      { data: modules, error: modulesError },
+      { data: categories, error: categoriesError },
+    ] = await Promise.all([
       supabase
         .from('plus_course_tracks')
         .select('*')
@@ -213,16 +218,25 @@ export async function getPlusCourseStructure(): Promise<PlusTrackConfig[]> {
         .order('track_id', { ascending: true })
         .order('sort_order', { ascending: true })
         .order('id', { ascending: true }),
+      supabase
+        .from('course_categories')
+        .select('*')
+        .eq('is_active', true)
+        .not('plus_track_id', 'is', null)
+        .order('plus_track_id', { ascending: true })
+        .order('sort_order', { ascending: true })
+        .order('name', { ascending: true }),
     ]);
 
-    if (tracksError || modulesError) {
-      console.warn('获取 Plus 课程结构失败，将使用本地默认结构:', tracksError || modulesError);
+    if (tracksError || modulesError || categoriesError) {
+      console.warn('获取 Plus 课程结构失败，将使用本地默认结构:', tracksError || modulesError || categoriesError);
       return [];
     }
 
     return normalizePlusCourseStructure(
       Array.isArray(tracks) ? tracks as PlusCourseTrackRow[] : [],
       Array.isArray(modules) ? modules as PlusCourseModuleRow[] : [],
+      Array.isArray(categories) ? categories as CourseCategory[] : [],
     );
   } catch (error) {
     console.warn('获取 Plus 课程结构异常，将使用本地默认结构:', error);

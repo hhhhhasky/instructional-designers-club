@@ -165,7 +165,7 @@ export default function CourseDetailPage() {
           setCourse(courseData);
           await incrementCourseViewCount(id);
 
-          // Plus 课程按新篇章/模块结构加载同模块课程；Pro/Free 保持旧分类目录。
+          // Plus 课程按篇章/分类系列结构加载同系列课程；Pro/Free 保持旧分类目录。
           if (courseData.membership_type === 'plus') {
             const [plusCourses, structureData] = await Promise.all([
               getCoursesByMembershipType('plus'),

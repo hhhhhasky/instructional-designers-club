@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { BookOpen } from 'lucide-react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import CourseDetailPage from '@/pages/CourseDetailPage';
 
@@ -44,6 +45,7 @@ vi.mock('@/components/common/PageMeta', () => ({ default: () => null }));
 
 import { getCourseById, getCoursesByMembershipAndCategory, getCoursesByMembershipType, getPlusCourseStructure } from '@/db/api';
 import { getUserLearningRecords } from '@/lib/access-control';
+import type { PlusTrackConfig } from '@/lib/plusCourseStructure';
 
 const makeCourse = (overrides: Record<string, unknown> = {}): import('@/types/types').Course => ({
   id: 'c1',
@@ -82,6 +84,29 @@ const siblingCourses = [
   makeCourse({ id: 'c1', title: '第一节：导入', sort_order: 1 }),
   makeCourse({ id: 'c2', title: '第二节：核心概念', sort_order: 2 }),
   makeCourse({ id: 'c3', title: '第三节：实践', sort_order: 3 }),
+];
+
+const plusCategoryTracks: PlusTrackConfig[] = [
+  {
+    id: 'scenarios',
+    title: '场景篇',
+    shortTitle: '场景篇',
+    subtitle: '',
+    description: '',
+    audience: '',
+    icon: BookOpen,
+    accent: 'from-[#2a7a6e] to-[#c45d3e]',
+    modules: [
+      {
+        id: '说课篇',
+        title: '说课篇',
+        description: '',
+        order: 1,
+        categoryNames: ['说课篇'],
+        representativeTitles: [],
+      },
+    ],
+  },
 ];
 
 // --- Helpers ---
@@ -259,35 +284,29 @@ describe('CourseDetailPage — 课程导航功能', () => {
     expect(screen.queryByText('下一节')).not.toBeInTheDocument();
   });
 
-  it('Plus 课程按新 Plus 模块加载目录并返回篇章锚点', async () => {
+  it('Plus 课程按分类系列加载目录并返回篇章锚点', async () => {
     const user = userEvent.setup();
     const plusCourses = [
       makeCourse({
         id: 'p1',
         title: '说课篇01：整体结构',
-        category: '教学原理篇',
+        category: '说课篇',
         membership_type: 'plus',
-        plus_track_id: 'scenarios',
-        plus_module_id: 'shuoke',
-        plus_module_order: 20,
         plus_lesson_order: 1,
         sort_order: 101,
       }),
       makeCourse({
         id: 'p2',
         title: '说课篇02：教材分析',
-        category: '教学原理篇',
+        category: '说课篇',
         membership_type: 'plus',
-        plus_track_id: 'scenarios',
-        plus_module_id: 'shuoke',
-        plus_module_order: 20,
         plus_lesson_order: 2,
         sort_order: 102,
       }),
     ];
     vi.mocked(getCourseById).mockResolvedValue(plusCourses[0]);
     vi.mocked(getCoursesByMembershipType).mockResolvedValue(plusCourses);
-    vi.mocked(getPlusCourseStructure).mockResolvedValue([]);
+    vi.mocked(getPlusCourseStructure).mockResolvedValue(plusCategoryTracks);
     vi.mocked(getCoursesByMembershipAndCategory).mockResolvedValue([]);
     vi.mocked(getUserLearningRecords).mockResolvedValue([]);
 
@@ -300,7 +319,7 @@ describe('CourseDetailPage — 课程导航功能', () => {
     expect(screen.getAllByText('说课篇02：教材分析').length).toBeGreaterThanOrEqual(1);
 
     await user.click(screen.getByText('场景篇'));
-    expect(mockNavigate).toHaveBeenCalledWith('/courses/plus/scenarios#shuoke');
+    expect(mockNavigate).toHaveBeenCalledWith('/courses/plus/scenarios#%E8%AF%B4%E8%AF%BE%E7%AF%87');
   });
 
   // ============================

@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { GraduationCap, Menu, X, Settings, LogOut, User, BookOpen, ShieldCheck } from "lucide-react";
+import { GraduationCap, Menu, X, Settings, LogOut, User, BookOpen, ShieldCheck, BarChart3 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import routes from "@/routes";
 import { useAuth } from "@/contexts/AuthContext";
@@ -122,8 +122,12 @@ export default function Header() {
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer text-ac">
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                        数据看板
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate('/admin/manage')} className="cursor-pointer text-ac">
                         <ShieldCheck className="w-4 h-4 mr-2" />
-                        管理后台
+                        数据维护
                       </DropdownMenuItem>
                     </>
                   )}
@@ -228,8 +232,18 @@ export default function Header() {
                             onClick={() => setIsOpen(false)}
                             className="px-4 py-3 text-left text-ds-base font-ds-medium rounded-ds-lg text-ac hover:bg-acl transition-all flex items-center gap-2"
                           >
+                            <BarChart3 className="w-4 h-4" />
+                            数据看板
+                          </Link>
+                        )}
+                        {isAdmin && (
+                          <Link
+                            to="/admin/manage"
+                            onClick={() => setIsOpen(false)}
+                            className="px-4 py-3 text-left text-ds-base font-ds-medium rounded-ds-lg text-ac hover:bg-acl transition-all flex items-center gap-2"
+                          >
                             <ShieldCheck className="w-4 h-4" />
-                            管理后台
+                            数据维护
                           </Link>
                         )}
                         <button

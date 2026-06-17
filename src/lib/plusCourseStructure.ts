@@ -16,7 +16,7 @@ import {
   Target,
   type LucideIcon,
 } from 'lucide-react';
-import type { Course, PlusCourseModuleRow, PlusCourseTrackId, PlusCourseTrackRow } from '@/types/types';
+import type { Course, CourseCategory, PlusCourseModuleRow, PlusCourseTrackId, PlusCourseTrackRow } from '@/types/types';
 
 export interface PlusModuleConfig {
   id: string;
@@ -249,7 +249,7 @@ export const PLUS_PROBLEM_ENTRIES: PlusProblemEntry[] = [
   { label: '我最近要参加说课', description: '完整学习说课结构、稿件和表达逻辑。', trackId: 'scenarios', moduleId: 'shuoke' },
   { label: '我要打磨一节公开课', description: '从选题、任务情境、主问题到磨课推进。', trackId: 'scenarios', moduleId: 'open-class' },
   { label: '我想提升课堂讲授效果', description: '结合讲授法与认知负荷优化表达。', trackId: 'design-principles', moduleId: 'lecture-method' },
-  { label: '我想设计真实任务', description: '进入任务情境模块，学习 KMR 和任务脚本。', trackId: 'design-principles', moduleId: 'task-context' },
+  { label: '我想设计真实任务', description: '进入任务情境系列，学习 KMR 和任务脚本。', trackId: 'design-principles', moduleId: 'task-context' },
   { label: '我想写好教学目标', description: '用分类学工具把目标写具体、可评估。', trackId: 'design-principles', moduleId: 'goals' },
   { label: '我想让课堂评价更有效', description: '用逆向设计、提问互动和评价量规形成证据。', trackId: 'design-principles', moduleId: 'assessment' },
   { label: '我想教会学生真正理解概念', description: '学习概念教学的归纳和演绎策略。', trackId: 'design-principles', moduleId: 'concept-teaching' },
@@ -340,7 +340,45 @@ function getIcon(iconKey: string | null | undefined): LucideIcon {
 export function normalizePlusCourseStructure(
   trackRows: PlusCourseTrackRow[],
   moduleRows: PlusCourseModuleRow[],
+  categoryRows: CourseCategory[] = [],
 ): PlusTrackConfig[] {
+  if (categoryRows.length > 0) {
+    const categoriesByTrack = new Map<string, CourseCategory[]>();
+    categoryRows
+      .filter((category) => category.is_active && category.plus_track_id)
+      .forEach((category) => {
+        const categories = categoriesByTrack.get(category.plus_track_id || '') || [];
+        categories.push(category);
+        categoriesByTrack.set(category.plus_track_id || '', categories);
+      });
+
+    return trackRows
+      .map((track) => ({
+        id: track.id,
+        title: track.title,
+        shortTitle: track.short_title || track.title,
+        subtitle: track.subtitle,
+        description: track.description,
+        audience: track.audience,
+        iconKey: track.icon_key,
+        icon: getIcon(track.icon_key),
+        accent: track.accent || 'from-[#2a7a6e] to-[#c45d3e]',
+        order: track.sort_order,
+        modules: (categoriesByTrack.get(track.id) || [])
+          .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name, 'zh-Hans-CN'))
+          .map((category) => ({
+            id: category.name,
+            title: category.name,
+            description: category.description || `${category.name}系列课程。`,
+            iconKey: category.name,
+            order: category.sort_order,
+            categoryNames: [category.name],
+            representativeTitles: [],
+          })),
+      }))
+      .sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || a.id.localeCompare(b.id));
+  }
+
   const modulesByTrack = new Map<string, PlusCourseModuleRow[]>();
   moduleRows.forEach((module) => {
     const modules = modulesByTrack.get(module.track_id) || [];
@@ -384,7 +422,12 @@ export function getEffectivePlusTracks(
   const trackById = new Map(tracks.map((track) => [track.id, track]));
 
   courses
-    .filter((course) => course.membership_type === 'plus' && course.plus_track_id && course.plus_module_id)
+    .filter((course) => (
+      course.membership_type === 'plus' &&
+      course.plus_track_id &&
+      course.plus_module_id &&
+      !tracks.some((track) => track.modules.some((module) => module.categoryNames.includes(course.category || '')))
+    ))
     .forEach((course) => {
       const trackId = course.plus_track_id as string;
       const moduleId = course.plus_module_id as string;
@@ -412,7 +455,7 @@ export function getEffectivePlusTracks(
         track.modules.push({
           id: moduleId,
           title: moduleId,
-          description: '这个模块正在整理中，相关课程会陆续补充到这里。',
+          description: '这个系列课正在整理中，相关课程会陆续补充到这里。',
           iconKey: 'book-open',
           order: course.plus_module_order ?? 999,
           categoryNames: [],
@@ -446,7 +489,7 @@ export function getModuleIcon(moduleId: string): LucideIcon {
 }
 
 export function buildPlusTrackUrl(trackId: PlusCourseTrackId, moduleId?: string): string {
-  return `/courses/plus/${trackId}${moduleId ? `#${moduleId}` : ''}`;
+  return `/courses/plus/${trackId}${moduleId ? `#${encodeURIComponent(moduleId)}` : ''}`;
 }
 
 export function resolvePlusCoursePlacement(
@@ -455,15 +498,19 @@ export function resolvePlusCoursePlacement(
 ): StructuredPlusCourse | null {
   if (course.membership_type !== 'plus') return null;
 
-  const normalizedTitle = course.title.replace(/\s+/g, '');
-  if (/^说课篇0[1-8]/.test(normalizedTitle)) {
-    return {
-      ...course,
-      resolvedTrackId: 'scenarios',
-      resolvedModuleId: 'shuoke',
-      resolvedModuleOrder: 20,
-      resolvedLessonOrder: course.plus_lesson_order ?? course.sort_order ?? 999,
-    };
+  const category = course.category || '';
+  for (const track of tracks) {
+    for (const module of track.modules) {
+      if (module.categoryNames.includes(category)) {
+        return {
+          ...course,
+          resolvedTrackId: track.id,
+          resolvedModuleId: module.id,
+          resolvedModuleOrder: module.order,
+          resolvedLessonOrder: course.plus_lesson_order ?? course.sort_order ?? 999,
+        };
+      }
+    }
   }
 
   const explicitTrackId = course.plus_track_id || undefined;
@@ -482,21 +529,6 @@ export function resolvePlusCoursePlacement(
     }
   }
 
-  const category = course.category || '';
-  for (const track of tracks) {
-    for (const module of track.modules) {
-      if (module.categoryNames.includes(category)) {
-        return {
-          ...course,
-          resolvedTrackId: track.id,
-          resolvedModuleId: module.id,
-          resolvedModuleOrder: module.order,
-          resolvedLessonOrder: course.sort_order ?? 999,
-        };
-      }
-    }
-  }
-
   if (PLUS_TOOLBOX_MODULE.categoryNames.includes(category)) {
     return {
       ...course,
@@ -507,13 +539,7 @@ export function resolvePlusCoursePlacement(
     };
   }
 
-  return {
-    ...course,
-    resolvedTrackId: 'design-principles',
-    resolvedModuleId: 'task-context',
-    resolvedModuleOrder: 999,
-    resolvedLessonOrder: course.sort_order ?? 999,
-  };
+  return null;
 }
 
 export function structurePlusCourses(courses: Course[], tracks: PlusTrackConfig[] = PLUS_TRACKS): StructuredPlusCourse[] {
@@ -549,17 +575,8 @@ export function getCoursesForModule(
 
   if (!module) return matched;
 
-  const reused = structured
-    .filter((course) => module.categoryNames.includes(course.category || ''))
-    .map((course) => ({
-      ...course,
-      resolvedTrackId: trackId,
-      resolvedModuleId: moduleId,
-      resolvedModuleOrder: module.order,
-    }));
-
   const seen = new Set<string>();
-  return [...matched, ...reused]
+  return matched
     .filter((course) => {
       if (seen.has(course.id)) return false;
       seen.add(course.id);

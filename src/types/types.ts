@@ -13,6 +13,7 @@ export interface CourseCategory {
   name: string;
   description: string | null;
   sort_order: number;
+  plus_track_id: PlusCourseTrackId | null; // Plus 篇章归属
   created_at: string;
   updated_at: string;
   is_active: boolean;
@@ -43,10 +44,10 @@ export interface Course {
   body: string | null; // 长文正文（Markdown）
   essence: string | null; // 课程精华（可选 Markdown：思维导图等看课参考材料，为空不显示）
   images: string[] | null; // 图片集 URL 数组
-  plus_track_id: PlusCourseTrackId | null; // Plus 篇章：theory / design-principles / scenarios
-  plus_module_id: string | null; // Plus 模块 ID，例如 learning-science / goals / shuoke
-  plus_module_order: number | null; // Plus 模块排序
-  plus_lesson_order: number | null; // Plus 模块内单课排序
+  plus_track_id: PlusCourseTrackId | null; // 旧 Plus 逐课篇章字段；新结构由 course_categories.plus_track_id 推导
+  plus_module_id: string | null; // 旧 Plus 逐课系列字段；保留用于兼容历史数据
+  plus_module_order: number | null; // 旧 Plus 逐课系列排序；新结构不再维护
+  plus_lesson_order: number | null; // Plus 系列内单课排序
   plus_representative: boolean | null; // 是否作为 Plus 首页代表课程
   meeting_url: string | null;
   sort_order: number | null;

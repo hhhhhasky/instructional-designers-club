@@ -1,5 +1,6 @@
 import type {
   Course,
+  CourseCategory,
   MembershipType,
   MemberProfile,
   Faq,
@@ -192,6 +193,139 @@ export async function getAdminCourseList(): Promise<Course[]> {
     throw error;
   }
   return data || [];
+}
+
+export type AdminCourseCategory = Pick<
+  CourseCategory,
+  "id" | "name" | "sort_order" | "is_active" | "plus_track_id"
+>;
+
+const COURSE_CATEGORY_SELECT = "id, name, sort_order, is_active, plus_track_id";
+
+/**
+ * 管理员获取课程分类，用于课程创建/编辑表单绑定 category_id
+ */
+export async function getAdminCourseCategories(): Promise<AdminCourseCategory[]> {
+  const { data, error } = await supabase
+    .from("course_categories")
+    .select(COURSE_CATEGORY_SELECT)
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
+  if (error) {
+    console.error("getAdminCourseCategories error:", error);
+    throw error;
+  }
+  return (data as AdminCourseCategory[]) ?? [];
+}
+
+/**
+ * 管理员创建课程分类；如同名分类已存在，则复用已有分类。
+ */
+export async function adminCreateCourseCategory(
+  name: string,
+  plusTrackId?: string | null
+): Promise<AdminCourseCategory> {
+  const normalizedName = name.trim();
+  if (!normalizedName) {
+    throw new Error("课程分类名称不能为空");
+  }
+
+  const { data: existing, error: existingError } = await supabase
+    .from("course_categories")
+    .select(COURSE_CATEGORY_SELECT)
+    .eq("name", normalizedName)
+    .maybeSingle();
+  if (existingError) {
+    console.error("adminCreateCourseCategory existing error:", existingError);
+    throw existingError;
+  }
+  if (existing) {
+    const category = existing as AdminCourseCategory;
+    if (category.is_active && (plusTrackId === undefined || category.plus_track_id === plusTrackId)) {
+      return category;
+    }
+
+    const { data: reactivated, error: updateError } = await supabase
+      .from("course_categories")
+      .update({
+        is_active: true,
+        ...(plusTrackId === undefined ? {} : { plus_track_id: plusTrackId }),
+      })
+      .eq("id", category.id)
+      .select(COURSE_CATEGORY_SELECT)
+      .single();
+    if (updateError) {
+      console.error("adminCreateCourseCategory reactivate error:", updateError);
+      throw updateError;
+    }
+    return reactivated as AdminCourseCategory;
+  }
+
+  const { data: latest, error: latestError } = await supabase
+    .from("course_categories")
+    .select("sort_order")
+    .order("sort_order", { ascending: false })
+    .limit(1);
+  if (latestError) {
+    console.error("adminCreateCourseCategory latest error:", latestError);
+    throw latestError;
+  }
+
+  const nextSortOrder = ((latest?.[0]?.sort_order as number | null | undefined) ?? -1) + 1;
+  const { data, error } = await supabase
+    .from("course_categories")
+    .insert({
+      name: normalizedName,
+      sort_order: nextSortOrder,
+      is_active: true,
+      plus_track_id: plusTrackId ?? null,
+    })
+    .select(COURSE_CATEGORY_SELECT)
+    .single();
+  if (error) {
+    if (error.code === "23505") {
+      const { data: duplicated, error: duplicatedError } = await supabase
+        .from("course_categories")
+        .select(COURSE_CATEGORY_SELECT)
+        .eq("name", normalizedName)
+        .single();
+      if (!duplicatedError && duplicated) {
+        const category = duplicated as AdminCourseCategory;
+        if (category.is_active) return category;
+
+        const { data: reactivated, error: updateError } = await supabase
+          .from("course_categories")
+          .update({
+            is_active: true,
+            ...(plusTrackId === undefined ? {} : { plus_track_id: plusTrackId }),
+          })
+          .eq("id", category.id)
+          .select(COURSE_CATEGORY_SELECT)
+          .single();
+        if (!updateError && reactivated) return reactivated as AdminCourseCategory;
+      }
+    }
+    console.error("adminCreateCourseCategory insert error:", error);
+    throw error;
+  }
+  return data as AdminCourseCategory;
+}
+
+export async function adminUpdateCourseCategory(
+  categoryId: string,
+  updates: Pick<Partial<AdminCourseCategory>, "plus_track_id">
+): Promise<AdminCourseCategory> {
+  const { data, error } = await supabase
+    .from("course_categories")
+    .update(updates)
+    .eq("id", categoryId)
+    .select(COURSE_CATEGORY_SELECT)
+    .single();
+  if (error) {
+    console.error("adminUpdateCourseCategory error:", error);
+    throw error;
+  }
+  return data as AdminCourseCategory;
 }
 
 /**

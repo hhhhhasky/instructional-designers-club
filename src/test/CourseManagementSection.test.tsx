@@ -1,9 +1,18 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { BookOpen } from 'lucide-react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CourseManagementSection from '@/components/admin/CourseManagementSection';
-import { adminUpdateCourse, getAdminCourseList } from '@/db/admin-api';
-import { getCourseCategories, getPlusCourseStructure } from '@/db/api';
+import {
+  adminCreateCourse,
+  adminCreateCourseCategory,
+  adminUpdateCourse,
+  adminUpdateCourseCategory,
+  getAdminCourseCategories,
+  getAdminCourseList,
+} from '@/db/admin-api';
+import { getPlusCourseStructure } from '@/db/api';
+import type { PlusTrackConfig } from '@/lib/plusCourseStructure';
 import type { Course } from '@/types/types';
 
 vi.mock('@/components/admin/MarkdownEditor', () => ({
@@ -27,21 +36,74 @@ vi.mock('sonner', () => ({
 vi.mock('@/db/admin-api', () => ({
   adminArchiveCourse: vi.fn(),
   adminCreateCourse: vi.fn(),
+  adminCreateCourseCategory: vi.fn(),
   adminUpdateCourse: vi.fn(),
+  adminUpdateCourseCategory: vi.fn(),
+  getAdminCourseCategories: vi.fn(),
   getAdminCourseList: vi.fn(),
 }));
 
 vi.mock('@/db/api', () => ({
-  getCourseCategories: vi.fn(),
   getPlusCourseStructure: vi.fn(),
 }));
+
+const testTracks: PlusTrackConfig[] = [
+  {
+    id: 'theory',
+    title: '理论篇',
+    shortTitle: '理论篇',
+    subtitle: '',
+    description: '',
+    audience: '',
+    icon: BookOpen,
+    accent: 'from-[#2a7a6e] to-[#c45d3e]',
+    modules: [
+      {
+        id: '学习科学篇',
+        title: '学习科学篇',
+        description: '',
+        order: 1,
+        categoryNames: ['学习科学篇'],
+        representativeTitles: [],
+      },
+    ],
+  },
+  {
+    id: 'scenarios',
+    title: '场景篇',
+    shortTitle: '场景篇',
+    subtitle: '',
+    description: '',
+    audience: '',
+    icon: BookOpen,
+    accent: 'from-[#2a7a6e] to-[#c45d3e]',
+    modules: [
+      {
+        id: '说课篇',
+        title: '说课篇',
+        description: '',
+        order: 1,
+        categoryNames: ['说课篇'],
+        representativeTitles: [],
+      },
+      {
+        id: '公开课篇',
+        title: '公开课篇',
+        description: '',
+        order: 2,
+        categoryNames: ['公开课篇'],
+        representativeTitles: [],
+      },
+    ],
+  },
+];
 
 const makeCourse = (overrides: Partial<Course> = {}): Course => ({
   id: 'course-1',
   title: 'Plus 示例课程',
   description: '课程描述',
   instructor: '哈老师',
-  category_id: null,
+  category_id: 'cat-shuoke',
   category: '说课篇',
   level: '入门',
   semester: null,
@@ -56,9 +118,9 @@ const makeCourse = (overrides: Partial<Course> = {}): Course => ({
   body: null,
   essence: null,
   images: [],
-  plus_track_id: 'theory',
-  plus_module_id: 'learning-science',
-  plus_module_order: 10,
+  plus_track_id: null,
+  plus_module_id: null,
+  plus_module_order: null,
   plus_lesson_order: 1,
   plus_representative: false,
   meeting_url: null,
@@ -76,83 +138,94 @@ describe('CourseManagementSection', () => {
     vi.clearAllMocks();
     openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
     vi.mocked(getAdminCourseList).mockResolvedValue([makeCourse()]);
-    vi.mocked(getCourseCategories).mockResolvedValue(['全部', '说课篇']);
-    vi.mocked(getPlusCourseStructure).mockResolvedValue([]);
-    vi.mocked(adminUpdateCourse).mockResolvedValue(makeCourse({
+    vi.mocked(getAdminCourseCategories).mockResolvedValue([
+      { id: 'cat-shuoke', name: '说课篇', sort_order: 1, is_active: true, plus_track_id: 'theory' },
+      { id: 'cat-learning', name: '学习科学篇', sort_order: 2, is_active: true, plus_track_id: 'theory' },
+      { id: 'cat-open', name: '公开课篇', sort_order: 3, is_active: true, plus_track_id: 'scenarios' },
+    ]);
+    vi.mocked(getPlusCourseStructure).mockResolvedValue(testTracks);
+    vi.mocked(adminUpdateCourseCategory).mockResolvedValue({
+      id: 'cat-shuoke',
+      name: '说课篇',
+      sort_order: 1,
+      is_active: true,
       plus_track_id: 'scenarios',
-      plus_module_id: 'review-lesson',
+    });
+    vi.mocked(adminUpdateCourse).mockResolvedValue(makeCourse());
+    vi.mocked(adminCreateCourseCategory).mockResolvedValue({
+      id: 'cat-new',
+      name: '新增系列课',
+      sort_order: 4,
+      is_active: true,
+      plus_track_id: 'scenarios',
+    });
+    vi.mocked(adminCreateCourse).mockResolvedValue(makeCourse({
+      id: 'created-course',
+      title: '新系列第一课',
+      category_id: 'cat-new',
+      category: '新增系列课',
     }));
   });
 
-  it('updates plus_track_id and plus_module_id through the admin course form', async () => {
+  it('updates category plus_track_id and clears old course module fields when saving a Plus course', async () => {
     const user = userEvent.setup();
+    vi.mocked(getAdminCourseList).mockResolvedValue([
+      makeCourse({
+        plus_track_id: 'theory',
+        plus_module_id: 'learning-science',
+        plus_module_order: 10,
+      }),
+    ]);
 
     render(<CourseManagementSection />);
 
     await screen.findByText('Plus 示例课程');
-
     await user.click(screen.getByTitle('编辑'));
-
-    const trackInput = await screen.findByPlaceholderText('scenarios');
-    const moduleInput = await screen.findByPlaceholderText('shuoke');
-
-    await user.clear(trackInput);
-    await user.type(trackInput, 'scenarios');
-    await user.clear(moduleInput);
-    await user.type(moduleInput, 'review-lesson');
-
+    await user.selectOptions(await screen.findByLabelText('分类所属篇章'), 'scenarios');
     await user.click(screen.getByRole('button', { name: '保存修改' }));
 
     await waitFor(() => {
-      expect(adminUpdateCourse).toHaveBeenCalledWith(
-        'course-1',
-        expect.objectContaining({
-          plus_track_id: 'scenarios',
-          plus_module_id: 'review-lesson',
-        })
-      );
+      expect(adminUpdateCourseCategory).toHaveBeenCalledWith('cat-shuoke', {
+        plus_track_id: 'scenarios',
+      });
     });
+    expect(adminUpdateCourse).toHaveBeenCalledWith(
+      'course-1',
+      expect.objectContaining({
+        plus_track_id: null,
+        plus_module_id: null,
+        plus_module_order: null,
+      })
+    );
   });
 
-  it('filters the admin list by Plus track and module', async () => {
+  it('filters the admin list by Plus track derived from course category', async () => {
     const user = userEvent.setup();
     vi.mocked(getAdminCourseList).mockResolvedValue([
       makeCourse({
         id: 'theory-course',
         title: '学习科学导论',
+        category_id: 'cat-learning',
         category: '学习科学篇',
-        plus_track_id: 'theory',
-        plus_module_id: 'learning-science',
-        plus_module_order: 10,
-        plus_lesson_order: 1,
       }),
       makeCourse({
         id: 'shuoke-course',
         title: '说课篇01：整体结构',
-        category: '教学原理篇',
-        plus_track_id: 'scenarios',
-        plus_module_id: 'shuoke',
-        plus_module_order: 20,
-        plus_lesson_order: 1,
+        category_id: 'cat-shuoke',
+        category: '说课篇',
       }),
       makeCourse({
         id: 'open-class-course',
         title: '公开课任务情境导入',
-        category: '任务情境篇',
-        plus_track_id: 'scenarios',
-        plus_module_id: 'open-class',
-        plus_module_order: 30,
-        plus_lesson_order: 1,
+        category_id: 'cat-open',
+        category: '公开课篇',
       }),
       makeCourse({
         id: 'pro-course',
         title: 'AI 工具课',
         membership_type: 'pro',
+        category_id: null,
         category: 'AI工具',
-        plus_track_id: null,
-        plus_module_id: null,
-        plus_module_order: null,
-        plus_lesson_order: null,
       }),
     ]);
 
@@ -169,11 +242,6 @@ describe('CourseManagementSection', () => {
     expect(screen.queryByText('AI 工具课')).not.toBeInTheDocument();
     expect(screen.getByText('说课篇01：整体结构')).toBeInTheDocument();
     expect(screen.getByText('公开课任务情境导入')).toBeInTheDocument();
-
-    await user.selectOptions(screen.getByLabelText('筛选 Plus 模块'), 'shuoke');
-
-    expect(screen.getByText('说课篇01：整体结构')).toBeInTheDocument();
-    expect(screen.queryByText('公开课任务情境导入')).not.toBeInTheDocument();
   });
 
   it('filters the admin list by category, level, and membership type together', async () => {
@@ -184,27 +252,18 @@ describe('CourseManagementSection', () => {
         title: '目标单元课程',
         category: '单元一',
         level: '中级',
-        membership_type: 'plus',
-        plus_track_id: 'scenarios',
-        plus_module_id: 'shuoke',
       }),
       makeCourse({
         id: 'wrong-category',
         title: '其他单元课程',
         category: '单元二',
         level: '中级',
-        membership_type: 'plus',
-        plus_track_id: 'scenarios',
-        plus_module_id: 'shuoke',
       }),
       makeCourse({
         id: 'wrong-level',
         title: '初级同类课程',
         category: '单元一',
         level: '初级',
-        membership_type: 'plus',
-        plus_track_id: 'scenarios',
-        plus_module_id: 'shuoke',
       }),
       makeCourse({
         id: 'wrong-type',
@@ -212,13 +271,12 @@ describe('CourseManagementSection', () => {
         category: '单元一',
         level: '中级',
         membership_type: 'pro',
-        plus_track_id: null,
-        plus_module_id: null,
-        plus_module_order: null,
-        plus_lesson_order: null,
       }),
     ]);
-    vi.mocked(getCourseCategories).mockResolvedValue(['全部', '单元一', '单元二']);
+    vi.mocked(getAdminCourseCategories).mockResolvedValue([
+      { id: 'cat-1', name: '单元一', sort_order: 1, is_active: true, plus_track_id: null },
+      { id: 'cat-2', name: '单元二', sort_order: 2, is_active: true, plus_track_id: null },
+    ]);
 
     render(<CourseManagementSection />);
 
@@ -239,16 +297,40 @@ describe('CourseManagementSection', () => {
     expect(screen.getByText('Pro 同单元课程')).toBeInTheDocument();
   });
 
-  it('opens the current Plus structure preview from active filters', async () => {
+  it('creates a new category with its Plus track before creating a course', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getAdminCourseList).mockResolvedValue([]);
+
+    render(<CourseManagementSection />);
+
+    await screen.findByText('没有匹配的课程');
+    await user.click(screen.getByRole('button', { name: '添加课程' }));
+    await user.type(screen.getByPlaceholderText('请输入课程名称'), '新系列第一课');
+    await user.click(screen.getByRole('button', { name: '创建新分类' }));
+    await user.type(screen.getByPlaceholderText('输入新分类名称'), '新增系列课');
+    await user.selectOptions(screen.getByLabelText('分类所属篇章'), 'scenarios');
+    await user.click(screen.getByRole('button', { name: '创建课程' }));
+
+    await waitFor(() => {
+      expect(adminCreateCourseCategory).toHaveBeenCalledWith('新增系列课', 'scenarios');
+    });
+    expect(adminCreateCourse).toHaveBeenCalledWith(expect.objectContaining({
+      title: '新系列第一课',
+      category_id: 'cat-new',
+      category: '新增系列课',
+      plus_track_id: null,
+      plus_module_id: null,
+      plus_module_order: null,
+    }));
+  });
+
+  it('opens the current Plus track preview from active filters', async () => {
     const user = userEvent.setup();
     vi.mocked(getAdminCourseList).mockResolvedValue([
       makeCourse({
         id: 'shuoke-course',
         title: '说课篇01：整体结构',
-        category: '教学原理篇',
-        plus_track_id: 'scenarios',
-        plus_module_id: 'shuoke',
-        plus_module_order: 20,
+        category: '说课篇',
       }),
     ]);
 
@@ -256,77 +338,8 @@ describe('CourseManagementSection', () => {
 
     await screen.findByText('说课篇01：整体结构');
     await user.selectOptions(screen.getByLabelText('筛选 Plus 篇章'), 'scenarios');
-    await user.selectOptions(screen.getByLabelText('筛选 Plus 模块'), 'shuoke');
     await user.click(screen.getByRole('button', { name: '预览结构' }));
 
-    expect(openSpy).toHaveBeenCalledWith('/courses/plus/scenarios#shuoke', '_blank');
-  });
-
-  it('batch updates selected Plus courses to a target module and lesson order', async () => {
-    const user = userEvent.setup();
-    const courses = [
-      makeCourse({
-        id: 'course-a',
-        title: '待调整课程 A',
-        plus_track_id: 'theory',
-        plus_module_id: 'learning-science',
-        plus_module_order: 10,
-        plus_lesson_order: 1,
-      }),
-      makeCourse({
-        id: 'course-b',
-        title: '待调整课程 B',
-        plus_track_id: 'theory',
-        plus_module_id: 'learning-science',
-        plus_module_order: 10,
-        plus_lesson_order: 2,
-      }),
-      makeCourse({
-        id: 'course-pro',
-        title: 'Pro 不可批量调整',
-        membership_type: 'pro',
-        plus_track_id: null,
-        plus_module_id: null,
-        plus_module_order: null,
-        plus_lesson_order: null,
-      }),
-    ];
-    vi.mocked(getAdminCourseList).mockResolvedValue(courses);
-    vi.mocked(adminUpdateCourse).mockImplementation(async (courseId, updates) => ({
-      ...courses.find((course) => course.id === courseId)!,
-      ...updates,
-      updated_at: '2026-06-16T01:00:00Z',
-    }));
-
-    render(<CourseManagementSection />);
-
-    await screen.findByText('待调整课程 A');
-    await user.click(screen.getByLabelText('选择 待调整课程 A'));
-    await user.click(screen.getByLabelText('选择 待调整课程 B'));
-    expect(screen.getByLabelText('选择 Pro 不可批量调整')).toBeDisabled();
-
-    await user.selectOptions(screen.getByLabelText('批量目标篇章'), 'scenarios');
-    await user.selectOptions(screen.getByLabelText('批量目标模块'), 'open-class');
-    await user.clear(screen.getByLabelText('批量模块排序'));
-    await user.type(screen.getByLabelText('批量模块排序'), '30');
-    await user.clear(screen.getByLabelText('批量单课起始序号'));
-    await user.type(screen.getByLabelText('批量单课起始序号'), '5');
-    await user.click(screen.getByRole('button', { name: '批量保存' }));
-
-    await waitFor(() => {
-      expect(adminUpdateCourse).toHaveBeenCalledTimes(2);
-    });
-    expect(adminUpdateCourse).toHaveBeenNthCalledWith(1, 'course-a', expect.objectContaining({
-      plus_track_id: 'scenarios',
-      plus_module_id: 'open-class',
-      plus_module_order: 30,
-      plus_lesson_order: 5,
-    }));
-    expect(adminUpdateCourse).toHaveBeenNthCalledWith(2, 'course-b', expect.objectContaining({
-      plus_track_id: 'scenarios',
-      plus_module_id: 'open-class',
-      plus_module_order: 30,
-      plus_lesson_order: 6,
-    }));
+    expect(openSpy).toHaveBeenCalledWith('/courses/plus/scenarios', '_blank');
   });
 });
