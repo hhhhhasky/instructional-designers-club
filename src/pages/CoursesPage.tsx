@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import {
   AlertCircle,
   ChevronRight,
-  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Header from '@/components/layout/Header';
@@ -21,7 +20,6 @@ import UpgradePopup from '@/components/common/UpgradePopup';
 import {
   PLUS_PROBLEM_ENTRIES,
   PLUS_RECOMMENDED_PATHS,
-  PLUS_TOOLBOX_MODULE,
   PLUS_TRACKS,
   buildPlusTrackUrl,
   getEffectivePlusTracks,
@@ -315,29 +313,6 @@ function PlusCourseMap({
               </div>
             </button>
           ))}
-        </div>
-      </section>
-
-      <section className="rounded-lg border border-dashed border-bd bg-bgs/40 p-5 md:p-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className="w-11 h-11 rounded-lg bg-bc border border-bd flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-ac" />
-            </div>
-            <div>
-              <h2 className="text-lg font-ds-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>
-                {PLUS_TOOLBOX_MODULE.title}
-              </h2>
-              <p className="text-sm text-txs mt-1">{PLUS_TOOLBOX_MODULE.description}</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {PLUS_TOOLBOX_MODULE.categoryNames.slice(0, 5).map((name) => (
-              <span key={name} className="px-2.5 py-1 rounded-full bg-bc border border-bd text-xs text-txs">
-                {name}
-              </span>
-            ))}
-          </div>
         </div>
       </section>
     </div>

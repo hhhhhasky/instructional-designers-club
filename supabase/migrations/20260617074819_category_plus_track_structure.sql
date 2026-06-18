@@ -70,12 +70,7 @@ set plus_track_id = case
     '课堂管理',
     '概念教学篇',
     '讲授法篇',
-    'AI 通识课',
-    'AI工具',
-    'AI工具应用',
-    '教育技术',
-    'ClaudeCode教程',
-    'AI科普'
+    'AI 通识课'
   ) then 'design-principles'
   when name in (
     '日常课篇',

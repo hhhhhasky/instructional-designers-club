@@ -60,12 +60,11 @@ async function exportData() {
         row.created_at ? `'${row.created_at}'` : 'now()',
         row.updated_at ? `'${row.updated_at}'` : 'now()',
         row.is_active,
-        arrayToSql(row.scenarios),
         arrayToSql(row.applicable_audience),
         arrayToSql(row.applicable_scenarios),
         arrayToSql(row.content_types),
       ];
-      sql += `INSERT INTO "public"."course_categories" ("id", "name", "description", "sort_order", "created_at", "updated_at", "is_active", "scenarios", "applicable_audience", "applicable_scenarios", "content_types") VALUES (${vals.join(', ')});\n`;
+      sql += `INSERT INTO "public"."course_categories" ("id", "name", "description", "sort_order", "created_at", "updated_at", "is_active", "applicable_audience", "applicable_scenarios", "content_types") VALUES (${vals.join(', ')});\n`;
     }
     sql += '\n';
   }
@@ -82,7 +81,6 @@ async function exportData() {
         row.category_id ? `'${row.category_id}'` : 'NULL',
         row.category ? escapeSql(row.category) : 'NULL',
         `'${row.level}'`,
-        row.semester ? escapeSql(row.semester) : 'NULL',
         row.duration,
         row.credits,
         `'${row.status}'`,
@@ -96,7 +94,7 @@ async function exportData() {
         `'${row.membership_type}'`,
         row.is_trial,
       ];
-      sql += `INSERT INTO "public"."courses" ("id", "title", "description", "instructor", "category_id", "category", "level", "semester", "duration", "credits", "status", "image_url", "video_url", "meeting_url", "sort_order", "view_count", "created_at", "updated_at", "membership_type", "is_trial") VALUES (${vals.join(', ')});\n`;
+      sql += `INSERT INTO "public"."courses" ("id", "title", "description", "instructor", "category_id", "category", "level", "duration", "credits", "status", "image_url", "video_url", "meeting_url", "sort_order", "view_count", "created_at", "updated_at", "membership_type", "is_trial") VALUES (${vals.join(', ')});\n`;
     }
     sql += '\n';
   }

@@ -233,15 +233,6 @@ export const PLUS_TRACKS: PlusTrackConfig[] = [
   },
 ];
 
-export const PLUS_TOOLBOX_MODULE: PlusModuleConfig = {
-  id: 'toolbox',
-  title: 'AI 与工具箱',
-  description: 'AI 通识、图片/PPT 生成、NotebookLM 等工具内容，适合作为学习过程中的辅助资源。',
-  order: 100,
-  categoryNames: ['AI 通识课', 'AI工具', 'AI工具应用', '教育技术', 'ClaudeCode教程', 'AI科普'],
-  representativeTitles: ['AI 通识课', 'NotebookLM', 'Gemini'],
-};
-
 export const PLUS_PROBLEM_ENTRIES: PlusProblemEntry[] = [
   { label: '我想系统提升教学设计能力', description: '从学情、目标、活动到评价建立完整方法。', trackId: 'design-principles' },
   { label: '我想理解教学背后的科学依据', description: '从学习科学、认知负荷和有效教学原理入手。', trackId: 'theory' },
@@ -322,7 +313,6 @@ const MODULE_ICONS: Record<string, LucideIcon> = {
   shuoke: MessageSquare,
   'open-class': Presentation,
   'future-scenarios': RefreshCcw,
-  toolbox: Sparkles,
 };
 
 function clonePlusTracks(tracks: PlusTrackConfig[]): PlusTrackConfig[] {
@@ -415,54 +405,10 @@ export function normalizePlusCourseStructure(
 }
 
 export function getEffectivePlusTracks(
-  courses: Course[],
+  _courses: Course[],
   baseTracks: PlusTrackConfig[] = PLUS_TRACKS,
 ): PlusTrackConfig[] {
   const tracks = clonePlusTracks(baseTracks.length > 0 ? baseTracks : PLUS_TRACKS);
-  const trackById = new Map(tracks.map((track) => [track.id, track]));
-
-  courses
-    .filter((course) => (
-      course.membership_type === 'plus' &&
-      course.plus_track_id &&
-      course.plus_module_id &&
-      !tracks.some((track) => track.modules.some((module) => module.categoryNames.includes(course.category || '')))
-    ))
-    .forEach((course) => {
-      const trackId = course.plus_track_id as string;
-      const moduleId = course.plus_module_id as string;
-      let track = trackById.get(trackId);
-
-      if (!track) {
-        track = {
-          id: trackId,
-          title: trackId,
-          shortTitle: trackId,
-          subtitle: '',
-          description: '',
-          audience: '',
-          iconKey: 'book-open',
-          icon: BookOpen,
-          accent: 'from-[#2a7a6e] to-[#c45d3e]',
-          order: course.plus_module_order ?? 999,
-          modules: [],
-        };
-        tracks.push(track);
-        trackById.set(trackId, track);
-      }
-
-      if (!track.modules.some((module) => module.id === moduleId)) {
-        track.modules.push({
-          id: moduleId,
-          title: moduleId,
-          description: '这个系列课正在整理中，相关课程会陆续补充到这里。',
-          iconKey: 'book-open',
-          order: course.plus_module_order ?? 999,
-          categoryNames: [],
-          representativeTitles: [],
-        });
-      }
-    });
 
   return tracks
     .map((track) => ({
@@ -511,32 +457,6 @@ export function resolvePlusCoursePlacement(
         };
       }
     }
-  }
-
-  const explicitTrackId = course.plus_track_id || undefined;
-  const explicitModuleId = course.plus_module_id || undefined;
-
-  if (explicitTrackId && explicitModuleId) {
-    const module = getPlusModule(explicitTrackId, explicitModuleId, tracks);
-    if (module) {
-      return {
-        ...course,
-        resolvedTrackId: explicitTrackId,
-        resolvedModuleId: explicitModuleId,
-        resolvedModuleOrder: course.plus_module_order ?? module.order,
-        resolvedLessonOrder: course.plus_lesson_order ?? course.sort_order ?? 999,
-      };
-    }
-  }
-
-  if (PLUS_TOOLBOX_MODULE.categoryNames.includes(category)) {
-    return {
-      ...course,
-      resolvedTrackId: 'design-principles',
-      resolvedModuleId: PLUS_TOOLBOX_MODULE.id,
-      resolvedModuleOrder: PLUS_TOOLBOX_MODULE.order,
-      resolvedLessonOrder: course.sort_order ?? 999,
-    };
   }
 
   return null;

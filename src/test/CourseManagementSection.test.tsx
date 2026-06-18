@@ -106,7 +106,6 @@ const makeCourse = (overrides: Partial<Course> = {}): Course => ({
   category_id: 'cat-shuoke',
   category: '说课篇',
   level: '入门',
-  semester: null,
   duration: 60,
   credits: '1',
   status: 'published',
@@ -118,9 +117,6 @@ const makeCourse = (overrides: Partial<Course> = {}): Course => ({
   body: null,
   essence: null,
   images: [],
-  plus_track_id: null,
-  plus_module_id: null,
-  plus_module_order: null,
   plus_lesson_order: 1,
   plus_representative: false,
   meeting_url: null,
@@ -167,15 +163,8 @@ describe('CourseManagementSection', () => {
     }));
   });
 
-  it('updates category plus_track_id and clears old course module fields when saving a Plus course', async () => {
+  it('updates category plus_track_id without sending old course module fields', async () => {
     const user = userEvent.setup();
-    vi.mocked(getAdminCourseList).mockResolvedValue([
-      makeCourse({
-        plus_track_id: 'theory',
-        plus_module_id: 'learning-science',
-        plus_module_order: 10,
-      }),
-    ]);
 
     render(<CourseManagementSection />);
 
@@ -189,14 +178,10 @@ describe('CourseManagementSection', () => {
         plus_track_id: 'scenarios',
       });
     });
-    expect(adminUpdateCourse).toHaveBeenCalledWith(
-      'course-1',
-      expect.objectContaining({
-        plus_track_id: null,
-        plus_module_id: null,
-        plus_module_order: null,
-      })
-    );
+    const updatePayload = vi.mocked(adminUpdateCourse).mock.calls[0]?.[1] ?? {};
+    expect(updatePayload).not.toHaveProperty('plus_track_id');
+    expect(updatePayload).not.toHaveProperty('plus_module_id');
+    expect(updatePayload).not.toHaveProperty('plus_module_order');
   });
 
   it('filters the admin list by Plus track derived from course category', async () => {
@@ -318,10 +303,11 @@ describe('CourseManagementSection', () => {
       title: '新系列第一课',
       category_id: 'cat-new',
       category: '新增系列课',
-      plus_track_id: null,
-      plus_module_id: null,
-      plus_module_order: null,
     }));
+    const createPayload = vi.mocked(adminCreateCourse).mock.calls[0]?.[0] ?? {};
+    expect(createPayload).not.toHaveProperty('plus_track_id');
+    expect(createPayload).not.toHaveProperty('plus_module_id');
+    expect(createPayload).not.toHaveProperty('plus_module_order');
   });
 
   it('opens the current Plus track preview from active filters', async () => {

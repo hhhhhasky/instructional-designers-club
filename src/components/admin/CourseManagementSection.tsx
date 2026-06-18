@@ -73,7 +73,6 @@ const EMPTY_FORM: Omit<Course, "id" | "view_count" | "created_at" | "updated_at"
   category_id: null,
   category: null,
   level: "入门",
-  semester: null,
   duration: 60,
   credits: "0",
   status: "draft",
@@ -85,9 +84,6 @@ const EMPTY_FORM: Omit<Course, "id" | "view_count" | "created_at" | "updated_at"
   body: null,
   essence: null,
   images: [],
-  plus_track_id: null,
-  plus_module_id: null,
-  plus_module_order: null,
   plus_lesson_order: null,
   plus_representative: false,
   meeting_url: null,
@@ -305,7 +301,6 @@ export default function CourseManagementSection() {
       category_id: course.category_id,
       category: course.category,
       level: course.level as CourseForm["level"],
-      semester: course.semester,
       duration: course.duration,
       credits: course.credits,
       status: course.status,
@@ -317,9 +312,6 @@ export default function CourseManagementSection() {
       body: course.body,
       essence: course.essence,
       images: course.images ?? [],
-      plus_track_id: course.plus_track_id,
-      plus_module_id: course.plus_module_id,
-      plus_module_order: course.plus_module_order,
       plus_lesson_order: course.plus_lesson_order,
       plus_representative: course.plus_representative ?? false,
       meeting_url: course.meeting_url,
@@ -344,17 +336,9 @@ export default function CourseManagementSection() {
         category: form.category?.trim() || null,
       };
       let payload: CourseForm = normalizedForm.membership_type === "plus"
-        ? {
-            ...normalizedForm,
-            plus_track_id: null,
-            plus_module_id: null,
-            plus_module_order: null,
-          }
+        ? normalizedForm
         : {
             ...normalizedForm,
-            plus_track_id: null,
-            plus_module_id: null,
-            plus_module_order: null,
             plus_lesson_order: null,
             plus_representative: false,
           };
@@ -461,9 +445,6 @@ export default function CourseManagementSection() {
       ...(value === "plus"
         ? {}
         : {
-            plus_track_id: null,
-            plus_module_id: null,
-            plus_module_order: null,
             plus_lesson_order: null,
             plus_representative: false,
           }),
@@ -856,16 +837,6 @@ export default function CourseManagementSection() {
                       </option>
                     ))}
                   </select>
-                </div>
-                <div>
-                  <label className="block text-ds-xs text-txs mb-1">学期</label>
-                  <input
-                    type="text"
-                    value={form.semester || ""}
-                    onChange={(e) => updateForm("semester", e.target.value || null)}
-                    placeholder="如 2025春（选填）"
-                    className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx placeholder:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
-                  />
                 </div>
               </div>
             </div>

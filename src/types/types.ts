@@ -17,7 +17,6 @@ export interface CourseCategory {
   created_at: string;
   updated_at: string;
   is_active: boolean;
-  scenarios: string[];  // 关联的场景 ID 数组
   applicable_audience: string[];  // 适用人群
   applicable_scenarios: string[];  // 适用场景
   content_types: string[];  // 内容类型
@@ -32,7 +31,6 @@ export interface Course {
   category_id: string | null;
   category: string | null;
   level: 'entry' | 'beginner' | 'intermediate' | 'advanced' | '入门' | '初级' | '中级' | '高级';
-  semester: string | null;
   duration: number | null;
   credits: string | null;
   status: 'draft' | 'published' | 'archived';
@@ -44,9 +42,6 @@ export interface Course {
   body: string | null; // 长文正文（Markdown）
   essence: string | null; // 课程精华（可选 Markdown：思维导图等看课参考材料，为空不显示）
   images: string[] | null; // 图片集 URL 数组
-  plus_track_id: PlusCourseTrackId | null; // 旧 Plus 逐课篇章字段；新结构由 course_categories.plus_track_id 推导
-  plus_module_id: string | null; // 旧 Plus 逐课系列字段；保留用于兼容历史数据
-  plus_module_order: number | null; // 旧 Plus 逐课系列排序；新结构不再维护
   plus_lesson_order: number | null; // Plus 系列内单课排序
   plus_representative: boolean | null; // 是否作为 Plus 首页代表课程
   meeting_url: string | null;

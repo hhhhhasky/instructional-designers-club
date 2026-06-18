@@ -47,8 +47,8 @@ async function exportInsertSQL() {
   // 2. course_categories
   sql += `-- 课程分类 (${categories.length} 条)\n`;
   for (const r of categories) {
-    sql += `INSERT INTO "public"."course_categories" ("id","name","description","sort_order","created_at","updated_at","is_active","scenarios","applicable_audience","applicable_scenarios","content_types") VALUES (\n`;
-    sql += `  '${r.id}', ${escapeSql(r.name)}, ${escapeSql(r.description)}, ${r.sort_order}, '${r.created_at}', '${r.updated_at}', ${r.is_active}, ${arrayToSql(r.scenarios)}, ${arrayToSql(r.applicable_audience)}, ${arrayToSql(r.applicable_scenarios)}, ${arrayToSql(r.content_types)}\n`;
+    sql += `INSERT INTO "public"."course_categories" ("id","name","description","sort_order","created_at","updated_at","is_active","applicable_audience","applicable_scenarios","content_types") VALUES (\n`;
+    sql += `  '${r.id}', ${escapeSql(r.name)}, ${escapeSql(r.description)}, ${r.sort_order}, '${r.created_at}', '${r.updated_at}', ${r.is_active}, ${arrayToSql(r.applicable_audience)}, ${arrayToSql(r.applicable_scenarios)}, ${arrayToSql(r.content_types)}\n`;
     sql += `);\n`;
   }
   sql += '\n';
@@ -56,8 +56,8 @@ async function exportInsertSQL() {
   // 3. courses
   sql += `-- 课程 (${courses.length} 条)\n`;
   for (const r of courses) {
-    sql += `INSERT INTO "public"."courses" ("id","title","description","instructor","category_id","category","level","semester","duration","credits","status","image_url","video_url","meeting_url","sort_order","view_count","created_at","updated_at","membership_type","is_trial") VALUES (\n`;
-    sql += `  '${r.id}', ${escapeSql(r.title)}, ${escapeSql(r.description)}, ${escapeSql(r.instructor)}, ${r.category_id ? `'${r.category_id}'` : 'NULL'}, ${escapeSql(r.category)}, '${r.level}', ${escapeSql(r.semester)}, ${r.duration}, ${r.credits}, '${r.status}', ${escapeSql(r.image_url)}, ${escapeSql(r.video_url)}, ${escapeSql(r.meeting_url)}, ${r.sort_order}, ${r.view_count}, '${r.created_at}', '${r.updated_at}', '${r.membership_type}', ${r.is_trial}\n`;
+    sql += `INSERT INTO "public"."courses" ("id","title","description","instructor","category_id","category","level","duration","credits","status","image_url","video_url","meeting_url","sort_order","view_count","created_at","updated_at","membership_type","is_trial") VALUES (\n`;
+    sql += `  '${r.id}', ${escapeSql(r.title)}, ${escapeSql(r.description)}, ${escapeSql(r.instructor)}, ${r.category_id ? `'${r.category_id}'` : 'NULL'}, ${escapeSql(r.category)}, '${r.level}', ${r.duration}, ${r.credits}, '${r.status}', ${escapeSql(r.image_url)}, ${escapeSql(r.video_url)}, ${escapeSql(r.meeting_url)}, ${r.sort_order}, ${r.view_count}, '${r.created_at}', '${r.updated_at}', '${r.membership_type}', ${r.is_trial}\n`;
     sql += `);\n`;
   }
   sql += '\n';
