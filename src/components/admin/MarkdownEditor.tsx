@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react';
-import { Bold, Heading2, List, Link2, Image as ImageIcon, Eye, Pencil } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Bold, Heading2, List, Link2, Image as ImageIcon, Eye, Pencil, Loader2, Upload } from 'lucide-react';
 import MarkdownRenderer from '@/components/common/MarkdownRenderer';
+import { uploadCourseImage } from '@/db/course-media';
 import { cn } from '@/lib/utils';
 
 /**
@@ -17,7 +18,20 @@ export default function MarkdownEditor({
   placeholder?: string;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const latestValueRef = useRef(value);
   const [mode, setMode] = useState<'write' | 'preview'>('write');
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    latestValueRef.current = value;
+  }, [value]);
+
+  const commitValue = (next: string) => {
+    latestValueRef.current = next;
+    onChange(next);
+  };
 
   /** 在光标处插入/包裹文本，并保留选区与焦点 */
   const apply = (fn: (selected: string) => { text: string; caret?: number }) => {
@@ -28,7 +42,7 @@ export default function MarkdownEditor({
     const selected = value.slice(start, end);
     const { text, caret } = fn(selected);
     const next = value.slice(0, start) + text + value.slice(end);
-    onChange(next);
+    commitValue(next);
     setMode('write');
     requestAnimationFrame(() => {
       ta.focus();
@@ -60,6 +74,40 @@ export default function MarkdownEditor({
       apply(() => ({ text: `![图片说明](图片URL)` })),
   };
 
+  const handleImageUpload = async (file: File | undefined) => {
+    if (!file) return;
+
+    setMode('write');
+    setUploadError(null);
+
+    const ta = ref.current;
+    const start = ta?.selectionStart ?? latestValueRef.current.length;
+    const end = ta?.selectionEnd ?? start;
+    const uploadId = crypto.randomUUID();
+    const alt = file.name.replace(/\.[^.]+$/, '').replace(/[\[\]]/g, ' ').trim() || '课程图片';
+    const placeholder = `![${alt}](uploading-image-${uploadId})`;
+    const current = latestValueRef.current;
+    commitValue(current.slice(0, start) + placeholder + current.slice(end));
+    setUploading(true);
+
+    try {
+      const url = await uploadCourseImage(file);
+      const next = latestValueRef.current.replace(placeholder, `![${alt}](${url})`);
+      commitValue(next);
+      requestAnimationFrame(() => {
+        const position = next.indexOf(url) + url.length + 1;
+        ref.current?.focus();
+        ref.current?.setSelectionRange(position, position);
+      });
+    } catch (error) {
+      commitValue(latestValueRef.current.replace(placeholder, ''));
+      setUploadError(error instanceof Error ? error.message : '图片上传失败，请重试');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <div className="border border-bd rounded-ds-lg overflow-hidden bg-bg">
       {/* 工具栏 + 模式切换 */}
@@ -80,6 +128,21 @@ export default function MarkdownEditor({
           <ToolButton title="图片" onClick={tools.image}>
             <ImageIcon className="w-4 h-4" />
           </ToolButton>
+          <ToolButton
+            title={uploading ? '图片上传中' : '上传本地图片'}
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+          >
+            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+          </ToolButton>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            aria-label="选择要上传的图片"
+            className="sr-only"
+            onChange={(event) => void handleImageUpload(event.target.files?.[0])}
+          />
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -112,7 +175,7 @@ export default function MarkdownEditor({
         <textarea
           ref={ref}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => commitValue(e.target.value)}
           placeholder={placeholder}
           rows={14}
           className="w-full px-4 py-3 text-ds-sm font-mono leading-relaxed bg-bg text-tx placeholder:text-txt/70 focus:outline-none resize-y"
@@ -126,6 +189,11 @@ export default function MarkdownEditor({
           )}
         </div>
       )}
+      {uploadError && (
+        <p role="alert" className="border-t border-bdl bg-red-50 px-4 py-2 text-ds-xs text-red-700">
+          {uploadError}
+        </p>
+      )}
     </div>
   );
 }
@@ -133,18 +201,22 @@ export default function MarkdownEditor({
 function ToolButton({
   title,
   onClick,
+  disabled = false,
   children,
 }: {
   title: string;
   onClick: () => void;
+  disabled?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <button
       type="button"
       title={title}
+      aria-label={title}
       onClick={onClick}
-      className="inline-flex items-center justify-center w-7 h-7 rounded text-txs hover:bg-bg hover:text-ac transition-colors"
+      disabled={disabled}
+      className="inline-flex items-center justify-center w-7 h-7 rounded text-txs hover:bg-bg hover:text-ac disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
     >
       {children}
     </button>

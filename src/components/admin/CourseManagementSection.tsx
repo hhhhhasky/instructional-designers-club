@@ -1018,6 +1018,9 @@ export default function CourseManagementSection() {
             {/* 正文（长文） */}
             <div className="space-y-3">
               <h4 className="text-ds-sm font-ds-semibold text-tx">正文（长文）</h4>
+              <p className="text-ds-xs text-txs -mt-1">
+                将光标放到目标位置，点击工具栏中的上传按钮即可选择本地图片；上传完成后会自动插入图片代码。
+              </p>
               <MarkdownEditor
                 value={form.body || ""}
                 onChange={(v) => updateForm("body", v || null)}
