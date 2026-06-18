@@ -192,7 +192,20 @@ export function findAchievementForCourse(
 }
 
 function buildAchievements(seriesProgress: SeriesProgress[], accessLevel: MembershipType): Achievement[] {
-  return ACHIEVEMENT_DEFINITIONS.map((definition) => {
+  const coveredCategories = new Set(ACHIEVEMENT_DEFINITIONS.flatMap((definition) => definition.categories));
+  const dynamicDefinitions: AchievementDefinition[] = seriesProgress
+    .filter((series) => series.courses.length > 0 && !coveredCategories.has(series.categoryName))
+    .map((series) => ({
+      id: `series-${series.categoryName}`,
+      name: `${series.categoryName}研修者`,
+      shortName: series.categoryName.replace(/[篇课]$/u, ''),
+      description: `完成${series.categoryName}全部课程，获得该系列研修徽章。`,
+      categories: [series.categoryName],
+      asset: '/images/gamification/badge-theory.svg',
+      accent: 'pp',
+    }));
+
+  return [...ACHIEVEMENT_DEFINITIONS, ...dynamicDefinitions].map((definition) => {
     const courses = getAccessibleCoursesForCategories(seriesProgress, definition.categories, accessLevel);
     const completed = courses.filter((course) => course.status === 'completed').length;
     const target = courses.length;

@@ -14,6 +14,7 @@ import MobileTabBar from '@/components/navigation/MobileTabBar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { getLearningData } from '@/db/api';
+import { supabase } from '@/db/supabase';
 import { buildGamificationSnapshot } from '@/lib/gamification';
 import type { LearningOverview as LearningOverviewType, RecentLearningItem, SeriesProgress } from '@/types/types';
 
@@ -38,21 +39,51 @@ export default function LearningPage() {
 
     initialCheckDone.current = true;
 
-    const load = async () => {
-      setIsLoading(true);
+    let disposed = false;
+    let requestVersion = 0;
+    const load = async (showLoading = false, fresh = false) => {
+      const version = ++requestVersion;
+      if (showLoading) setIsLoading(true);
       setError(null);
       try {
-        const data = await getLearningData(user.id);
+        const data = await getLearningData(user.id, { fresh });
+        if (disposed || version !== requestVersion) return;
         setOverview(data.overview);
         setSeriesProgress(data.seriesProgress);
         setRecentLearning(data.recentLearning);
       } catch {
+        if (disposed || version !== requestVersion) return;
         setError('加载学习数据失败，请刷新页面重试');
       } finally {
-        setIsLoading(false);
+        if (!disposed && version === requestVersion) setIsLoading(false);
       }
     };
-    load();
+    void load(true);
+
+    // 课程目录与当前用户的学习记录任一变化，都重新从真实表数据聚合主页。
+    const channel = supabase
+      .channel(`learning-home-${user.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'courses' }, () => void load(false, true))
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'learning_records', filter: `user_id=eq.${user.id}` },
+        () => void load(false, true),
+      )
+      .subscribe();
+
+    // Realtime 未开启时，用户回到标签页也会拿到最新课程目录。
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void load(false, true);
+    };
+    window.addEventListener('focus', refreshWhenVisible);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+
+    return () => {
+      disposed = true;
+      window.removeEventListener('focus', refreshWhenVisible);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+      void supabase.removeChannel(channel);
+    };
   }, [user?.id, loading, navigate]);
 
   // 认证守卫：仅在首次加载且无 session 时显示全屏加载
@@ -99,7 +130,6 @@ export default function LearningPage() {
     );
   }
 
-  const hasRecords = recentLearning.length > 0 || (overview && (overview.completedCourses > 0 || overview.inProgressCourses > 0));
   const gamificationSnapshot = overview && profile
     ? buildGamificationSnapshot({
       overview,
@@ -167,7 +197,7 @@ export default function LearningPage() {
           {/* 数据就绪 */}
           {!isLoading && !error && overview && (
             <>
-              {!hasRecords ? (
+              {seriesProgress.length === 0 ? (
                 <EmptyLearningState />
               ) : (
                 <>

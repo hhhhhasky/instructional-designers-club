@@ -109,6 +109,7 @@ export interface LearningRecord {
 
 // 学习概览统计
 export interface LearningOverview {
+  totalCourses: number;
   totalCredits: number;
   completedCourses: number;
   inProgressCourses: number;

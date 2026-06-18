@@ -576,40 +576,46 @@ export async function getBatchCategoryTags(
   }
 }
 
-// 学习主页数据缓存（5 分钟 TTL）
-const learningCache = new Map<string, { data: Promise<{ overview: LearningOverview; seriesProgress: SeriesProgress[]; recentLearning: RecentLearningItem[] }>; ts: number }>();
-const LEARNING_CACHE_TTL = 5 * 60 * 1000;
+type LearningData = {
+  overview: LearningOverview;
+  seriesProgress: SeriesProgress[];
+  recentLearning: RecentLearningItem[];
+};
+
+// 仅合并同一用户的并发请求，请求完成后立即释放。
+// 不缓存已完成结果，避免课程上新/归档后学习主页继续使用旧目录。
+const learningRequests = new Map<string, Promise<LearningData>>();
 
 export function clearLearningDataCache(userId: string): void {
-  learningCache.delete(userId);
+  learningRequests.delete(userId);
+}
+
+export function clearAllLearningDataCaches(): void {
+  learningRequests.clear();
 }
 
 /**
  * 获取学员学习主页全部数据（概览 + 系列进度 + 最近学习）
- * 仅 2 次 Supabase 查询，客户端聚合，带 5 分钟缓存
+ * 仅 2 次 Supabase 查询，客户端聚合。课程目录以 courses 表的已发布课程为唯一数据源。
  */
-export async function getLearningData(userId: string): Promise<{
-  overview: LearningOverview;
-  seriesProgress: SeriesProgress[];
-  recentLearning: RecentLearningItem[];
-}> {
-  const cached = learningCache.get(userId);
-  if (cached && Date.now() - cached.ts < LEARNING_CACHE_TTL) {
-    return cached.data;
-  }
-
+export async function getLearningData(userId: string, options: { fresh?: boolean } = {}): Promise<LearningData> {
+  if (options.fresh) learningRequests.delete(userId);
+  const pending = learningRequests.get(userId);
+  if (pending) return pending;
   const dataPromise = _fetchLearningData(userId);
-  learningCache.set(userId, { data: dataPromise, ts: Date.now() });
-  return dataPromise;
+  learningRequests.set(userId, dataPromise);
+  try {
+    return await dataPromise;
+  } finally {
+    if (learningRequests.get(userId) === dataPromise) {
+      learningRequests.delete(userId);
+    }
+  }
 }
 
-async function _fetchLearningData(userId: string): Promise<{
-  overview: LearningOverview;
-  seriesProgress: SeriesProgress[];
-  recentLearning: RecentLearningItem[];
-}> {
+async function _fetchLearningData(userId: string): Promise<LearningData> {
   const empty = {
-    overview: { totalCredits: 0, completedCourses: 0, inProgressCourses: 0 },
+    overview: { totalCourses: 0, totalCredits: 0, completedCourses: 0, inProgressCourses: 0 },
     seriesProgress: [],
     recentLearning: [],
   };
@@ -639,18 +645,21 @@ async function _fetchLearningData(userId: string): Promise<{
     const records = recordsRes.data || [];
     const courses: Pick<Course, 'id' | 'title' | 'credits' | 'category' | 'image_url' | 'membership_type' | 'sort_order' | 'duration'>[] = coursesRes.data || [];
 
-    // courseId -> record 映射
-    const recordMap = new Map(records.map(r => [r.course_id, r]));
+    // 只统计仍在已发布课程目录中的学习记录，避免归档/删除课程污染主页数字。
+    const courseMap = new Map(courses.map(course => [course.id, course]));
+    const visibleRecords = records.filter(record => courseMap.has(record.course_id));
+    const recordMap = new Map(visibleRecords.map(record => [record.course_id, record]));
 
     // 1. 概览统计
-    const completedRecords = records.filter(r => r.status === 'completed');
-    const inProgressRecords = records.filter(r => r.status === 'in_progress');
+    const completedRecords = visibleRecords.filter(record => record.status === 'completed');
+    const inProgressRecords = visibleRecords.filter(record => record.status === 'in_progress');
     const completedCourseIds = new Set(completedRecords.map(r => r.course_id));
     const totalCredits = courses
       .filter(c => completedCourseIds.has(c.id))
       .reduce((sum, c) => sum + parseFloat(c.credits || '0'), 0);
 
     const overview: LearningOverview = {
+      totalCourses: courses.length,
       totalCredits: Math.round(totalCredits * 10) / 10,
       completedCourses: completedRecords.length,
       inProgressCourses: inProgressRecords.length,
@@ -710,12 +719,12 @@ async function _fetchLearningData(userId: string): Promise<{
       .sort((a, b) => b.completionPercentage - a.completionPercentage);
 
     // 3. 最近学习（按 last_watched_at 降序取前 5）
-    const recentLearning: RecentLearningItem[] = records
-      .filter(r => r.last_watched_at)
+    const recentLearning: RecentLearningItem[] = visibleRecords
+      .filter(record => record.last_watched_at)
       .sort((a, b) => new Date(b.last_watched_at!).getTime() - new Date(a.last_watched_at!).getTime())
       .slice(0, 5)
       .map(r => {
-        const course = courses.find(c => c.id === r.course_id);
+        const course = courseMap.get(r.course_id);
         return {
           courseId: r.course_id,
           title: course?.title || '未知课程',

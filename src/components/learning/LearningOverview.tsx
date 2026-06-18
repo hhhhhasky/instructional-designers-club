@@ -1,4 +1,4 @@
-import { Award, CheckCircle, PlayCircle } from 'lucide-react';
+import { Award, BookOpen, CheckCircle, PlayCircle } from 'lucide-react';
 import type { LearningOverview as LearningOverviewType } from '@/types/types';
 
 interface Props {
@@ -7,6 +7,14 @@ interface Props {
 
 export default function LearningOverview({ overview }: Props) {
   const cards = [
+    {
+      icon: BookOpen,
+      value: overview.totalCourses,
+      label: '课程总数',
+      suffix: '节',
+      color: 'text-pp',
+      accentBg: 'bg-ppl',
+    },
     {
       icon: Award,
       value: overview.totalCredits,
@@ -33,7 +41,7 @@ export default function LearningOverview({ overview }: Props) {
   ];
 
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {cards.map((card, idx) => {
         const Icon = card.icon;
         return (

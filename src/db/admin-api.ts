@@ -1,15 +1,16 @@
 import type {
+  Activity,
+  Announcement,
   Course,
   CourseCategory,
-  MembershipType,
-  MemberProfile,
   Faq,
-  Testimonial,
-  Announcement,
-  Activity,
+  MemberProfile,
+  MembershipType,
   Resource,
   SiteContent,
+  Testimonial,
 } from "@/types/types";
+import { clearAllLearningDataCaches } from "./api";
 import { supabase } from "./supabase";
 
 // ==================== 响应类型 ====================
@@ -343,6 +344,7 @@ export async function adminCreateCourse(
     console.error("adminCreateCourse error:", error);
     throw error;
   }
+  clearAllLearningDataCaches();
   return data;
 }
 
@@ -363,6 +365,7 @@ export async function adminUpdateCourse(
     console.error("adminUpdateCourse error:", error);
     throw error;
   }
+  clearAllLearningDataCaches();
   return data;
 }
 
@@ -378,6 +381,7 @@ export async function adminArchiveCourse(courseId: string): Promise<void> {
     console.error("adminArchiveCourse error:", error);
     throw error;
   }
+  clearAllLearningDataCaches();
 }
 
 // ==================== 内容运营后台 · 内容管理（R-P0-02） ====================
