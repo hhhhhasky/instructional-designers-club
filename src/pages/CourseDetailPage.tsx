@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ExternalLink, Clock, Award, User, BookOpen, AlertCircle, ChevronLeft, ChevronRight, List, CheckCircle2, PlayCircle, Eye, Sparkles } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Clock, Award, User, BookOpen, AlertCircle, ChevronLeft, ChevronRight, List, CheckCircle2, PlayCircle, Eye, Sparkles, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
@@ -11,7 +11,10 @@ import MarkdownRenderer from '@/components/common/MarkdownRenderer';
 import CourseConfirmDialog from '@/components/course/CourseConfirmDialog';
 import CourseContentStack from '@/components/course/CourseContentStack';
 import CourseCompletionDialog from '@/components/course/CourseCompletionDialog';
-import { getCourseById, getCourseByIdAdmin, incrementCourseViewCount, getCoursesByMembershipAndCategory, getCoursesByMembershipType, getPlusCourseStructure, getLearningData } from '@/db/api';
+import TeacherAiCatalogToc from '@/components/course/TeacherAiCatalogToc';
+import PlusCatalogToc from '@/components/course/PlusCatalogToc';
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { getCourseById, getCourseByIdAdmin, incrementCourseViewCount, getCoursesByMembershipAndCategory, getCoursesByMembershipType, getCategoriesByMembershipType, getPlusCourseStructure, getLearningData } from '@/db/api';
 import { canAccessCourse, recordCourseVisit, updateLearningProgress, getUserLearningRecords } from '@/lib/access-control';
 import {
   buildGamificationSnapshot,
@@ -62,6 +65,15 @@ export default function CourseDetailPage() {
   const [siblingCourses, setSiblingCourses] = useState<Course[]>([]);
   const [learningRecords, setLearningRecords] = useState<LearningRecord[]>([]);
   const [plusTracks, setPlusTracks] = useState<PlusTrackConfig[]>(PLUS_TRACKS);
+  // 教师AI课全量目录（仅 pro 课程详情页加载）
+  const [teacherAiCatalog, setTeacherAiCatalog] = useState<{
+    categories: string[];
+    coursesByCategory: Record<string, Course[]>;
+  }>({ categories: [], coursesByCategory: {} });
+  // 教学通识课（Plus）全量课程（仅 plus 课程详情页加载，供左侧全量目录）
+  const [plusAllCourses, setPlusAllCourses] = useState<Course[]>([]);
+  const [tocOpen, setTocOpen] = useState(true);
+  const [mobileTocOpen, setMobileTocOpen] = useState(false);
 
   const syncProgress = useCallback(() => {
     const video = videoRef.current;
@@ -151,6 +163,8 @@ export default function CourseDetailPage() {
         setShowUpgrade(false);
         setManuallyMarked(false);
         setSiblingCourses([]);
+        setTeacherAiCatalog({ categories: [], coursesByCategory: {} });
+        setPlusAllCourses([]);
 
         let courseData = await getCourseById(id);
 
@@ -179,6 +193,7 @@ export default function CourseDetailPage() {
               structureData.length > 0 ? structureData : PLUS_TRACKS,
             );
             setPlusTracks(effectiveTracks);
+            setPlusAllCourses(moduleSourceCourses);
             const placement = resolvePlusCoursePlacement(courseData, effectiveTracks);
             if (placement) {
               setSiblingCourses(getCoursesForModule(
@@ -188,6 +203,19 @@ export default function CourseDetailPage() {
                 effectiveTracks,
               ));
             }
+          } else if (courseData.membership_type === 'pro') {
+            // 教师AI课：加载全量目录，并派生当前系列单课（供 prev/next 导航）
+            const [allProCourses, allProCategories] = await Promise.all([
+              getCoursesByMembershipType('pro'),
+              getCategoriesByMembershipType('pro'),
+            ]);
+            const proCats = allProCategories.filter((c) => c !== '全部');
+            const proGrouped: Record<string, Course[]> = {};
+            proCats.forEach((cat) => {
+              proGrouped[cat] = allProCourses.filter((c) => c.category === cat);
+            });
+            setTeacherAiCatalog({ categories: proCats, coursesByCategory: proGrouped });
+            setSiblingCourses(courseData.category ? proGrouped[courseData.category] ?? [] : []);
           } else if (courseData.category && courseData.membership_type) {
             const siblings = await getCoursesByMembershipAndCategory(
               courseData.membership_type,
@@ -365,6 +393,10 @@ export default function CourseDetailPage() {
 
   // 纯文本/图集课：手动标记完成（乐观更新本地状态，学习记录已落库）
   const isCurrentCompleted = manuallyMarked || getStatus(course.id) === 'completed';
+  const isProCourse = course.membership_type === 'pro';
+  const hasTeacherAiCatalog = isProCourse && teacherAiCatalog.categories.length > 0;
+  const isPlusCourse = course.membership_type === 'plus';
+  const hasPlusCatalog = isPlusCourse && plusAllCourses.length > 0 && plusTracks.length > 0;
 
   const handleMarkComplete = () => {
     void completeCurrentCourse();
@@ -455,7 +487,89 @@ export default function CourseDetailPage() {
 
         {/* Main Content: Video + Sidebar */}
         <div className="max-w-7xl mx-auto px-4 pt-4">
-          <div className="flex gap-5">
+          <div className={cn('flex', (isProCourse || isPlusCourse) ? 'gap-4' : 'gap-5')}>
+            {/* 教师AI课：左侧可折叠全量目录（桌面端常驻） */}
+            {hasTeacherAiCatalog && (
+              <aside
+                className="hidden lg:block flex-shrink-0 self-start sticky top-20 transition-all duration-200"
+                style={{ width: tocOpen ? 260 : 48 }}
+              >
+                {tocOpen ? (
+                  <div className="bg-bc rounded-lg border border-bd shadow-ds-elegant overflow-hidden h-[calc(100vh-7rem)] max-h-[680px] flex flex-col">
+                    <div className="flex items-center justify-between px-3 py-3 border-b border-bdl bg-warm/30">
+                      <h3 className="font-bold text-tx text-sm">教师AI课目录</h3>
+                      <button
+                        type="button"
+                        onClick={() => setTocOpen(false)}
+                        className="p-1 rounded hover:bg-bgs text-txs transition-colors"
+                        aria-label="收起目录"
+                      >
+                        <PanelLeftClose className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <TeacherAiCatalogToc
+                      categories={teacherAiCatalog.categories}
+                      coursesByCategory={teacherAiCatalog.coursesByCategory}
+                      currentCourseId={course.id}
+                      onSelect={handleNavigateToCourse}
+                      learningRecords={learningRecords}
+                      className="flex-1"
+                    />
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setTocOpen(true)}
+                    className="w-12 h-full min-h-[120px] bg-bc rounded-lg border border-bd shadow-ds-elegant py-3 flex flex-col items-center gap-2 text-txs hover:text-amber-700 transition-colors"
+                    aria-label="展开目录"
+                  >
+                    <PanelLeftOpen className="w-5 h-5" />
+                    <span className="text-[10px] [writing-mode:vertical-rl] tracking-widest">目录</span>
+                  </button>
+                )}
+              </aside>
+            )}
+            {/* 教学通识课：左侧可折叠全量目录（桌面端常驻） */}
+            {hasPlusCatalog && (
+              <aside
+                className="hidden lg:block flex-shrink-0 self-start sticky top-20 transition-all duration-200"
+                style={{ width: tocOpen ? 260 : 48 }}
+              >
+                {tocOpen ? (
+                  <div className="bg-bc rounded-lg border border-bd shadow-ds-elegant overflow-hidden h-[calc(100vh-7rem)] max-h-[680px] flex flex-col">
+                    <div className="flex items-center justify-between px-3 py-3 border-b border-bdl bg-warm/30">
+                      <h3 className="font-bold text-tx text-sm">教学通识课目录</h3>
+                      <button
+                        type="button"
+                        onClick={() => setTocOpen(false)}
+                        className="p-1 rounded hover:bg-bgs text-txs transition-colors"
+                        aria-label="收起目录"
+                      >
+                        <PanelLeftClose className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <PlusCatalogToc
+                      tracks={plusTracks}
+                      courses={plusAllCourses}
+                      currentCourseId={course.id}
+                      onSelect={handleNavigateToCourse}
+                      learningRecords={learningRecords}
+                      className="flex-1"
+                    />
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setTocOpen(true)}
+                    className="w-12 h-full min-h-[120px] bg-bc rounded-lg border border-bd shadow-ds-elegant py-3 flex flex-col items-center gap-2 text-txs hover:text-ac transition-colors"
+                    aria-label="展开目录"
+                  >
+                    <PanelLeftOpen className="w-5 h-5" />
+                    <span className="text-[10px] [writing-mode:vertical-rl] tracking-widest">目录</span>
+                  </button>
+                )}
+              </aside>
+            )}
             {/* Left: Video + Details */}
             <div className="flex-1 min-w-0">
               <div className="bg-bc rounded-ds-lg border border-bd shadow-ds-elegant overflow-hidden">
@@ -495,9 +609,31 @@ export default function CourseDetailPage() {
                       <span className="sm:hidden">上一节</span>
                     </button>
 
-                    <span className="text-xs text-txs px-3">
-                      {currentPosition} / {siblingCourses.length}
-                    </span>
+                    {hasTeacherAiCatalog || hasPlusCatalog ? (
+                      <>
+                        {/* 移动端：目录入口（并入选集条，避开底部全局导航栏），点击弹出全量目录抽屉 */}
+                        <button
+                          type="button"
+                          onClick={() => setMobileTocOpen(true)}
+                          className="lg:hidden inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold text-tx hover:bg-bgs active:bg-bgs transition-colors"
+                          aria-label="打开课程目录"
+                        >
+                          <List className="w-4 h-4" />
+                          目录
+                          <span className="font-normal text-txs">
+                            {currentPosition}/{siblingCourses.length}
+                          </span>
+                        </button>
+                        {/* 桌面端：位置计数（桌面有左侧目录，无需入口） */}
+                        <span className="hidden lg:inline text-xs text-txs px-3">
+                          {currentPosition} / {siblingCourses.length}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-xs text-txs px-3">
+                        {currentPosition} / {siblingCourses.length}
+                      </span>
+                    )}
 
                     <button
                       onClick={() => nextCourse && handleNavigateToCourse(nextCourse.id)}
@@ -516,8 +652,23 @@ export default function CourseDetailPage() {
                   </div>
                 )}
 
-                {/* Mobile: Inline course list below video */}
-                {siblingCourses.length > 1 && (
+                {/* Pro/Plus 单课（无上/下一节）移动端目录入口；多课时目录入口在上方选集条 */}
+                {siblingCourses.length <= 1 && (hasTeacherAiCatalog || hasPlusCatalog) && (
+                  <div className="lg:hidden flex items-center px-5 py-2.5 border-b border-bdl bg-warm/30">
+                    <button
+                      type="button"
+                      onClick={() => setMobileTocOpen(true)}
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-tx hover:text-ac transition-colors"
+                      aria-label="打开课程目录"
+                    >
+                      <List className="w-4 h-4" />
+                      查看全部目录
+                    </button>
+                  </div>
+                )}
+
+                {/* Mobile: Inline course list below video（仅 Free；Pro/Plus 用抽屉目录） */}
+                {!isProCourse && !isPlusCourse && siblingCourses.length > 1 && (
                   <div className="lg:hidden border-b border-bdl">
                     <div className="px-4 py-2.5 bg-warm/30 flex items-center justify-between">
                       <h3 className="font-bold text-tx text-sm flex items-center gap-2">
@@ -680,8 +831,8 @@ export default function CourseDetailPage() {
               </div>
             </div>
 
-            {/* Right: Sidebar - Desktop */}
-            {siblingCourses.length > 0 && (
+            {/* Right: Sidebar - Desktop（仅 Free；教师AI课/教学通识课改用左侧全量目录） */}
+            {!isProCourse && !isPlusCourse && siblingCourses.length > 0 && (
               <aside className="hidden lg:block w-72 flex-shrink-0">
                 <div className="sticky top-24 bg-bc rounded-lg border border-bd shadow-ds-elegant overflow-hidden">
                   {/* Sidebar Header */}
@@ -754,6 +905,56 @@ export default function CourseDetailPage() {
               </aside>
             )}
           </div>
+
+          {/* 教师AI课：移动端目录抽屉（入口在视频下方选集条，避免与底部全局导航栏重叠） */}
+          {hasTeacherAiCatalog && (
+            <Sheet open={mobileTocOpen} onOpenChange={setMobileTocOpen}>
+              <SheetContent side="left" className="w-72 p-0">
+                <div className="flex flex-col h-full">
+                  <div className="px-4 py-3 border-b border-bdl bg-warm/30">
+                    <SheetTitle className="text-sm font-bold text-tx">教师AI课目录</SheetTitle>
+                    <SheetDescription className="sr-only">教师AI课全部系列与单课导航</SheetDescription>
+                  </div>
+                  <TeacherAiCatalogToc
+                    categories={teacherAiCatalog.categories}
+                    coursesByCategory={teacherAiCatalog.coursesByCategory}
+                    currentCourseId={course.id}
+                    onSelect={(cid) => {
+                      handleNavigateToCourse(cid);
+                      setMobileTocOpen(false);
+                    }}
+                    learningRecords={learningRecords}
+                    className="flex-1"
+                  />
+                </div>
+              </SheetContent>
+            </Sheet>
+          )}
+
+          {/* 教学通识课：移动端目录抽屉（入口在视频下方选集条，避免与底部全局导航栏重叠） */}
+          {hasPlusCatalog && (
+            <Sheet open={mobileTocOpen} onOpenChange={setMobileTocOpen}>
+              <SheetContent side="left" className="w-72 p-0">
+                <div className="flex flex-col h-full">
+                  <div className="px-4 py-3 border-b border-bdl bg-warm/30">
+                    <SheetTitle className="text-sm font-bold text-tx">教学通识课目录</SheetTitle>
+                    <SheetDescription className="sr-only">教学通识课全部篇章、模块与单课导航</SheetDescription>
+                  </div>
+                  <PlusCatalogToc
+                    tracks={plusTracks}
+                    courses={plusAllCourses}
+                    currentCourseId={course.id}
+                    onSelect={(cid) => {
+                      handleNavigateToCourse(cid);
+                      setMobileTocOpen(false);
+                    }}
+                    learningRecords={learningRecords}
+                    className="flex-1"
+                  />
+                </div>
+              </SheetContent>
+            </Sheet>
+          )}
         </div>
       </main>
 

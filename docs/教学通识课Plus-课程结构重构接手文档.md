@@ -1116,7 +1116,205 @@ CourseManagementSection -> adminUpdateCourse() -> Supabase public.courses
 
 ---
 
-## 11. 历史建议给下个开发 session 的任务提示词（已过期，仅留档）
+## 11. 本 session 研发进展同步（2026-06-21）
+
+> 本节记录 2026-06-21 session 完成的教师AI课（Pro）前端 UI 重构，供下个 session 接手。
+> 本次只改前端展示层，未动数据库；Pro 课程的「系列 = `course.category`、单课 = `Course`」数据模型与权限逻辑均未变。
+> 本地启动开发服务器：`./node_modules/.bin/vite --host 127.0.0.1`（`npm run dev` 已被项目禁用，且本机无 `pnpm`，默认端口 5173）。
+
+### 11.0 研发功能进度表
+
+| 研发功能 | 当前进展 | 完成 / 更新时间 | 证据位置 | 下一步 |
+| --- | --- | --- | --- | --- |
+| 教师AI课列表页双栏重构 | 已完成 | 2026-06-21 | `src/pages/TeacherAiCoursesPage.tsx`、本文 11.1.1 | 单课卡片可继续叠加内容形态（视频/图文/音频/精华）标识 |
+| 教师AI课详情页左侧全量目录 | 已完成 | 2026-06-21 | `src/pages/CourseDetailPage.tsx`、`src/components/course/TeacherAiCatalogToc.tsx`、本文 11.1.2 | 目录项显示学习进度（已完成态），与 Plus 单课页右侧栏对齐 |
+| 系列图标映射抽离为共享模块 | 已完成 | 2026-06-21 | `src/lib/categoryIcons.ts` | 后续新增系列图标统一在此维护 |
+| 教师AI课目录学习进度显示 | 已完成 | 2026-06-21 | `src/components/course/TeacherAiCatalogToc.tsx`、`src/pages/CourseDetailPage.tsx`、本文 11.6.1 | 可继续叠加目录顶部「返回列表」入口 |
+| 单课卡片 / 目录内容形态标识 | 已完成 | 2026-06-21 | `src/components/course/CourseContentStack.tsx`、`src/components/course/ContentFormatBadges.tsx`、本文 11.6.2 | 新增载体类型时统一在 `getCourseContentFormats` 维护 |
+| 教学通识课详情页左侧全量目录 | 已完成 | 2026-06-21 | `src/components/course/PlusCatalogToc.tsx`、`src/pages/CourseDetailPage.tsx`、本文 11.6.3 | 可继续做模块折叠、跨篇章锚点 |
+| 移动端目录入口避让底部导航栏 | 已完成 | 2026-06-21 | `src/pages/CourseDetailPage.tsx`、本文 11.6.5 | 后续可加目录顶部「返回列表」入口 |
+
+### 11.1 已完成范围
+
+#### 11.1.1 教师AI课列表页（`/teacher-ai-courses`）双栏重构
+
+对齐教学通识课篇章页（`PlusTrackPage`）的布局模式：
+
+- 桌面端（`lg+`）：`lg:grid-cols-[280px_1fr]`
+  - 左侧 sticky 系列导航：每个系列（`course.category`）一行，含图标、名称、单课数；点击锚点滚动到右侧对应系列区。
+  - 右侧：每个系列一张卡片（amber 渐变图标 + 系列名 + 节数 + 适用人群/场景/内容类型标签 + 单课双列网格）。
+- 移动端（`< lg`）：Accordion 折叠，默认展开第一个系列。
+- 沿用 Pro 主题色（amber/orange），不照搬 Plus 的 `ac` 主色。
+- 系列锚点用 `encodeURIComponent(category)` 包裹（系列名为中文），挂载时按 URL hash 滚动定位（复用 `PlusTrackPage` 的 effect 写法）。
+- 数据加载（`getCategoriesByMembershipType('pro')` + `getCoursesByMembershipType('pro')` + `getBatchCategoryTags`）、权限校验、升级弹窗逻辑全部不变。
+
+涉及文件：
+
+- `src/pages/TeacherAiCoursesPage.tsx`
+- `src/lib/categoryIcons.ts`（系列图标映射，从页面内抽离）
+
+#### 11.1.2 教师AI课详情页（`/courses/:id`，Pro 课程）左侧全量目录
+
+解决原详情页右侧栏只能看到「当前一个系列」单课、无法跳到其他系列的痛点：
+
+- Pro 课程详情页（`membership_type === 'pro'`）新增左侧可折叠全量目录：
+  - 桌面常驻：展开 260px / 收起 48px 竖条（带「目录」竖排文字 + 展开按钮），宽度 `transition-all`。
+  - 目录按系列分组，当前课程高亮（amber + 左侧色条），挂载/切换时自动 `scrollIntoView({block:'nearest'})` 滚入可视区。
+  - 点击任一单课直接 `navigate(/courses/:id)`，跨系列跳转 + 高亮联动。
+- 移动端（`< lg`）：右下浮动按钮唤出 `Sheet`（`side="left"`）抽屉，选择后自动关闭。
+- **移除** Pro 详情页右侧旧 sidebar（原仅显示当前系列单课）；视频下方「上一节/下一节」横向导航条保留（基于 `siblingCourses`，逻辑不变）。
+- 数据：一次请求 `getCoursesByMembershipType('pro')` + `getCategoriesByMembershipType('pro')`，按 `category` 分组得到全量目录，并从中派生当前系列单课（取代原 `getCoursesByMembershipAndCategory`，省一次请求且与目录数据一致）。
+- **Plus / Free 详情页完全不变**：渲染分支条件为 `!isProCourse` 保留原右侧 sidebar，不渲染教师AI课目录或浮动按钮。
+
+涉及文件：
+
+- `src/pages/CourseDetailPage.tsx`
+- `src/components/course/TeacherAiCatalogToc.tsx`（新建，桌面折叠栏与移动 Sheet 共用同一份渲染）
+- `src/lib/categoryIcons.ts`
+
+### 11.2 当前验证结果
+
+已通过：
+
+- `npm run lint`（`tsgo -p tsconfig.check.json` 类型检查通过；`biome lint --only=correctness/noUndeclaredDependencies` 通过）
+- `./node_modules/.bin/biome lint`（全规则，4 个改动文件均干净，无 unused import）
+- Playwright 浏览器烟测（登录态 Pro 用户）：
+  - `/teacher-ai-courses` 桌面双栏（7 系列，锚点 encode 正确）+ 移动 Accordion（默认展开第一系列）
+  - Pro 详情页左侧目录 7 系列、当前课高亮、收起 260→48px 后展开按钮出现、跨系列跳转 + 高亮联动、移动 Sheet 打开/跳转/自动关闭、右侧旧栏已移除
+  - Plus 详情页右侧 sidebar 正常（标题/单课数）、无教师AI课目录污染（回归通过）
+- 修复了移动 Sheet 的 Radix `DialogTitle/Description` 无障碍报错（补 `SheetTitle` + `SheetDescription`）
+
+验证边界：
+
+- `npm run lint` 最后一步 `ast-grep scan` 仍报 command not found（本机未装 ast-grep，与代码无关，沿用第 10.2 的处理）。
+- console 现仅剩既有的 Header `Button` ref 警告（首页本就存在，非本次引入，不在本次范围）。
+
+### 11.3 当前已知产品 / 技术判断
+
+1. 教师AI课（Pro）的「系列」即 `course.category`，没有像 Plus 那样的「篇章 → 模块」三层结构；目录直接是「系列 → 单课」两层。
+2. Pro 详情页没有篇章中间层（不像 Plus 有 `/courses/plus/:trackId`），因此「跨系列直达」只能放在单课详情页左侧目录里实现，不能照搬 Plus 的「返回篇章」模式。
+3. 教师AI课列表页双栏布局是 Plus 篇章页布局的视觉复用，但数据模型不同（module → category），没有抽象成共享组件，避免过度耦合。
+4. Pro 详情页左侧目录与 Plus/Free 详情页右侧 sidebar 是两套互斥的渲染分支（`isProCourse` 判断），不要混用；修改任一侧时注意不要影响另一侧。
+5. 系列图标映射已从页面抽到 `src/lib/categoryIcons.ts`，列表页与目录组件共用；新增系列图标统一在此维护。
+
+### 11.4 下个 session 建议继续推进的事项
+
+优先级 1：教师AI课目录体验补强
+
+- 目录项显示学习进度（已完成态 `CheckCircle2` / 进度条），与 Plus 单课页右侧栏视觉对齐（需把 `learningRecords` 传入 `TeacherAiCatalogToc`）。
+- Pro 详情页左侧目录顶部可加「返回教师AI课列表」入口。
+
+优先级 2：单课卡片内容形态
+
+- 列表页与目录的单课卡片可显示内容形态（视频/图文/音频/精华），复用 `CourseContentStack` 的判定逻辑。
+
+优先级 3：既有 Button ref 警告
+
+- 首页/列表页/详情页控制台长期存在 `Button` 组件 ref 警告（Radix `Slot` 需 `React.forwardRef` 包装），非本次引入，可择机统一修复 `src/components/ui/button.tsx`。
+
+### 11.5 下个开发 session 建议任务提示词
+
+可以直接使用：
+
+> 请阅读 `docs/教学通识课Plus-课程结构重构接手文档.md` 第 11 节（2026-06-21 同步）。
+> 教师AI课（Pro）列表页双栏重构与 Pro 详情页左侧全量目录已完成并验证，不要重复做。
+> 下一步优先做 Pro 详情页左侧目录的学习进度显示（已完成态），并在单课卡片上显示内容形态（视频/图文/音频/精华）。
+> 保持 Plus / Free 详情页右侧 sidebar 不受影响，Pro 与 Plus 的目录分支不要混用。
+> 修改后继续用 `npm run lint`（tsgo + biome）和浏览器烟测验证；本地启动用 `./node_modules/.bin/vite --host 127.0.0.1`。
+
+---
+
+## 11.6 本 session 续：目录学习进度、内容形态、教学通识课左侧目录（2026-06-21）
+
+> 本节记录紧接 11.1–11.5 之后完成的三件事：Pro 详情页左侧目录的学习进度、单课卡片/目录的内容形态标识、教学通识课（Plus）详情页左侧全量目录。仅改前端展示层，未动数据库；Pro 与 Plus 的目录分支仍互斥，未抽象成共享组件。
+
+### 11.6.1 Pro 详情页左侧目录学习进度（已完成态）
+
+- `TeacherAiCatalogToc` 新增可选 prop `learningRecords?: LearningRecord[]`，由 `CourseDetailPage` 传入（桌面折叠栏 + 移动 Sheet 两处调用点）。
+- 目录项序号位按状态切换：当前课 → `PlayCircle`（amber）；已完成（`status === 'completed'`）→ `CheckCircle2`（green-500）；进行中（`0 < progress < 100`）→ 序号用 amber 强调 + 标题下方 h-1 细进度条；未开始 → 灰色序号。
+- 进度口径与 Plus/Free 右侧 sidebar 一致（同一套 `learningRecords` 派生）。
+
+涉及文件：
+
+- `src/components/course/TeacherAiCatalogToc.tsx`
+- `src/pages/CourseDetailPage.tsx`
+
+### 11.6.2 单课卡片 / 目录内容形态（视频/图文/音频/精华）
+
+- 从 `CourseContentStack` 抽出纯函数 `getCourseContentFormats(course)` 与元数据 `CONTENT_FORMATS`，判定口径：`video_url`→视频、`body`→图文、`audio_url`→音频、`essence`→精华、`images`→图集；展示顺序：视频 > 图文 > 音频 > 精华 > 图集。
+- 新增轻量组件 `src/components/course/ContentFormatBadges.tsx`：默认「图标 + 文字」小标签（列表卡片用），`compact` 模式仅图标（目录项用）。
+- 落地点：
+  - 教师AI课列表卡片（`TeacherAiCoursesPage` CourseCard）显示形态标签；无任何载体的课（如仅腾讯会议入口的 Pro 课）正确不显示。
+  - Pro 目录（`TeacherAiCatalogToc`）与 Plus 目录（`PlusCatalogToc`）目录项用 compact 图标。
+
+涉及文件：
+
+- `src/components/course/CourseContentStack.tsx`（新增导出，组件本体未改）
+- `src/components/course/ContentFormatBadges.tsx`（新建）
+- `src/pages/TeacherAiCoursesPage.tsx`
+- `src/components/course/TeacherAiCatalogToc.tsx`
+- `src/components/course/PlusCatalogToc.tsx`
+
+### 11.6.3 教学通识课（Plus）详情页左侧全量目录
+
+- 新增 `src/components/course/PlusCatalogToc.tsx`：渲染「篇章 → 模块 → 单课」三层全量目录，复用教师AI课目录的交互与视觉模式（当前课高亮 + `scrollIntoView({block:'nearest'})` + 学习进度 + 内容形态图标），配色沿用 Plus 的 ac 主色（区别于教师AI课的 amber）；单课为 0 的模块不渲染，避免噪音。
+- `CourseDetailPage`：
+  - 新增 `isPlusCourse` / `hasPlusCatalog` 分支；Plus 全量课程保存到 `plusAllCourses` state（与既有 `plusTracks` 配合，复用 `getCoursesForModule` 派生各模块单课）。
+  - 桌面端新增左侧可折叠目录（260/48px，标题「教学通识课目录」，ac 配色），与教师AI课目录同一套折叠栏外壳（`tocOpen` 状态共用）。
+  - 移动端新增浮动按钮（bg-ac）+ 左侧 Sheet 抽屉（`mobileTocOpen` 状态共用）。
+  - **移除** Plus 详情页右侧旧 sidebar（原仅显示当前模块单课），与教师AI课「左侧全量目录」先例一致。
+  - **Free 详情页完全不变**：右侧 sidebar 与移动 inline list 的渲染条件收窄为 `!isProCourse && !isPlusCourse`，Free（isPro/isPlus 均 false）仍走原右侧栏，不受影响。
+- 设计判断（沿用 11.3）：Pro 与 Plus 目录是两套互斥渲染分支，数据模型不同（两层 series→单课 vs 三层 track→module→单课），未抽象成共享组件，避免过度耦合；仅内容形态标识与进度口径跨目录复用。
+
+涉及文件：
+
+- `src/components/course/PlusCatalogToc.tsx`（新建）
+- `src/pages/CourseDetailPage.tsx`
+
+### 11.6.4 验证结果
+
+已通过：
+
+- `npm run lint`：`tsgo -p tsconfig.check.json` 类型检查通过；`biome lint --only=correctness/noUndeclaredDependencies` 111 文件干净；另对 6 个改动文件单独跑全规则 `biome lint` 无问题。`ast-grep scan` 仍 command not found（本机未装，沿用 10.2/11.2 处理）。
+- Playwright 浏览器烟测（登录态用户）：
+  - Plus 详情页左侧全量目录：72 门单课、多篇章模块（建构主义 / 学习科学篇 / 认知负荷理论 / 罗森海因篇 / 选修课 / 教学原理篇 / 教学目标篇 / 学情分析篇 …）、当前课高亮、1 门已完成（CheckCircle2）+ 1 门进行中（进度条）、内容形态「视频 / 图文」、折叠按钮在；右侧旧 sidebar 已移除。
+  - Pro 详情页左侧目录：7 系列、40 门、3 门已完成（CheckCircle2）、形态「视频 / 图文」、折叠按钮在。
+  - Pro 列表卡片：40 张，无载体的 Pro 课正确不显示形态标签。
+  - Plus 移动端：浮动按钮（bg-ac）+ Sheet 抽屉打开含「教学通识课目录」。
+  - Free 详情页回归：右侧 sidebar 在（标题「免费课」+「共 X 节课程」）、无左侧目录污染、无浮动按钮。
+- console 仅剩既有 Header `Button` ref 警告（首页本就存在，非本次引入）。
+
+验证边界：
+
+- 移动端目录入口已从「左下浮动按钮」改为「视频下方选集条 / 目录条内联入口」（详见 11.6.5），原浮动按钮与全站底部导航栏（MobileTabBar）的层叠问题已彻底消除。
+
+### 11.6.5 移动端目录入口优化（避开全站底部导航栏）
+
+**问题**：`MobileTabBar`（`src/components/navigation/MobileTabBar.tsx`）是全站移动端底部 5-tab 导航（首页 / 通识课 / AI课 / 学习 / 资源），`fixed bottom-0 z-50`、高 64px + 安全区，在 `App.tsx` 全局渲染——课程详情页也显示。原 Pro/Plus 目录浮动按钮 `fixed bottom-5 left-5 z-40` 正好落在底栏区域内、层级更低，被遮挡且无法点击。
+
+**方案**（参考 B站 / 得到 / YouTube 等视频课移动端范式）：移除左下浮动按钮，把目录入口并入视频下方既有的「上一节 / 下一节」选集条；单课（无上 / 下一节）时新增独立移动端目录条。入口点击仍弹出原全量目录抽屉（Sheet），抽屉内的目录、进度、形态不变。
+
+**实现**（`src/pages/CourseDetailPage.tsx`）：
+
+- 选集条（Prev/Next）中间：Pro/Plus 时移动端把位置计数改为「目录 N/M」按钮（`lg:hidden`，触发 `setMobileTocOpen(true)`），桌面端保持纯文字计数。
+- 单课（`siblingCourses.length <= 1`）且 Pro/Plus：视频下方新增独立移动端目录条「查看全部目录」。
+- 移除 Pro、Plus 两处左下浮动按钮；Sheet（抽屉）本体保留，由新入口触发。
+
+**验证**（Playwright 移动端 390×844）：
+
+- Plus 单课：独立「查看全部目录」条可见，与底部 nav 零重叠（按钮 y≈382 vs nav y≈780），点击打开含「教学通识课目录」的 Sheet。
+- Plus 多课：选集条中间「目录 N/M」入口可见，无独立单课条（不重复），点击打开 Sheet。
+- 两处均无左下浮动按钮；底部 5-tab 导航正常显示。
+
+### 11.6.6 下个 session 建议继续推进的事项
+
+- Pro / Plus 目录顶部可加「返回列表」入口（教师AI课列表 / 教学通识课地图）。
+- Plus 全量目录 72 门较长，可评估默认折叠非当前篇章 / 模块（当前全展开 + scrollIntoView 到当前课）。
+- 既有 Button ref 警告（11.4 优先级 3）仍可择机统一修复 `src/components/ui/button.tsx`。
+
+---
+
+## 12. 历史建议给下个开发 session 的任务提示词（已过期，仅留档）
 
 可以直接使用：
 

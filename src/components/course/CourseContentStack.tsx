@@ -1,9 +1,43 @@
 import { useRef, useState } from 'react';
-import { Headphones, CheckCircle2, Images as ImagesIcon } from 'lucide-react';
+import { Headphones, CheckCircle2, Images as ImagesIcon, Video, FileText, Sparkles, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import MarkdownRenderer from '@/components/common/MarkdownRenderer';
 import type { Course } from '@/types/types';
+
+// 课程内容形态：用于卡片/目录上的「视频/图文/音频/精华/图集」标识。
+export type CourseContentFormat = 'video' | 'audio' | 'article' | 'essence' | 'images';
+
+export interface ContentFormatMeta {
+  key: CourseContentFormat;
+  label: string;
+  icon: LucideIcon;
+}
+
+export const CONTENT_FORMATS: Record<CourseContentFormat, ContentFormatMeta> = {
+  video: { key: 'video', label: '视频', icon: Video },
+  audio: { key: 'audio', label: '音频', icon: Headphones },
+  article: { key: 'article', label: '图文', icon: FileText },
+  essence: { key: 'essence', label: '精华', icon: Sparkles },
+  images: { key: 'images', label: '图集', icon: ImagesIcon },
+};
+
+// 顺序即展示顺序：视频 > 图文 > 音频 > 精华 > 图集
+const FORMAT_ORDER: CourseContentFormat[] = ['video', 'article', 'audio', 'essence', 'images'];
+
+/**
+ * 解析一门课包含的内容形态（视频/图文/音频/精华/图集）。
+ * 与本组件内部的载体判定保持同一套口径，供列表卡片、目录项复用。
+ */
+export function getCourseContentFormats(course: Course): CourseContentFormat[] {
+  const present: CourseContentFormat[] = [];
+  if (course.video_url) present.push('video');
+  if (course.body?.trim()) present.push('article');
+  if (course.audio_url) present.push('audio');
+  if (course.essence?.trim()) present.push('essence');
+  if ((course.images ?? []).filter(Boolean).length > 0) present.push('images');
+  return FORMAT_ORDER.filter((f) => present.includes(f));
+}
 
 /**
  * 课程多载体内容栈：按 音频 → 正文 → 图集 顺序叠加渲染存在的载体。
