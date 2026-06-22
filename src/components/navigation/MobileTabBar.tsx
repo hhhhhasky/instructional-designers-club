@@ -1,5 +1,5 @@
-import { Link, useLocation } from 'react-router-dom';
-import { Home, BookOpen, FolderOpen, GraduationCap, Sparkles } from 'lucide-react';
+import { BookOpen, FolderOpen, GraduationCap, Home, Sparkles } from 'lucide-react';
+import { Link, useLocation, useMatch } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 interface TabItem {
@@ -10,6 +10,7 @@ interface TabItem {
 
 export default function MobileTabBar() {
   const location = useLocation();
+  const isCourseDetail = useMatch({ path: '/courses/:id', end: true });
 
   const tabs: TabItem[] = [
     { name: '首页', path: '/', icon: Home },
@@ -26,6 +27,10 @@ export default function MobileTabBar() {
     }
     return location.pathname.startsWith(path);
   };
+
+  // 课程详情页使用自己的目录 / 上一节 / 下一节控制栏。
+  // 精确匹配避免误伤 /courses 列表页和 /courses/plus/:trackId 篇章页。
+  if (isCourseDetail) return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 pb-safe md:hidden">

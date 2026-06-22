@@ -591,9 +591,9 @@ export default function CourseDetailPage() {
                   </div>
                 </div>
 
-                {/* Prev/Next Navigation */}
+                {/* Tablet/Desktop Prev/Next Navigation */}
                 {siblingCourses.length > 1 && (
-                  <div className="flex items-center justify-between px-5 py-3 border-b border-bdl bg-warm/30">
+                  <div className="hidden md:flex items-center justify-between px-5 py-3 border-b border-bdl bg-warm/30">
                     <button
                       onClick={() => prevCourse && handleNavigateToCourse(prevCourse.id)}
                       disabled={!prevCourse}
@@ -611,11 +611,11 @@ export default function CourseDetailPage() {
 
                     {hasTeacherAiCatalog || hasPlusCatalog ? (
                       <>
-                        {/* 移动端：目录入口（并入选集条，避开底部全局导航栏），点击弹出全量目录抽屉 */}
+                        {/* 平板端：目录入口；移动端改用固定课程控制栏 */}
                         <button
                           type="button"
                           onClick={() => setMobileTocOpen(true)}
-                          className="lg:hidden inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold text-tx hover:bg-bgs active:bg-bgs transition-colors"
+                          className="hidden md:inline-flex lg:hidden items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold text-tx hover:bg-bgs active:bg-bgs transition-colors"
                           aria-label="打开课程目录"
                         >
                           <List className="w-4 h-4" />
@@ -652,9 +652,9 @@ export default function CourseDetailPage() {
                   </div>
                 )}
 
-                {/* Pro/Plus 单课（无上/下一节）移动端目录入口；多课时目录入口在上方选集条 */}
+                {/* Pro/Plus 单课的平板端目录入口；移动端改用固定课程控制栏 */}
                 {siblingCourses.length <= 1 && (hasTeacherAiCatalog || hasPlusCatalog) && (
-                  <div className="lg:hidden flex items-center px-5 py-2.5 border-b border-bdl bg-warm/30">
+                  <div className="hidden md:flex lg:hidden items-center px-5 py-2.5 border-b border-bdl bg-warm/30">
                     <button
                       type="button"
                       onClick={() => setMobileTocOpen(true)}
@@ -667,9 +667,9 @@ export default function CourseDetailPage() {
                   </div>
                 )}
 
-                {/* Mobile: Inline course list below video（仅 Free；Pro/Plus 用抽屉目录） */}
+                {/* Tablet: Inline course list below video（仅 Free；移动端改用抽屉） */}
                 {!isProCourse && !isPlusCourse && siblingCourses.length > 1 && (
-                  <div className="lg:hidden border-b border-bdl">
+                  <div className="hidden md:block lg:hidden border-b border-bdl">
                     <div className="px-4 py-2.5 bg-warm/30 flex items-center justify-between">
                       <h3 className="font-bold text-tx text-sm flex items-center gap-2">
                         <List className="w-4 h-4 text-ac" />
@@ -906,7 +906,7 @@ export default function CourseDetailPage() {
             )}
           </div>
 
-          {/* 教师AI课：移动端目录抽屉（入口在视频下方选集条，避免与底部全局导航栏重叠） */}
+          {/* 教师AI课：移动端 / 平板端目录抽屉 */}
           {hasTeacherAiCatalog && (
             <Sheet open={mobileTocOpen} onOpenChange={setMobileTocOpen}>
               <SheetContent side="left" className="w-72 p-0">
@@ -931,7 +931,7 @@ export default function CourseDetailPage() {
             </Sheet>
           )}
 
-          {/* 教学通识课：移动端目录抽屉（入口在视频下方选集条，避免与底部全局导航栏重叠） */}
+          {/* 教学通识课：移动端 / 平板端目录抽屉 */}
           {hasPlusCatalog && (
             <Sheet open={mobileTocOpen} onOpenChange={setMobileTocOpen}>
               <SheetContent side="left" className="w-72 p-0">
@@ -955,8 +955,114 @@ export default function CourseDetailPage() {
               </SheetContent>
             </Sheet>
           )}
+
+          {/* Free 或全量目录暂不可用时：复用当前系列 / 模块课程数据兜底 */}
+          {!hasTeacherAiCatalog && !hasPlusCatalog && (
+            <Sheet open={mobileTocOpen} onOpenChange={setMobileTocOpen}>
+              <SheetContent side="left" className="w-72 p-0">
+                <div className="flex flex-col h-full">
+                  <div className="px-4 py-3 border-b border-bdl bg-warm/30">
+                    <SheetTitle className="text-sm font-bold text-tx">{courseCollectionLabel}</SheetTitle>
+                    <SheetDescription className="sr-only">当前系列全部课程导航</SheetDescription>
+                    <p className="text-xs text-txs mt-1">共 {siblingCourses.length} 节课程</p>
+                  </div>
+                  <div className="flex-1 overflow-y-auto overscroll-contain p-2">
+                    {siblingCourses.map((sibling, index) => {
+                      const isCurrent = sibling.id === id;
+                      const progress = getProgress(sibling.id);
+                      const status = getStatus(sibling.id);
+
+                      return (
+                        <button
+                          key={sibling.id}
+                          type="button"
+                          onClick={() => {
+                            handleNavigateToCourse(sibling.id);
+                            setMobileTocOpen(false);
+                          }}
+                          className={cn(
+                            'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-md text-left transition-colors',
+                            isCurrent ? 'bg-acl text-ac font-semibold border-l-2 border-ac' : 'text-tx hover:bg-warm/60',
+                          )}
+                        >
+                          <span className="flex-shrink-0 w-5 flex items-center justify-center">
+                            {isCurrent ? (
+                              <PlayCircle className="w-4 h-4 text-ac" />
+                            ) : status === 'completed' ? (
+                              <CheckCircle2 className="w-4 h-4 text-green-500" />
+                            ) : (
+                              <span className={cn('text-xs', progress > 0 ? 'text-ac font-semibold' : 'text-txt')}>
+                                {index + 1}
+                              </span>
+                            )}
+                          </span>
+                          <span className="flex-1 min-w-0">
+                            <span className="block text-sm leading-snug">{sibling.title}</span>
+                            {progress > 0 && progress < 100 && (
+                              <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-bgs">
+                                <span className="block h-full rounded-full bg-ac" style={{ width: `${progress}%` }} />
+                              </span>
+                            )}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          )}
         </div>
       </main>
+
+      {/* Mobile: 详情页专属固定课程控制栏，替代全局五标签导航 */}
+      <nav
+        aria-label="课程导航"
+        data-testid="mobile-course-navigation"
+        className="fixed inset-x-0 bottom-0 z-40 pb-safe md:hidden"
+      >
+        <div className="absolute inset-0 bg-bc/95 backdrop-blur-xl border-t border-bd shadow-[0_-4px_20px_rgba(0,0,0,0.10)]" />
+        <div className="relative h-16 px-3 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => setMobileTocOpen(true)}
+            className="h-11 min-w-16 px-3 inline-flex flex-col items-center justify-center gap-0.5 rounded-xl text-ac hover:bg-acl active:scale-95 transition-all"
+            aria-label="打开课程目录"
+          >
+            <List className="w-5 h-5" />
+            <span className="text-[11px] font-semibold">目录</span>
+          </button>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => prevCourse && handleNavigateToCourse(prevCourse.id)}
+              disabled={!prevCourse}
+              className={cn(
+                'h-11 px-3.5 inline-flex items-center gap-1 rounded-xl text-sm font-semibold transition-all',
+                prevCourse ? 'text-tx bg-bgs hover:bg-warm active:scale-95' : 'text-txs/40 bg-bgs/60 cursor-not-allowed',
+              )}
+              aria-label={prevCourse ? `上一节：${prevCourse.title}` : '已是第一节'}
+            >
+              <ChevronLeft className="w-4 h-4" />
+              上一节
+            </button>
+            <button
+              type="button"
+              onClick={() => nextCourse && handleNavigateToCourse(nextCourse.id)}
+              disabled={!nextCourse}
+              className={cn(
+                'h-11 px-3.5 inline-flex items-center gap-1 rounded-xl text-sm font-semibold transition-all',
+                nextCourse ? 'text-white bg-ac hover:bg-ac/90 active:scale-95' : 'text-txs/40 bg-bgs/60 cursor-not-allowed',
+              )}
+              aria-label={nextCourse ? `下一节：${nextCourse.title}` : '已是最后一节'}
+            >
+              下一节
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </nav>
 
       <Footer />
       <CourseConfirmDialog open={showConfirmDialog} onConfirm={handleConfirmStart} />

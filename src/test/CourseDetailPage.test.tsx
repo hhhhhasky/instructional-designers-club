@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BookOpen } from 'lucide-react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -25,7 +25,9 @@ vi.mock('@/db/api', () => ({
   incrementCourseViewCount: vi.fn(),
   getCoursesByMembershipAndCategory: vi.fn(),
   getCoursesByMembershipType: vi.fn(),
+  getCategoriesByMembershipType: vi.fn(),
   getPlusCourseStructure: vi.fn(),
+  getLearningData: vi.fn(),
 }));
 
 vi.mock('@/lib/access-control', () => ({
@@ -43,7 +45,7 @@ vi.mock('@/components/common/PageMeta', () => ({ default: () => null }));
 
 // --- Test Data ---
 
-import { getCourseById, getCoursesByMembershipAndCategory, getCoursesByMembershipType, getPlusCourseStructure } from '@/db/api';
+import { getCourseById, getCoursesByMembershipAndCategory, getCoursesByMembershipType, getCategoriesByMembershipType, getPlusCourseStructure } from '@/db/api';
 import { getUserLearningRecords } from '@/lib/access-control';
 import type { PlusTrackConfig } from '@/lib/plusCourseStructure';
 
@@ -120,6 +122,8 @@ function renderCourseDetail(courseId = 'c1') {
 async function renderAndWait(courseId = 'c1') {
   vi.mocked(getCourseById).mockResolvedValue(makeCourse({ id: courseId }));
   vi.mocked(getCoursesByMembershipAndCategory).mockResolvedValue(siblingCourses);
+  vi.mocked(getCoursesByMembershipType).mockResolvedValue(siblingCourses);
+  vi.mocked(getCategoriesByMembershipType).mockResolvedValue(['教学设计']);
   vi.mocked(getUserLearningRecords).mockResolvedValue([]);
 
   const result = renderCourseDetail(courseId);
@@ -133,6 +137,7 @@ describe('CourseDetailPage — 课程导航功能', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    window.HTMLElement.prototype.scrollIntoView = vi.fn();
   });
 
   // ============================
@@ -167,6 +172,19 @@ describe('CourseDetailPage — 课程导航功能', () => {
     expect(screen.getAllByText('上一节').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('下一节').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('2 / 3').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByTestId('mobile-course-navigation')).toBeInTheDocument();
+  });
+
+  it('移动端固定栏可打开教师AI课全量目录', async () => {
+    const user = userEvent.setup();
+    await renderAndWait('c2');
+
+    await user.click(within(screen.getByTestId('mobile-course-navigation')).getByRole('button', { name: '打开课程目录' }));
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText('教师AI课目录')).toBeInTheDocument();
+    expect(screen.getAllByText('第二节：核心概念').length).toBeGreaterThanOrEqual(1);
   });
 
   it('第一节时上一节按钮 disabled', async () => {
@@ -268,16 +286,35 @@ describe('CourseDetailPage — 课程导航功能', () => {
   // ============================
   // 测试点 9：只有一个课程时不显示导航
   // ============================
-  it('只有一个课程时不显示上一节/下一节和目录列表', async () => {
+  it('只有一个课程时固定栏保留目录入口且上下节均禁用', async () => {
     vi.mocked(getCourseById).mockResolvedValue(makeCourse());
-    vi.mocked(getCoursesByMembershipAndCategory).mockResolvedValue([makeCourse()]);
+    vi.mocked(getCoursesByMembershipType).mockResolvedValue([makeCourse()]);
+    vi.mocked(getCategoriesByMembershipType).mockResolvedValue(['教学设计']);
     vi.mocked(getUserLearningRecords).mockResolvedValue([]);
 
     renderCourseDetail('c1');
     await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
 
-    expect(screen.queryByText('上一节')).not.toBeInTheDocument();
-    expect(screen.queryByText('下一节')).not.toBeInTheDocument();
+    expect(within(screen.getByTestId('mobile-course-navigation')).getByRole('button', { name: '打开课程目录' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '已是第一节' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '已是最后一节' })).toBeDisabled();
+  });
+
+  it('免费课复用同系列课程打开左侧目录抽屉', async () => {
+    const user = userEvent.setup();
+    const freeCourses = siblingCourses.map((item) => ({ ...item, membership_type: 'free' as const }));
+    vi.mocked(getCourseById).mockResolvedValue(freeCourses[0]);
+    vi.mocked(getCoursesByMembershipAndCategory).mockResolvedValue(freeCourses);
+    vi.mocked(getUserLearningRecords).mockResolvedValue([]);
+
+    renderCourseDetail('c1');
+    await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
+    await user.click(within(screen.getByTestId('mobile-course-navigation')).getByRole('button', { name: '打开课程目录' }));
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText('共 3 节课程')).toBeInTheDocument();
+    expect(screen.getAllByText('第三节：实践').length).toBeGreaterThanOrEqual(1);
   });
 
   it('Plus 课程按分类系列加载目录并返回篇章锚点', async () => {

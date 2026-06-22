@@ -1314,6 +1314,35 @@ CourseManagementSection -> adminUpdateCourse() -> Supabase public.courses
 
 ---
 
+## 11.7 课程详情页移动端固定课程控制栏（2026-06-22）
+
+本轮重新设计全部课程详情页在移动端（`< md`）的底部导航，目标是把课程学习动作固定在拇指可触达区域，并从页面主体移走目录。
+
+已确定并实现：
+
+- 精确路由 `/courses/:id` 隐藏全局五标签 `MobileTabBar`；`/courses` 与 `/courses/plus/:trackId` 保持原导航。
+- 详情页底部改为固定课程控制栏：左侧「目录」，右侧「上一节 / 下一节」，包含 `safe-area` 适配。
+- 上下节仍按当前系列（Free / Pro）或当前模块（Plus）的 `siblingCourses` 切换，不跨系列、模块或篇章；首尾按钮禁用，单课两个按钮均禁用。
+- Pro / Plus 复用既有左侧全量目录 Sheet；Free 新增基于 `siblingCourses` 的左侧目录 Sheet，并保留学习进度与当前课高亮。
+- 移动端移除视频下方原目录入口、上下节条和 Free 内嵌目录，避免重复；`md` 到 `lg` 的页面内导航以及 `lg` 以上桌面目录保持不变。
+- 本轮仅修改前端路由显示与详情页交互，未修改数据库、课程结构、权限或排序逻辑。
+
+涉及文件：
+
+- `src/components/navigation/MobileTabBar.tsx`
+- `src/pages/CourseDetailPage.tsx`
+- `src/test/MobileTabBar.test.tsx`
+- `src/test/CourseDetailPage.test.tsx`
+
+验证结果：
+
+- `tsgo -p tsconfig.check.json` 通过。
+- `CourseDetailPage` + `MobileTabBar` 定向 Vitest 共 24 项通过。
+- `npm run build` 通过（仅保留既有 Browserslist 数据与大 chunk 警告）。
+- 浏览器烟测：390×844 下五标签导航隐藏，课程控制栏固定于底部 64px，Free 左侧目录 Sheet 正常打开并显示全系列课程；1280×800 下移动控制栏隐藏，原页面内上下节和 Free 右侧目录正常显示；控制台无 error。
+
+---
+
 ## 12. 历史建议给下个开发 session 的任务提示词（已过期，仅留档）
 
 可以直接使用：
