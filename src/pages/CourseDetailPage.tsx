@@ -13,6 +13,7 @@ import CourseContentStack from '@/components/course/CourseContentStack';
 import CourseCompletionDialog from '@/components/course/CourseCompletionDialog';
 import TeacherAiCatalogToc from '@/components/course/TeacherAiCatalogToc';
 import PlusCatalogToc from '@/components/course/PlusCatalogToc';
+import CourseQuestionsPanel from '@/components/course/CourseQuestionsPanel';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { getCourseById, getCourseByIdAdmin, incrementCourseViewCount, getCoursesByMembershipAndCategory, getCoursesByMembershipType, getCategoriesByMembershipType, getPlusCourseStructure, getLearningData } from '@/db/api';
 import { canAccessCourse, recordCourseVisit, updateLearningProgress, getUserLearningRecords } from '@/lib/access-control';
@@ -790,6 +791,8 @@ export default function CourseDetailPage() {
                       </article>
                     </section>
                   )}
+
+                  <CourseQuestionsPanel course={course} />
 
                   {/* CTA */}
                   <section className="pt-7">

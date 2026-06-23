@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { BarChart3 } from "lucide-react";
 import AdminPageShell from "@/components/admin/AdminPageShell";
 import CourseManagementSection from "@/components/admin/CourseManagementSection";
+import CourseQuestionsManagementSection from "@/components/admin/CourseQuestionsManagementSection";
 import StudentListSection from "@/components/admin/StudentListSection";
 import ContentManagementSection from "@/components/admin/content/ContentManagementSection";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ export default function AdminManagePage() {
         <TabsList className="mb-6 flex-wrap">
           <TabsTrigger value="courses">课程管理</TabsTrigger>
           <TabsTrigger value="students">学员管理</TabsTrigger>
+          <TabsTrigger value="questions">问答管理</TabsTrigger>
           <TabsTrigger value="content">首页信息</TabsTrigger>
         </TabsList>
 
@@ -41,6 +43,10 @@ export default function AdminManagePage() {
 
         <TabsContent value="students">
           <StudentListSection />
+        </TabsContent>
+
+        <TabsContent value="questions">
+          <CourseQuestionsManagementSection />
         </TabsContent>
 
         <TabsContent value="content">

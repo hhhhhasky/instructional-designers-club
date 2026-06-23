@@ -37,6 +37,13 @@ vi.mock('@/lib/access-control', () => ({
   getUserLearningRecords: vi.fn(() => Promise.resolve([])),
 }));
 
+vi.mock('@/db/course-questions', () => ({
+  getCourseQuestions: vi.fn(() => Promise.resolve([])),
+  getCourseQuestionTags: vi.fn(() => Promise.resolve([])),
+  createCourseQuestion: vi.fn(),
+  createCourseQuestionReply: vi.fn(),
+}));
+
 vi.mock('@/components/layout/Header', () => ({ default: () => <div data-testid="header" /> }));
 vi.mock('@/components/common/Footer', () => ({ default: () => <div data-testid="footer" /> }));
 vi.mock('@/components/common/LoadingOverlay', () => ({ default: ({ message }: { message: string }) => <div data-testid="loading">{message}</div> }));
@@ -46,6 +53,7 @@ vi.mock('@/components/common/PageMeta', () => ({ default: () => null }));
 // --- Test Data ---
 
 import { getCourseById, getCoursesByMembershipAndCategory, getCoursesByMembershipType, getCategoriesByMembershipType, getPlusCourseStructure } from '@/db/api';
+import { getCourseQuestions, getCourseQuestionTags } from '@/db/course-questions';
 import { getUserLearningRecords } from '@/lib/access-control';
 import type { PlusTrackConfig } from '@/lib/plusCourseStructure';
 
@@ -138,6 +146,8 @@ describe('CourseDetailPage — 课程导航功能', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.HTMLElement.prototype.scrollIntoView = vi.fn();
+    vi.mocked(getCourseQuestions).mockResolvedValue([]);
+    vi.mocked(getCourseQuestionTags).mockResolvedValue([]);
   });
 
   // ============================

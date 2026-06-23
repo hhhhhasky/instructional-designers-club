@@ -51,6 +51,61 @@ export interface Course {
   updated_at: string | null;
 }
 
+// 课程问答
+export type CourseQuestionStatus = 'visible' | 'hidden' | 'deleted';
+export type CourseQuestionTagType = 'course_system';
+
+export interface CourseQuestionTag {
+  id: string;
+  slug: string;
+  name: string;
+  tag_type: CourseQuestionTagType;
+  sort_order: number;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface CourseQuestionReply {
+  id: string;
+  question_id: string;
+  author_id: string;
+  body: string;
+  is_anonymous: boolean;
+  status: CourseQuestionStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CourseQuestion {
+  id: string;
+  course_id: string;
+  author_id: string;
+  body: string;
+  is_anonymous: boolean;
+  status: CourseQuestionStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CourseQuestionReplyWithAuthor extends CourseQuestionReply {
+  author_display_name: string;
+}
+
+export interface CourseQuestionWithDetails extends CourseQuestion {
+  author_display_name: string;
+  tags: CourseQuestionTag[];
+  replies: CourseQuestionReplyWithAuthor[];
+}
+
+export interface AdminCourseQuestionItem extends CourseQuestion {
+  course_title: string;
+  course_category: string | null;
+  course_membership_type: MembershipType;
+  tags: CourseQuestionTag[];
+  replies: CourseQuestionReply[];
+}
+
 export interface PlusCourseTrackRow {
   id: string;
   title: string;
