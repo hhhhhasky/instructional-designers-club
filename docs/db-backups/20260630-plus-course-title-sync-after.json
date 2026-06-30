@@ -1,0 +1,460 @@
+{
+  "generated_at": "2026-06-30T08:21:20.336Z",
+  "source": "Supabase public.courses after poster title sync via anon frontend key",
+  "target_count": 45,
+  "returned_count": 45,
+  "mismatch_count": 0,
+  "mismatches": [],
+  "courses": [
+    {
+      "id": "d64fb3b1-b1fa-47bb-b50c-8e099faead82",
+      "title": "任务教学价值：AI时代为什么课堂更需要真实任务？",
+      "category": "任务情境篇",
+      "sort_order": 11,
+      "duration": 94,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:48.350501+00:00"
+    },
+    {
+      "id": "867435a8-bd3d-4c5e-91ae-b80531d86e89",
+      "title": "任务理解模型：如何区分任务、活动和练习？",
+      "category": "任务情境篇",
+      "sort_order": 12,
+      "duration": 120,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:48.731814+00:00"
+    },
+    {
+      "id": "9baa912f-eac3-4c0f-8c01-ba35a08727e2",
+      "title": "KMR设计法：如何把课后习题改造成高质量任务？",
+      "category": "任务情境篇",
+      "sort_order": 13,
+      "duration": 97,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:49.074402+00:00"
+    },
+    {
+      "id": "c2e43817-7a67-4787-8aa0-aeb08258c3c5",
+      "title": "任务脚本五要素：如何从0到1原创一个真实任务？",
+      "category": "任务情境篇",
+      "sort_order": 14,
+      "duration": 75,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:49.396705+00:00"
+    },
+    {
+      "id": "59da5d19-7516-4049-b3db-9946669b6386",
+      "title": "任务情境工具箱：如何快速设计有身份、有情境、有成果的任务？",
+      "category": "任务情境篇",
+      "sort_order": 15,
+      "duration": 40,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:49.725032+00:00"
+    },
+    {
+      "id": "25de3799-0872-42cc-8c01-4017ec06508a",
+      "title": "任务情境导入：如何设计有真实感、不虚假的课堂导入？",
+      "category": "任务情境篇",
+      "sort_order": 16,
+      "duration": 30,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:50.045744+00:00"
+    },
+    {
+      "id": "c3e099a7-413f-4df2-82e7-1afdce507c86",
+      "title": "单课任务驱动：如何让公开课从“活动堆砌”变成“任务推进”？",
+      "category": "任务情境篇",
+      "sort_order": 17,
+      "duration": 12,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:50.381563+00:00"
+    },
+    {
+      "id": "ad0e4b41-5cb6-4ab4-abd0-0c5ac83e09cf",
+      "title": "单元大任务设计：如何拆解任务链，并与目标和评价对齐？",
+      "category": "任务情境篇",
+      "sort_order": 18,
+      "duration": 20,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:50.717202+00:00"
+    },
+    {
+      "id": "00d04dfb-fbd0-48af-8d6a-b785fe87738a",
+      "title": "学情洞察：为什么学情分析不能只写学生特点？",
+      "category": "学情分析篇",
+      "sort_order": 1,
+      "duration": 10,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:51.037572+00:00"
+    },
+    {
+      "id": "5723f379-286a-4205-9fd1-72db094f7710",
+      "title": "洞察三维度：如何从认知、态度、情境全面分析学情？",
+      "category": "学情分析篇",
+      "sort_order": 2,
+      "duration": 17,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:51.359087+00:00"
+    },
+    {
+      "id": "2f84b0de-2dc7-4fb2-a83d-b0b2be15398f",
+      "title": "质量光谱：如何判断一份学情分析是否具体、有据、可用？",
+      "category": "学情分析篇",
+      "sort_order": 3,
+      "duration": 11,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:51.681975+00:00"
+    },
+    {
+      "id": "60a094f0-8321-4edf-9fed-f9cbb487c812",
+      "title": "学情洞察工具箱：如何用轻量方法快速了解学生？",
+      "category": "学情分析篇",
+      "sort_order": 4,
+      "duration": 14,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:52.02094+00:00"
+    },
+    {
+      "id": "b877aac7-618c-4fbd-80d2-74f3e1eceef0",
+      "title": "备课闭环模型：如何把备课从零散拼凑变成完整方案？",
+      "category": "教学原理篇",
+      "sort_order": 0,
+      "duration": 60,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:52.361283+00:00"
+    },
+    {
+      "id": "2d4fb7ca-41a3-4cd1-9072-ef23c4b978ba",
+      "title": "备课结构：如何让教材、学情、目标、过程、板书形成一条逻辑链？",
+      "category": "教学原理篇",
+      "sort_order": 1,
+      "duration": 24,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:52.691635+00:00"
+    },
+    {
+      "id": "27b64c51-6182-4f0f-aa60-2ef765b49c45",
+      "title": "教材分析四维度：如何把教材分析写出高度、广度和深度？",
+      "category": "教学原理篇",
+      "sort_order": 2,
+      "duration": 6,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:53.013416+00:00"
+    },
+    {
+      "id": "10e10c55-a1e7-4fb6-8cdc-6c74d7ef77ad",
+      "title": "学情分析三维度：如何精准判断学生真实学习起点？",
+      "category": "教学原理篇",
+      "sort_order": 3,
+      "duration": 7,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:53.335704+00:00"
+    },
+    {
+      "id": "60934de8-a707-4b9c-9a22-d0127fa10fbf",
+      "title": "教学目标模板：如何写出可评估、可检验、有层次的教学目标？",
+      "category": "教学原理篇",
+      "sort_order": 4,
+      "duration": 6,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:53.657904+00:00"
+    },
+    {
+      "id": "3e6ab10b-8074-4696-970f-89a2a0c8bfb9",
+      "title": "重难点判断：如何区分重点和难点，并找到依据？",
+      "category": "教学原理篇",
+      "sort_order": 5,
+      "duration": 4,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:53.976999+00:00"
+    },
+    {
+      "id": "c9b74919-38c8-4d0a-8ea1-b89648ae2b6b",
+      "title": "教法与学法选择：如何让教学策略真正服务重难点突破？",
+      "category": "教学原理篇",
+      "sort_order": 6,
+      "duration": 4,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:54.297678+00:00"
+    },
+    {
+      "id": "0e0e6786-84f1-4653-9cae-deffa5362c37",
+      "title": "教学过程表达法：如何避免流水账，讲清“意图-方法-操作”？",
+      "category": "教学原理篇",
+      "sort_order": 7,
+      "duration": 10,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:54.621179+00:00"
+    },
+    {
+      "id": "703ad5cd-dc64-4add-9dad-b7eba632942a",
+      "title": "板书与总结闭环：如何让板书成为整节课逻辑的收束？",
+      "category": "教学原理篇",
+      "sort_order": 8,
+      "duration": 3,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:54.946092+00:00"
+    },
+    {
+      "id": "110a1f3f-0839-4a44-a523-001e93a70f9d",
+      "title": "布卢姆目标分类：如何把抽象素养拆成可执行目标？",
+      "category": "教学目标篇",
+      "sort_order": 1,
+      "duration": 92,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:55.267986+00:00"
+    },
+    {
+      "id": "49abd2d3-57b7-416e-8b3c-c39940fe61a2",
+      "title": "知识分类：如何分清这节课到底要教什么？",
+      "category": "教学目标篇",
+      "sort_order": 2,
+      "duration": 142,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:55.595662+00:00"
+    },
+    {
+      "id": "1d2cea0c-0463-489f-997f-58873003a570",
+      "title": "认知分类：为什么学生听懂了，换个题还是不会？",
+      "category": "教学目标篇",
+      "sort_order": 3,
+      "duration": 118,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:55.918727+00:00"
+    },
+    {
+      "id": "c53119df-81c2-4f75-8e43-917ca5722e76",
+      "title": "SOLO理论：如何判断学生是真的理解，还是只会罗列？",
+      "category": "教学目标篇",
+      "sort_order": 4,
+      "duration": 68,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:56.245731+00:00"
+    },
+    {
+      "id": "30650106-e9ff-4323-8593-262d59efae92",
+      "title": "优质课目标拆解：如何把目标从“好听”改到“能指导教学”？",
+      "category": "教学目标篇",
+      "sort_order": 5,
+      "duration": 88,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:56.565682+00:00"
+    },
+    {
+      "id": "cfb76747-9f27-4805-a45d-b27ee176a364",
+      "title": "教学目标三步法：如何用“读教材-读课标-组目标”写目标？",
+      "category": "教学目标篇",
+      "sort_order": 6,
+      "duration": 50,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:56.888528+00:00"
+    },
+    {
+      "id": "680bf36c-9f73-45a3-8b38-6f0599e03a86",
+      "title": "评价改革逻辑：为什么现在更强调教学评一致性？",
+      "category": "教学评价篇",
+      "sort_order": 0,
+      "duration": 16,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:57.208786+00:00"
+    },
+    {
+      "id": "3b639f16-7c68-43a8-83fc-3259181c71f9",
+      "title": "三个评估层次：如何理解对学习、为学习、作为学习的评价？",
+      "category": "教学评价篇",
+      "sort_order": 1,
+      "duration": 17,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:57.528615+00:00"
+    },
+    {
+      "id": "d986c480-f6ae-4934-95e5-d9b010db3c41",
+      "title": "逆向设计：如何从目标倒推出评价任务和教学活动？",
+      "category": "教学评价篇",
+      "sort_order": 2,
+      "duration": 9,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:57.849043+00:00"
+    },
+    {
+      "id": "78c42429-944b-4fc4-aacf-9edd236bad04",
+      "title": "提问互动：如何用问题链和理答策略判断学习是否发生？",
+      "category": "教学评价篇",
+      "sort_order": 3,
+      "duration": 22,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:58.168925+00:00"
+    },
+    {
+      "id": "1fb4ce72-87fd-40a4-a8a5-2c94447078ff",
+      "title": "评价量规：如何把表现性任务评价得更清楚？",
+      "category": "教学评价篇",
+      "sort_order": 4,
+      "duration": 15,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:58.491746+00:00"
+    },
+    {
+      "id": "943ecfb1-0169-4e14-a060-88b799249eff",
+      "title": "共建规则+课堂小结：如何让评价变成课堂学习闭环？",
+      "category": "教学评价篇",
+      "sort_order": 5,
+      "duration": 13,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:58.810138+00:00"
+    },
+    {
+      "id": "a3fabc9f-165c-4abf-8dcd-aa10cf3f6a52",
+      "title": "罗森海因教学原理总览：有效教学到底有哪些共通原则？",
+      "category": "罗森海因篇",
+      "sort_order": 1,
+      "duration": 36,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:59.135965+00:00"
+    },
+    {
+      "id": "56c7a120-f4cc-4869-9f34-4db91ddc5764",
+      "title": "调扶放：如何从教师示范，逐步过渡到学生独立完成？",
+      "category": "罗森海因篇",
+      "sort_order": 2,
+      "duration": 130,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:59.459104+00:00"
+    },
+    {
+      "id": "af9fcb74-c14d-452b-96b4-d11b21c1ca0c",
+      "title": "善提问：如何用高频提问检查学生理解？",
+      "category": "罗森海因篇",
+      "sort_order": 3,
+      "duration": 108,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:20:59.784201+00:00"
+    },
+    {
+      "id": "6ecac81e-6978-4af2-a879-5213bd87192c",
+      "title": "勤复习：如何用复习策略巩固长期记忆？",
+      "category": "罗森海因篇",
+      "sort_order": 4,
+      "duration": 108,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:21:00.103295+00:00"
+    },
+    {
+      "id": "143e7359-2b7d-4d1c-b3db-2fbd55df566a",
+      "title": "精练习：如何让练习真正服务掌握，而不是机械刷题？",
+      "category": "罗森海因篇",
+      "sort_order": 5,
+      "duration": 121,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:21:00.420241+00:00"
+    },
+    {
+      "id": "1b826283-c273-496e-ac8a-1f9fc1dae9e7",
+      "title": "重新认识讲授法：如何区分低效灌输和高质量讲授？",
+      "category": "讲授法篇",
+      "sort_order": 1,
+      "duration": 46,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:21:00.746838+00:00"
+    },
+    {
+      "id": "192ef020-4f57-414e-be81-950a3cd48da0",
+      "title": "纯粹讲授设计：如何让30-60分钟讲授保持清晰和专注？",
+      "category": "讲授法篇",
+      "sort_order": 2,
+      "duration": 51,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:21:01.076943+00:00"
+    },
+    {
+      "id": "3e50c9e0-bdcf-4824-80d5-e8c61bd01de5",
+      "title": "互动讲授设计：如何用“小步切块”提升全员参与？",
+      "category": "讲授法篇",
+      "sort_order": 3,
+      "duration": 55,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:21:01.403253+00:00"
+    },
+    {
+      "id": "dc19378e-e644-430f-ae51-5cd52dc91ee8",
+      "title": "讲授形式设计：如何用图示、声音和留白降低认知负荷？",
+      "category": "讲授法篇",
+      "sort_order": 4,
+      "duration": 50,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:21:01.726091+00:00"
+    },
+    {
+      "id": "a46ef961-9ac8-4ad9-89a1-c30f4f380c73",
+      "title": "说课不是讲课：如何区分说课、无生试讲和教案？",
+      "category": "说课篇",
+      "sort_order": 1,
+      "duration": 15,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:21:02.04435+00:00"
+    },
+    {
+      "id": "d2a3064b-d804-4597-9f12-5eb68606953a",
+      "title": "说课主线提炼：如何让教材、学情、目标和过程都说同一件事？",
+      "category": "说课篇",
+      "sort_order": 2,
+      "duration": 20,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:21:02.364066+00:00"
+    },
+    {
+      "id": "1ad6680e-70bd-4baa-95ae-110d3dd9a25e",
+      "title": "同课异构课例拆解：如何判断一节公开课的深度、亮点和问题？",
+      "category": "课例分析",
+      "sort_order": 0,
+      "duration": 150,
+      "status": "published",
+      "membership_type": "plus",
+      "updated_at": "2026-06-30T08:21:02.686199+00:00"
+    }
+  ]
+}

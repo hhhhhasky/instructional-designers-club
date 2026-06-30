@@ -1,103 +1,155 @@
-# 欢迎使用你的秒哒应用代码包
-秒哒应用链接
-    URL:https://www.miaoda.cn/projects/app-7iwdhpt0pypt
+# 教学设计师俱乐部官网
 
-## 介绍
+教学设计师俱乐部的官网与会员学习平台。项目集成了课程展示、会员权限、学习记录、教学设计学习地图、资源中心和运营管理后台。
 
-项目介绍
+线上站点：[https://idclub.hasky.top](https://idclub.hasky.top)
 
-## 目录结构
+## 核心功能
 
-```
-├── README.md # 说明文档
-├── components.json # 组件库配置
-├── eslint.config.js # eslint 配置
-├── index.html # 入口文件
-├── package.json # 包管理
-├── postcss.config.js # postcss 配置
-├── public # 静态资源目录
-│   ├── favicon.png # 图标
-│   └── images # 图片资源
-├── src # 源码目录
-│   ├── App.tsx # 入口文件
-│   ├── components # 组件目录
-│   ├── context # 上下文目录
-│   ├── db # 数据库配置目录
-│   ├── hooks # 通用钩子函数目录
-│   ├── index.css # 全局样式
-│   ├── layout # 布局目录
-│   ├── lib # 工具库目录
-│   ├── main.tsx # 入口文件
-│   ├── routes.tsx # 路由配置
-│   ├── pages # 页面目录
-│   ├── services  # 数据库交互目录
-│   ├── types   # 类型定义目录
-├── tsconfig.app.json  # ts 前端配置文件
-├── tsconfig.json # ts 配置文件
-├── tsconfig.node.json # ts node端配置文件
-└── vite.config.ts # vite 配置文件
-```
+- **课程体系**：免费课程、教学通识课 Plus 和教师 AI 课 Pro，支持按篇章、系列和单课组织内容。
+- **多形态课程内容**：视频、音频、Markdown 长文、图片集、课程精华和会议回放链接。
+- **会员与权限**：基于 Supabase Auth 的手机号形式登录，按 `free < plus < pro` 控制课程访问。
+- **学习系统**：继续学习、完成进度、系列进度、成就积分、学员排行榜和教学设计学习地图。
+- **运营后台**：课程、学员、首页内容、公告、活动、FAQ 和资源文章管理。
+- **数据看板**：会员概览、课程排行、沉默学员和学员排行榜。
+- **SEO 与移动端**：响应式布局、移动端导航、路由级 Meta 信息及构建后静态 SEO HTML。
 
 ## 技术栈
 
-Vite、TypeScript、React、Supabase
+- React 18 + TypeScript + Vite 5
+- React Router 7
+- Tailwind CSS + Radix UI
+- Supabase（Auth、Postgres、RLS、Storage、Edge Functions）
+- Cloudflare R2（课程视频和课程图片）
+- Vitest + Testing Library
+- Biome + tsgo
 
-## 本地开发
+## 快速开始
 
-### 如何在本地编辑代码？
+### 1. 环境要求
 
-您可以选择 [VSCode](https://code.visualstudio.com/Download) 或者您常用的任何 IDE 编辑器，唯一的要求是安装 Node.js 和 npm.
+- Node.js 20 或更高版本
+- npm 10 或更高版本
+- 一个已完成数据库迁移的 Supabase 项目
 
-### 环境要求
+### 2. 安装依赖
 
-```
-# Node.js ≥ 20
-# npm ≥ 10
-例如：
-# node -v   # v20.18.3
-# npm -v    # 10.8.2
-```
-
-具体安装步骤如下：
-
-### 在 Windows 上安装 Node.js
-
-```
-# Step 1: 访问Node.js官网：https://nodejs.org/，点击下载后，会根据你的系统自动选择合适的版本（32位或64位）。
-# Step 2: 运行安装程序：下载完成后，双击运行安装程序。
-# Step 3: 完成安装：按照安装向导完成安装过程。
-# Step 4: 验证安装：在命令提示符（cmd）或IDE终端（terminal）中输入 node -v 和 npm -v 来检查 Node.js 和 npm 是否正确安装。
+```bash
+npm install
 ```
 
-### 在 macOS 上安装 Node.js
+### 3. 配置环境变量
 
-```
-# Step 1: 使用Homebrew安装（推荐方法）：打开终端。输入命令brew install node并回车。如果尚未安装Homebrew，需要先安装Homebrew，
-可以通过在终端中运行如下命令来安装：
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-或者使用官网安装程序：访问Node.js官网。下载macOS的.pkg安装包。打开下载的.pkg文件，按照提示完成安装。
-# Step 2: 验证安装：在命令提示符（cmd）或IDE终端（terminal）中输入 node -v 和 npm -v 来检查 Node.js 和 npm 是否正确安装。
+```bash
+cp .env.example .env
 ```
 
-### 安装完后按照如下步骤操作：
+然后填写 `.env`：
 
-```
-# Step 1: 下载代码包
-# Step 2: 解压代码包
-# Step 3: 用IDE打开代码包，进入代码目录
-# Step 4: IDE终端输入命令行，安装依赖：npm i
-# Step 5: IDE终端输入命令行，启动开发服务器：npm run dev -- --host 127.0.0.1
+```dotenv
+VITE_SITE_URL=http://localhost:5173
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
-### 如何开发后端服务？
+`VITE_SUPABASE_ANON_KEY` 会在浏览器中使用，只能填写 Supabase Anon Key。不要将 Service Role Key 写入任何 `VITE_*` 变量或提交到仓库。
 
-配置环境变量，安装相关依赖
-如需使用数据库，请使用 supabase 官方版本或自行部署开源版本的 Supabase
+### 4. 启动开发服务器
 
-### 如何配置应用中的三方 API？
+```bash
+npm run dev
+```
 
-具体三方 API 调用方法，请参考帮助文档：[源码导出](https://cloud.baidu.com/doc/MIAODA/s/Xmewgmsq7)，了解更多详细内容。
+默认访问地址为 [http://127.0.0.1:5173](http://127.0.0.1:5173)。
 
-## 了解更多
+## 常用命令
 
-您也可以查看帮助文档：[源码导出](https://cloud.baidu.com/doc/MIAODA/s/Xmewgmsq7)，了解更多详细内容。
+```bash
+# 开发服务器
+npm run dev
+
+# 类型检查
+npx tsgo -p tsconfig.check.json
+
+# 运行测试
+npx vitest run
+
+# 生产构建，并为公开路由生成 SEO HTML
+npm run build
+
+# 启动本地生产预览
+npx vite preview --host 127.0.0.1 --port 4173
+
+# 完整静态检查（需要系统已安装 ast-grep）
+npm run lint
+```
+
+## 项目结构
+
+```text
+├── docs/                       # 部署、课程结构和需求文档
+├── public/                     # 静态资源、SEO 文件和 SPA 部署规则
+├── scripts/                    # 数据迁移、R2 上传、校验与 SEO 生成脚本
+├── src/
+│   ├── components/             # 通用、课程、学习、首页和后台组件
+│   ├── contexts/               # 认证与会员上下文
+│   ├── db/                     # Supabase 客户端和数据访问层
+│   ├── hooks/                  # 首页内容、公告等数据 Hooks
+│   ├── lib/                    # 权限、内容渲染、课程结构和游戏化逻辑
+│   ├── pages/                  # 页面级路由组件
+│   ├── test/                   # Vitest 测试
+│   ├── types/                  # 业务类型
+│   ├── App.tsx
+│   └── routes.tsx
+├── supabase/
+│   ├── functions/              # 需要管理员身份的 Edge Functions
+│   └── migrations/             # 表、RLS、RPC 和业务数据迁移
+├── package.json
+└── vite.config.ts
+```
+
+## 数据与权限设计
+
+前端通过 Supabase Anon Key 访问数据，实际读写权限由数据库 RLS 决定：
+
+- 访客可读取已发布的公开内容。
+- 登录会员可按 `profiles.access_level` 访问对应课程，并维护自己的学习记录。
+- 管理员身份由 `profiles.role = 'admin'` 判定，可使用 `/admin` 和 `/admin/manage`。
+- 课程正文和结构化信息存在 Supabase Postgres；头像存在 Supabase Storage；大体积视频与课程图片存在 Cloudflare R2，数据库只保存 URL。
+
+迁移文件位于 `supabase/migrations/`。内容运营后台的部署、RLS 验证和使用方法见 [docs/内容运营后台-部署与使用.md](docs/内容运营后台-部署与使用.md)。
+
+## 媒体上传
+
+课程编辑器中的图片会调用 `upload-course-image` Edge Function，由服务端校验管理员身份后上传到 R2。该 Function 需要配置：
+
+```text
+R2_ACCOUNT_ID
+R2_ACCESS_KEY_ID
+R2_SECRET_ACCESS_KEY
+R2_BUCKET_NAME
+R2_PUBLIC_URL
+```
+
+`scripts/upload-*.mjs` 用于批量媒体迁移，还需要 `SUPABASE_SERVICE_ROLE_KEY`。这些密钥只应存在本地 `.env.upload` 或部署平台的服务端密钥中。
+
+## 构建与部署
+
+```bash
+npm run build
+```
+
+构建产物位于 `dist/`。构建脚本会在 Vite 打包后，为首页、教学通识课、教师 AI 课和资源中心生成独立的 SEO HTML。
+
+部署平台需要：
+
+- 将发布目录设为 `dist`。
+- 配置 `VITE_SITE_URL`、`VITE_SUPABASE_URL` 和 `VITE_SUPABASE_ANON_KEY`。
+- 对静态文件不存在的路径回退到 `/index.html`，以支持 SPA 路由。仓库已提供 `public/_redirects` 和 `public/_headers` 作为兼容规则。
+
+## 相关文档
+
+- [内容运营后台部署与使用](docs/内容运营后台-部署与使用.md)
+- [教学通识课 Plus 课程大纲](docs/教学通识课Plus-课程大纲.md)
+- [教学通识课 Plus 课程结构重构接手文档](docs/教学通识课Plus-课程结构重构接手文档.md)
+- [课程分类整理脚本说明](scripts/README_COURSE_CATEGORIES.md)

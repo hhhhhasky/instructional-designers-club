@@ -36,27 +36,38 @@ const buttonVariants = cva(
   }
 )
 
-function Button({
-  className,
-  variant,
-  size,
-  asChild = false,
-  type,
-  ...props
-}: React.ComponentProps<"button"> &
-  VariantProps<typeof buttonVariants> & {
-    asChild?: boolean
-  }) {
+// 用 forwardRef 包裹：当 Button 作为 Radix 的 asChild 触发器
+// （SheetTrigger / DialogTrigger / AlertDialogTrigger 等）的子节点时，
+// Slot 会向它透传 ref；普通函数组件接不住 ref 会触发
+// "Function components cannot be given refs" 警告。
+const Button = React.forwardRef<
+  HTMLButtonElement,
+  React.ComponentProps<"button"> &
+    VariantProps<typeof buttonVariants> & {
+      asChild?: boolean
+    }
+>(function Button(
+  {
+    className,
+    variant,
+    size,
+    asChild = false,
+    type,
+    ...props
+  },
+  ref,
+) {
   const Comp = asChild ? Slot : "button"
 
   return (
     <Comp
+      ref={ref}
       data-slot="button"
       {...(!asChild ? { type: type ?? "button" } : {})}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />
   )
-}
+})
 
 export { Button, buttonVariants }

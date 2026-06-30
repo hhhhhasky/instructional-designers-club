@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { Check, X, Minus, Gift, Sparkles, Crown, Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -193,9 +194,9 @@ export default function ComparisonTable() {
           {/* 表体 */}
           <tbody>
             {Object.entries(groupedFeatures).map(([category, categoryFeatures], categoryIndex) => (
-              <>
+              <Fragment key={`category-group-${categoryIndex}`}>
                 {/* 分类标题行 - 增大字号和间距 */}
-                <tr key={`category-${categoryIndex}`} className="bg-gradient-to-r from-acl to-acl">
+                <tr className="bg-gradient-to-r from-acl to-acl">
                   <td colSpan={4} className="p-6 font-ds-black text-tx text-xl md:text-2xl border-t-4 border-ac/30" style={{ fontFamily: 'var(--fd)' }}>
                     {category}
                   </td>
@@ -229,11 +230,11 @@ export default function ComparisonTable() {
 
                 {/* 区块间增加空白行 */}
                 {categoryIndex < Object.keys(groupedFeatures).length - 1 && (
-                  <tr key={`spacer-${categoryIndex}`} className="h-4 md:h-6">
+                  <tr className="h-4 md:h-6">
                     <td colSpan={4} className="bg-cream"></td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             ))}
 
             {/* 价格行 - 特殊样式 */}
