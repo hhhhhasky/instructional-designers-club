@@ -15,7 +15,7 @@ import TeacherAiCatalogToc from '@/components/course/TeacherAiCatalogToc';
 import PlusCatalogToc from '@/components/course/PlusCatalogToc';
 import CourseQuestionsPanel from '@/components/course/CourseQuestionsPanel';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { getCourseById, getCourseByIdAdmin, incrementCourseViewCount, getCoursesByMembershipAndCategory, getCoursesByMembershipType, getCategoriesByMembershipType, getPlusCourseStructure, getLearningData } from '@/db/api';
+import { getCourseByIdAdmin, incrementCourseViewCount, getCourseCatalogSnapshot, getCourseDetailSnapshot, getLearningData } from '@/db/api';
 import { canAccessCourse, recordCourseVisit, updateLearningProgress, getUserLearningRecords } from '@/lib/access-control';
 import {
   buildGamificationSnapshot,
@@ -43,6 +43,17 @@ const LEVEL_STYLE: Record<string, string> = {
   '中级': 'bg-acl text-ac',
   '高级': 'bg-aml text-am',
 };
+
+const detailWriteGuard = new Map<string, number>();
+const WRITE_GUARD_TTL_MS = 60 * 1000;
+
+function shouldRunDetailWrite(key: string): boolean {
+  const now = Date.now();
+  const lastRun = detailWriteGuard.get(key) ?? 0;
+  if (now - lastRun < WRITE_GUARD_TTL_MS) return false;
+  detailWriteGuard.set(key, now);
+  return true;
+}
 
 export default function CourseDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -167,25 +178,31 @@ export default function CourseDetailPage() {
         setTeacherAiCatalog({ categories: [], coursesByCategory: {} });
         setPlusAllCourses([]);
 
-        let courseData = await getCourseById(id);
+        const detailSnapshot = await getCourseDetailSnapshot(id);
+        let courseData = detailSnapshot.course;
+        let catalog = detailSnapshot.catalog;
+        let siblingCoursesFromSnapshot = detailSnapshot.sibling_courses;
 
         // 管理员预览：常规 API 找不到时查所有状态
         if (!courseData && profile?.role === 'admin') {
           courseData = await getCourseByIdAdmin(id);
+          catalog = await getCourseCatalogSnapshot();
+          siblingCoursesFromSnapshot = [];
         }
 
         if (!courseData) {
           setError('课程不存在');
         } else {
           setCourse(courseData);
-          await incrementCourseViewCount(id);
+          if (courseData.status === 'published' && shouldRunDetailWrite(`view:${id}`)) {
+            await incrementCourseViewCount(id);
+          }
 
           // Plus 课程按篇章/分类系列结构加载同系列课程；Pro/Free 保持旧分类目录。
           if (courseData.membership_type === 'plus') {
-            const [plusCourses, structureData] = await Promise.all([
-              getCoursesByMembershipType('plus'),
-              getPlusCourseStructure(),
-            ]);
+            const plusCatalog = catalog ?? await getCourseCatalogSnapshot();
+            const plusCourses = plusCatalog.plus_courses;
+            const structureData = plusCatalog.plus_tracks;
             const moduleSourceCourses = plusCourses.some((item) => item.id === courseData.id)
               ? plusCourses
               : [...plusCourses, courseData];
@@ -206,23 +223,19 @@ export default function CourseDetailPage() {
             }
           } else if (courseData.membership_type === 'pro') {
             // 教师AI课：加载全量目录，并派生当前系列单课（供 prev/next 导航）
-            const [allProCourses, allProCategories] = await Promise.all([
-              getCoursesByMembershipType('pro'),
-              getCategoriesByMembershipType('pro'),
-            ]);
-            const proCats = allProCategories.filter((c) => c !== '全部');
+            const proCatalog = catalog ?? await getCourseCatalogSnapshot();
+            const allProCourses = proCatalog.pro_courses.some((item) => item.id === courseData.id)
+              ? proCatalog.pro_courses
+              : [...proCatalog.pro_courses, courseData];
+            const proCats = proCatalog.pro_categories;
             const proGrouped: Record<string, Course[]> = {};
             proCats.forEach((cat) => {
               proGrouped[cat] = allProCourses.filter((c) => c.category === cat);
             });
             setTeacherAiCatalog({ categories: proCats, coursesByCategory: proGrouped });
             setSiblingCourses(courseData.category ? proGrouped[courseData.category] ?? [] : []);
-          } else if (courseData.category && courseData.membership_type) {
-            const siblings = await getCoursesByMembershipAndCategory(
-              courseData.membership_type,
-              courseData.category
-            );
-            setSiblingCourses(siblings);
+          } else {
+            setSiblingCourses(siblingCoursesFromSnapshot);
           }
         }
       } catch (err) {
@@ -250,7 +263,9 @@ export default function CourseDetailPage() {
     } else {
       setShowUpgrade(false);
       if (user) {
-        recordCourseVisit(user.id, course.id);
+        if (shouldRunDetailWrite(`visit:${user.id}:${course.id}`)) {
+          recordCourseVisit(user.id, course.id);
+        }
         getUserLearningRecords(user.id).then(records => {
           setLearningRecords(records);
           const record = records.find(r => r.course_id === course.id);

@@ -15,7 +15,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
 import PageMeta from '@/components/common/PageMeta';
-import { getActivityById } from '@/db/api';
+import { getActivityById, getCachedHomePageSnapshot } from '@/db/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { renderInline, getColor } from '@/lib/content-render';
 import type { Activity, ActivityType } from '@/types/types';
@@ -123,6 +123,11 @@ export default function ActivityDetailPage() {
       try {
         setIsLoading(true);
         setError(null);
+        const snapshotActivity = getCachedHomePageSnapshot()?.activities.find((item) => item.id === id);
+        if (snapshotActivity && alive) {
+          setActivity(snapshotActivity);
+          setIsLoading(false);
+        }
         const data = await getActivityById(id);
         if (!alive) return;
         setActivity(data);

@@ -83,11 +83,43 @@ export async function signInWithPhone(
 
 export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
+  clearProfileCache();
 }
 
 // ==================== 用户资料 ====================
 
-export async function getProfile(userId: string): Promise<Profile | null> {
+const PROFILE_CACHE_TTL_MS = 60 * 1000;
+const profileCache = new Map<string, { expiresAt: number; data: Profile }>();
+const profileRequests = new Map<string, Promise<Profile | null>>();
+
+function getCachedProfile(userId: string): Profile | null {
+  const entry = profileCache.get(userId);
+  if (!entry) return null;
+  if (entry.expiresAt <= Date.now()) {
+    profileCache.delete(userId);
+    return null;
+  }
+  return entry.data;
+}
+
+function writeProfileCache(profile: Profile): void {
+  profileCache.set(profile.id, {
+    expiresAt: Date.now() + PROFILE_CACHE_TTL_MS,
+    data: profile,
+  });
+}
+
+export function clearProfileCache(userId?: string): void {
+  if (userId) {
+    profileCache.delete(userId);
+    profileRequests.delete(userId);
+    return;
+  }
+  profileCache.clear();
+  profileRequests.clear();
+}
+
+async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
@@ -99,11 +131,35 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   return data;
 }
 
+export async function getProfile(userId: string, options: { fresh?: boolean } = {}): Promise<Profile | null> {
+  if (!options.fresh) {
+    const cached = getCachedProfile(userId);
+    if (cached) return cached;
+    const pending = profileRequests.get(userId);
+    if (pending) return pending;
+  } else {
+    clearProfileCache(userId);
+  }
+
+  const request = fetchProfile(userId);
+  profileRequests.set(userId, request);
+  try {
+    const profile = await request;
+    if (profile) writeProfileCache(profile);
+    return profile;
+  } finally {
+    if (profileRequests.get(userId) === request) {
+      profileRequests.delete(userId);
+    }
+  }
+}
+
 export async function updateNickname(userId: string, nickname: string): Promise<boolean> {
   const { error } = await supabase
     .from('profiles')
     .update({ nickname })
     .eq('id', userId);
+  clearProfileCache(userId);
   return !error;
 }
 
@@ -125,6 +181,7 @@ export async function updateAvatar(userId: string, file: File): Promise<string |
     .update({ avatar_url: `${avatarUrl}?t=${Date.now()}` })
     .eq('id', userId);
 
+  clearProfileCache(userId);
   return avatarUrl;
 }
 
@@ -141,30 +198,36 @@ export async function recordCourseVisit(
   userId: string,
   courseId: string,
 ): Promise<void> {
-  const { data: existing } = await supabase
-    .from('learning_records')
-    .select('watch_count')
-    .eq('user_id', userId)
-    .eq('course_id', courseId)
-    .maybeSingle();
-
-  if (existing) {
-    await supabase
+  const { error } = await supabase.rpc('record_course_visit', {
+    p_user_id: userId,
+    p_course_id: courseId,
+  });
+  if (error) {
+    const { data: existing } = await supabase
       .from('learning_records')
-      .update({
-        watch_count: existing.watch_count + 1,
-        last_watched_at: new Date().toISOString(),
-      })
+      .select('watch_count')
       .eq('user_id', userId)
-      .eq('course_id', courseId);
-  } else {
-    await supabase.from('learning_records').insert({
-      user_id: userId,
-      course_id: courseId,
-      status: 'in_progress',
-      watch_count: 1,
-      last_watched_at: new Date().toISOString(),
-    });
+      .eq('course_id', courseId)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase
+        .from('learning_records')
+        .update({
+          watch_count: existing.watch_count + 1,
+          last_watched_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+        .eq('course_id', courseId);
+    } else {
+      await supabase.from('learning_records').insert({
+        user_id: userId,
+        course_id: courseId,
+        status: 'in_progress',
+        watch_count: 1,
+        last_watched_at: new Date().toISOString(),
+      });
+    }
   }
   clearLearningDataCache(userId);
 }

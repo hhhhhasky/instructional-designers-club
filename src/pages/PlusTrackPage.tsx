@@ -8,7 +8,7 @@ import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
 import PageMeta from '@/components/common/PageMeta';
 import UpgradePopup from '@/components/common/UpgradePopup';
-import { getCoursesByMembershipType, getPlusCourseStructure } from '@/db/api';
+import { getCourseCatalogSnapshot, getCourseDetailSnapshot } from '@/db/api';
 import { canAccessCourse } from '@/lib/access-control';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,10 +42,9 @@ export default function PlusTrackPage() {
       try {
         setIsLoading(true);
         setError(null);
-        const [coursesData, structureData] = await Promise.all([
-          getCoursesByMembershipType('plus'),
-          getPlusCourseStructure(),
-        ]);
+        const catalog = await getCourseCatalogSnapshot();
+        const coursesData = catalog.plus_courses;
+        const structureData = catalog.plus_tracks;
         setCourses(coursesData);
         setPlusTracks(getEffectivePlusTracks(coursesData, structureData.length > 0 ? structureData : PLUS_TRACKS));
       } catch (err) {
@@ -330,6 +329,9 @@ function CourseList({
           key={course.id}
           type="button"
           onClick={() => onCourseClick(course)}
+          onMouseEnter={() => void getCourseDetailSnapshot(course.id)}
+          onFocus={() => void getCourseDetailSnapshot(course.id)}
+          onTouchStart={() => void getCourseDetailSnapshot(course.id)}
           className="group flex items-start gap-3 rounded-lg border border-bd bg-bgs/30 p-4 text-left hover:border-ac/50 hover:bg-acl/30 transition-all"
         >
           <div className="mt-0.5 w-8 h-8 rounded-full bg-bc border border-bd flex items-center justify-center text-xs font-bold text-ac">

@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react";
-import {
-  getSiteContent,
-  getMemberProfiles,
-  getFaqs,
-  getTestimonials,
-} from "@/db/api";
-import type { MemberProfile, Faq, Testimonial } from "@/types/types";
+import { getHomePageSnapshot, type ClubStats, type HomeCourseBuckets } from "@/db/api";
+import type { Course, MemberProfile, Faq, SiteContent, Testimonial } from "@/types/types";
 
 // 首页可变内容的统一读取入口（带兜底）。
 // 后台未配置 / 表未建 / 查询失败时，回退到当前硬编码内容，保证页面永不空白。
@@ -66,6 +61,9 @@ export interface HomeContent {
   testimonials: Testimonial[];
   faqTitle: string;
   faqs: Faq[];
+  statsCounts: ClubStats;
+  homeCourses: HomeCourseBuckets;
+  loadingHomeCourses: boolean;
 }
 
 const asStr = (v: unknown, fallback = ""): string =>
@@ -207,7 +205,98 @@ const FALLBACK: HomeContent = {
   testimonials: DEFAULT_TESTIMONIALS,
   faqTitle: DEFAULT_FAQ_TITLE,
   faqs: DEFAULT_FAQS,
+  statsCounts: {
+    camps: 0,
+    courses: 0,
+    totalMinutes: 0,
+    members: 500,
+  },
+  homeCourses: {
+    free: [],
+    plus: [],
+    pro: [],
+  },
+  loadingHomeCourses: true,
 };
+
+const d = (row: SiteContent | null | undefined): Record<string, unknown> => row?.data ?? {};
+
+function buildHomeContentFromSnapshot(snapshot: Awaited<ReturnType<typeof getHomePageSnapshot>>): HomeContent {
+  const siteContent = snapshot.site_content ?? {};
+  const heroRow = siteContent.hero;
+  const introRow = siteContent.introduction;
+  const valuesRow = siteContent.club_values;
+  const founderRow = siteContent.founder;
+  const statsRow = siteContent.stats;
+  const membersMetaRow = siteContent.members;
+  const testimonialsMetaRow = siteContent.testimonials;
+  const faqMetaRow = siteContent.faq;
+
+  return {
+    loaded: true,
+    hero: {
+      title_line1: asStr(d(heroRow).title_line1, DEFAULT_HERO.title_line1),
+      title_line2: asStr(d(heroRow).title_line2, DEFAULT_HERO.title_line2),
+      subtitle: asStr(d(heroRow).subtitle, DEFAULT_HERO.subtitle),
+      cta_text: asStr(d(heroRow).cta_text, DEFAULT_HERO.cta_text),
+      cta_link: asStr(d(heroRow).cta_link, DEFAULT_HERO.cta_link),
+    },
+    intro: {
+      section_title: asStr(d(introRow).section_title, DEFAULT_INTRO.section_title),
+      section_subtitle: asStr(d(introRow).section_subtitle, DEFAULT_INTRO.section_subtitle),
+      welcome_title: asStr(d(introRow).welcome_title, DEFAULT_INTRO.welcome_title),
+      welcome_paragraphs: asStrArr(d(introRow).welcome_paragraphs, DEFAULT_INTRO.welcome_paragraphs),
+      product_intro_heading: asStr(d(introRow).product_intro_heading, DEFAULT_INTRO.product_intro_heading),
+      plus_text: asStr(d(introRow).plus_text, DEFAULT_INTRO.plus_text),
+      pro_text: asStr(d(introRow).pro_text, DEFAULT_INTRO.pro_text),
+    },
+    values: {
+      values_title: asStr(d(valuesRow).values_title, DEFAULT_VALUES.values_title),
+      values_subtitle: asStr(d(valuesRow).values_subtitle, DEFAULT_VALUES.values_subtitle),
+      items: pickArr(d(valuesRow).items, DEFAULT_VALUES.items),
+    },
+    founder: {
+      section_title: asStr(d(founderRow).section_title, DEFAULT_FOUNDER.section_title),
+      avatar_url: asStr(d(founderRow).avatar_url, DEFAULT_FOUNDER.avatar_url),
+      avatar_alt: asStr(d(founderRow).avatar_alt, DEFAULT_FOUNDER.avatar_alt),
+      name: asStr(d(founderRow).name, DEFAULT_FOUNDER.name),
+      motto: asStr(d(founderRow).motto, DEFAULT_FOUNDER.motto),
+      tags: Array.isArray(d(founderRow).tags) ? (d(founderRow).tags as typeof DEFAULT_FOUNDER.tags) : DEFAULT_FOUNDER.tags,
+      info_items: Array.isArray(d(founderRow).info_items) ? (d(founderRow).info_items as typeof DEFAULT_FOUNDER.info_items) : DEFAULT_FOUNDER.info_items,
+      stats: Array.isArray(d(founderRow).stats) ? (d(founderRow).stats as typeof DEFAULT_FOUNDER.stats) : DEFAULT_FOUNDER.stats,
+    },
+    stats: {
+      section_title: asStr(d(statsRow).section_title, DEFAULT_STATS.section_title),
+      section_subtitle: asStr(d(statsRow).section_subtitle, DEFAULT_STATS.section_subtitle),
+      start_date: asStr(d(statsRow).start_date, DEFAULT_STATS.start_date),
+      footnote: asStr(d(statsRow).footnote, DEFAULT_STATS.footnote),
+    },
+    membersMeta: {
+      section_title: asStr(d(membersMetaRow).section_title, DEFAULT_MEMBERS_META.section_title),
+      subtitle: asStr(d(membersMetaRow).subtitle, DEFAULT_MEMBERS_META.subtitle),
+      footnote: asStr(d(membersMetaRow).footnote, DEFAULT_MEMBERS_META.footnote),
+      cta_text: asStr(d(membersMetaRow).cta_text, DEFAULT_MEMBERS_META.cta_text),
+      cta_link: asStr(d(membersMetaRow).cta_link, DEFAULT_MEMBERS_META.cta_link),
+      cta_hint: asStr(d(membersMetaRow).cta_hint, DEFAULT_MEMBERS_META.cta_hint),
+    },
+    testimonialsMeta: {
+      section_title: asStr(d(testimonialsMetaRow).section_title, DEFAULT_TESTIMONIALS_META.section_title),
+      autoplay_ms: asNum(d(testimonialsMetaRow).autoplay_ms, DEFAULT_TESTIMONIALS_META.autoplay_ms),
+      footnote: asStr(d(testimonialsMetaRow).footnote, DEFAULT_TESTIMONIALS_META.footnote),
+    },
+    faqTitle: asStr(d(faqMetaRow).section_title, DEFAULT_FAQ_TITLE),
+    members: Array.isArray(snapshot.member_profiles) ? snapshot.member_profiles : DEFAULT_MEMBERS,
+    testimonials: Array.isArray(snapshot.testimonials) ? snapshot.testimonials : DEFAULT_TESTIMONIALS,
+    faqs: Array.isArray(snapshot.faqs) ? snapshot.faqs : DEFAULT_FAQS,
+    statsCounts: snapshot.stats_counts,
+    homeCourses: {
+      free: snapshot.home_courses.free as Course[],
+      plus: snapshot.home_courses.plus as Course[],
+      pro: snapshot.home_courses.pro as Course[],
+    },
+    loadingHomeCourses: false,
+  };
+}
 
 export function useHomeContent(): HomeContent {
   const [content, setContent] = useState<HomeContent>(FALLBACK);
@@ -215,90 +304,13 @@ export function useHomeContent(): HomeContent {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      // 单例区块：getSiteContent 出错返回 null（不抛），直接走兜底。
-      const [heroRow, introRow, valuesRow, founderRow, statsRow, membersMetaRow, testimonialsMetaRow, faqMetaRow] =
-        await Promise.all([
-          getSiteContent("hero"),
-          getSiteContent("introduction"),
-          getSiteContent("club_values"),
-          getSiteContent("founder"),
-          getSiteContent("stats"),
-          getSiteContent("members"),
-          getSiteContent("testimonials"),
-          getSiteContent("faq"),
-        ]);
-
-      // 集合：出错才走兜底；成功但为空（运营清空）则保留空，尊重运营操作。
-      const [membersRes, testimonialsRes, faqsRes] = await Promise.allSettled([
-        getMemberProfiles(),
-        getTestimonials(),
-        getFaqs(),
-      ]);
-      const members = membersRes.status === "fulfilled" ? membersRes.value : DEFAULT_MEMBERS;
-      const testimonials = testimonialsRes.status === "fulfilled" ? testimonialsRes.value : DEFAULT_TESTIMONIALS;
-      const faqs = faqsRes.status === "fulfilled" ? faqsRes.value : DEFAULT_FAQS;
-
-      if (cancelled) return;
-
-      const d = (row: typeof heroRow): Record<string, unknown> => row?.data ?? {};
-
-      setContent({
-        loaded: true,
-        hero: {
-          title_line1: asStr(d(heroRow).title_line1, DEFAULT_HERO.title_line1),
-          title_line2: asStr(d(heroRow).title_line2, DEFAULT_HERO.title_line2),
-          subtitle: asStr(d(heroRow).subtitle, DEFAULT_HERO.subtitle),
-          cta_text: asStr(d(heroRow).cta_text, DEFAULT_HERO.cta_text),
-          cta_link: asStr(d(heroRow).cta_link, DEFAULT_HERO.cta_link),
-        },
-        intro: {
-          section_title: asStr(d(introRow).section_title, DEFAULT_INTRO.section_title),
-          section_subtitle: asStr(d(introRow).section_subtitle, DEFAULT_INTRO.section_subtitle),
-          welcome_title: asStr(d(introRow).welcome_title, DEFAULT_INTRO.welcome_title),
-          welcome_paragraphs: asStrArr(d(introRow).welcome_paragraphs, DEFAULT_INTRO.welcome_paragraphs),
-          product_intro_heading: asStr(d(introRow).product_intro_heading, DEFAULT_INTRO.product_intro_heading),
-          plus_text: asStr(d(introRow).plus_text, DEFAULT_INTRO.plus_text),
-          pro_text: asStr(d(introRow).pro_text, DEFAULT_INTRO.pro_text),
-        },
-        values: {
-          values_title: asStr(d(valuesRow).values_title, DEFAULT_VALUES.values_title),
-          values_subtitle: asStr(d(valuesRow).values_subtitle, DEFAULT_VALUES.values_subtitle),
-          items: pickArr(d(valuesRow).items, DEFAULT_VALUES.items),
-        },
-        founder: {
-          section_title: asStr(d(founderRow).section_title, DEFAULT_FOUNDER.section_title),
-          avatar_url: asStr(d(founderRow).avatar_url, DEFAULT_FOUNDER.avatar_url),
-          avatar_alt: asStr(d(founderRow).avatar_alt, DEFAULT_FOUNDER.avatar_alt),
-          name: asStr(d(founderRow).name, DEFAULT_FOUNDER.name),
-          motto: asStr(d(founderRow).motto, DEFAULT_FOUNDER.motto),
-          tags: Array.isArray(d(founderRow).tags) ? (d(founderRow).tags as typeof DEFAULT_FOUNDER.tags) : DEFAULT_FOUNDER.tags,
-          info_items: Array.isArray(d(founderRow).info_items) ? (d(founderRow).info_items as typeof DEFAULT_FOUNDER.info_items) : DEFAULT_FOUNDER.info_items,
-          stats: Array.isArray(d(founderRow).stats) ? (d(founderRow).stats as typeof DEFAULT_FOUNDER.stats) : DEFAULT_FOUNDER.stats,
-        },
-        stats: {
-          section_title: asStr(d(statsRow).section_title, DEFAULT_STATS.section_title),
-          section_subtitle: asStr(d(statsRow).section_subtitle, DEFAULT_STATS.section_subtitle),
-          start_date: asStr(d(statsRow).start_date, DEFAULT_STATS.start_date),
-          footnote: asStr(d(statsRow).footnote, DEFAULT_STATS.footnote),
-        },
-        membersMeta: {
-          section_title: asStr(d(membersMetaRow).section_title, DEFAULT_MEMBERS_META.section_title),
-          subtitle: asStr(d(membersMetaRow).subtitle, DEFAULT_MEMBERS_META.subtitle),
-          footnote: asStr(d(membersMetaRow).footnote, DEFAULT_MEMBERS_META.footnote),
-          cta_text: asStr(d(membersMetaRow).cta_text, DEFAULT_MEMBERS_META.cta_text),
-          cta_link: asStr(d(membersMetaRow).cta_link, DEFAULT_MEMBERS_META.cta_link),
-          cta_hint: asStr(d(membersMetaRow).cta_hint, DEFAULT_MEMBERS_META.cta_hint),
-        },
-        testimonialsMeta: {
-          section_title: asStr(d(testimonialsMetaRow).section_title, DEFAULT_TESTIMONIALS_META.section_title),
-          autoplay_ms: asNum(d(testimonialsMetaRow).autoplay_ms, DEFAULT_TESTIMONIALS_META.autoplay_ms),
-          footnote: asStr(d(testimonialsMetaRow).footnote, DEFAULT_TESTIMONIALS_META.footnote),
-        },
-        faqTitle: asStr(d(faqMetaRow).section_title, DEFAULT_FAQ_TITLE),
-        members,
-        testimonials,
-        faqs,
-      });
+      try {
+        const snapshot = await getHomePageSnapshot();
+        if (!cancelled) setContent(buildHomeContentFromSnapshot(snapshot));
+      } catch (error) {
+        console.error("加载首页内容快照失败:", error);
+        if (!cancelled) setContent({ ...FALLBACK, loaded: true, loadingHomeCourses: false });
+      }
     })();
     return () => {
       cancelled = true;

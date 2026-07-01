@@ -12,7 +12,7 @@ import LoadingOverlay from '@/components/common/LoadingOverlay';
 import PageMeta from '@/components/common/PageMeta';
 import UpgradePopup from '@/components/common/UpgradePopup';
 import { useAuth } from '@/contexts/AuthContext';
-import { getBatchCategoryTags, getCategoriesByMembershipType, getCoursesByMembershipType } from '@/db/api';
+import { getCourseCatalogSnapshot, getCourseDetailSnapshot } from '@/db/api';
 import { canAccessCourse } from '@/lib/access-control';
 import { cn } from '@/lib/utils';
 import type { Course } from '@/types/types';
@@ -38,12 +38,9 @@ export default function TeacherAiCoursesPage() {
       try {
         setIsLoading(true);
         setError(null);
-        const [categoriesData, coursesData] = await Promise.all([
-          getCategoriesByMembershipType('pro'),
-          getCoursesByMembershipType('pro'),
-        ]);
-
-        const filteredCategories = categoriesData.filter((cat) => cat !== '全部');
+        const catalog = await getCourseCatalogSnapshot();
+        const coursesData = catalog.pro_courses;
+        const filteredCategories = catalog.pro_categories;
         const grouped: Record<string, Course[]> = {};
         filteredCategories.forEach((category) => {
           grouped[category] = coursesData.filter((course) => course.category === category);
@@ -51,7 +48,7 @@ export default function TeacherAiCoursesPage() {
 
         setCategories(filteredCategories);
         setCoursesByCategory(grouped);
-        setCategoryTags(filteredCategories.length > 0 ? await getBatchCategoryTags(filteredCategories) : {});
+        setCategoryTags(catalog.pro_category_tags);
       } catch (err) {
         console.error('加载教师 AI 课失败:', err);
         setError('加载教师 AI 课失败，请刷新页面重试');
@@ -371,6 +368,9 @@ function CourseCard({
     <button
       type="button"
       onClick={() => onCourseClick(course)}
+      onMouseEnter={() => void getCourseDetailSnapshot(course.id)}
+      onFocus={() => void getCourseDetailSnapshot(course.id)}
+      onTouchStart={() => void getCourseDetailSnapshot(course.id)}
       className={cn(
         'group w-full flex items-center gap-4 p-4 rounded-lg border-2 border-bd text-left',
         'hover:border-amber-500/50 hover:bg-amber-50/40 cursor-pointer transition-all duration-300',

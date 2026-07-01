@@ -23,6 +23,8 @@ vi.mock('@/db/api', () => ({
   getCourseById: vi.fn(),
   getCourseByIdAdmin: vi.fn(),
   incrementCourseViewCount: vi.fn(),
+  getCourseCatalogSnapshot: vi.fn(),
+  getCourseDetailSnapshot: vi.fn(),
   getCoursesByMembershipAndCategory: vi.fn(),
   getCoursesByMembershipType: vi.fn(),
   getCategoriesByMembershipType: vi.fn(),
@@ -52,7 +54,15 @@ vi.mock('@/components/common/PageMeta', () => ({ default: () => null }));
 
 // --- Test Data ---
 
-import { getCourseById, getCoursesByMembershipAndCategory, getCoursesByMembershipType, getCategoriesByMembershipType, getPlusCourseStructure } from '@/db/api';
+import {
+  getCourseById,
+  getCourseCatalogSnapshot,
+  getCourseDetailSnapshot,
+  getCoursesByMembershipAndCategory,
+  getCoursesByMembershipType,
+  getCategoriesByMembershipType,
+  getPlusCourseStructure,
+} from '@/db/api';
 import { getCourseQuestions, getCourseQuestionTags } from '@/db/course-questions';
 import { getUserLearningRecords } from '@/lib/access-control';
 import type { PlusTrackConfig } from '@/lib/plusCourseStructure';
@@ -115,6 +125,34 @@ const plusCategoryTracks: PlusTrackConfig[] = [
   },
 ];
 
+function makeCatalog(courses = siblingCourses, tracks = plusCategoryTracks) {
+  return {
+    plus_courses: courses.filter((course) => course.membership_type === 'plus'),
+    plus_tracks: tracks,
+    pro_courses: courses.filter((course) => course.membership_type === 'pro'),
+    pro_categories: ['教学设计'],
+    pro_category_tags: {},
+    generated_at: null,
+    source_updated_at: null,
+    source: 'rest-fallback' as const,
+  };
+}
+
+function makeDetailSnapshot(
+  course: import('@/types/types').Course | null,
+  sibling_courses = siblingCourses,
+  catalog: ReturnType<typeof makeCatalog> | null = makeCatalog(siblingCourses),
+) {
+  return {
+    course,
+    catalog,
+    sibling_courses,
+    generated_at: null,
+    source_updated_at: null,
+    source: 'rest-fallback' as const,
+  };
+}
+
 // --- Helpers ---
 
 function renderCourseDetail(courseId = 'c1') {
@@ -128,6 +166,10 @@ function renderCourseDetail(courseId = 'c1') {
 }
 
 async function renderAndWait(courseId = 'c1') {
+  vi.mocked(getCourseDetailSnapshot).mockResolvedValue(
+    makeDetailSnapshot(makeCourse({ id: courseId }), siblingCourses, makeCatalog(siblingCourses)),
+  );
+  vi.mocked(getCourseCatalogSnapshot).mockResolvedValue(makeCatalog(siblingCourses));
   vi.mocked(getCourseById).mockResolvedValue(makeCourse({ id: courseId }));
   vi.mocked(getCoursesByMembershipAndCategory).mockResolvedValue(siblingCourses);
   vi.mocked(getCoursesByMembershipType).mockResolvedValue(siblingCourses);
@@ -297,8 +339,13 @@ describe('CourseDetailPage — 课程导航功能', () => {
   // 测试点 9：只有一个课程时不显示导航
   // ============================
   it('只有一个课程时固定栏保留目录入口且上下节均禁用', async () => {
-    vi.mocked(getCourseById).mockResolvedValue(makeCourse());
-    vi.mocked(getCoursesByMembershipType).mockResolvedValue([makeCourse()]);
+    const singleCourse = makeCourse();
+    vi.mocked(getCourseDetailSnapshot).mockResolvedValue(
+      makeDetailSnapshot(singleCourse, [], makeCatalog([singleCourse])),
+    );
+    vi.mocked(getCourseCatalogSnapshot).mockResolvedValue(makeCatalog([singleCourse]));
+    vi.mocked(getCourseById).mockResolvedValue(singleCourse);
+    vi.mocked(getCoursesByMembershipType).mockResolvedValue([singleCourse]);
     vi.mocked(getCategoriesByMembershipType).mockResolvedValue(['教学设计']);
     vi.mocked(getUserLearningRecords).mockResolvedValue([]);
 
@@ -313,6 +360,9 @@ describe('CourseDetailPage — 课程导航功能', () => {
   it('免费课复用同系列课程打开左侧目录抽屉', async () => {
     const user = userEvent.setup();
     const freeCourses = siblingCourses.map((item) => ({ ...item, membership_type: 'free' as const }));
+    vi.mocked(getCourseDetailSnapshot).mockResolvedValue(
+      makeDetailSnapshot(freeCourses[0], freeCourses, null),
+    );
     vi.mocked(getCourseById).mockResolvedValue(freeCourses[0]);
     vi.mocked(getCoursesByMembershipAndCategory).mockResolvedValue(freeCourses);
     vi.mocked(getUserLearningRecords).mockResolvedValue([]);
@@ -347,6 +397,11 @@ describe('CourseDetailPage — 课程导航功能', () => {
         sort_order: 102,
       }),
     ];
+    const plusCatalog = makeCatalog(plusCourses, plusCategoryTracks);
+    vi.mocked(getCourseDetailSnapshot).mockResolvedValue(
+      makeDetailSnapshot(plusCourses[0], [], plusCatalog),
+    );
+    vi.mocked(getCourseCatalogSnapshot).mockResolvedValue(plusCatalog);
     vi.mocked(getCourseById).mockResolvedValue(plusCourses[0]);
     vi.mocked(getCoursesByMembershipType).mockResolvedValue(plusCourses);
     vi.mocked(getPlusCourseStructure).mockResolvedValue(plusCategoryTracks);
@@ -356,7 +411,7 @@ describe('CourseDetailPage — 课程导航功能', () => {
     renderCourseDetail('p1');
     await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
 
-    expect(getCoursesByMembershipType).toHaveBeenCalledWith('plus');
+    expect(getCourseDetailSnapshot).toHaveBeenCalledWith('p1');
     expect(getCoursesByMembershipAndCategory).not.toHaveBeenCalled();
     expect(screen.getAllByText('说课篇').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('说课篇02：教材分析').length).toBeGreaterThanOrEqual(1);
@@ -369,7 +424,7 @@ describe('CourseDetailPage — 课程导航功能', () => {
   // 测试点 10：加载状态正确显示
   // ============================
   it('加载时显示 LoadingOverlay', () => {
-    vi.mocked(getCourseById).mockReturnValue(new Promise(() => {})); // never resolves
+    vi.mocked(getCourseDetailSnapshot).mockReturnValue(new Promise(() => {})); // never resolves
     renderCourseDetail('c1');
     expect(screen.getByTestId('loading')).toHaveTextContent('正在加载课程详情');
   });
@@ -378,7 +433,7 @@ describe('CourseDetailPage — 课程导航功能', () => {
   // 测试点 11：课程不存在时显示错误
   // ============================
   it('课程不存在时显示错误信息', async () => {
-    vi.mocked(getCourseById).mockResolvedValue(null);
+    vi.mocked(getCourseDetailSnapshot).mockResolvedValue(makeDetailSnapshot(null, [], null));
     renderCourseDetail('nonexistent');
     await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
 
@@ -425,9 +480,14 @@ describe('CourseDetailPage — 正文板块精简与课程精华', () => {
   // 课程精华：有内容时渲染
   // ============================
   it('essence 有内容时显示「课程精华」', async () => {
-    vi.mocked(getCourseById).mockResolvedValue(
-      makeCourse({ id: 'c1', essence: '## 测试思维导图\n![](https://example.com/mindmap.png)' })
+    vi.mocked(getCourseDetailSnapshot).mockResolvedValue(
+      makeDetailSnapshot(
+        makeCourse({ id: 'c1', essence: '## 测试思维导图\n![](https://example.com/mindmap.png)' }),
+        siblingCourses,
+        makeCatalog(siblingCourses),
+      )
     );
+    vi.mocked(getCourseCatalogSnapshot).mockResolvedValue(makeCatalog(siblingCourses));
     vi.mocked(getCoursesByMembershipAndCategory).mockResolvedValue(siblingCourses);
     vi.mocked(getUserLearningRecords).mockResolvedValue([]);
 

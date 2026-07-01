@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import { supabase } from '@/db/supabase';
 import { getProfile, signInWithPhone, signUpWithPhone, signOut as doSignOut } from '@/lib/access-control';
+import { clearAllLearningDataCaches } from '@/db/api';
 import type { Profile, MembershipType } from '@/types/types';
 import type { User, Session } from '@supabase/supabase-js';
 
@@ -27,10 +28,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const accessLevel: MembershipType = profile?.access_level ?? 'free';
 
-  const loadProfile = useCallback(async (userId: string): Promise<Profile | null> => {
+  const loadProfile = useCallback(async (
+    userId: string,
+    options: { fresh?: boolean } = {},
+  ): Promise<Profile | null> => {
     let retries = 0;
     while (retries < 10) {
-      const p = await getProfile(userId);
+      const p = await getProfile(userId, { fresh: options.fresh && retries === 0 });
       if (p) {
         return p;
       }
@@ -48,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const requestId = ++profileLoadId.current;
       setLoading(true);
       try {
-        const p = await loadProfile(user.id);
+        const p = await loadProfile(user.id, { fresh: true });
         if (profileLoadId.current === requestId) {
           setProfile(p);
         }
@@ -122,7 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const requestId = ++profileLoadId.current;
         setSession(result.session);
         setUser(result.session.user);
-        const p = await loadProfile(result.session.user.id);
+        const p = await loadProfile(result.session.user.id, { fresh: true });
         if (profileLoadId.current === requestId) {
           setProfile(p);
         }
@@ -141,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const requestId = ++profileLoadId.current;
         setSession(result.session);
         setUser(result.session.user);
-        const p = await loadProfile(result.session.user.id);
+        const p = await loadProfile(result.session.user.id, { fresh: true });
         if (profileLoadId.current === requestId) {
           setProfile(p);
         }
@@ -158,6 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setProfile(null);
     setSession(null);
+    clearAllLearningDataCaches();
   };
 
   return (

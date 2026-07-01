@@ -10,7 +10,13 @@ import type {
   SiteContent,
   Testimonial,
 } from "@/types/types";
-import { clearAllLearningDataCaches } from "./api";
+import {
+  clearAllLearningDataCaches,
+  clearCourseCatalogCache,
+  clearCourseDetailCache,
+  clearHomePageSnapshotCache,
+  clearResourcesCache,
+} from "./api";
 import { supabase } from "./supabase";
 
 // ==================== 响应类型 ====================
@@ -203,6 +209,12 @@ export type AdminCourseCategory = Pick<
 
 const COURSE_CATEGORY_SELECT = "id, name, sort_order, is_active, plus_track_id";
 
+function clearPublicCourseCaches(courseId?: string): void {
+  clearCourseCatalogCache();
+  clearCourseDetailCache(courseId);
+  clearHomePageSnapshotCache();
+}
+
 /**
  * 管理员获取课程分类，用于课程创建/编辑表单绑定 category_id
  */
@@ -259,6 +271,7 @@ export async function adminCreateCourseCategory(
       console.error("adminCreateCourseCategory reactivate error:", updateError);
       throw updateError;
     }
+    clearPublicCourseCaches();
     return reactivated as AdminCourseCategory;
   }
 
@@ -303,12 +316,16 @@ export async function adminCreateCourseCategory(
           .eq("id", category.id)
           .select(COURSE_CATEGORY_SELECT)
           .single();
-        if (!updateError && reactivated) return reactivated as AdminCourseCategory;
+        if (!updateError && reactivated) {
+          clearPublicCourseCaches();
+          return reactivated as AdminCourseCategory;
+        }
       }
     }
     console.error("adminCreateCourseCategory insert error:", error);
     throw error;
   }
+  clearPublicCourseCaches();
   return data as AdminCourseCategory;
 }
 
@@ -326,6 +343,7 @@ export async function adminUpdateCourseCategory(
     console.error("adminUpdateCourseCategory error:", error);
     throw error;
   }
+  clearPublicCourseCaches();
   return data as AdminCourseCategory;
 }
 
@@ -344,6 +362,7 @@ export async function adminCreateCourse(
     console.error("adminCreateCourse error:", error);
     throw error;
   }
+  clearPublicCourseCaches(data.id);
   clearAllLearningDataCaches();
   return data;
 }
@@ -365,6 +384,7 @@ export async function adminUpdateCourse(
     console.error("adminUpdateCourse error:", error);
     throw error;
   }
+  clearPublicCourseCaches(courseId);
   clearAllLearningDataCaches();
   return data;
 }
@@ -381,6 +401,7 @@ export async function adminArchiveCourse(courseId: string): Promise<void> {
     console.error("adminArchiveCourse error:", error);
     throw error;
   }
+  clearPublicCourseCaches(courseId);
   clearAllLearningDataCaches();
 }
 
@@ -404,6 +425,14 @@ interface ContentRowBase {
   is_active: boolean;
   created_at?: string;
   updated_at?: string;
+}
+
+function clearPublicContentCaches(table: ContentTable): void {
+  if (table === "resources") {
+    clearResourcesCache();
+    return;
+  }
+  clearHomePageSnapshotCache();
 }
 
 /** 管理员读取某内容表的全部记录（含未激活），按 sort_order 排序 */
@@ -436,6 +465,7 @@ async function adminContentCreate<T extends Record<string, unknown>>(
     console.error(`adminContentCreate(${table}) error:`, error);
     throw error;
   }
+  clearPublicContentCaches(table);
   return data as T;
 }
 
@@ -450,6 +480,7 @@ async function adminContentUpdate(
     console.error(`adminContentUpdate(${table}) error:`, error);
     throw error;
   }
+  clearPublicContentCaches(table);
 }
 
 /** 管理员切换上下架（软删除/恢复） */
@@ -466,6 +497,7 @@ async function adminContentSetActive(
     console.error(`adminContentSetActive(${table}) error:`, error);
     throw error;
   }
+  clearPublicContentCaches(table);
 }
 
 /** 管理员永久删除一条内容（UI 须二次确认） */
@@ -478,6 +510,7 @@ async function adminContentDelete(
     console.error(`adminContentDelete(${table}) error:`, error);
     throw error;
   }
+  clearPublicContentCaches(table);
 }
 
 // ---------- site_content：单例区块（按 section_key upsert） ----------
@@ -524,6 +557,7 @@ export async function adminUpsertSiteContent(
     console.error("adminUpsertSiteContent error:", error);
     throw error;
   }
+  clearHomePageSnapshotCache();
 }
 
 // ---------- member_profiles ----------

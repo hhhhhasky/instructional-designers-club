@@ -12,6 +12,7 @@ import { GraduationCap, Menu, X, Settings, LogOut, User, BookOpen, ShieldCheck, 
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import routes from "@/routes";
 import { useAuth } from "@/contexts/AuthContext";
+import { getCourseCatalogSnapshot, getResources } from "@/db/api";
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -41,6 +42,16 @@ export default function Header() {
     await signOut();
     setIsOpen(false);
     navigate('/');
+  };
+
+  const prefetchRoute = (path: string) => {
+    if (path === "/courses" || path === "/teacher-ai-courses") {
+      void getCourseCatalogSnapshot();
+      return;
+    }
+    if (path === "/resources") {
+      void getResources();
+    }
   };
 
   const avatarEl = profile?.avatar_url ? (
@@ -80,6 +91,9 @@ export default function Header() {
               <Link
                 key={route.path}
                 to={route.path}
+                onMouseEnter={() => prefetchRoute(route.path)}
+                onFocus={() => prefetchRoute(route.path)}
+                onTouchStart={() => prefetchRoute(route.path)}
                 className={`px-3 py-1.5 text-ds-sm font-ds-semibold rounded-ds-pill transition-all ${
                   isRouteActive(route.path)
                     ? "text-ac bg-acl"
@@ -196,6 +210,9 @@ export default function Header() {
                       <Link
                         key={route.path}
                         to={route.path}
+                        onMouseEnter={() => prefetchRoute(route.path)}
+                        onFocus={() => prefetchRoute(route.path)}
+                        onTouchStart={() => prefetchRoute(route.path)}
                         onClick={() => setIsOpen(false)}
                         className={`px-4 py-3 text-left text-ds-base font-ds-medium rounded-ds-lg transition-all ${
                           isRouteActive(route.path)

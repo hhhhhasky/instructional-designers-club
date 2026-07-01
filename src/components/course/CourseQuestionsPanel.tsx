@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { MessageCircle, RefreshCw, Send, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -37,6 +37,8 @@ export default function CourseQuestionsPanel({ course }: CourseQuestionsPanelPro
   const [savingQuestion, setSavingQuestion] = useState(false);
   const [savingReplyId, setSavingReplyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [shouldLoad, setShouldLoad] = useState(false);
+  const sectionRef = useRef<HTMLElement | null>(null);
 
   const courseTag = useMemo(() => {
     if (!course.category) return null;
@@ -49,13 +51,13 @@ export default function CourseQuestionsPanel({ course }: CourseQuestionsPanelPro
     }
   }, [courseTag, selectedTagId]);
 
-  const load = async () => {
+  const load = async (fresh = false) => {
     try {
       setLoading(true);
       setError(null);
       const [questionData, tagData] = await Promise.all([
-        getCourseQuestions(course.id),
-        getCourseQuestionTags(),
+        getCourseQuestions(course.id, { fresh }),
+        getCourseQuestionTags({ fresh }),
       ]);
       setQuestions(questionData);
       setTags(tagData);
@@ -67,7 +69,35 @@ export default function CourseQuestionsPanel({ course }: CourseQuestionsPanelPro
   };
 
   useEffect(() => {
+    if (!shouldLoad) return;
     void load();
+  }, [course.id, shouldLoad]);
+
+  useEffect(() => {
+    setShouldLoad(false);
+    setQuestions([]);
+    setTags([]);
+    setLoading(true);
+  }, [course.id]);
+
+  useEffect(() => {
+    const node = sectionRef.current;
+    if (!node) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setShouldLoad(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setShouldLoad(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "320px 0px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
   }, [course.id]);
 
   const handleSubmitQuestion = async () => {
@@ -97,7 +127,7 @@ export default function CourseQuestionsPanel({ course }: CourseQuestionsPanelPro
       setQuestionBody("");
       setQuestionAnonymous(false);
       toast.success("问题已发布");
-      await load();
+      await load(true);
     } catch {
       toast.error("发布失败，请确认账号权限后重试");
     } finally {
@@ -131,7 +161,7 @@ export default function CourseQuestionsPanel({ course }: CourseQuestionsPanelPro
       setReplyDrafts((drafts) => ({ ...drafts, [questionId]: "" }));
       setReplyAnonymous((values) => ({ ...values, [questionId]: false }));
       toast.success("回复已发布");
-      await load();
+      await load(true);
     } catch {
       toast.error("回复失败，请稍后重试");
     } finally {
@@ -140,7 +170,7 @@ export default function CourseQuestionsPanel({ course }: CourseQuestionsPanelPro
   };
 
   return (
-    <section className="py-7 border-b border-bdl">
+    <section ref={sectionRef} className="py-7 border-b border-bdl">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
         <div>
           <h2 className="text-xl font-bold text-tx font-serif flex items-center gap-2">
@@ -151,7 +181,19 @@ export default function CourseQuestionsPanel({ course }: CourseQuestionsPanelPro
             围绕本节课提出问题，和同学在这里补充讨论。
           </p>
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            if (!shouldLoad) {
+              setShouldLoad(true);
+              return;
+            }
+            void load(true);
+          }}
+          disabled={loading && shouldLoad}
+        >
           <RefreshCw className={cn("w-4 h-4 mr-1", loading && "animate-spin")} />
           刷新
         </Button>

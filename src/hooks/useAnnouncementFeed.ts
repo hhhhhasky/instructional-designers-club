@@ -1,9 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  getActiveAnnouncements,
-  getLatestCourses,
-  getActivities,
-} from "@/db/api";
+import { getHomePageSnapshot } from "@/db/api";
 import type {
   AnnouncementType,
   ActivityType,
@@ -118,83 +114,73 @@ export function useAnnouncementFeed(): AnnouncementFeedState {
     (async () => {
       setLoading(true);
 
-      const [annRes, courseRes, activityRes] = await Promise.allSettled([
-        getActiveAnnouncements(MAX_ITEMS),
-        getLatestCourses(MAX_LATEST_COURSES),
-        getActivities(20),
-      ]);
+      const snapshot = await getHomePageSnapshot();
 
       if (cancelled) return;
 
       const merged: FeedItem[] = [];
 
       // 1) 运营发布的动态
-      if (annRes.status === "fulfilled") {
-        for (const a of annRes.value) {
-          merged.push({
-            key: `a:${a.id}`,
-            source: "announcement",
-            type: a.type,
-            title: a.title,
-            summary: a.summary,
-            timestamp: a.published_at,
-            pinned: !!a.is_pinned,
-            href: a.link_url || null,
-            external: a.link_url ? isExternalHref(a.link_url) : false,
-            linkLabel: a.link_label || null,
-          });
-        }
+      for (const a of snapshot.announcements.slice(0, MAX_ITEMS)) {
+        merged.push({
+          key: `a:${a.id}`,
+          source: "announcement",
+          type: a.type,
+          title: a.title,
+          summary: a.summary,
+          timestamp: a.published_at,
+          pinned: !!a.is_pinned,
+          href: a.link_url || null,
+          external: a.link_url ? isExternalHref(a.link_url) : false,
+          linkLabel: a.link_label || null,
+        });
       }
 
       // 2) 自动汇聚最新课程
-      if (courseRes.status === "fulfilled") {
-        for (const c of courseRes.value) {
-          merged.push({
-            key: `c:${c.id}`,
-            source: "course",
-            type: "new_course",
-            title: c.title,
-            summary: c.description || null,
-            timestamp: c.created_at || new Date().toISOString(),
-            pinned: false,
-            href: `/courses/${c.id}`,
-            external: false,
-            linkLabel: "去学习",
-          });
-        }
+      for (const c of snapshot.latest_courses.slice(0, MAX_LATEST_COURSES)) {
+        merged.push({
+          key: `c:${c.id}`,
+          source: "course",
+          type: "new_course",
+          title: c.title,
+          summary: c.description || null,
+          timestamp: c.created_at || new Date().toISOString(),
+          pinned: false,
+          href: `/courses/${c.id}`,
+          external: false,
+          linkLabel: "去学习",
+        });
       }
 
       // 3) 近期活动 / 直播（未结束的；进行中的共学/磨课等也展示）
-      if (activityRes.status === "fulfilled") {
-        // 按 created_at 倒序，保证运营新加的活动优先入选（不被裁掉）
-        const current = activityRes.value
-          .filter((act) => act.is_active && isActivityNotEnded(act.end_time))
-          .slice()
-          .sort(
-            (a, b) =>
-              new Date(b.created_at).getTime() -
-              new Date(a.created_at).getTime()
-          )
-          .slice(0, MAX_ACTIVITIES);
-        for (const act of current) {
-          const feedType = activityToFeedType(act.activity_type);
-          merged.push({
-            key: `v:${act.id}`,
-            source: "activity",
-            type: feedType,
-            title: act.title,
-            summary: act.description || null,
-            timestamp: activitySortTimestamp(act.start_time, act.created_at),
-            pinned: false,
-            // 活动卡片永远指向详情页：详情页会展示运营填写的全部信息，
-            // 并在有「会议链接」时再给出对应入口。很多活动只是告知性质，
-            // 不一定有视频/会议链接，不能因缺链接就让卡片无法点击。
-            href: `/activities/${act.id}`,
-            external: false,
-            linkLabel: ACTIVITY_LABEL[act.activity_type],
-            timeLabel: activityDisplayLabel(act.start_time, act.end_time),
-          });
-        }
+      // 按 created_at 倒序，保证运营新加的活动优先入选（不被裁掉）
+      const current = snapshot.activities
+        .filter((act) => act.is_active && isActivityNotEnded(act.end_time))
+        .slice()
+        .sort(
+          (a, b) =>
+            new Date(b.created_at).getTime() -
+            new Date(a.created_at).getTime()
+        )
+        .slice(0, MAX_ACTIVITIES);
+      for (const act of current) {
+        const feedType = activityToFeedType(act.activity_type);
+        merged.push({
+          key: `v:${act.id}`,
+          source: "activity",
+          type: feedType,
+          title: act.title,
+          summary: act.description || null,
+          timestamp: activitySortTimestamp(act.start_time, act.created_at),
+          pinned: false,
+          // 活动卡片永远指向详情页：详情页会展示运营填写的全部信息，
+          // 并在有「会议链接」时再给出对应入口。很多活动只是告知性质，
+          // 不一定有视频/会议链接，不能因缺链接就让卡片无法点击。
+          href: `/activities/${act.id}`,
+          external: false,
+          linkLabel: ACTIVITY_LABEL[act.activity_type],
+          timeLabel: activityDisplayLabel(act.start_time, act.end_time),
+        });
       }
 
       // 排序：置顶优先，其余按时间倒序
@@ -209,7 +195,13 @@ export function useAnnouncementFeed(): AnnouncementFeedState {
         setItems(merged.slice(0, MAX_ITEMS));
         setLoading(false);
       }
-    })();
+    })().catch((error) => {
+      console.error("加载首页动态快照失败:", error);
+      if (!cancelled) {
+        setItems([]);
+        setLoading(false);
+      }
+    });
 
     return () => {
       cancelled = true;

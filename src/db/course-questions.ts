@@ -1,4 +1,5 @@
 import { supabase } from "@/db/supabase";
+import { createAsyncCache } from "@/lib/async-cache";
 import type {
   AdminCourseQuestionItem,
   CourseQuestion,
@@ -59,7 +60,7 @@ function assertNonEmptyText(value: string, fieldLabel: string) {
   return normalized;
 }
 
-export async function getCourseQuestionTags(): Promise<CourseQuestionTag[]> {
+async function fetchCourseQuestionTags(): Promise<CourseQuestionTag[]> {
   const { data, error } = await supabase
     .from("course_question_tags")
     .select("*")
@@ -75,7 +76,47 @@ export async function getCourseQuestionTags(): Promise<CourseQuestionTag[]> {
   return (data as CourseQuestionTag[]) ?? [];
 }
 
-export async function getCourseQuestions(courseId: string): Promise<CourseQuestionWithDetails[]> {
+const questionTagCache = createAsyncCache<CourseQuestionTag[]>({
+  key: "club.courseQuestionTags.v1",
+  ttlMs: 10 * 60 * 1000,
+  storage: "session",
+  fetcher: fetchCourseQuestionTags,
+});
+
+const courseQuestionCaches = new Map<string, ReturnType<typeof createAsyncCache<CourseQuestionWithDetails[]>>>();
+
+function getCourseQuestionCache(courseId: string) {
+  const existing = courseQuestionCaches.get(courseId);
+  if (existing) return existing;
+  const cache = createAsyncCache<CourseQuestionWithDetails[]>({
+    key: `club.courseQuestions.v1.${courseId}`,
+    ttlMs: 30 * 1000,
+    storage: "session",
+    fetcher: () => fetchCourseQuestions(courseId),
+  });
+  courseQuestionCaches.set(courseId, cache);
+  return cache;
+}
+
+export function clearCourseQuestionsCache(courseId?: string): void {
+  if (courseId) {
+    courseQuestionCaches.get(courseId)?.clear();
+    courseQuestionCaches.delete(courseId);
+    return;
+  }
+  for (const cache of courseQuestionCaches.values()) cache.clear();
+  courseQuestionCaches.clear();
+}
+
+export function clearCourseQuestionTagsCache(): void {
+  questionTagCache.clear();
+}
+
+export async function getCourseQuestionTags(options: { fresh?: boolean } = {}): Promise<CourseQuestionTag[]> {
+  return questionTagCache.get(options);
+}
+
+async function fetchCourseQuestions(courseId: string): Promise<CourseQuestionWithDetails[]> {
   const { data, error } = await supabase.rpc("course_questions_feed", {
     p_course_id: courseId,
   });
@@ -86,6 +127,13 @@ export async function getCourseQuestions(courseId: string): Promise<CourseQuesti
   }
 
   return normalizeQuestionFeed(data);
+}
+
+export async function getCourseQuestions(
+  courseId: string,
+  options: { fresh?: boolean } = {},
+): Promise<CourseQuestionWithDetails[]> {
+  return getCourseQuestionCache(courseId).get(options);
 }
 
 export async function createCourseQuestion(params: {
@@ -126,6 +174,7 @@ export async function createCourseQuestion(params: {
     }
   }
 
+  clearCourseQuestionsCache(params.courseId);
   return question;
 }
 
@@ -153,7 +202,9 @@ export async function createCourseQuestionReply(params: {
     throw error;
   }
 
-  return data as CourseQuestionReply;
+  const reply = data as CourseQuestionReply;
+  clearCourseQuestionsCache();
+  return reply;
 }
 
 export async function getAdminCourseQuestions(): Promise<AdminCourseQuestionItem[]> {
@@ -185,6 +236,7 @@ export async function updateCourseQuestionStatus(
     console.error("updateCourseQuestionStatus error:", error);
     throw error;
   }
+  clearCourseQuestionsCache();
 }
 
 export async function updateCourseQuestionReplyStatus(
@@ -200,4 +252,5 @@ export async function updateCourseQuestionReplyStatus(
     console.error("updateCourseQuestionReplyStatus error:", error);
     throw error;
   }
+  clearCourseQuestionsCache();
 }

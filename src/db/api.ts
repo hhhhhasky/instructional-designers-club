@@ -1,4 +1,5 @@
-import { normalizePlusCourseStructure, type PlusTrackConfig } from "@/lib/plusCourseStructure";
+import { createAsyncCache } from "@/lib/async-cache";
+import { getModuleIcon, normalizePlusCourseStructure, type PlusTrackConfig } from "@/lib/plusCourseStructure";
 import type {
   Activity,
   Announcement,
@@ -18,6 +19,9 @@ import type {
   Testimonial,
 } from "@/types/types";
 import { supabase } from "./supabase";
+
+const COURSE_SUMMARY_COLUMNS =
+  'id, title, description, body, essence, instructor, category_id, category, level, duration, credits, status, membership_type, is_trial, image_url, video_url, audio_url, images, plus_lesson_order, plus_representative, meeting_url, sort_order, view_count, created_at, updated_at';
 
 /**
  * 获取所有已发布的课程列表
@@ -436,16 +440,18 @@ export async function validateCategoryData(): Promise<{
   }
 }
 
-/**
- * 获取俱乐部统计数据
- * @returns 俱乐部统计数据
- */
-export async function getClubStats(): Promise<{
+export interface ClubStats {
   camps: number;
   courses: number;
   totalMinutes: number;
   members: number;
-}> {
+}
+
+/**
+ * 获取俱乐部统计数据
+ * @returns 俱乐部统计数据
+ */
+export async function getClubStats(): Promise<ClubStats> {
   try {
     // 并行查询学习营数量和课程数量
     const [categoriesResult, coursesResult] = await Promise.all([
@@ -582,16 +588,30 @@ type LearningData = {
   recentLearning: RecentLearningItem[];
 };
 
-// 仅合并同一用户的并发请求，请求完成后立即释放。
-// 不缓存已完成结果，避免课程上新/归档后学习主页继续使用旧目录。
-const learningRequests = new Map<string, Promise<LearningData>>();
+// 用户专属学习数据：短缓存 + 写后失效。用于 /learning、/learning-map 和预览卡互跳时复用。
+const learningDataCaches = new Map<string, ReturnType<typeof createAsyncCache<LearningData>>>();
+
+function getLearningDataCache(userId: string) {
+  const existing = learningDataCaches.get(userId);
+  if (existing) return existing;
+  const cache = createAsyncCache<LearningData>({
+    key: `club.learningData.v1.${userId}`,
+    ttlMs: 60 * 1000,
+    storage: 'session',
+    fetcher: () => _fetchLearningData(userId),
+  });
+  learningDataCaches.set(userId, cache);
+  return cache;
+}
 
 export function clearLearningDataCache(userId: string): void {
-  learningRequests.delete(userId);
+  learningDataCaches.get(userId)?.clear();
+  learningDataCaches.delete(userId);
 }
 
 export function clearAllLearningDataCaches(): void {
-  learningRequests.clear();
+  for (const cache of learningDataCaches.values()) cache.clear();
+  learningDataCaches.clear();
 }
 
 /**
@@ -599,18 +619,7 @@ export function clearAllLearningDataCaches(): void {
  * 仅 2 次 Supabase 查询，客户端聚合。课程目录以 courses 表的已发布课程为唯一数据源。
  */
 export async function getLearningData(userId: string, options: { fresh?: boolean } = {}): Promise<LearningData> {
-  if (options.fresh) learningRequests.delete(userId);
-  const pending = learningRequests.get(userId);
-  if (pending) return pending;
-  const dataPromise = _fetchLearningData(userId);
-  learningRequests.set(userId, dataPromise);
-  try {
-    return await dataPromise;
-  } finally {
-    if (learningRequests.get(userId) === dataPromise) {
-      learningRequests.delete(userId);
-    }
-  }
+  return getLearningDataCache(userId).get(options);
 }
 
 async function _fetchLearningData(userId: string): Promise<LearningData> {
@@ -745,6 +754,554 @@ async function _fetchLearningData(userId: string): Promise<LearningData> {
 }
 
 // ==================== 内容运营后台 · 前台读取（R-P0-02） ====================
+
+export interface HomeCourseBuckets {
+  free: Course[];
+  plus: Course[];
+  pro: Course[];
+}
+
+export interface HomePageSnapshot {
+  site_content: Record<string, SiteContent> | null;
+  member_profiles: MemberProfile[] | null;
+  testimonials: Testimonial[] | null;
+  faqs: Faq[] | null;
+  announcements: Announcement[];
+  latest_courses: Course[];
+  activities: Activity[];
+  home_courses: HomeCourseBuckets;
+  stats_counts: ClubStats;
+  generated_at: string | null;
+  source_updated_at: string | null;
+  source: 'rpc' | 'rest-fallback';
+}
+
+const HOME_CONTENT_SECTION_KEYS = [
+  'hero',
+  'introduction',
+  'club_values',
+  'founder',
+  'stats',
+  'members',
+  'testimonials',
+  'faq',
+] as const;
+
+const HOME_PAGE_SNAPSHOT_TTL_MS = 2 * 60 * 1000;
+
+function normalizeSiteContentMap(rows: SiteContent[] | null | undefined): Record<string, SiteContent> {
+  if (!Array.isArray(rows)) return {};
+  return rows.reduce<Record<string, SiteContent>>((acc, row) => {
+    if (row?.section_key) acc[row.section_key] = row;
+    return acc;
+  }, {});
+}
+
+function isHomePageSnapshot(value: unknown): value is Omit<HomePageSnapshot, 'source'> {
+  return !!value && typeof value === 'object' && 'site_content' in value && 'home_courses' in value;
+}
+
+function withDefaultHomeBuckets(value: Partial<HomeCourseBuckets> | null | undefined): HomeCourseBuckets {
+  return {
+    free: Array.isArray(value?.free) ? value.free : [],
+    plus: Array.isArray(value?.plus) ? value.plus : [],
+    pro: Array.isArray(value?.pro) ? value.pro : [],
+  };
+}
+
+function pickSettledData<T>(res: PromiseSettledResult<{ data: unknown; error: unknown }>): T[] | null {
+  if (res.status !== 'fulfilled' || res.value.error) return null;
+  return Array.isArray(res.value.data) ? (res.value.data as T[]) : [];
+}
+
+function normalizeHomeSnapshot(value: unknown, source: HomePageSnapshot['source']): HomePageSnapshot {
+  if (!isHomePageSnapshot(value)) {
+    throw new Error('Invalid home page snapshot payload');
+  }
+  const raw = value as Partial<HomePageSnapshot>;
+  return {
+    site_content:
+      raw.site_content && typeof raw.site_content === 'object'
+        ? (raw.site_content as Record<string, SiteContent>)
+        : null,
+    member_profiles: Array.isArray(raw.member_profiles) ? raw.member_profiles : null,
+    testimonials: Array.isArray(raw.testimonials) ? raw.testimonials : null,
+    faqs: Array.isArray(raw.faqs) ? raw.faqs : null,
+    announcements: Array.isArray(raw.announcements) ? raw.announcements : [],
+    latest_courses: Array.isArray(raw.latest_courses) ? raw.latest_courses : [],
+    activities: Array.isArray(raw.activities) ? raw.activities : [],
+    home_courses: withDefaultHomeBuckets(raw.home_courses),
+    stats_counts: {
+      camps: Number(raw.stats_counts?.camps ?? 0),
+      courses: Number(raw.stats_counts?.courses ?? 0),
+      totalMinutes: Number(raw.stats_counts?.totalMinutes ?? 0),
+      members: Number(raw.stats_counts?.members ?? 0),
+    },
+    generated_at: typeof raw.generated_at === 'string' ? raw.generated_at : null,
+    source_updated_at: typeof raw.source_updated_at === 'string' ? raw.source_updated_at : null,
+    source,
+  };
+}
+
+async function fetchHomePageSnapshotRpc(): Promise<HomePageSnapshot> {
+  const { data, error } = await supabase.rpc('home_page_snapshot', {
+    latest_course_days: 60,
+    announcement_limit: 8,
+    latest_course_limit: 4,
+    activity_limit: 20,
+    home_course_limit: 4,
+  });
+
+  if (error) throw error;
+  return normalizeHomeSnapshot(data, 'rpc');
+}
+
+async function fetchHomePageSnapshotRestFallback(): Promise<HomePageSnapshot> {
+  const nowIso = new Date().toISOString();
+  const latestSince = Date.now() - 60 * 24 * 60 * 60 * 1000;
+
+  const [
+    siteRes,
+    memberRes,
+    testimonialRes,
+    faqRes,
+    coursesRes,
+    categoriesRes,
+    announcementRes,
+    activityRes,
+  ] = await Promise.allSettled([
+    supabase
+      .from('site_content')
+      .select('*')
+      .in('section_key', [...HOME_CONTENT_SECTION_KEYS]),
+    supabase
+      .from('member_profiles')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('testimonials')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('faqs')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('courses')
+      .select(COURSE_SUMMARY_COLUMNS)
+      .eq('status', 'published')
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('course_categories')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_active', true),
+    supabase
+      .from('announcements')
+      .select('*')
+      .eq('is_active', true)
+      .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
+      .order('is_pinned', { ascending: false })
+      .order('published_at', { ascending: false })
+      .limit(8),
+    supabase
+      .from('activities')
+      .select('*')
+      .eq('is_active', true)
+      .order('start_time', { ascending: true, nullsFirst: false })
+      .order('sort_order', { ascending: true })
+      .limit(20),
+  ]);
+
+  const siteRows = pickSettledData<SiteContent>(siteRes);
+  const siteContent = siteRows ? normalizeSiteContentMap(siteRows) : null;
+  const statsData = siteContent?.stats?.data ?? {};
+  const memberOverride = statsData.member_count;
+  const hasMemberOverride = typeof memberOverride === 'number' && memberOverride >= 0;
+  let memberCount = hasMemberOverride ? memberOverride : 0;
+  if (!hasMemberOverride) {
+    const { data: rpcCount, error } = await supabase.rpc('public_member_count');
+    if (!error && typeof rpcCount === 'number') memberCount = rpcCount;
+  }
+
+  const courses = pickSettledData<Course>(coursesRes) ?? [];
+  const bySortOrder = (a: Course, b: Course) => (a.sort_order ?? Number.MAX_SAFE_INTEGER) - (b.sort_order ?? Number.MAX_SAFE_INTEGER);
+  const latestCourses = courses
+    .filter((course) => course.created_at && new Date(course.created_at).getTime() >= latestSince)
+    .sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime())
+    .slice(0, 4);
+
+  const homeCourses: HomeCourseBuckets = {
+    free: courses.filter((course) => course.membership_type === 'free' || course.is_trial).sort(bySortOrder).slice(0, 4),
+    plus: courses.filter((course) => course.membership_type === 'plus').sort(bySortOrder).slice(0, 4),
+    pro: courses.filter((course) => course.membership_type === 'pro').sort(bySortOrder).slice(0, 4),
+  };
+
+  return {
+    site_content: siteContent,
+    member_profiles: pickSettledData<MemberProfile>(memberRes),
+    testimonials: pickSettledData<Testimonial>(testimonialRes),
+    faqs: pickSettledData<Faq>(faqRes),
+    announcements: pickSettledData<Announcement>(announcementRes) ?? [],
+    latest_courses: latestCourses,
+    activities: pickSettledData<Activity>(activityRes) ?? [],
+    home_courses: homeCourses,
+    stats_counts: {
+      camps:
+        categoriesRes.status === 'fulfilled' && !categoriesRes.value.error
+          ? Number((categoriesRes.value as { count?: number | null }).count ?? 0)
+          : 0,
+      courses: courses.length,
+      totalMinutes: courses.reduce((sum, course) => sum + (course.duration || 0), 0),
+      members: memberCount,
+    },
+    generated_at: new Date().toISOString(),
+    source_updated_at: null,
+    source: 'rest-fallback',
+  };
+}
+
+const homePageSnapshotCache = createAsyncCache<HomePageSnapshot>({
+  key: 'club.homePageSnapshot.v1',
+  ttlMs: HOME_PAGE_SNAPSHOT_TTL_MS,
+  storage: 'session',
+  fetcher: async () => {
+    try {
+      return await fetchHomePageSnapshotRpc();
+    } catch (error) {
+      console.warn('home_page_snapshot RPC unavailable; falling back to REST batch:', error);
+      return fetchHomePageSnapshotRestFallback();
+    }
+  },
+});
+
+export function clearHomePageSnapshotCache(): void {
+  homePageSnapshotCache.clear();
+}
+
+export function getCachedHomePageSnapshot(): HomePageSnapshot | null {
+  return homePageSnapshotCache.peek();
+}
+
+/**
+ * Public homepage snapshot with in-flight de-dupe + short TTL cache.
+ * Preferred path is one RPC request; if the migration is not applied yet,
+ * fall back to a smaller REST batch so the homepage keeps rendering.
+ */
+export async function getHomePageSnapshot(options: { fresh?: boolean } = {}): Promise<HomePageSnapshot> {
+  return homePageSnapshotCache.get(options);
+}
+
+export interface CategoryTagInfo {
+  applicable_audience: string[];
+  applicable_scenarios: string[];
+  content_types: string[];
+}
+
+export interface CourseCatalogSnapshot {
+  plus_courses: Course[];
+  plus_tracks: PlusTrackConfig[];
+  pro_courses: Course[];
+  pro_categories: string[];
+  pro_category_tags: Record<string, CategoryTagInfo>;
+  generated_at: string | null;
+  source_updated_at: string | null;
+  source: 'rpc' | 'rest-fallback';
+}
+
+interface RawCourseCatalogSnapshot {
+  plus_courses?: Course[];
+  plus_track_rows?: PlusCourseTrackRow[];
+  plus_module_rows?: PlusCourseModuleRow[];
+  plus_category_rows?: CourseCategory[];
+  pro_courses?: Course[];
+  pro_category_rows?: CourseCategory[];
+  generated_at?: string;
+  source_updated_at?: string;
+}
+
+export interface CourseDetailSnapshot {
+  course: Course | null;
+  catalog: CourseCatalogSnapshot | null;
+  sibling_courses: Course[];
+  generated_at: string | null;
+  source_updated_at: string | null;
+  source: 'rpc' | 'rest-fallback';
+}
+
+interface RawCourseDetailSnapshot extends RawCourseCatalogSnapshot {
+  course?: Course | null;
+  sibling_courses?: Course[];
+}
+
+function normalizeCategoryTagRows(rows: CourseCategory[]): Record<string, CategoryTagInfo> {
+  return rows.reduce<Record<string, CategoryTagInfo>>((acc, category) => {
+    acc[category.name] = {
+      applicable_audience: category.applicable_audience || [],
+      applicable_scenarios: category.applicable_scenarios || [],
+      content_types: category.content_types || [],
+    };
+    return acc;
+  }, {});
+}
+
+function deriveUsedCategories(courses: Course[], categoryRows: CourseCategory[]): string[] {
+  const used = new Set(courses.map((course) => course.category).filter(Boolean) as string[]);
+  return categoryRows
+    .filter((category) => used.has(category.name))
+    .map((category) => category.name);
+}
+
+function normalizeCourseCatalogSnapshot(
+  value: unknown,
+  source: CourseCatalogSnapshot['source'],
+): CourseCatalogSnapshot {
+  const raw = (value ?? {}) as RawCourseCatalogSnapshot;
+  const plusCourses = Array.isArray(raw.plus_courses) ? raw.plus_courses : [];
+  const plusTracks = normalizePlusCourseStructure(
+    Array.isArray(raw.plus_track_rows) ? raw.plus_track_rows : [],
+    Array.isArray(raw.plus_module_rows) ? raw.plus_module_rows : [],
+    Array.isArray(raw.plus_category_rows) ? raw.plus_category_rows : [],
+  );
+  const proCourses = Array.isArray(raw.pro_courses) ? raw.pro_courses : [];
+  const proCategoryRows = Array.isArray(raw.pro_category_rows) ? raw.pro_category_rows : [];
+
+  return {
+    plus_courses: plusCourses,
+    plus_tracks: plusTracks,
+    pro_courses: proCourses,
+    pro_categories: deriveUsedCategories(proCourses, proCategoryRows),
+    pro_category_tags: normalizeCategoryTagRows(proCategoryRows),
+    generated_at: typeof raw.generated_at === 'string' ? raw.generated_at : null,
+    source_updated_at: typeof raw.source_updated_at === 'string' ? raw.source_updated_at : null,
+    source,
+  };
+}
+
+function getTrackIconKey(track: PlusTrackConfig): string {
+  if (track.iconKey) return track.iconKey;
+  if (track.id === 'theory') return 'brain';
+  if (track.id === 'design-principles') return 'target';
+  if (track.id === 'scenarios') return 'compass';
+  return track.id;
+}
+
+function rehydrateCourseCatalogSnapshot(snapshot: CourseCatalogSnapshot): CourseCatalogSnapshot {
+  return {
+    ...snapshot,
+    plus_tracks: snapshot.plus_tracks.map((track) => ({
+      ...track,
+      icon: getModuleIcon(getTrackIconKey(track)),
+      modules: track.modules.map((module) => ({ ...module })),
+    })),
+  };
+}
+
+async function fetchCourseCatalogSnapshotRpc(): Promise<CourseCatalogSnapshot> {
+  const { data, error } = await supabase.rpc('course_catalog_snapshot');
+  if (error) throw error;
+  return normalizeCourseCatalogSnapshot(data, 'rpc');
+}
+
+async function fetchCourseCatalogSnapshotRestFallback(): Promise<CourseCatalogSnapshot> {
+  const [
+    plusCoursesRes,
+    plusTracksRes,
+    plusModulesRes,
+    plusCategoriesRes,
+    proCoursesRes,
+    proCategoriesRes,
+  ] = await Promise.allSettled([
+    supabase
+      .from('courses')
+      .select(COURSE_SUMMARY_COLUMNS)
+      .eq('status', 'published')
+      .eq('membership_type', 'plus')
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('plus_course_tracks')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .order('id', { ascending: true }),
+    supabase
+      .from('plus_course_modules')
+      .select('*')
+      .eq('is_active', true)
+      .order('track_id', { ascending: true })
+      .order('sort_order', { ascending: true })
+      .order('id', { ascending: true }),
+    supabase
+      .from('course_categories')
+      .select('*')
+      .eq('is_active', true)
+      .not('plus_track_id', 'is', null)
+      .order('plus_track_id', { ascending: true })
+      .order('sort_order', { ascending: true })
+      .order('name', { ascending: true }),
+    supabase
+      .from('courses')
+      .select(COURSE_SUMMARY_COLUMNS)
+      .eq('status', 'published')
+      .eq('membership_type', 'pro')
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('course_categories')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true }),
+  ]);
+
+  return normalizeCourseCatalogSnapshot(
+    {
+      plus_courses: pickSettledData<Course>(plusCoursesRes) ?? [],
+      plus_track_rows: pickSettledData<PlusCourseTrackRow>(plusTracksRes) ?? [],
+      plus_module_rows: pickSettledData<PlusCourseModuleRow>(plusModulesRes) ?? [],
+      plus_category_rows: pickSettledData<CourseCategory>(plusCategoriesRes) ?? [],
+      pro_courses: pickSettledData<Course>(proCoursesRes) ?? [],
+      pro_category_rows: pickSettledData<CourseCategory>(proCategoriesRes) ?? [],
+      generated_at: new Date().toISOString(),
+    },
+    'rest-fallback',
+  );
+}
+
+const courseCatalogSnapshotCache = createAsyncCache<CourseCatalogSnapshot>({
+  key: 'club.courseCatalogSnapshot.v1',
+  ttlMs: 10 * 60 * 1000,
+  storage: 'session',
+  fetcher: async () => {
+    try {
+      return await fetchCourseCatalogSnapshotRpc();
+    } catch (error) {
+      console.warn('course_catalog_snapshot RPC unavailable; falling back to REST batch:', error);
+      return fetchCourseCatalogSnapshotRestFallback();
+    }
+  },
+});
+
+export function clearCourseCatalogCache(): void {
+  courseCatalogSnapshotCache.clear();
+}
+
+export async function getCourseCatalogSnapshot(options: { fresh?: boolean } = {}): Promise<CourseCatalogSnapshot> {
+  return rehydrateCourseCatalogSnapshot(await courseCatalogSnapshotCache.get(options));
+}
+
+function normalizeCourseDetailSnapshot(
+  value: unknown,
+  source: CourseDetailSnapshot['source'],
+): CourseDetailSnapshot {
+  const raw = (value ?? {}) as RawCourseDetailSnapshot;
+  const course = raw.course ?? null;
+  const rawCatalog = normalizeCourseCatalogSnapshot(raw, source);
+  const hasCatalog =
+    rawCatalog.plus_courses.length > 0 ||
+    rawCatalog.plus_tracks.length > 0 ||
+    rawCatalog.pro_courses.length > 0 ||
+    rawCatalog.pro_categories.length > 0;
+
+  return {
+    course,
+    catalog: hasCatalog ? rehydrateCourseCatalogSnapshot(rawCatalog) : null,
+    sibling_courses: Array.isArray(raw.sibling_courses) ? raw.sibling_courses : [],
+    generated_at: typeof raw.generated_at === 'string' ? raw.generated_at : null,
+    source_updated_at: typeof raw.source_updated_at === 'string' ? raw.source_updated_at : null,
+    source,
+  };
+}
+
+async function fetchCourseDetailSnapshotRpc(courseId: string): Promise<CourseDetailSnapshot> {
+  const { data, error } = await supabase.rpc('course_detail_snapshot', {
+    p_course_id: courseId,
+  });
+  if (error) throw error;
+  return normalizeCourseDetailSnapshot(data, 'rpc');
+}
+
+async function fetchCourseDetailSnapshotRestFallback(courseId: string): Promise<CourseDetailSnapshot> {
+  const { data: course, error } = await supabase
+    .from('courses')
+    .select('*')
+    .eq('id', courseId)
+    .eq('status', 'published')
+    .maybeSingle();
+  if (error) throw error;
+  if (!course) {
+    return normalizeCourseDetailSnapshot({ course: null, generated_at: new Date().toISOString() }, 'rest-fallback');
+  }
+
+  const courseData = course as Course;
+  if (courseData.membership_type === 'plus' || courseData.membership_type === 'pro') {
+    const catalog = await getCourseCatalogSnapshot();
+    return {
+      course: courseData,
+      catalog,
+      sibling_courses: [],
+      generated_at: new Date().toISOString(),
+      source_updated_at: catalog.source_updated_at,
+      source: 'rest-fallback',
+    };
+  }
+
+  const siblingCourses = courseData.category
+    ? await getCoursesByMembershipAndCategory(courseData.membership_type, courseData.category)
+    : [];
+
+  return {
+    course: courseData,
+    catalog: null,
+    sibling_courses: siblingCourses,
+    generated_at: new Date().toISOString(),
+    source_updated_at: null,
+    source: 'rest-fallback',
+  };
+}
+
+const courseDetailSnapshotCaches = new Map<string, ReturnType<typeof createAsyncCache<CourseDetailSnapshot>>>();
+
+function getCourseDetailCache(courseId: string) {
+  const existing = courseDetailSnapshotCaches.get(courseId);
+  if (existing) return existing;
+  const cache = createAsyncCache<CourseDetailSnapshot>({
+    key: `club.courseDetailSnapshot.v1.${courseId}`,
+    ttlMs: 5 * 60 * 1000,
+    storage: 'session',
+    fetcher: async () => {
+      try {
+        return await fetchCourseDetailSnapshotRpc(courseId);
+      } catch (error) {
+        console.warn('course_detail_snapshot RPC unavailable; falling back to REST batch:', error);
+        return fetchCourseDetailSnapshotRestFallback(courseId);
+      }
+    },
+  });
+  courseDetailSnapshotCaches.set(courseId, cache);
+  return cache;
+}
+
+export function clearCourseDetailCache(courseId?: string): void {
+  if (courseId) {
+    courseDetailSnapshotCaches.get(courseId)?.clear();
+    courseDetailSnapshotCaches.delete(courseId);
+    return;
+  }
+  for (const cache of courseDetailSnapshotCaches.values()) cache.clear();
+  courseDetailSnapshotCaches.clear();
+}
+
+export async function getCourseDetailSnapshot(
+  courseId: string,
+  options: { fresh?: boolean } = {},
+): Promise<CourseDetailSnapshot> {
+  const snapshot = await getCourseDetailCache(courseId).get(options);
+  return {
+    ...snapshot,
+    catalog: snapshot.catalog ? rehydrateCourseCatalogSnapshot(snapshot.catalog) : null,
+  };
+}
 
 /**
  * 会员人数：优先取后台 site_content.stats.member_count 手填值，
@@ -943,7 +1500,7 @@ export async function getActivityById(id: string): Promise<Activity | null> {
  * 读取资源中心文章（仅激活项，按 sort_order 排序）。
  * 出错抛异常，便于调用方区分「运营清空」与「表缺失/网络异常」。
  */
-export async function getResources(): Promise<Resource[]> {
+async function fetchResources(): Promise<Resource[]> {
   const { data, error } = await supabase
     .from('resources')
     .select('*')
@@ -953,4 +1510,19 @@ export async function getResources(): Promise<Resource[]> {
     throw error;
   }
   return (data as Resource[]) ?? [];
+}
+
+const resourcesCache = createAsyncCache<Resource[]>({
+  key: 'club.resources.v1',
+  ttlMs: 10 * 60 * 1000,
+  storage: 'session',
+  fetcher: fetchResources,
+});
+
+export function clearResourcesCache(): void {
+  resourcesCache.clear();
+}
+
+export async function getResources(options: { fresh?: boolean } = {}): Promise<Resource[]> {
+  return resourcesCache.get(options);
 }

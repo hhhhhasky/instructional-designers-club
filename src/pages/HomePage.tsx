@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, GraduationCap, Users, Sparkles, Quote, Play, TrendingUp, Clock, Calendar, UserCheck, Gift, Crown, Star } from "lucide-react";
@@ -10,8 +10,6 @@ import PageNavigation from "@/components/common/PageNavigation";
 import CountUp from "@/components/ui/CountUp";
 import Footer from "@/components/common/Footer";
 import PricingSection from "@/components/pricing/PricingSection";
-import { getClubStats, getCoursesByMembershipType } from '@/db/api';
-import type { Course } from '@/types/types';
 import { TestimonialCarousel } from '@/components/testimonials/TestimonialCarousel';
 import { useAuth } from '@/contexts/AuthContext';
 import { canAccessCourse } from '@/lib/access-control';
@@ -27,6 +25,11 @@ export default function HomePage() {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeLevel, setUpgradeLevel] = useState<'plus' | 'pro'>('plus');
   const content = useHomeContent();
+  const stats = content.statsCounts;
+  const freeCourses = content.homeCourses.free;
+  const plusCourses = content.homeCourses.plus;
+  const proCourses = content.homeCourses.pro;
+  const loadingCourses = content.loadingHomeCourses;
 
   const handleCourseClick = useCallback((courseId: string, membershipType: string) => {
     if (membershipType === 'free') {
@@ -44,61 +47,6 @@ export default function HomePage() {
     }
     navigate(`/courses/${courseId}`);
   }, [navigate, user, accessLevel]);
-
-  // 俱乐部统计数据状态
-  const [stats, setStats] = useState({
-    camps: 0,
-    courses: 0,
-    totalMinutes: 0,
-    members: 500
-  });
-
-  // 课程数据状态
-  const [freeCourses, setFreeCourses] = useState<Course[]>([]);
-  const [plusCourses, setPlusCourses] = useState<Course[]>([]);
-  const [proCourses, setProCourses] = useState<Course[]>([]);
-  const [loadingCourses, setLoadingCourses] = useState(true);
-
-  // 加载统计数据
-  useEffect(() => {
-    const loadStats = async () => {
-      try {
-        const data = await getClubStats();
-        setStats(data);
-      } catch (error) {
-        console.error('加载俱乐部统计数据失败:', error);
-      }
-    };
-
-    loadStats();
-  }, []);
-
-  // 加载课程数据
-  useEffect(() => {
-    const loadCourses = async () => {
-      try {
-        setLoadingCourses(true);
-
-        // 并行加载三种类型的课程
-        const [freeData, plusData, proData] = await Promise.all([
-          getCoursesByMembershipType('free'),
-          getCoursesByMembershipType('plus'),
-          getCoursesByMembershipType('pro')
-        ]);
-
-        // 只取前几门课程用于展示
-        setFreeCourses(freeData.slice(0, 4));
-        setPlusCourses(plusData.slice(0, 4));
-        setProCourses(proData.slice(0, 4));
-      } catch (error) {
-        console.error('加载课程数据失败:', error);
-      } finally {
-        setLoadingCourses(false);
-      }
-    };
-
-    loadCourses();
-  }, []);
 
   const navItems = [
     { id: 'introduction', label: '俱乐部介绍' },

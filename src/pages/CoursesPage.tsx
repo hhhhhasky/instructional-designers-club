@@ -12,7 +12,7 @@ import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
 import MapPreviewCard from '@/components/learning/map/MapPreviewCard';
 import PageMeta from '@/components/common/PageMeta';
-import { getCoursesByMembershipType, getPlusCourseStructure } from '@/db/api';
+import { getCourseCatalogSnapshot, getCourseDetailSnapshot } from '@/db/api';
 import type { Course, PlusCourseTrackId } from '@/types/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { canAccessCourse } from '@/lib/access-control';
@@ -46,10 +46,9 @@ export default function CoursesPage() {
       try {
         setIsLoading(true);
         setError(null);
-        const [coursesData, structureData] = await Promise.all([
-          getCoursesByMembershipType('plus'),
-          getPlusCourseStructure(),
-        ]);
+        const catalog = await getCourseCatalogSnapshot();
+        const coursesData = catalog.plus_courses;
+        const structureData = catalog.plus_tracks;
         setAllCourses(coursesData);
         setPlusTracks(getEffectivePlusTracks(coursesData, structureData.length > 0 ? structureData : PLUS_TRACKS));
       } catch (err) {
@@ -234,6 +233,9 @@ function PlusCourseMap({
                         <button
                           key={course.id}
                           onClick={() => onCourseOpen(course)}
+                          onMouseEnter={() => void getCourseDetailSnapshot(course.id)}
+                          onFocus={() => void getCourseDetailSnapshot(course.id)}
+                          onTouchStart={() => void getCourseDetailSnapshot(course.id)}
                           className="w-full flex items-center justify-between gap-3 text-left text-xs text-txs hover:text-ac transition-colors"
                         >
                           <span className="truncate">{course.title}</span>
