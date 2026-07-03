@@ -4,6 +4,7 @@ import { BarChart3 } from "lucide-react";
 import AdminPageShell from "@/components/admin/AdminPageShell";
 import CourseManagementSection from "@/components/admin/CourseManagementSection";
 import CourseQuestionsManagementSection from "@/components/admin/CourseQuestionsManagementSection";
+import HaiManagementSection from "@/components/admin/HaiManagementSection";
 import StudentListSection from "@/components/admin/StudentListSection";
 import ContentManagementSection from "@/components/admin/content/ContentManagementSection";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ export default function AdminManagePage() {
           <TabsTrigger value="courses">课程管理</TabsTrigger>
           <TabsTrigger value="students">学员管理</TabsTrigger>
           <TabsTrigger value="questions">问答管理</TabsTrigger>
+          <TabsTrigger value="hai">HAI 配置</TabsTrigger>
           <TabsTrigger value="content">首页信息</TabsTrigger>
         </TabsList>
 
@@ -47,6 +49,10 @@ export default function AdminManagePage() {
 
         <TabsContent value="questions">
           <CourseQuestionsManagementSection />
+        </TabsContent>
+
+        <TabsContent value="hai">
+          <HaiManagementSection />
         </TabsContent>
 
         <TabsContent value="content">

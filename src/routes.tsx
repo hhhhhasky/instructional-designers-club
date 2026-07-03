@@ -11,6 +11,7 @@ import RegisterPage from './pages/RegisterPage';
 import SettingsPage from './pages/SettingsPage';
 import LearningPage from './pages/LearningPage';
 import LearningMapPage from './pages/LearningMapPage';
+import HaiPage from './pages/HaiPage';
 import AdminPage from './pages/AdminPage';
 import AdminManagePage from './pages/AdminManagePage';
 import type { ReactNode } from 'react';
@@ -69,6 +70,12 @@ const routes: RouteConfig[] = [
     name: '资源中心',
     path: '/resources',
     element: <ResourcesPage />,
+    visible: true
+  },
+  {
+    name: 'HAI',
+    path: '/hai',
+    element: <HaiPage />,
     visible: true
   },
   {

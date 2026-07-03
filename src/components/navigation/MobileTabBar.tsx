@@ -1,4 +1,4 @@
-import { BookOpen, FolderOpen, GraduationCap, Home, Sparkles } from 'lucide-react';
+import { BookOpen, Bot, GraduationCap, Home, Sparkles } from 'lucide-react';
 import { Link, useLocation, useMatch } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
@@ -16,8 +16,8 @@ export default function MobileTabBar() {
     { name: '首页', path: '/', icon: Home },
     { name: '通识课', path: '/courses', icon: BookOpen },
     { name: 'AI课', path: '/teacher-ai-courses', icon: Sparkles },
-    { name: '学习', path: '/learning', icon: GraduationCap },
-    { name: '资源', path: '/resources', icon: FolderOpen },
+    { name: 'HAI', path: '/hai', icon: Bot },
+    { name: '我的学习', path: '/learning', icon: GraduationCap },
   ];
 
   // 判断当前路径是否激活
