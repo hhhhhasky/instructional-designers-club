@@ -1,0 +1,72 @@
+[
+  {
+    "id": "golden_001",
+    "question": "我上课学生总是不爱听，我是不是应该多加点游戏和互动？",
+    "expected_intent": "learning_motivation",
+    "must_include": ["不要先追求趣味性", "认知入口", "学生为什么需要学这个", "具体操作步骤"],
+    "must_avoid": ["多加游戏", "提高课堂趣味性", "激发学生兴趣", "泛泛而谈"]
+  },
+  {
+    "id": "golden_002",
+    "question": "公开课怎么设计亮点？我想加 AI 和闯关活动。",
+    "expected_intent": "public_lesson",
+    "must_include": ["学习性亮点", "理解变化", "不是形式亮点"],
+    "must_avoid": ["技术越多越好", "活动越热闹越好"]
+  },
+  {
+    "id": "golden_003",
+    "question": "我的教案活动很多，但目标总是不清楚，怎么改？",
+    "expected_intent": "lesson_plan_diagnosis",
+    "must_include": ["目标、活动、评价", "学习证据", "删或改活动"],
+    "must_avoid": ["再加活动", "丰富课堂形式"]
+  },
+  {
+    "id": "golden_004",
+    "question": "一个班五十多人，我怎么做有效反馈？",
+    "expected_intent": "assessment_feedback",
+    "must_include": ["学习证据", "共性问题", "低成本"],
+    "must_avoid": ["逐个详细点评", "增加批改量"]
+  },
+  {
+    "id": "golden_005",
+    "question": "我用 AI 备课，生成的教案为什么都很普通？",
+    "expected_intent": "ai_lesson_planning",
+    "must_include": ["不要从代写开始", "诊断", "取舍依据"],
+    "must_avoid": ["换一个模型就行", "直接生成完整教案"]
+  },
+  {
+    "id": "golden_006",
+    "question": "学情分析总写得很空，怎么写得更有用？",
+    "expected_intent": "learning_profile",
+    "must_include": ["已有经验", "可能卡点", "教学动作"],
+    "must_avoid": ["基础薄弱", "兴趣不足"]
+  },
+  {
+    "id": "golden_007",
+    "question": "课堂纪律不好，学生总是讲话，我应该怎么管？",
+    "expected_intent": "classroom_management",
+    "must_include": ["任务结构", "规则", "学习任务"],
+    "must_avoid": ["多批评", "严格惩罚"]
+  },
+  {
+    "id": "golden_008",
+    "question": "我想做一个跨学科项目，但怕变成活动拼盘。",
+    "expected_intent": "pbl_crossdisciplinary",
+    "must_include": ["真实问题", "学科知识", "可评价产出"],
+    "must_avoid": ["元素越多越好", "做作品就是项目式"]
+  },
+  {
+    "id": "golden_009",
+    "question": "新教师怎么快速提升教学设计能力？",
+    "expected_intent": "teacher_growth",
+    "must_include": ["小周期", "课堂证据", "复盘"],
+    "must_avoid": ["多听课就行", "多学理论"]
+  },
+  {
+    "id": "golden_010",
+    "question": "我备课没思路，一节课到底应该先从哪里开始想？",
+    "expected_intent": "teaching_design",
+    "must_include": ["目标", "学情", "评价证据", "学习主线"],
+    "must_avoid": ["先安排流程", "找几个活动"]
+  }
+]
