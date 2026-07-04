@@ -2,7 +2,7 @@
 
 > 生成时间：2026-07-03
 > 最后更新：2026-07-04
-> 状态：✅ 数据库迁移已执行 · ✅ Edge Functions 已部署 · ✅ 核心单聊测试面已简化 · ✅ 旧 HAI 知识库已迁移 · ✅ 单聊已接入并部署 Context Orchestrator MVP · ⏳ 尚未提交 git
+> 状态：✅ 数据库迁移已执行 · ✅ Edge Functions 已部署 · ✅ 核心单聊测试面已简化 · ✅ 旧 HAI 知识库已迁移 · ✅ 单聊已接入并部署 Context Orchestrator MVP · ✅ HAI 配置页已接入编排参数与 trace
 
 ---
 
@@ -447,6 +447,47 @@ R06 版本：`ask-han-consultant-standard-2026-07-04`
 - 当前环境没有可用用户 access token，因此未执行真实用户态线上对话 smoke test；可用 `HAI_EVAL_ACCESS_TOKEN` 跑 `scripts/run-hai-context-eval.mjs`。
 - 旧 Prompt 仍保留在数据库和后台配置中，但单聊生成时不再把完整 system prompt 原样塞入上下文，只保留 response contract 和一段 developer 摘要。
 - 当前方法库/理论库仍复用迁移后的 `hai_knowledge_chunks`；后续需要把高质量哈老师方法论整理成结构化 method bank，并优化 ranking。
+
+### 5.14 ✅ HAI 配置页接入上下文编排（2026-07-04）
+
+本轮目标：把 Context Orchestrator 从“后端隐藏逻辑”同步暴露到 `/admin/manage` 的 `HAI 配置` 页面，后续调质量时可以直接改配置和看 trace。
+
+已完成：
+- `HAI 配置` 页面新增 `上下文编排` 面板。
+- 面板展示当前单聊链路状态：`Context Orchestrator` / `Legacy Prompt`。
+- 面板聚合展示并可编辑 `hai_runtime_settings` 中的编排配置：
+  - `context.orchestrator_enabled`
+  - `orchestrator.case_max`
+  - `orchestrator.method_max`
+  - `orchestrator.theory_max`
+  - `orchestrator.expression_max`
+  - `evaluator.enabled`
+  - `evaluator.pass_score`
+  - `evaluator.max_rewrites`
+- 面板展示 `ask-han` 模块的历史、记忆、素材召回、知识召回上限，仍写回 `hai_feature_modules`。
+- 面板展示 8 层上下文编排结构：身份边界、意图识别、记忆选择、问题重构、诊断路由、检索规划、回答生成、回答质检。
+- 面板读取最近 assistant message 的 `metadata.hai_context_trace`，展示 intent、诊断模块、记忆加载、上下文数量、质检分数和问题摘要。
+- 面板保留 golden eval 命令入口：`HAI_EVAL_ACCESS_TOKEN=... node scripts/run-hai-context-eval.mjs`。
+
+后端同步：
+- `HaiRuntimeConfig` 新增编排和质检参数。
+- `hai-chat` 会读取这些参数：
+  - 关闭 `context.orchestrator_enabled` 时回退旧 Prompt + 记忆 + RAG 链路。
+  - 开启时把 case/method/theory/expression 上限传给 `HAIContextOrchestrator`。
+  - `evaluator.pass_score` 控制质检通过阈值。
+  - `evaluator.enabled` / `evaluator.max_rewrites` 控制是否触发自动重写。
+- 新增迁移：`supabase/migrations/20260704203000_hai_context_orchestrator_settings.sql`。
+
+远程状态：
+- 已通过 `supabase db query --linked --file supabase/migrations/20260704203000_hai_context_orchestrator_settings.sql` 写入远程配置项。
+- 已查询确认 8 个配置项存在并启用。
+- 已执行 `supabase functions deploy hai-chat` 部署新函数。
+
+验证：
+- `deno check supabase/functions/hai-chat/index.ts`
+- `pnpm exec tsgo -p tsconfig.check.json`
+- `pnpm build`
+- `pnpm exec biome lint --only=correctness/noUndeclaredDependencies src/components/admin/HaiManagementSection.tsx supabase/functions/_shared/hai.ts supabase/functions/hai-chat/index.ts`
 
 ---
 

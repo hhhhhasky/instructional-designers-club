@@ -25,6 +25,14 @@ export type HaiRuntimeConfig = {
   contextWindowTokens: number;
   contextWarningRemainingRatio: number;
   defaultTemperature: number;
+  contextOrchestratorEnabled: boolean;
+  orchestratorCaseMax: number;
+  orchestratorMethodMax: number;
+  orchestratorTheoryMax: number;
+  orchestratorExpressionMax: number;
+  evaluatorEnabled: boolean;
+  evaluatorPassScore: number;
+  evaluatorMaxRewrites: number;
   materialMatchCount: number;
   knowledgeMatchCount: number;
   materialChunkMaxChars: number;
@@ -62,6 +70,14 @@ const defaultRuntimeConfig: HaiRuntimeConfig = {
   contextWindowTokens: 1000000,
   contextWarningRemainingRatio: 0.2,
   defaultTemperature: 0.25,
+  contextOrchestratorEnabled: true,
+  orchestratorCaseMax: 3,
+  orchestratorMethodMax: 2,
+  orchestratorTheoryMax: 1,
+  orchestratorExpressionMax: 5,
+  evaluatorEnabled: true,
+  evaluatorPassScore: 78,
+  evaluatorMaxRewrites: 1,
   materialMatchCount: 8,
   knowledgeMatchCount: 6,
   materialChunkMaxChars: 1800,
@@ -241,6 +257,14 @@ export async function loadHaiRuntimeConfig(admin: SupabaseClient): Promise<HaiRu
     contextWindowTokens: integerSetting(settings, "context.window_tokens", defaultRuntimeConfig.contextWindowTokens),
     contextWarningRemainingRatio: numberSetting(settings, "context.warning_remaining_ratio", defaultRuntimeConfig.contextWarningRemainingRatio),
     defaultTemperature: numberSetting(settings, "chat.temperature", defaultRuntimeConfig.defaultTemperature),
+    contextOrchestratorEnabled: booleanSetting(settings, "context.orchestrator_enabled", defaultRuntimeConfig.contextOrchestratorEnabled),
+    orchestratorCaseMax: integerSetting(settings, "orchestrator.case_max", defaultRuntimeConfig.orchestratorCaseMax),
+    orchestratorMethodMax: integerSetting(settings, "orchestrator.method_max", defaultRuntimeConfig.orchestratorMethodMax),
+    orchestratorTheoryMax: integerSetting(settings, "orchestrator.theory_max", defaultRuntimeConfig.orchestratorTheoryMax),
+    orchestratorExpressionMax: integerSetting(settings, "orchestrator.expression_max", defaultRuntimeConfig.orchestratorExpressionMax),
+    evaluatorEnabled: booleanSetting(settings, "evaluator.enabled", defaultRuntimeConfig.evaluatorEnabled),
+    evaluatorPassScore: numberSetting(settings, "evaluator.pass_score", defaultRuntimeConfig.evaluatorPassScore),
+    evaluatorMaxRewrites: integerSetting(settings, "evaluator.max_rewrites", defaultRuntimeConfig.evaluatorMaxRewrites),
     materialMatchCount: integerSetting(settings, "retrieval.material_match_count", defaultRuntimeConfig.materialMatchCount),
     knowledgeMatchCount: integerSetting(settings, "retrieval.knowledge_match_count", defaultRuntimeConfig.knowledgeMatchCount),
     materialChunkMaxChars: integerSetting(settings, "retrieval.material_chunk_max_chars", defaultRuntimeConfig.materialChunkMaxChars),
@@ -300,6 +324,14 @@ export function runtimeConfigSnapshot(runtime: HaiRuntimeConfig, options: HaiCha
     stop_sequences: options.stopSequences ?? [],
     context_window_tokens: runtime.contextWindowTokens,
     context_warning_remaining_ratio: runtime.contextWarningRemainingRatio,
+    context_orchestrator_enabled: runtime.contextOrchestratorEnabled,
+    orchestrator_case_max: runtime.orchestratorCaseMax,
+    orchestrator_method_max: runtime.orchestratorMethodMax,
+    orchestrator_theory_max: runtime.orchestratorTheoryMax,
+    orchestrator_expression_max: runtime.orchestratorExpressionMax,
+    evaluator_enabled: runtime.evaluatorEnabled,
+    evaluator_pass_score: runtime.evaluatorPassScore,
+    evaluator_max_rewrites: runtime.evaluatorMaxRewrites,
     material_match_count: runtime.materialMatchCount,
     knowledge_match_count: runtime.knowledgeMatchCount,
     material_chunk_max_chars: runtime.materialChunkMaxChars,

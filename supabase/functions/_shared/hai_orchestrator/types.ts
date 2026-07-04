@@ -96,6 +96,13 @@ export type HAIContextPackage = {
   style_pack: string;
 };
 
+export type HAIOrchestratorConfig = {
+  caseMax: number;
+  methodMax: number;
+  theoryMax: number;
+  expressionMax: number;
+};
+
 export type ResponseEvaluation = {
   pass: boolean;
   score: number;

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Activity, AlertTriangle, Bot, BookOpen, KeyRound, Loader2, Pencil, RefreshCw, Save, Settings2, SlidersHorizontal, Ticket, Trash2, UserPlus, X } from "lucide-react";
+import type { ReactNode } from "react";
+import { Activity, AlertTriangle, Bot, BookOpen, CheckCircle2, GitBranch, KeyRound, Layers3, Loader2, Pencil, RefreshCw, Route, Save, Settings2, ShieldCheck, SlidersHorizontal, Ticket, Trash2, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/db/supabase";
@@ -84,6 +85,45 @@ interface HaiUsageAlert {
   profiles?: HaiUserAccessRow["profiles"];
 }
 
+interface HaiTraceMessage {
+  id: string;
+  conversation_id: string;
+  content: string;
+  metadata: Record<string, unknown>;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  created_at: string;
+}
+
+interface HaiContextTrace {
+  question?: string;
+  intent_result?: {
+    primary_intent?: string;
+    confidence?: number;
+  };
+  memory_selection?: {
+    should_load_memory?: boolean;
+    memory_types?: string[];
+  };
+  diagnostic_module?: string;
+  retrieval_plan?: {
+    retrieve_cases?: boolean;
+    retrieve_methods?: boolean;
+    retrieve_theory?: boolean;
+    retrieve_expressions?: boolean;
+    max_cases?: number;
+    max_methods?: number;
+    max_theories?: number;
+    max_expressions?: number;
+  };
+  retrieved_context_ids?: Array<string | null | undefined>;
+  evaluation_result?: {
+    pass?: boolean;
+    score?: number;
+    problems?: string[];
+  };
+}
+
 interface HaiKnowledgeSource {
   id: string;
   title: string;
@@ -121,6 +161,7 @@ export default function HaiManagementSection() {
   const [prompts, setPrompts] = useState<HaiPromptVersion[]>([]);
   const [usageEvents, setUsageEvents] = useState<HaiUsageEvent[]>([]);
   const [usageAlerts, setUsageAlerts] = useState<HaiUsageAlert[]>([]);
+  const [traceMessages, setTraceMessages] = useState<HaiTraceMessage[]>([]);
   const [knowledgeSources, setKnowledgeSources] = useState<HaiKnowledgeSource[]>([]);
   const [runtimeSettings, setRuntimeSettings] = useState<HaiRuntimeSetting[]>([]);
   const [selectedUserId, setSelectedUserId] = useState("");
@@ -149,6 +190,28 @@ export default function HaiManagementSection() {
     () => prompts.find((item) => item.module_id === selectedModule?.id && item.status === "published") ?? null,
     [prompts, selectedModule?.id],
   );
+  const askHanModule = useMemo(
+    () => modules.find((item) => item.slug === "ask-han") ?? selectedModule,
+    [modules, selectedModule],
+  );
+  const orchestratorSettings = useMemo(
+    () => runtimeSettings.filter((setting) => setting.category === "上下文编排"),
+    [runtimeSettings],
+  );
+  const evaluatorSettings = useMemo(
+    () => runtimeSettings.filter((setting) => setting.category === "质检"),
+    [runtimeSettings],
+  );
+  const recentTraces = useMemo(
+    () => traceMessages
+      .map((message) => ({ message, trace: traceOf(message.metadata) }))
+      .filter((item): item is { message: HaiTraceMessage; trace: HaiContextTrace } => Boolean(item.trace))
+      .slice(0, 5),
+    [traceMessages],
+  );
+  const orchestratorEnabled = Boolean(runtimeSettings.find((item) => item.key === "context.orchestrator_enabled")?.value ?? true);
+  const evaluatorEnabled = Boolean(runtimeSettings.find((item) => item.key === "evaluator.enabled")?.value ?? true);
+  const passScore = Number(runtimeSettings.find((item) => item.key === "evaluator.pass_score")?.value ?? 78);
 
   useEffect(() => {
     void loadAll();
@@ -179,6 +242,7 @@ export default function HaiManagementSection() {
         promptResult,
         usageResult,
         alertResult,
+        traceResult,
         knowledgeResult,
         knowledgeChunkResult,
         runtimeResult,
@@ -216,6 +280,12 @@ export default function HaiManagementSection() {
           .order("created_at", { ascending: false })
           .limit(20),
         supabase
+          .from("hai_messages")
+          .select("id, conversation_id, content, metadata, input_tokens, output_tokens, created_at")
+          .eq("role", "assistant")
+          .order("created_at", { ascending: false })
+          .limit(30),
+        supabase
           .from("hai_knowledge_sources")
           .select("id, title, topic, source_type, visibility, is_active, metadata, updated_at")
           .order("updated_at", { ascending: false })
@@ -237,6 +307,7 @@ export default function HaiManagementSection() {
       if (promptResult.error) throw promptResult.error;
       if (usageResult.error) throw usageResult.error;
       if (alertResult.error) throw alertResult.error;
+      if (traceResult.error) throw traceResult.error;
       if (knowledgeResult.error) throw knowledgeResult.error;
       if (knowledgeChunkResult.error) throw knowledgeChunkResult.error;
       if (runtimeResult.error) throw runtimeResult.error;
@@ -251,6 +322,7 @@ export default function HaiManagementSection() {
       setPrompts((promptResult.data as HaiPromptVersion[]) ?? []);
       setUsageEvents((usageResult.data as HaiUsageEvent[]) ?? []);
       setUsageAlerts((alertResult.data as HaiUsageAlert[]) ?? []);
+      setTraceMessages(((traceResult.data as HaiTraceMessage[]) ?? []).filter((message) => Boolean(traceOf(message.metadata))));
       const chunkCounts = new Map<string, number>();
       for (const chunk of (knowledgeChunkResult.data ?? []) as Array<{ source_id: string }>) {
         chunkCounts.set(chunk.source_id, (chunkCounts.get(chunk.source_id) ?? 0) + 1);
@@ -627,6 +699,146 @@ export default function HaiManagementSection() {
           {status}
         </div>
       )}
+
+      <section className="rounded-ds-lg border border-bd bg-white p-4">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <GitBranch className="h-5 w-5 shrink-0 text-ac" />
+            <div className="min-w-0">
+              <h2 className="text-ds-lg font-ds-bold text-tx">上下文编排</h2>
+              <p className="mt-1 text-ds-xs text-txs">单聊链路：意图识别、按需记忆、问题重构、诊断框架、检索规划、回答质检与 trace。</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className={orchestratorEnabled ? "border-ac/30 text-ac" : "border-red-200 text-red-600"}>
+              {orchestratorEnabled ? "编排开启" : "旧链路回退"}
+            </Badge>
+            <Badge variant="outline" className={evaluatorEnabled ? "border-ac/30 text-ac" : "text-txs"}>
+              {evaluatorEnabled ? `质检 ${passScore} 分` : "质检关闭"}
+            </Badge>
+          </div>
+        </div>
+
+        <div className="grid gap-3 xl:grid-cols-4">
+          <MetricCard icon={<Route className="h-4 w-4" />} label="核心链路" value={orchestratorEnabled ? "Context Orchestrator" : "Legacy Prompt"} />
+          <MetricCard icon={<Layers3 className="h-4 w-4" />} label="诊断模块" value="10 intents" />
+          <MetricCard icon={<ShieldCheck className="h-4 w-4" />} label="最近 trace" value={`${recentTraces.length} 条`} />
+          <MetricCard icon={<CheckCircle2 className="h-4 w-4" />} label="当前版本" value={currentPrompt?.version_label ?? "未发布"} />
+        </div>
+
+        <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
+          <div className="space-y-4">
+            <div>
+              <div className="mb-2 flex items-center gap-2">
+                <SlidersHorizontal className="h-4 w-4 text-ac" />
+                <h3 className="text-ds-base font-ds-bold text-tx">编排参数</h3>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                {[...orchestratorSettings, ...evaluatorSettings].map((setting) => (
+                  <RuntimeSettingCard
+                    key={setting.key}
+                    setting={setting}
+                    onToggle={(enabled) => updateRuntimeSetting(setting, setting.value, enabled)}
+                    onSave={(value) => updateRuntimeSetting(setting, value)}
+                  />
+                ))}
+                {orchestratorSettings.length + evaluatorSettings.length === 0 && (
+                  <p className="rounded-ds-md bg-bg px-3 py-6 text-center text-ds-sm text-txs md:col-span-2">尚未写入上下文编排运行时配置。</p>
+                )}
+              </div>
+            </div>
+
+            {askHanModule && (
+              <div>
+                <div className="mb-2 flex items-center gap-2">
+                  <Bot className="h-4 w-4 text-ac" />
+                  <h3 className="text-ds-base font-ds-bold text-tx">问问哈老师模块上限</h3>
+                </div>
+                <div className="grid gap-3 md:grid-cols-4">
+                  <NumberInput label="历史条数" value={askHanModule.history_message_limit ?? 20} onChange={(value) => updateModule(askHanModule, { history_message_limit: value })} />
+                  <NumberInput label="记忆候选" value={askHanModule.memory_limit ?? 20} onChange={(value) => updateModule(askHanModule, { memory_limit: value })} />
+                  <NumberInput label="素材召回" value={askHanModule.material_match_count ?? 8} onChange={(value) => updateModule(askHanModule, { material_match_count: value })} />
+                  <NumberInput label="知识召回" value={askHanModule.knowledge_match_count ?? 6} onChange={(value) => updateModule(askHanModule, { knowledge_match_count: value })} />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <div className="mb-2 flex items-center gap-2">
+                <Layers3 className="h-4 w-4 text-ac" />
+                <h3 className="text-ds-base font-ds-bold text-tx">分层上下文</h3>
+              </div>
+              <div className="grid gap-2 md:grid-cols-4">
+                {[
+                  ["0", "身份边界", "core_identity"],
+                  ["1", "意图识别", "intent_classifier"],
+                  ["2", "记忆选择", "memory_selector"],
+                  ["3", "问题重构", "problem_rewriter"],
+                  ["4", "诊断路由", "diagnostic_router"],
+                  ["5", "检索规划", "retrieval_planner"],
+                  ["6", "回答生成", "response_composer"],
+                  ["7", "回答质检", "response_evaluator"],
+                ].map(([index, label, code]) => (
+                  <div key={code} className="rounded-ds-md border border-bd bg-bg px-3 py-2">
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <Badge variant="outline">{index}</Badge>
+                      <span className="text-ds-xs text-txs">{code}</span>
+                    </div>
+                    <p className="text-ds-sm font-ds-semibold text-tx">{label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-ds-md border border-bd bg-bg p-3">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Activity className="h-4 w-4 text-ac" />
+                <h3 className="text-ds-base font-ds-bold text-tx">最近编排 trace</h3>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => void loadAll()}>
+                <RefreshCw className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {recentTraces.length === 0 ? (
+                <p className="rounded-ds-md bg-white px-3 py-8 text-center text-ds-sm text-txs">暂无编排 trace。需要开启记录参数快照并完成一次 HAI 单聊。</p>
+              ) : recentTraces.map(({ message, trace }) => (
+                <div key={message.id} className="rounded-ds-md border border-bd bg-white p-3">
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline">{trace.intent_result?.primary_intent ?? "unknown"}</Badge>
+                      <Badge variant="outline" className={trace.evaluation_result?.pass ? "border-ac/30 text-ac" : "border-red-200 text-red-600"}>
+                        {typeof trace.evaluation_result?.score === "number" ? `${trace.evaluation_result.score} 分` : "未评分"}
+                      </Badge>
+                    </div>
+                    <span className="text-ds-xs text-txs">{formatDateTime(message.created_at)}</span>
+                  </div>
+                  <p className="line-clamp-2 text-ds-sm leading-relaxed text-tx">{trace.question ?? "无问题文本"}</p>
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-ds-xs text-txs">
+                    <span>诊断：{trace.diagnostic_module ?? "-"}</span>
+                    <span>记忆：{trace.memory_selection?.should_load_memory ? (trace.memory_selection.memory_types?.length ?? 0) : 0} 类</span>
+                    <span>上下文：{trace.retrieved_context_ids?.filter(Boolean).length ?? 0} 条</span>
+                    <span>输出：{formatNumber(message.output_tokens ?? 0)} tokens</span>
+                  </div>
+                  {trace.evaluation_result?.problems && trace.evaluation_result.problems.length > 0 && (
+                    <p className="mt-2 line-clamp-2 text-ds-xs leading-relaxed text-red-600">
+                      {trace.evaluation_result.problems.join("；")}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 rounded-ds-md border border-bd bg-white p-3">
+              <p className="mb-2 text-ds-xs font-ds-bold text-tx">Golden Eval</p>
+              <code className="block overflow-x-auto whitespace-nowrap rounded-ds-sm bg-bg px-2 py-2 text-[11px] text-txs">
+                HAI_EVAL_ACCESS_TOKEN=... node scripts/run-hai-context-eval.mjs
+              </code>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section className="rounded-ds-lg border border-bd bg-white p-4">
         <div className="mb-4 flex items-center gap-2">
@@ -1064,6 +1276,67 @@ export default function HaiManagementSection() {
       </section>
     </div>
   );
+}
+
+function MetricCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-ds-md border border-bd bg-bg px-3 py-3">
+      <div className="mb-2 flex items-center gap-2 text-ac">
+        {icon}
+        <span className="text-ds-xs text-txs">{label}</span>
+      </div>
+      <p className="truncate text-ds-base font-ds-bold text-tx">{value}</p>
+    </div>
+  );
+}
+
+function RuntimeSettingCard({
+  setting,
+  onToggle,
+  onSave,
+}: {
+  setting: HaiRuntimeSetting;
+  onToggle: (enabled: boolean) => void;
+  onSave: (value: string | number | boolean) => void;
+}) {
+  return (
+    <div className="rounded-ds-md border border-bd bg-bg p-3">
+      <div className="mb-2 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-ds-sm font-ds-bold text-tx">{setting.label}</p>
+          <p className="mt-1 truncate text-[11px] text-txs">{setting.key}</p>
+        </div>
+        <label className="flex shrink-0 items-center gap-1 text-ds-xs text-txs">
+          <input
+            type="checkbox"
+            checked={setting.enabled}
+            onChange={(event) => onToggle(event.target.checked)}
+          />
+          启用
+        </label>
+      </div>
+      <p className="mb-3 min-h-10 text-ds-xs leading-relaxed text-txs">{setting.description}</p>
+      <RuntimeSettingInput setting={setting} onSave={onSave} />
+    </div>
+  );
+}
+
+function traceOf(metadata: Record<string, unknown>): HaiContextTrace | null {
+  const trace = metadata.hai_context_trace;
+  if (!isRecord(trace)) return null;
+  return trace as HaiContextTrace;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function profileOf(value: HaiUserAccessRow["profiles"]) {

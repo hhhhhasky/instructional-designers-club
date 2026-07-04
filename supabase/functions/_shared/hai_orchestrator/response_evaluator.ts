@@ -10,7 +10,11 @@ const genericPhrases = [
   "寓教于乐",
 ];
 
-export function evaluateResponse(answer: string, context: HAIContextPackage): ResponseEvaluation {
+export function evaluateResponse(
+  answer: string,
+  context: HAIContextPackage,
+  options: { passScore?: number } = {},
+): ResponseEvaluation {
   const normalized = answer.replace(/\s+/g, "");
   const hasClearJudgement = /不是|不要先|真正|核心|关键|先判断|问题不在/.test(answer.slice(0, 180));
   const hasProblemReframing = /表面|更深层|真正的问题|不是.+而是|误区|归因/.test(answer);
@@ -51,8 +55,10 @@ export function evaluateResponse(answer: string, context: HAIContextPackage): Re
   const score = Object.entries(checks).reduce((total, [key, passed]) => total + (passed ? weights[key as keyof typeof checks] : 0), 0);
   const problems = buildProblems(checks);
 
+  const passScore = Math.max(0, Math.min(100, Math.round(options.passScore ?? 78)));
+
   return {
-    pass: score >= 78 && problems.length <= 2,
+    pass: score >= passScore && problems.length <= 2,
     score,
     problems,
     rewrite_instructions: buildRewriteInstructions(problems, context),
