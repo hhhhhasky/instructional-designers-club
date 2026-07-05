@@ -27,6 +27,9 @@ export type IntentResult = {
   implicit_need?: string;
   risk_of_wrong_framing?: string;
   confidence: number;
+  route_method?: "keyword" | "llm" | "fallback";
+  route_reason?: string;
+  matched_signals?: string[];
 };
 
 export type MemorySelection = {
@@ -82,6 +85,9 @@ export type RetrievedContextItem = {
 export type HAIContextPackage = {
   user_question: string;
   core_identity: string;
+  safety_boundaries: string;
+  response_composer_prompt?: string;
+  evaluator_prompt?: string;
   intent_result: IntentResult;
   memory_selection: MemorySelection;
   selected_memory?: unknown;
@@ -102,6 +108,8 @@ export type HAIOrchestratorConfig = {
   theoryMax: number;
   expressionMax: number;
 };
+
+export type HAIPromptConfigMap = Record<string, string>;
 
 export type ResponseEvaluation = {
   pass: boolean;

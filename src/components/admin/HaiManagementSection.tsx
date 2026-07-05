@@ -100,6 +100,9 @@ interface HaiContextTrace {
   intent_result?: {
     primary_intent?: string;
     confidence?: number;
+    route_method?: string;
+    route_reason?: string;
+    matched_signals?: string[];
   };
   memory_selection?: {
     should_load_memory?: boolean;
@@ -152,6 +155,18 @@ interface HaiRuntimeSetting {
   enabled: boolean;
 }
 
+interface HaiOrchestratorPromptConfig {
+  key: string;
+  layer_order: number;
+  layer_key: string;
+  label: string;
+  description: string;
+  content: string;
+  default_content: string;
+  enabled: boolean;
+  updated_at: string;
+}
+
 export default function HaiManagementSection() {
   const [students, setStudents] = useState<StudentItem[]>([]);
   const [accessRows, setAccessRows] = useState<HaiUserAccessRow[]>([]);
@@ -164,6 +179,9 @@ export default function HaiManagementSection() {
   const [traceMessages, setTraceMessages] = useState<HaiTraceMessage[]>([]);
   const [knowledgeSources, setKnowledgeSources] = useState<HaiKnowledgeSource[]>([]);
   const [runtimeSettings, setRuntimeSettings] = useState<HaiRuntimeSetting[]>([]);
+  const [orchestratorPromptConfigs, setOrchestratorPromptConfigs] = useState<HaiOrchestratorPromptConfig[]>([]);
+  const [selectedPromptConfigKey, setSelectedPromptConfigKey] = useState("");
+  const [promptConfigDraft, setPromptConfigDraft] = useState("");
   const [selectedUserId, setSelectedUserId] = useState("");
   const [studentSearch, setStudentSearch] = useState("");
   const [selectedModuleId, setSelectedModuleId] = useState("");
@@ -202,6 +220,22 @@ export default function HaiManagementSection() {
     () => runtimeSettings.filter((setting) => setting.category === "质检"),
     [runtimeSettings],
   );
+  const routerSettings = useMemo(
+    () => runtimeSettings.filter((setting) => setting.category === "路由"),
+    [runtimeSettings],
+  );
+  const selectedPromptConfig = useMemo(
+    () => orchestratorPromptConfigs.find((item) => item.key === selectedPromptConfigKey) ?? orchestratorPromptConfigs[0] ?? null,
+    [orchestratorPromptConfigs, selectedPromptConfigKey],
+  );
+  const promptConfigGroups = useMemo(() => {
+    const groups = new Map<string, HaiOrchestratorPromptConfig[]>();
+    for (const config of orchestratorPromptConfigs) {
+      const label = `${config.layer_order}｜${config.layer_key}`;
+      groups.set(label, [...(groups.get(label) ?? []), config]);
+    }
+    return Array.from(groups.entries());
+  }, [orchestratorPromptConfigs]);
   const recentTraces = useMemo(
     () => traceMessages
       .map((message) => ({ message, trace: traceOf(message.metadata) }))
@@ -228,6 +262,14 @@ export default function HaiManagementSection() {
     });
   }, [selectedModule, prompts]);
 
+  useEffect(() => {
+    if (!selectedPromptConfig) {
+      setPromptConfigDraft("");
+      return;
+    }
+    setPromptConfigDraft(selectedPromptConfig.content);
+  }, [selectedPromptConfig]);
+
   async function loadAll() {
     setLoading(true);
     setLoadError("");
@@ -246,6 +288,7 @@ export default function HaiManagementSection() {
         knowledgeResult,
         knowledgeChunkResult,
         runtimeResult,
+        orchestratorPromptResult,
       ] = await Promise.all([
         getAdminStudentList(),
         supabase
@@ -298,6 +341,11 @@ export default function HaiManagementSection() {
           .select("*")
           .order("category", { ascending: true })
           .order("key", { ascending: true }),
+        supabase
+          .from("hai_orchestrator_prompt_configs")
+          .select("*")
+          .order("layer_order", { ascending: true })
+          .order("key", { ascending: true }),
       ]);
 
       if (accessResult.error) throw accessResult.error;
@@ -311,6 +359,7 @@ export default function HaiManagementSection() {
       if (knowledgeResult.error) throw knowledgeResult.error;
       if (knowledgeChunkResult.error) throw knowledgeChunkResult.error;
       if (runtimeResult.error) throw runtimeResult.error;
+      if (orchestratorPromptResult.error) throw orchestratorPromptResult.error;
 
       setStudents(studentRows);
       setAccessRows((accessResult.data as HaiUserAccessRow[]) ?? []);
@@ -332,6 +381,9 @@ export default function HaiManagementSection() {
         chunk_count: chunkCounts.get(source.id) ?? 0,
       })));
       setRuntimeSettings((runtimeResult.data as HaiRuntimeSetting[]) ?? []);
+      const promptConfigRows = (orchestratorPromptResult.data as HaiOrchestratorPromptConfig[]) ?? [];
+      setOrchestratorPromptConfigs(promptConfigRows);
+      setSelectedPromptConfigKey((current) => current || promptConfigRows[0]?.key || "");
     } catch (error) {
       const message = error instanceof Error ? error.message : "未知错误";
       setLoadError(message);
@@ -420,6 +472,42 @@ export default function HaiManagementSection() {
       item.key === setting.key ? { ...item, value: normalized, enabled } : item
     )));
     setStatus("运行时设置已保存。");
+  }
+
+  async function updateOrchestratorPromptConfig(config: HaiOrchestratorPromptConfig, updates: Partial<HaiOrchestratorPromptConfig>) {
+    if (saving) return;
+    setSaving(true);
+    setStatus("");
+    try {
+      const { error } = await supabase
+        .from("hai_orchestrator_prompt_configs")
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("key", config.key);
+      if (error) throw error;
+      setOrchestratorPromptConfigs((current) => current.map((item) => (
+        item.key === config.key ? { ...item, ...updates, updated_at: new Date().toISOString() } : item
+      )));
+      setStatus("上下文编排 Prompt 已保存。");
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "未知错误";
+      setStatus(`编排配置保存失败：${msg}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveSelectedPromptConfig() {
+    if (!selectedPromptConfig || saving) return;
+    await updateOrchestratorPromptConfig(selectedPromptConfig, { content: promptConfigDraft });
+  }
+
+  async function resetSelectedPromptConfig() {
+    if (!selectedPromptConfig || saving) return;
+    setPromptConfigDraft(selectedPromptConfig.default_content);
+    await updateOrchestratorPromptConfig(selectedPromptConfig, { content: selectedPromptConfig.default_content });
   }
 
   async function updateQuota(policy: HaiQuotaPolicy, updates: Partial<HaiQuotaPolicy>) {
@@ -693,6 +781,7 @@ export default function HaiManagementSection() {
         <div className={`rounded-ds-md border px-4 py-3 text-ds-sm ${
           status.startsWith("创建失败") || status.startsWith("授权失败") || status.startsWith("发布失败") || status.startsWith("入库失败")
             || status.startsWith("删除失败") || status.startsWith("重新分块失败") || status.startsWith("加载原文失败") || status.startsWith("修改失败")
+            || status.startsWith("编排配置保存失败")
             ? "border-red-200 bg-red-50 text-red-700"
             : "border-bd bg-white text-tx"
         }`}>
@@ -734,7 +823,7 @@ export default function HaiManagementSection() {
                 <h3 className="text-ds-base font-ds-bold text-tx">编排参数</h3>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
-                {[...orchestratorSettings, ...evaluatorSettings].map((setting) => (
+                {[...orchestratorSettings, ...routerSettings, ...evaluatorSettings].map((setting) => (
                   <RuntimeSettingCard
                     key={setting.key}
                     setting={setting}
@@ -742,9 +831,26 @@ export default function HaiManagementSection() {
                     onSave={(value) => updateRuntimeSetting(setting, value)}
                   />
                 ))}
-                {orchestratorSettings.length + evaluatorSettings.length === 0 && (
+                {orchestratorSettings.length + routerSettings.length + evaluatorSettings.length === 0 && (
                   <p className="rounded-ds-md bg-bg px-3 py-6 text-center text-ds-sm text-txs md:col-span-2">尚未写入上下文编排运行时配置。</p>
                 )}
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center gap-2">
+                <Route className="h-4 w-4 text-ac" />
+                <h3 className="text-ds-base font-ds-bold text-tx">混合路由策略</h3>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="rounded-ds-md border border-bd bg-bg p-3">
+                  <p className="text-ds-sm font-ds-bold text-tx">代码规则直接判断</p>
+                  <p className="mt-2 text-ds-xs leading-relaxed text-txs">公开课/赛课/说课/亮点、教案诊断/活动很多/目标不清、AI 备课、PBL/跨学科、评价/反馈/出口题/大班额、课堂纪律等高置信场景。</p>
+                </div>
+                <div className="rounded-ds-md border border-bd bg-bg p-3">
+                  <p className="text-ds-sm font-ds-bold text-tx">LLM 语义兜底</p>
+                  <p className="mt-2 text-ds-xs leading-relaxed text-txs">关键词低置信、多意图接近、被判为普通问答或不确定、用户表层问题和真实教学问题可能不一致时，额外调用一次 JSON 路由复核。</p>
+                </div>
               </div>
             </div>
 
@@ -768,25 +874,79 @@ export default function HaiManagementSection() {
                 <Layers3 className="h-4 w-4 text-ac" />
                 <h3 className="text-ds-base font-ds-bold text-tx">分层上下文</h3>
               </div>
-              <div className="grid gap-2 md:grid-cols-4">
-                {[
-                  ["0", "身份边界", "core_identity"],
-                  ["1", "意图识别", "intent_classifier"],
-                  ["2", "记忆选择", "memory_selector"],
-                  ["3", "问题重构", "problem_rewriter"],
-                  ["4", "诊断路由", "diagnostic_router"],
-                  ["5", "检索规划", "retrieval_planner"],
-                  ["6", "回答生成", "response_composer"],
-                  ["7", "回答质检", "response_evaluator"],
-                ].map(([index, label, code]) => (
-                  <div key={code} className="rounded-ds-md border border-bd bg-bg px-3 py-2">
-                    <div className="mb-1 flex items-center justify-between gap-2">
-                      <Badge variant="outline">{index}</Badge>
-                      <span className="text-ds-xs text-txs">{code}</span>
+              <div className="grid gap-3 lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,1.2fr)]">
+                <div className="max-h-[520px] overflow-auto rounded-ds-md border border-bd bg-bg p-2">
+                  {promptConfigGroups.length === 0 ? (
+                    <p className="px-3 py-8 text-center text-ds-sm text-txs">尚未写入编排 Prompt 配置。</p>
+                  ) : promptConfigGroups.map(([group, configs]) => (
+                    <div key={group} className="mb-3 last:mb-0">
+                      <p className="px-2 pb-1 text-[11px] font-ds-bold text-txs">{group}</p>
+                      <div className="space-y-1">
+                        {configs.map((config) => (
+                          <button
+                            key={config.key}
+                            type="button"
+                            onClick={() => setSelectedPromptConfigKey(config.key)}
+                            className={`w-full rounded-ds-sm border px-2 py-2 text-left transition ${
+                              selectedPromptConfig?.key === config.key ? "border-ac/40 bg-white" : "border-transparent hover:bg-white"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="min-w-0 truncate text-ds-sm font-ds-bold text-tx">{config.label}</span>
+                              <Badge variant="outline" className={config.enabled ? "shrink-0 border-ac/30 text-ac" : "shrink-0 border-bd text-txs"}>
+                                {config.enabled ? "启用" : "停用"}
+                              </Badge>
+                            </div>
+                            <p className="mt-1 truncate text-[11px] text-txs">{config.key}</p>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <p className="text-ds-sm font-ds-semibold text-tx">{label}</p>
-                  </div>
-                ))}
+                  ))}
+                </div>
+
+                <div className="rounded-ds-md border border-bd bg-bg p-3">
+                  {selectedPromptConfig ? (
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-ds-sm font-ds-bold text-tx">{selectedPromptConfig.label}</p>
+                          <p className="mt-1 text-[11px] text-txs">{selectedPromptConfig.description}</p>
+                        </div>
+                        <div className="flex shrink-0 flex-wrap items-center gap-2">
+                          <label className="flex items-center gap-1 text-ds-xs text-txs">
+                            <input
+                              type="checkbox"
+                              checked={selectedPromptConfig.enabled}
+                              onChange={(event) => updateOrchestratorPromptConfig(selectedPromptConfig, { enabled: event.target.checked })}
+                            />
+                            启用
+                          </label>
+                          <Button size="sm" variant="outline" disabled={saving} onClick={resetSelectedPromptConfig}>
+                            <RefreshCw className="h-3.5 w-3.5" />
+                            默认
+                          </Button>
+                          <Button size="sm" className="bg-ac text-white hover:bg-acd" disabled={saving || !promptConfigDraft.trim()} onClick={saveSelectedPromptConfig}>
+                            <Save className="h-3.5 w-3.5" />
+                            保存
+                          </Button>
+                        </div>
+                      </div>
+                      <textarea
+                        value={promptConfigDraft}
+                        onChange={(event) => setPromptConfigDraft(event.target.value)}
+                        className="min-h-[360px] w-full rounded-ds-md border border-bd bg-white px-3 py-2 text-ds-sm leading-relaxed"
+                        placeholder="编辑该层 Prompt / 诊断框架"
+                      />
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-txs">
+                        <span>{selectedPromptConfig.key}</span>
+                        <span>更新于 {formatDateTime(selectedPromptConfig.updated_at)}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="px-3 py-12 text-center text-ds-sm text-txs">选择一个编排层后编辑。</p>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -809,6 +969,7 @@ export default function HaiManagementSection() {
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline">{trace.intent_result?.primary_intent ?? "unknown"}</Badge>
+                      <Badge variant="outline">{trace.intent_result?.route_method ?? "route"}</Badge>
                       <Badge variant="outline" className={trace.evaluation_result?.pass ? "border-ac/30 text-ac" : "border-red-200 text-red-600"}>
                         {typeof trace.evaluation_result?.score === "number" ? `${trace.evaluation_result.score} 分` : "未评分"}
                       </Badge>
@@ -820,8 +981,11 @@ export default function HaiManagementSection() {
                     <span>诊断：{trace.diagnostic_module ?? "-"}</span>
                     <span>记忆：{trace.memory_selection?.should_load_memory ? (trace.memory_selection.memory_types?.length ?? 0) : 0} 类</span>
                     <span>上下文：{trace.retrieved_context_ids?.filter(Boolean).length ?? 0} 条</span>
-                    <span>输出：{formatNumber(message.output_tokens ?? 0)} tokens</span>
+                    <span>置信：{typeof trace.intent_result?.confidence === "number" ? trace.intent_result.confidence : "-"}</span>
                   </div>
+                  {trace.intent_result?.matched_signals && trace.intent_result.matched_signals.length > 0 && (
+                    <p className="mt-2 line-clamp-1 text-ds-xs text-txs">信号：{trace.intent_result.matched_signals.join(" / ")}</p>
+                  )}
                   {trace.evaluation_result?.problems && trace.evaluation_result.problems.length > 0 && (
                     <p className="mt-2 line-clamp-2 text-ds-xs leading-relaxed text-red-600">
                       {trace.evaluation_result.problems.join("；")}
@@ -1176,7 +1340,7 @@ export default function HaiManagementSection() {
               <div className="grid grid-cols-2 gap-2 text-ds-sm">
                 <TextInput label="模型" value={module.default_model} onChange={(value) => updateModule(module, { default_model: value })} />
                 <NumberInput label="温度" value={Number(module.default_temperature)} step={0.05} onChange={(value) => updateModule(module, { default_temperature: value })} />
-                <OptionalNumberInput label="Top P" value={module.default_top_p} step={0.05} min={0} max={1} onChange={(value) => updateModule(module, { default_top_p: value })} />
+                <OptionalNumberInput label="Top P" value={module.default_top_p} step={0.05} min={0.01} max={1} onChange={(value) => updateModule(module, { default_top_p: value })} />
                 <NumberInput label="输出" value={module.default_max_output_tokens} onChange={(value) => updateModule(module, { default_max_output_tokens: value })} />
                 <SelectInput label="思考模式" value={module.thinking_enabled ? "enabled" : "disabled"} options={[["disabled", "关闭"], ["enabled", "开启"]]} onChange={(value) => updateModule(module, { thinking_enabled: value === "enabled" })} />
                 <SelectInput label="推理强度" value={module.reasoning_effort ?? "high"} options={[["high", "High"], ["max", "Max"]]} onChange={(value) => updateModule(module, { reasoning_effort: value as HaiFeatureModule["reasoning_effort"] })} />

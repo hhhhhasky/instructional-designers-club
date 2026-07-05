@@ -1,4 +1,3 @@
-import { safetyBoundaries } from "./prompts.ts";
 import type { HAIContextPackage, ResponseEvaluation } from "./types.ts";
 
 type PromptRow = {
@@ -57,7 +56,7 @@ export function buildComposedSystemPrompt(params: {
 
   return [
     params.context.core_identity,
-    safetyBoundaries,
+    params.context.safety_boundaries,
     `当前功能模块：${params.module.name}（${params.module.slug}）。`,
     `【意图识别】\n${JSON.stringify(params.context.intent_result, null, 2)}`,
     `【用户记忆选择】\n${JSON.stringify(params.context.memory_selection, null, 2)}\n${memoryText}\n使用方式：只在相关时自然融入判断，不要机械复述，也不要暴露记忆分类名。当前输入与记忆冲突时，以当前输入为准。`,
@@ -69,7 +68,7 @@ export function buildComposedSystemPrompt(params: {
     `【方法/理论库命中】\n${params.knowledgeContext.text || "- 暂无命中方法或理论。可以依靠通用教学设计常识，但不要声称引用了内部框架。"}`,
     `【表达库】\n${expressionText}`,
     `【风格要求】\n${params.context.style_pack}`,
-    `【输出结构】\n1. 先给判断：这个问题不要先理解成什么。\n2. 再做重构：表面上是什么，更深层是什么。\n3. 指出常见误区。\n4. 给出专业框架。\n5. 给出可执行步骤。\n6. 最后用一句有判断力的话收束。`,
+    params.context.response_composer_prompt || `【输出结构】\n1. 先给判断：这个问题不要先理解成什么。\n2. 再做重构：表面上是什么，更深层是什么。\n3. 指出常见误区。\n4. 给出专业框架。\n5. 给出可执行步骤。\n6. 最后用一句有判断力的话收束。`,
     params.prompt.response_contract ? `【线上输出契约】\n${trimText(params.prompt.response_contract, 800)}` : "",
     params.prompt.developer_prompt ? `【线上补充规则摘要】\n${trimText(params.prompt.developer_prompt, 900)}` : "",
     rewriteBlock,

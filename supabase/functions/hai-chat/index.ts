@@ -8,6 +8,7 @@ import {
   HttpError,
   jsonResponse,
   loadHaiRuntimeConfig,
+  normalizeRecord,
   rememberExplicitTeacherFacts,
   requireUser,
   reserveUsage,
@@ -20,10 +21,11 @@ import {
   type HaiRuntimeConfig,
 } from "../_shared/hai.ts";
 import { HAIContextOrchestrator } from "../_shared/hai_orchestrator/context_orchestrator.ts";
+import { classifyIntent } from "../_shared/hai_orchestrator/intent_classifier.ts";
 import { memoryCategoryMatchesTypes } from "../_shared/hai_orchestrator/memory_selector.ts";
 import { buildComposedSystemPrompt } from "../_shared/hai_orchestrator/response_composer.ts";
 import { evaluateResponse } from "../_shared/hai_orchestrator/response_evaluator.ts";
-import type { HAITrace, MemorySelection, RetrievalPlan } from "../_shared/hai_orchestrator/types.ts";
+import type { HAIPromptConfigMap, HAITrace, IntentName, IntentResult, MemorySelection, RetrievalPlan } from "../_shared/hai_orchestrator/types.ts";
 
 type ModuleRow = {
   id: string;
@@ -65,6 +67,21 @@ type RetrievedContext = {
   citations: Array<Record<string, unknown>>;
 };
 
+const allowedIntents: IntentName[] = [
+  "teaching_design",
+  "lesson_plan_diagnosis",
+  "public_lesson",
+  "learning_profile",
+  "classroom_management",
+  "learning_motivation",
+  "assessment_feedback",
+  "ai_lesson_planning",
+  "pbl_crossdisciplinary",
+  "teacher_growth",
+  "general_question",
+  "unknown",
+];
+
 const orchestrator = new HAIContextOrchestrator();
 
 Deno.serve(async (request) => {
@@ -88,13 +105,27 @@ Deno.serve(async (request) => {
     const runtime = await loadHaiRuntimeConfig(auth.admin);
     const completionOptions = buildChatCompletionOptions({ module, runtime });
     const configSnapshot = runtimeConfigSnapshot(runtime, completionOptions);
+    const orchestratorPromptConfig = runtime.contextOrchestratorEnabled
+      ? await loadOrchestratorPromptConfigs(auth.admin)
+      : {};
+    const keywordIntent = runtime.contextOrchestratorEnabled ? classifyIntent(text) : null;
+    const finalIntent = keywordIntent
+      ? await maybeClassifyIntentWithLlm({
+        text,
+        keywordIntent,
+        promptConfig: orchestratorPromptConfig,
+        runtime,
+        completionOptions,
+        userId: auth.user.id,
+      })
+      : null;
     const contextPackage = runtime.contextOrchestratorEnabled
       ? orchestrator.buildInitialPackage(text, {
         caseMax: runtime.orchestratorCaseMax,
         methodMax: runtime.orchestratorMethodMax,
         theoryMax: runtime.orchestratorTheoryMax,
         expressionMax: runtime.orchestratorExpressionMax,
-      })
+      }, finalIntent ?? undefined, orchestratorPromptConfig)
       : null;
     const materialContext = await loadMaterialContext(
       auth.admin,
@@ -351,6 +382,127 @@ async function loadPrompt(admin: { from: (table: string) => any }, moduleId: str
   if (error) throw new HttpError(500, error.message);
   if (!data) throw new HttpError(500, "该 HAI 功能缺少已发布 Prompt。");
   return data as PromptRow;
+}
+
+async function loadOrchestratorPromptConfigs(admin: { from: (table: string) => any }): Promise<HAIPromptConfigMap> {
+  const { data, error } = await admin
+    .from("hai_orchestrator_prompt_configs")
+    .select("key, content, enabled");
+  if (error) {
+    console.warn("hai orchestrator prompt config load failed", error.message);
+    return {};
+  }
+  const map: HAIPromptConfigMap = {};
+  for (const row of (data ?? []) as Array<{ key: string; content: string; enabled: boolean }>) {
+    if (row.enabled !== false && row.key && row.content?.trim()) map[row.key] = row.content;
+  }
+  return map;
+}
+
+async function maybeClassifyIntentWithLlm(params: {
+  text: string;
+  keywordIntent: IntentResult;
+  promptConfig: HAIPromptConfigMap;
+  runtime: HaiRuntimeConfig;
+  completionOptions: HaiChatCompletionOptions;
+  userId: string;
+}): Promise<IntentResult> {
+  if (!shouldUseLlmIntentFallback(params.keywordIntent, params.runtime)) return params.keywordIntent;
+
+  try {
+    const classifierPrompt = params.promptConfig.intent_classifier_prompt || defaultIntentClassifierPrompt();
+    const content = await collectTextStream(streamDeepSeek([
+      { role: "system", content: classifierPrompt },
+      {
+        role: "user",
+        content: [
+          `用户问题：${params.text}`,
+          `代码路由结果：${JSON.stringify(params.keywordIntent, null, 2)}`,
+          "请复核真实教学意图。只输出 JSON，不要解释。",
+        ].join("\n\n"),
+      },
+    ], {
+      model: params.completionOptions.model,
+      temperature: 0,
+      topP: params.completionOptions.topP,
+      maxTokens: 900,
+      thinkingEnabled: false,
+      responseFormat: "json_object",
+      userId: params.userId,
+    }));
+    const semanticIntent = normalizeIntentResult(JSON.parse(extractJsonObject(content)), params.keywordIntent);
+    if (!semanticIntent) return params.keywordIntent;
+    const shouldPreferSemantic = params.keywordIntent.primary_intent === "general_question" ||
+      params.keywordIntent.primary_intent === "unknown" ||
+      semanticIntent.primary_intent !== "general_question" && semanticIntent.confidence >= Math.max(0.58, params.keywordIntent.confidence - 0.05);
+    if (!shouldPreferSemantic) return params.keywordIntent;
+    return {
+      ...semanticIntent,
+      route_method: "llm",
+      route_reason: `关键词路由置信度 ${params.keywordIntent.confidence}，触发语义兜底复核。代码路由原判为 ${params.keywordIntent.primary_intent}。`,
+      matched_signals: params.keywordIntent.matched_signals ?? [],
+    };
+  } catch (error) {
+    console.warn("hai llm intent fallback failed", error instanceof Error ? error.message : String(error));
+    return params.keywordIntent;
+  }
+}
+
+function shouldUseLlmIntentFallback(intent: IntentResult, runtime: HaiRuntimeConfig) {
+  if (!runtime.routerLlmFallbackEnabled) return false;
+  const threshold = Math.max(0, Math.min(1, runtime.routerLlmConfidenceThreshold));
+  if (intent.confidence < threshold) return true;
+  if (intent.primary_intent === "general_question" || intent.primary_intent === "unknown") return true;
+  return /接近|复核|兜底/.test(intent.route_reason ?? "");
+}
+
+async function collectTextStream(stream: AsyncIterable<string>) {
+  let output = "";
+  for await (const token of stream) output += token;
+  return output.trim();
+}
+
+function normalizeIntentResult(value: unknown, fallback: IntentResult): IntentResult | null {
+  const record = normalizeRecord(value);
+  const primary = normalizeIntentName(record.primary_intent);
+  if (!primary) return null;
+  const secondary = Array.isArray(record.secondary_intents)
+    ? record.secondary_intents.map(normalizeIntentName).filter((item): item is IntentName => Boolean(item && item !== primary)).slice(0, 3)
+    : fallback.secondary_intents ?? [];
+  const confidence = Number(record.confidence);
+  return {
+    primary_intent: primary,
+    secondary_intents: secondary,
+    explicit_need: String(record.explicit_need || fallback.explicit_need),
+    implicit_need: String(record.implicit_need || fallback.implicit_need || ""),
+    risk_of_wrong_framing: String(record.risk_of_wrong_framing || fallback.risk_of_wrong_framing || ""),
+    confidence: Number.isFinite(confidence) ? Math.max(0, Math.min(0.98, confidence)) : Math.max(0.6, fallback.confidence),
+  };
+}
+
+function normalizeIntentName(value: unknown): IntentName | null {
+  const intent = String(value || "").trim() as IntentName;
+  return allowedIntents.includes(intent) ? intent : null;
+}
+
+function extractJsonObject(text: string) {
+  const trimmed = text.trim();
+  if (trimmed.startsWith("{") && trimmed.endsWith("}")) return trimmed;
+  const match = trimmed.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error("LLM intent response is not JSON.");
+  return match[0];
+}
+
+function defaultIntentClassifierPrompt() {
+  return `你是 HAI 的语义路由器。请根据教师问题判断最合适的 primary_intent。
+允许的 intent：${allowedIntents.join(", ")}
+判断原则：
+1. 先看用户真正要解决的教学问题，不要只看表层措辞。
+2. 问课文、课题、目标、导入、任务链，优先 teaching_design。
+3. 问教案是否成立、活动很多但目标不清，优先 lesson_plan_diagnosis。
+4. 问听懂但做题错、怎么判断学会、反馈或评价证据，优先 assessment_feedback。
+5. 问公开课、说课、赛课、亮点，优先 public_lesson。
+只输出 JSON：{"primary_intent":"...","secondary_intents":[],"explicit_need":"...","implicit_need":"...","risk_of_wrong_framing":"...","confidence":0.0}`;
 }
 
 async function loadConversation(

@@ -30,6 +30,8 @@ export type HaiRuntimeConfig = {
   orchestratorMethodMax: number;
   orchestratorTheoryMax: number;
   orchestratorExpressionMax: number;
+  routerLlmFallbackEnabled: boolean;
+  routerLlmConfidenceThreshold: number;
   evaluatorEnabled: boolean;
   evaluatorPassScore: number;
   evaluatorMaxRewrites: number;
@@ -75,6 +77,8 @@ const defaultRuntimeConfig: HaiRuntimeConfig = {
   orchestratorMethodMax: 2,
   orchestratorTheoryMax: 1,
   orchestratorExpressionMax: 5,
+  routerLlmFallbackEnabled: true,
+  routerLlmConfidenceThreshold: 0.72,
   evaluatorEnabled: true,
   evaluatorPassScore: 78,
   evaluatorMaxRewrites: 1,
@@ -262,6 +266,8 @@ export async function loadHaiRuntimeConfig(admin: SupabaseClient): Promise<HaiRu
     orchestratorMethodMax: integerSetting(settings, "orchestrator.method_max", defaultRuntimeConfig.orchestratorMethodMax),
     orchestratorTheoryMax: integerSetting(settings, "orchestrator.theory_max", defaultRuntimeConfig.orchestratorTheoryMax),
     orchestratorExpressionMax: integerSetting(settings, "orchestrator.expression_max", defaultRuntimeConfig.orchestratorExpressionMax),
+    routerLlmFallbackEnabled: booleanSetting(settings, "router.llm_fallback_enabled", defaultRuntimeConfig.routerLlmFallbackEnabled),
+    routerLlmConfidenceThreshold: numberSetting(settings, "router.llm_confidence_threshold", defaultRuntimeConfig.routerLlmConfidenceThreshold),
     evaluatorEnabled: booleanSetting(settings, "evaluator.enabled", defaultRuntimeConfig.evaluatorEnabled),
     evaluatorPassScore: numberSetting(settings, "evaluator.pass_score", defaultRuntimeConfig.evaluatorPassScore),
     evaluatorMaxRewrites: integerSetting(settings, "evaluator.max_rewrites", defaultRuntimeConfig.evaluatorMaxRewrites),
@@ -303,7 +309,7 @@ export function buildChatCompletionOptions(params: {
   return {
     model: params.module.default_model,
     temperature,
-    topP: topP === undefined ? undefined : clamp(topP, 0, 1),
+    topP: normalizeTopP(topP),
     maxTokens,
     thinkingEnabled: params.module.thinking_enabled === true,
     reasoningEffort,
@@ -329,6 +335,8 @@ export function runtimeConfigSnapshot(runtime: HaiRuntimeConfig, options: HaiCha
     orchestrator_method_max: runtime.orchestratorMethodMax,
     orchestrator_theory_max: runtime.orchestratorTheoryMax,
     orchestrator_expression_max: runtime.orchestratorExpressionMax,
+    router_llm_fallback_enabled: runtime.routerLlmFallbackEnabled,
+    router_llm_confidence_threshold: runtime.routerLlmConfidenceThreshold,
     evaluator_enabled: runtime.evaluatorEnabled,
     evaluator_pass_score: runtime.evaluatorPassScore,
     evaluator_max_rewrites: runtime.evaluatorMaxRewrites,
@@ -375,6 +383,11 @@ function finiteNumber(value: unknown) {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
+}
+
+function normalizeTopP(value: number | undefined) {
+  if (value === undefined || value <= 0) return undefined;
+  return clamp(value, Number.MIN_VALUE, 1);
 }
 
 function normalizeReasoningEffort(value: unknown): "high" | "max" | undefined {
