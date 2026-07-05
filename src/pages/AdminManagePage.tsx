@@ -7,6 +7,7 @@ import CourseQuestionsManagementSection from "@/components/admin/CourseQuestions
 import HaiManagementSection from "@/components/admin/HaiManagementSection";
 import StudentListSection from "@/components/admin/StudentListSection";
 import ContentManagementSection from "@/components/admin/content/ContentManagementSection";
+import PasswordResetSection from "@/components/admin/PasswordResetSection";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
@@ -37,6 +38,7 @@ export default function AdminManagePage() {
           <TabsTrigger value="questions">问答管理</TabsTrigger>
           <TabsTrigger value="hai">HAI 配置</TabsTrigger>
           <TabsTrigger value="content">首页信息</TabsTrigger>
+          <TabsTrigger value="reset">重置申请</TabsTrigger>
         </TabsList>
 
         <TabsContent value="courses">
@@ -57,6 +59,10 @@ export default function AdminManagePage() {
 
         <TabsContent value="content">
           <ContentManagementSection />
+        </TabsContent>
+
+        <TabsContent value="reset">
+          <PasswordResetSection />
         </TabsContent>
       </Tabs>
     </AdminPageShell>

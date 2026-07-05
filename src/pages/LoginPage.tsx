@@ -96,6 +96,12 @@ export default function LoginPage() {
                 )}
               </div>
 
+              <div className="flex justify-end -mt-1">
+                <Link to="/forgot-password" className="text-xs text-txs hover:text-ac transition-colors">
+                  忘记密码？
+                </Link>
+              </div>
+
               {serverError && (
                 <p className="text-sm text-red-500 animate-fade-in">{serverError}</p>
               )}

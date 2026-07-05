@@ -7,6 +7,7 @@ import PlusTrackPage from './pages/PlusTrackPage';
 import CourseDetailPage from './pages/CourseDetailPage';
 import ActivityDetailPage from './pages/ActivityDetailPage';
 import LoginPage from './pages/LoginPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import RegisterPage from './pages/RegisterPage';
 import SettingsPage from './pages/SettingsPage';
 import LearningPage from './pages/LearningPage';
@@ -82,6 +83,12 @@ const routes: RouteConfig[] = [
     name: '登录',
     path: '/login',
     element: <LoginPage />,
+    visible: false
+  },
+  {
+    name: '忘记密码',
+    path: '/forgot-password',
+    element: <ForgotPasswordPage />,
     visible: false
   },
   {
