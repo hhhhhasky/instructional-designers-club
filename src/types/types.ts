@@ -150,6 +150,8 @@ export interface Profile {
   access_level: MembershipType;
   role: UserRole;
   status: 'active' | 'banned';
+  bonus_credits: number;
+  total_credits: number;
   created_at: string;
   updated_at: string;
 }

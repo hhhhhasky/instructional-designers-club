@@ -617,7 +617,7 @@ export function clearAllLearningDataCaches(): void {
 
 /**
  * 获取学员学习主页全部数据（概览 + 系列进度 + 最近学习）
- * 仅 2 次 Supabase 查询，客户端聚合。课程目录以 courses 表的已发布课程为唯一数据源。
+ * 总学分直接读取 profiles.total_credits，课程目录以 courses 表的已发布课程为唯一数据源。
  */
 export async function getLearningData(userId: string, options: { fresh?: boolean } = {}): Promise<LearningData> {
   return getLearningDataCache(userId).get(options);
@@ -631,7 +631,7 @@ async function _fetchLearningData(userId: string): Promise<LearningData> {
   };
 
   try {
-    const [recordsRes, coursesRes] = await Promise.all([
+    const [recordsRes, coursesRes, profileRes] = await Promise.all([
       supabase
         .from('learning_records')
         .select('*')
@@ -641,6 +641,11 @@ async function _fetchLearningData(userId: string): Promise<LearningData> {
         .select('id, title, credits, category, image_url, membership_type, sort_order, duration')
         .eq('status', 'published')
         .order('sort_order', { ascending: true }),
+      supabase
+        .from('profiles')
+        .select('total_credits')
+        .eq('id', userId)
+        .maybeSingle(),
     ]);
 
     if (recordsRes.error) {
@@ -651,9 +656,14 @@ async function _fetchLearningData(userId: string): Promise<LearningData> {
       console.error('获取课程列表失败:', coursesRes.error);
       return empty;
     }
+    if (profileRes.error) {
+      console.error('获取用户总学分失败:', profileRes.error);
+      return empty;
+    }
 
     const records = recordsRes.data || [];
     const courses: Pick<Course, 'id' | 'title' | 'credits' | 'category' | 'image_url' | 'membership_type' | 'sort_order' | 'duration'>[] = coursesRes.data || [];
+    const totalCredits = Number(profileRes.data?.total_credits ?? 0);
 
     // 只统计仍在已发布课程目录中的学习记录，避免归档/删除课程污染主页数字。
     const courseMap = new Map(courses.map(course => [course.id, course]));
@@ -663,10 +673,6 @@ async function _fetchLearningData(userId: string): Promise<LearningData> {
     // 1. 概览统计
     const completedRecords = visibleRecords.filter(record => record.status === 'completed');
     const inProgressRecords = visibleRecords.filter(record => record.status === 'in_progress');
-    const completedCourseIds = new Set(completedRecords.map(r => r.course_id));
-    const totalCredits = courses
-      .filter(c => completedCourseIds.has(c.id))
-      .reduce((sum, c) => sum + parseFloat(c.credits || '0'), 0);
 
     const overview: LearningOverview = {
       totalCourses: courses.length,

@@ -60,10 +60,15 @@ export default function LearningPage() {
     };
     void load(true);
 
-    // 课程目录与当前用户的学习记录任一变化，都重新从真实表数据聚合主页。
+    // 课程目录、学习记录或持久化总学分变化，都重新从真实表数据聚合主页。
     const channel = supabase
       .channel(`learning-home-${user.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'courses' }, () => void load(false, true))
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
+        () => void load(false, true),
+      )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'learning_records', filter: `user_id=eq.${user.id}` },
