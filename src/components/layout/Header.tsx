@@ -8,11 +8,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { GraduationCap, Menu, X, Settings, LogOut, User, BookOpen, ShieldCheck, BarChart3 } from "lucide-react";
+import { GraduationCap, Menu, X, Settings, LogOut, User, BookOpen, ShieldCheck, BarChart3, Bell, CheckCheck, Gift, TrendingUp, TrendingDown } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import routes from "@/routes";
 import { useAuth } from "@/contexts/AuthContext";
-import { getCourseCatalogSnapshot, getResources } from "@/db/api";
+import { getCourseCatalogSnapshot, getMyNotifications, getResources, getUnreadNotificationCount, markNotificationsRead } from "@/db/api";
+import { relativeTime } from "@/lib/time";
+import type { UserNotification } from "@/types/types";
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -22,6 +24,67 @@ export default function Header() {
   const { user, profile, signOut } = useAuth();
   const isAdmin = profile?.role === 'admin';
 
+  // 通知铃铛
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState<UserNotification[]>([]);
+  const [notifOpen, setNotifOpen] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      try {
+        const count = await getUnreadNotificationCount();
+        setUnreadCount(count);
+        if (count > 0) {
+          const list = await getMyNotifications();
+          setNotifications(list);
+        }
+      } catch { /* 静默 */ }
+    };
+    load();
+    // 每 30 秒轮询一次
+    const interval = setInterval(load, 30_000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  const openNotifications = async () => {
+    setNotifOpen(!notifOpen);
+    if (!notifOpen && unreadCount > 0) {
+      try {
+        const list = await getMyNotifications();
+        setNotifications(list);
+      } catch { /* 静默 */ }
+    }
+  };
+
+  const markAllRead = async () => {
+    const unreadIds = notifications.filter((n) => !n.is_read).map((n) => n.id);
+    if (unreadIds.length === 0) return;
+    try {
+      await markNotificationsRead(unreadIds);
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+    } catch { /* 静默 */ }
+  };
+
+  const markOneRead = async (id: string, link?: string | null) => {
+    try {
+      await markNotificationsRead([id]);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+      );
+      setUnreadCount((c) => Math.max(0, c - 1));
+    } catch { /* 静默 */ }
+    setNotifOpen(false);
+    if (link) navigate(link);
+  };
+
+  const TYPE_ICON: Record<string, typeof Bell> = {
+    credit_reward: Gift,
+    credit_deduct: TrendingDown,
+    level_change: TrendingUp,
+  };
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
@@ -29,6 +92,19 @@ export default function Header() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // 点击外部关闭通知下拉
+  useEffect(() => {
+    if (!notifOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-notif-area]')) {
+        setNotifOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [notifOpen]);
 
   const visibleRoutes = routes.filter(route => route.visible);
 
@@ -107,6 +183,73 @@ export default function Header() {
 
           {/* 右侧按钮 */}
           <div className="flex items-center gap-3">
+            {/* 通知铃铛 */}
+            {user && (
+              <div className="relative" data-notif-area>
+                <button
+                  onClick={openNotifications}
+                  className="relative w-8 h-8 flex items-center justify-center rounded-ds-full hover:bg-acl transition-colors"
+                >
+                  <Bell className="w-5 h-5 text-txs" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-ds-full bg-red-500 text-white text-ds-xs font-ds-bold px-1">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+
+                {/* 通知下拉 */}
+                {notifOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-ds-xl border border-bd shadow-ds-lg overflow-hidden z-50">
+                    <div className="flex items-center justify-between px-4 py-3 border-b border-bd">
+                      <span className="text-ds-sm font-ds-semibold text-tx">通知</span>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={markAllRead}
+                          className="text-ds-xs text-txs hover:text-ac transition-colors flex items-center gap-1"
+                        >
+                          <CheckCheck className="w-3 h-3" />
+                          全部已读
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <p className="px-4 py-6 text-ds-sm text-txs text-center">暂无通知</p>
+                      ) : (
+                        notifications.slice(0, 10).map((n) => {
+                          const Icon = TYPE_ICON[n.type] || Bell;
+                          return (
+                            <button
+                              key={n.id}
+                              onClick={() => markOneRead(n.id, n.link)}
+                              className={`w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-bgs transition-colors border-b border-bdl last:border-b-0 ${
+                                !n.is_read ? 'bg-acl/40' : ''
+                              }`}
+                            >
+                              <Icon className="w-4 h-4 mt-0.5 shrink-0 text-ac" />
+                              <div className="min-w-0 flex-1">
+                                <p className={`text-ds-sm text-tx ${!n.is_read ? 'font-ds-semibold' : ''}`}>
+                                  {n.title}
+                                </p>
+                                {n.body && (
+                                  <p className="text-ds-xs text-txs mt-0.5 line-clamp-1">{n.body}</p>
+                                )}
+                                <p className="text-ds-xs text-txs/60 mt-1">{relativeTime(n.created_at)}</p>
+                              </div>
+                              {!n.is_read && (
+                                <span className="w-2 h-2 rounded-full bg-ac shrink-0 mt-1.5" />
+                              )}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {user ? (
               /* 已登录：头像 + 下拉菜单 */
               <DropdownMenu>

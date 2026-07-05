@@ -17,6 +17,7 @@ import type {
   SeriesProgress,
   SiteContent,
   Testimonial,
+  UserNotification,
 } from "@/types/types";
 import { supabase } from "./supabase";
 
@@ -1525,4 +1526,41 @@ export function clearResourcesCache(): void {
 
 export async function getResources(options: { fresh?: boolean } = {}): Promise<Resource[]> {
   return resourcesCache.get(options);
+}
+
+// ==================== 站内通知 ====================
+
+/**
+ * 获取当前用户的通知（最近 30 条，未读优先）
+ */
+export async function getMyNotifications(): Promise<UserNotification[]> {
+  const { data, error } = await supabase.rpc("get_my_notifications");
+  if (error) {
+    console.error("getMyNotifications error:", error);
+    throw error;
+  }
+  return (Array.isArray(data) ? data : []) as UserNotification[];
+}
+
+/**
+ * 批量标记通知为已读
+ */
+export async function markNotificationsRead(ids: string[]): Promise<void> {
+  const { error } = await supabase.rpc("mark_notifications_read", { p_ids: ids });
+  if (error) {
+    console.error("markNotificationsRead error:", error);
+    throw error;
+  }
+}
+
+/**
+ * 获取未读通知数量
+ */
+export async function getUnreadNotificationCount(): Promise<number> {
+  const { data, error } = await supabase.rpc("get_unread_notification_count");
+  if (error) {
+    console.error("getUnreadNotificationCount error:", error);
+    return 0; // 静默失败，不阻塞页面
+  }
+  return (typeof data === "number" ? data : 0);
 }

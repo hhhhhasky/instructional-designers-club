@@ -5,6 +5,7 @@ import { BookOpen, GraduationCap, Users, Sparkles, Quote, Play, TrendingUp, Cloc
 import { Link, useNavigate } from 'react-router-dom';
 import Header from "@/components/layout/Header";
 import MemberHomeHero from "@/components/home/MemberHomeHero";
+import NotificationCard from "@/components/home/NotificationCard";
 import AnnouncementFeed from "@/components/home/AnnouncementFeed";
 import PageNavigation from "@/components/common/PageNavigation";
 import CountUp from "@/components/ui/CountUp";
@@ -71,7 +72,12 @@ export default function HomePage() {
     <div className="min-h-screen bg-cream">
       <Header />
       <PageNavigation items={navItems} />
-      {user && profile && !loading && <MemberHomeHero />}
+      {user && profile && !loading && (
+        <>
+          <MemberHomeHero />
+          <NotificationCard />
+        </>
+      )}
       {/* ========== Hero Section ========== */}
       <section className="relative py-20 md:py-24 xl:py-40 px-4 overflow-hidden pt-28 md:pt-32 xl:pt-48 gradient-animate border-b-2 border-bd">
         <div className="absolute top-20 right-10 w-72 h-72 bg-acl rounded-full blur-3xl pointer-events-none animate-pulse-slow" />

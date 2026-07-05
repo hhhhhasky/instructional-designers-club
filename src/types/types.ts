@@ -316,3 +316,17 @@ export interface Resource {
   created_at: string;
   updated_at: string;
 }
+
+// 站内通知类型
+export type UserNotificationType = 'credit_reward' | 'credit_deduct' | 'level_change' | 'banned' | 'unbanned';
+
+// 用户个人通知
+export interface UserNotification {
+  id: string;
+  type: UserNotificationType;
+  title: string;
+  body: string;
+  link: string | null;
+  is_read: boolean;
+  created_at: string;
+}
