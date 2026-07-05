@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
 import { Button } from "@/components/ui/button";
 import type { StudentItem } from "@/db/admin-api";
-import { adminUpdateUserAccessLevel, getAdminStudentList } from "@/db/admin-api";
+import { adminAdjustBonusCredits, adminUpdateUserAccessLevel, getAdminStudentList } from "@/db/admin-api";
 import { cn } from "@/lib/utils";
 import type { MembershipType } from "@/types/types";
 
@@ -98,6 +98,24 @@ export default function StudentListSection() {
   const [pendingLevel, setPendingLevel] = useState<MembershipType | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
 
+  // 学分调整弹窗
+  const [creditUserId, setCreditUserId] = useState<string | null>(null);
+  const [creditAmount, setCreditAmount] = useState("");
+  const [creditReason, setCreditReason] = useState("");
+  const [creditSaving, setCreditSaving] = useState(false);
+
+  const openCreditDialog = (userId: string) => {
+    setCreditUserId(userId);
+    setCreditAmount("");
+    setCreditReason("");
+  };
+  const closeCreditDialog = () => {
+    if (creditSaving) return;
+    setCreditUserId(null);
+    setCreditAmount("");
+    setCreditReason("");
+  };
+
   const handleSaveLevel = async (userId: string, newLevel: MembershipType) => {
     const previousLevel = students.find((s) => s.id === userId)?.access_level;
     if (previousLevel === newLevel) {
@@ -125,6 +143,40 @@ export default function StudentListSection() {
       setSavingId(null);
       setEditingId(null);
       setPendingLevel(null);
+    }
+  };
+
+  const handleCreditAdjust = async () => {
+    if (!creditUserId) return;
+    const amount = Number.parseFloat(creditAmount);
+    if (Number.isNaN(amount) || amount === 0) {
+      toast.error("请输入有效的调整分数（不能为 0）");
+      return;
+    }
+    if (!creditReason.trim()) {
+      toast.error("请填写调整原因");
+      return;
+    }
+
+    try {
+      setCreditSaving(true);
+      const result = await adminAdjustBonusCredits(creditUserId, amount, creditReason.trim());
+      setStudents((prev) =>
+        prev.map((s) =>
+          s.id === creditUserId
+            ? { ...s, bonus_credits: result.bonus_credits, total_credits: result.total_credits }
+            : s
+        )
+      );
+      const label = amount > 0 ? `+${amount} 学分` : `${amount} 学分`;
+      toast.success(`${label} 已发放给学员`);
+      closeCreditDialog();
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message ? err.message : "学分调整失败，请重试";
+      toast.error(message);
+    } finally {
+      setCreditSaving(false);
     }
   };
 
@@ -216,6 +268,12 @@ export default function StudentListSection() {
                 <th className="text-center px-4 py-3 font-ds-semibold text-tx">
                   等级
                 </th>
+                <th className="text-right px-4 py-3 font-ds-semibold text-tx">
+                  学分
+                </th>
+                <th className="text-right px-4 py-3 font-ds-semibold text-tx">
+                  奖励
+                </th>
                 <th className="text-center px-4 py-3 font-ds-semibold text-tx">
                   状态
                 </th>
@@ -283,6 +341,21 @@ export default function StudentListSection() {
                       </button>
                     )}
                   </td>
+                  <td className="px-4 py-3 text-right font-ds-semibold text-tx">
+                    {formatCredits(student.total_credits)}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      onClick={() => openCreditDialog(student.id)}
+                      className={cn(
+                        "cursor-pointer hover:opacity-80 transition-opacity",
+                        student.bonus_credits > 0 ? "text-tl font-ds-semibold" : "text-txs"
+                      )}
+                      title="点击调整奖励学分"
+                    >
+                      {student.bonus_credits > 0 ? `+${formatCredits(student.bonus_credits)}` : formatCredits(student.bonus_credits)}
+                    </button>
+                  </td>
                   <td className="px-4 py-3 text-center">
                     <StatusBadge status={student.status} />
                   </td>
@@ -305,7 +378,7 @@ export default function StudentListSection() {
               {paged.length === 0 && (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={10}
                     className="px-4 py-12 text-center text-txs"
                   >
                     没有匹配的学员
@@ -339,6 +412,130 @@ export default function StudentListSection() {
           >
             <ChevronRight className="w-4 h-4" />
           </Button>
+        </div>
+      )}
+
+      {/* 学分调整弹窗 */}
+      {creditUserId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* 遮罩 */}
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={closeCreditDialog}
+          />
+          {/* 弹窗 */}
+          <div className="relative bg-white rounded-ds-xl shadow-ds-lg border border-bd w-full max-w-sm mx-4 p-6 space-y-4">
+            <h3 className="font-ds-semibold text-tx text-ds-base">
+              调整奖励学分
+              <span className="text-ds-sm text-txs font-ds-regular ml-2">
+                {students.find((s) => s.id === creditUserId)?.nickname}
+              </span>
+            </h3>
+
+            {/* 当前学分信息 */}
+            {(() => {
+              const student = students.find((s) => s.id === creditUserId);
+              return (
+                <div className="flex gap-4 text-ds-sm">
+                  <div>
+                    <span className="text-txs">总学分：</span>
+                    <span className="font-ds-semibold text-tx">
+                      {student ? formatCredits(student.total_credits) : "-"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-txs">奖励学分：</span>
+                    <span
+                      className={cn(
+                        "font-ds-semibold",
+                        student && student.bonus_credits > 0 ? "text-tl" : "text-tx"
+                      )}
+                    >
+                      {student
+                        ? student.bonus_credits > 0
+                          ? `+${formatCredits(student.bonus_credits)}`
+                          : formatCredits(student.bonus_credits)
+                        : "-"}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* 调整分数 */}
+            <div>
+              <label className="block text-ds-sm font-ds-medium text-tx mb-1.5">
+                调整分数
+                <span className="text-txs font-ds-regular ml-1">
+                  （正数加分，负数扣分）
+                </span>
+              </label>
+              <div className="flex items-center gap-2 mb-2">
+                {[1, 2, 5, 10].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setCreditAmount(String(n))}
+                    className={cn(
+                      "px-2.5 py-1 text-ds-xs rounded-ds-md border transition-all",
+                      creditAmount === String(n)
+                        ? "bg-ac border-ac text-white"
+                        : "bg-warm border-bd text-txs hover:border-ac hover:text-ac"
+                    )}
+                  >
+                    +{n}
+                  </button>
+                ))}
+              </div>
+              <input
+                type="number"
+                step="0.5"
+                placeholder="输入调整分数，如 2 或 -1"
+                value={creditAmount}
+                onChange={(e) => setCreditAmount(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleCreditAdjust();
+                }}
+                className="w-full px-3 py-2 text-ds-sm border border-bd rounded-ds-md focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+                autoFocus
+              />
+            </div>
+
+            {/* 调整原因 */}
+            <div>
+              <label className="block text-ds-sm font-ds-medium text-tx mb-1.5">
+                调整原因
+                <span className="text-red-500 ml-0.5">*</span>
+              </label>
+              <textarea
+                placeholder="如：优质分享奖励、提出好问题、优秀笔记..."
+                value={creditReason}
+                onChange={(e) => setCreditReason(e.target.value)}
+                rows={2}
+                className="w-full px-3 py-2 text-ds-sm border border-bd rounded-ds-md focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all resize-none"
+              />
+            </div>
+
+            {/* 按钮 */}
+            <div className="flex items-center justify-end gap-2 pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={closeCreditDialog}
+                disabled={creditSaving}
+              >
+                取消
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleCreditAdjust}
+                disabled={creditSaving}
+                className="bg-ac text-white hover:bg-ac-dark"
+              >
+                {creditSaving ? "保存中..." : "确认调整"}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -402,13 +599,15 @@ function StatusBadge({ status }: { status: string }) {
 // CSV 导出（UTF-8 BOM 确保中文兼容）
 function exportCSV(students: StudentItem[]) {
   const BOM = "﻿";
-  const header = "昵称,手机号,等级,状态,注册日期,最后活跃,已完成,学习中\n";
+  const header = "昵称,手机号,等级,学分,奖励学分,状态,注册日期,最后活跃,已完成,学习中\n";
   const rows = students
     .map((s) =>
       [
         s.nickname,
         s.phone,
         s.access_level,
+        formatCredits(s.total_credits),
+        formatCredits(s.bonus_credits),
         s.status === "active" ? "正常" : "封禁",
         formatDate(s.created_at),
         s.last_active_at ? formatDate(s.last_active_at) : "从未活跃",
@@ -427,4 +626,9 @@ function exportCSV(students: StudentItem[]) {
   a.download = `学员名单_${formatDate(new Date().toISOString())}.csv`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// 学分格式化
+function formatCredits(credits: number): string {
+  return credits % 1 === 0 ? String(credits) : credits.toFixed(1);
 }

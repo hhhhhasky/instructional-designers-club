@@ -60,6 +60,14 @@ export interface StudentItem {
   last_active_at: string | null;
   completed_courses: number;
   in_progress_courses: number;
+  total_credits: number;
+  bonus_credits: number;
+}
+
+export interface CreditAdjustResult {
+  id: string;
+  bonus_credits: number;
+  total_credits: number;
 }
 
 export interface AccessLevelUpdateResult {
@@ -186,6 +194,32 @@ export async function adminUpdateUserAccessLevel(
   }
 
   return result as AccessLevelUpdateResult;
+}
+
+/**
+ * 管理员手动调整学员奖励学分（正数加分/负数扣分）
+ */
+export async function adminAdjustBonusCredits(
+  userId: string,
+  amount: number,
+  reason: string
+): Promise<CreditAdjustResult> {
+  const { data, error } = await supabase.rpc("admin_adjust_bonus_credits", {
+    p_user_id: userId,
+    p_amount: amount,
+    p_reason: reason,
+  });
+  if (error) {
+    console.error("adminAdjustBonusCredits error:", error);
+    throw error;
+  }
+
+  const result = Array.isArray(data) ? data[0] : data;
+  if (!result || result.id !== userId) {
+    throw new Error("学分调整失败，请刷新后重试");
+  }
+
+  return result as CreditAdjustResult;
 }
 
 // ==================== 课程管理 ====================
