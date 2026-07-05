@@ -324,12 +324,12 @@ export default function HaiPage() {
       <div className="min-h-screen bg-cream flex flex-col">
         <Header />
         <main className="flex-1 pt-20 pb-6 px-3 md:px-5">
-          <div className="mx-auto flex min-h-[calc(100vh-7rem)] w-full max-w-[1440px] flex-col overflow-hidden rounded-ds-lg border border-bd bg-white shadow-ds-md xl:grid xl:grid-cols-[280px_minmax(0,1fr)_300px]">
-            <aside className="hidden border-r border-bd bg-bgs/70 xl:block">
+          <div className="mx-auto flex h-[calc(100vh-7rem)] w-full max-w-[1440px] flex-col overflow-hidden rounded-ds-lg border border-bd bg-white shadow-ds-md xl:grid xl:grid-cols-[280px_minmax(0,1fr)_300px]">
+            <aside className="hidden min-h-0 border-r border-bd bg-bgs/70 xl:block">
               {history}
             </aside>
 
-            <section className="flex min-h-[calc(100vh-7rem)] flex-col">
+            <section className="flex h-[calc(100vh-7rem)] min-h-0 flex-col">
               <div className="flex items-center justify-between gap-3 border-b border-bd bg-white px-4 py-3">
                 <div className="flex min-w-0 items-center gap-2">
                   <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
@@ -411,7 +411,7 @@ export default function HaiPage() {
                 />
               ) : (
                 <>
-                  <div className="flex-1 overflow-y-auto bg-[#fbfaf8] px-4 py-5">
+                  <div className="min-h-0 flex-1 overflow-y-auto bg-[#fbfaf8] px-4 py-5">
                     {messages.length === 0 ? (
                       <EmptyState module={activeModule} />
                     ) : (
@@ -458,7 +458,7 @@ export default function HaiPage() {
               )}
             </section>
 
-            <aside className="hidden border-l border-bd bg-bgs/70 p-4 xl:block">
+            <aside className="hidden min-h-0 overflow-y-auto border-l border-bd bg-bgs/70 p-4 xl:block">
               {contextPanel}
             </aside>
           </div>
@@ -485,7 +485,7 @@ function HistoryPanel({
   showClose?: boolean;
 }) {
   return (
-    <div className="flex h-full min-h-[480px] flex-col bg-[#fbfaf8]">
+    <div className="flex h-full min-h-0 flex-col bg-[#fbfaf8]">
       <div className="flex items-center justify-between border-b border-bd bg-white p-4">
         <div className="flex items-center gap-2 font-ds-bold text-tx">
           <History className="h-4 w-4 text-ac" />
