@@ -2,6 +2,7 @@ import { supabase } from "@/db/supabase";
 import { createAsyncCache } from "@/lib/async-cache";
 import type {
   AdminCourseQuestionItem,
+  AdminCourseQuestionReply,
   CourseQuestion,
   CourseQuestionReply,
   CourseQuestionStatus,
@@ -21,7 +22,19 @@ function normalizeQuestionFeed(value: unknown): CourseQuestionWithDetails[] {
   return Array.isArray(value) ? (value as CourseQuestionWithDetails[]) : [];
 }
 
-function normalizeAdminQuestion(row: Record<string, unknown>): AdminCourseQuestionItem {
+function resolveDisplayName(
+  authorId: string,
+  isAnonymous: boolean,
+  profileMap: Map<string, string>,
+): string {
+  if (isAnonymous) return "匿名";
+  return profileMap.get(authorId) ?? "学员";
+}
+
+function normalizeAdminQuestion(
+  row: Record<string, unknown>,
+  profileMap: Map<string, string>,
+): AdminCourseQuestionItem {
   const course = (row.courses ?? {}) as {
     title?: string;
     category?: string | null;
@@ -34,22 +47,31 @@ function normalizeAdminQuestion(row: Record<string, unknown>): AdminCourseQuesti
     ? row.course_question_replies as CourseQuestionReply[]
     : [];
 
+  const authorId = row.author_id as string;
+  const isAnonymous = Boolean(row.is_anonymous);
+
   return {
     id: row.id as string,
     course_id: row.course_id as string,
-    author_id: row.author_id as string,
+    author_id: authorId,
     body: row.body as string,
-    is_anonymous: Boolean(row.is_anonymous),
+    is_anonymous: isAnonymous,
     status: row.status as CourseQuestionStatus,
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
+    author_display_name: resolveDisplayName(authorId, isAnonymous, profileMap),
     course_title: course.title ?? "未知课程",
     course_category: course.category ?? null,
     course_membership_type: course.membership_type ?? "free",
     tags: tagLinks
       .map((link) => link.course_question_tags)
       .filter((tag): tag is CourseQuestionTag => Boolean(tag)),
-    replies,
+    replies: replies.map(
+      (reply): AdminCourseQuestionReply => ({
+        ...reply,
+        author_display_name: resolveDisplayName(reply.author_id, reply.is_anonymous, profileMap),
+      }),
+    ),
   };
 }
 
@@ -218,9 +240,40 @@ export async function getAdminCourseQuestions(): Promise<AdminCourseQuestionItem
     throw error;
   }
 
-  return Array.isArray(data)
-    ? (data as Array<Record<string, unknown>>).map(normalizeAdminQuestion)
+  const rows = Array.isArray(data)
+    ? (data as Array<Record<string, unknown>>)
     : [];
+
+  // Collect all unique author IDs from questions and replies
+  const authorIds = new Set<string>();
+  for (const row of rows) {
+    authorIds.add(row.author_id as string);
+    const replies = Array.isArray(row.course_question_replies)
+      ? row.course_question_replies as CourseQuestionReply[]
+      : [];
+    for (const reply of replies) {
+      authorIds.add(reply.author_id);
+    }
+  }
+
+  // Batch fetch profiles for all authors
+  const profileMap = new Map<string, string>();
+  if (authorIds.size > 0) {
+    const { data: profiles, error: profileError } = await supabase
+      .from("profiles")
+      .select("id, nickname")
+      .in("id", Array.from(authorIds));
+
+    if (profileError) {
+      console.error("getAdminCourseQuestions profile fetch error:", profileError);
+    } else if (profiles) {
+      for (const p of profiles as Array<{ id: string; nickname: string | null }>) {
+        if (p.nickname) profileMap.set(p.id, p.nickname);
+      }
+    }
+  }
+
+  return rows.map((row) => normalizeAdminQuestion(row, profileMap));
 }
 
 export async function updateCourseQuestionStatus(

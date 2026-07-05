@@ -92,6 +92,10 @@ export interface CourseQuestionReplyWithAuthor extends CourseQuestionReply {
   author_display_name: string;
 }
 
+export interface AdminCourseQuestionReply extends CourseQuestionReply {
+  author_display_name: string;
+}
+
 export interface CourseQuestionWithDetails extends CourseQuestion {
   author_display_name: string;
   tags: CourseQuestionTag[];
@@ -99,11 +103,12 @@ export interface CourseQuestionWithDetails extends CourseQuestion {
 }
 
 export interface AdminCourseQuestionItem extends CourseQuestion {
+  author_display_name: string;
   course_title: string;
   course_category: string | null;
   course_membership_type: MembershipType;
   tags: CourseQuestionTag[];
-  replies: CourseQuestionReply[];
+  replies: AdminCourseQuestionReply[];
 }
 
 export interface PlusCourseTrackRow {

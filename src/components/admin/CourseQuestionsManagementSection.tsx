@@ -1,15 +1,17 @@
-import { Eye, EyeOff, MessageCircle, RotateCcw, Search, Trash2 } from "lucide-react";
+import { Eye, EyeOff, MessageCircle, RotateCcw, Search, Send, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
 import { Button } from "@/components/ui/button";
 import {
+  createCourseQuestionReply,
   getAdminCourseQuestions,
   updateCourseQuestionReplyStatus,
   updateCourseQuestionStatus,
 } from "@/db/course-questions";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
-import type { AdminCourseQuestionItem, CourseQuestionReply, CourseQuestionStatus } from "@/types/types";
+import type { AdminCourseQuestionItem, AdminCourseQuestionReply, CourseQuestionStatus } from "@/types/types";
 
 const STATUS_OPTIONS: { value: "all" | CourseQuestionStatus; label: string }[] = [
   { value: "all", label: "全部状态" },
@@ -19,12 +21,15 @@ const STATUS_OPTIONS: { value: "all" | CourseQuestionStatus; label: string }[] =
 ];
 
 export default function CourseQuestionsManagementSection() {
+  const { user } = useAuth();
   const [questions, setQuestions] = useState<AdminCourseQuestionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | CourseQuestionStatus>("all");
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [savingReplyId, setSavingReplyId] = useState<string | null>(null);
 
   const load = async () => {
     try {
@@ -95,6 +100,39 @@ export default function CourseQuestionsManagementSection() {
       toast.error("更新回复状态失败");
     } finally {
       setSavingKey(null);
+    }
+  };
+
+  const handleSubmitReply = async (questionId: string) => {
+    if (!user) {
+      toast.error("请先登录");
+      return;
+    }
+    const body = (replyDrafts[questionId] ?? "").trim();
+    if (!body) {
+      toast.error("回复内容不能为空");
+      return;
+    }
+    if (body.length > 2000) {
+      toast.error("回复内容不能超过 2000 字");
+      return;
+    }
+
+    try {
+      setSavingReplyId(questionId);
+      await createCourseQuestionReply({
+        questionId,
+        authorId: user.id,
+        body,
+        isAnonymous: false,
+      });
+      setReplyDrafts((drafts) => ({ ...drafts, [questionId]: "" }));
+      toast.success("回复已发布");
+      await load();
+    } catch {
+      toast.error("回复失败，请稍后重试");
+    } finally {
+      setSavingReplyId(null);
     }
   };
 
@@ -170,9 +208,25 @@ export default function CourseQuestionsManagementSection() {
                         </span>
                       ))}
                     </div>
-                    <p className="text-sm font-ds-semibold text-tx mb-1">{question.course_title}</p>
+                    <p className="text-sm font-ds-semibold text-tx mb-1">
+                      <a
+                        href={`/#/courses/${question.course_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-ac hover:underline"
+                      >
+                        {question.course_title}
+                      </a>
+                    </p>
                     <p className="text-sm text-tx leading-relaxed whitespace-pre-wrap">{question.body}</p>
-                    <p className="text-xs text-txs mt-2">作者：{question.is_anonymous ? "匿名" : question.author_id}</p>
+                    <p className="text-xs text-txs mt-2">
+                      作者：{question.author_display_name}
+                      {question.is_anonymous && (
+                        <span className="ml-1.5 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-600">
+                          匿名
+                        </span>
+                      )}
+                    </p>
                   </div>
                   <StatusActions
                     status={question.status}
@@ -186,6 +240,35 @@ export default function CourseQuestionsManagementSection() {
                 <p className="text-xs font-ds-semibold text-txs mb-2">
                   回复 {question.replies.length}
                 </p>
+
+                {/* Admin reply form */}
+                <div className="rounded-ds-md border border-bdl bg-white px-3 py-3 mb-3">
+                  <textarea
+                    value={replyDrafts[question.id] ?? ""}
+                    onChange={(event) =>
+                      setReplyDrafts((drafts) => ({ ...drafts, [question.id]: event.target.value }))
+                    }
+                    maxLength={2000}
+                    rows={3}
+                    placeholder="在此输入答疑回复..."
+                    className="w-full resize-y rounded-ds-md border border-bd bg-white px-3 py-2 text-sm leading-relaxed text-tx focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20"
+                  />
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-xs text-txs">
+                      {(replyDrafts[question.id] ?? "").trim().length}/2000
+                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => handleSubmitReply(question.id)}
+                      disabled={savingReplyId === question.id || !(replyDrafts[question.id] ?? "").trim()}
+                    >
+                      <Send className="w-3.5 h-3.5 mr-1" />
+                      {savingReplyId === question.id ? "发布中..." : "答疑"}
+                    </Button>
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   {question.replies.length === 0 ? (
                     <p className="text-sm text-txs">暂无回复。</p>
@@ -214,7 +297,7 @@ function ReplyRow({
   disabled,
   onChange,
 }: {
-  reply: CourseQuestionReply;
+  reply: AdminCourseQuestionReply;
   disabled: boolean;
   onChange: (status: CourseQuestionStatus) => void;
 }) {
@@ -225,7 +308,14 @@ function ReplyRow({
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <StatusBadge status={reply.status} />
             <span className="text-xs text-txs">{formatDate(reply.created_at)}</span>
-            <span className="text-xs text-txs">作者：{reply.is_anonymous ? "匿名" : reply.author_id}</span>
+            <span className="text-xs text-txs">
+              作者：{reply.author_display_name}
+              {reply.is_anonymous && (
+                <span className="ml-1.5 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-600">
+                  匿名
+                </span>
+              )}
+            </span>
           </div>
           <p className="text-sm text-tx leading-relaxed whitespace-pre-wrap">{reply.body}</p>
         </div>

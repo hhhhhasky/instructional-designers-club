@@ -13,6 +13,11 @@ vi.mock("@/db/course-questions", () => ({
   getAdminCourseQuestions: vi.fn(),
   updateCourseQuestionStatus: vi.fn(),
   updateCourseQuestionReplyStatus: vi.fn(),
+  createCourseQuestionReply: vi.fn(),
+}));
+
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({ user: { id: "admin-1" } }),
 }));
 
 vi.mock("sonner", () => ({
@@ -26,6 +31,7 @@ const adminQuestion: AdminCourseQuestionItem = {
   id: "question-1",
   course_id: "course-1",
   author_id: "author-1",
+  author_display_name: "张老师",
   body: "课堂讨论问题如何设计？",
   is_anonymous: false,
   status: "visible",
@@ -49,6 +55,7 @@ const adminQuestion: AdminCourseQuestionItem = {
       id: "reply-1",
       question_id: "question-1",
       author_id: "author-2",
+      author_display_name: "匿名",
       body: "可以从学生错误概念切入。",
       is_anonymous: true,
       status: "visible",
