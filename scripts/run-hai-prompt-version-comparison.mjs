@@ -139,7 +139,7 @@ async function main() {
     model: module.default_model || DEEPSEEK_MODEL,
     temperature: module.default_temperature ?? 0.25,
     max_tokens: Math.min(module.default_max_output_tokens ?? 1600, 1600),
-    top_p: module.default_top_p ?? undefined,
+    top_p: normalizeTopP(module.default_top_p),
   };
 
   const results = [];
@@ -490,6 +490,12 @@ function formatDelta(value) {
 
 function compact(object) {
   return Object.fromEntries(Object.entries(object).filter(([, value]) => value !== undefined && value !== null));
+}
+
+function normalizeTopP(value) {
+  const candidate = Number(value);
+  if (!Number.isFinite(candidate) || candidate <= 0) return undefined;
+  return Math.min(candidate, 1);
 }
 
 function loadEnv(file) {

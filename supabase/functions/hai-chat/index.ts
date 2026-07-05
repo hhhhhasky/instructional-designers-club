@@ -25,7 +25,7 @@ import { classifyIntent } from "../_shared/hai_orchestrator/intent_classifier.ts
 import { memoryCategoryMatchesTypes } from "../_shared/hai_orchestrator/memory_selector.ts";
 import { buildComposedSystemPrompt } from "../_shared/hai_orchestrator/response_composer.ts";
 import { evaluateResponse } from "../_shared/hai_orchestrator/response_evaluator.ts";
-import type { HAIPromptConfigMap, HAITrace, IntentName, IntentResult, MemorySelection, RetrievalPlan } from "../_shared/hai_orchestrator/types.ts";
+import type { HAIPromptConfigMap, HAITrace, IntentName, IntentResult, MemorySelection, ProblemRewrite, RetrievalPlan, SemanticRouteResult } from "../_shared/hai_orchestrator/types.ts";
 
 type ModuleRow = {
   id: string;
@@ -108,11 +108,9 @@ Deno.serve(async (request) => {
     const orchestratorPromptConfig = runtime.contextOrchestratorEnabled
       ? await loadOrchestratorPromptConfigs(auth.admin)
       : {};
-    const keywordIntent = runtime.contextOrchestratorEnabled ? classifyIntent(text) : null;
-    const finalIntent = keywordIntent
-      ? await maybeClassifyIntentWithLlm({
+    const semanticRoute = runtime.contextOrchestratorEnabled
+      ? await routeSemanticallyWithLlm({
         text,
-        keywordIntent,
         promptConfig: orchestratorPromptConfig,
         runtime,
         completionOptions,
@@ -125,7 +123,7 @@ Deno.serve(async (request) => {
         methodMax: runtime.orchestratorMethodMax,
         theoryMax: runtime.orchestratorTheoryMax,
         expressionMax: runtime.orchestratorExpressionMax,
-      }, finalIntent ?? undefined, orchestratorPromptConfig)
+      }, semanticRoute ?? undefined, orchestratorPromptConfig)
       : null;
     const materialContext = await loadMaterialContext(
       auth.admin,
@@ -399,26 +397,25 @@ async function loadOrchestratorPromptConfigs(admin: { from: (table: string) => a
   return map;
 }
 
-async function maybeClassifyIntentWithLlm(params: {
+async function routeSemanticallyWithLlm(params: {
   text: string;
-  keywordIntent: IntentResult;
   promptConfig: HAIPromptConfigMap;
   runtime: HaiRuntimeConfig;
   completionOptions: HaiChatCompletionOptions;
   userId: string;
-}): Promise<IntentResult> {
-  if (!shouldUseLlmIntentFallback(params.keywordIntent, params.runtime)) return params.keywordIntent;
+}): Promise<SemanticRouteResult> {
+  const fallbackIntent = classifyIntent(params.text);
+  if (!params.runtime.routerLlmFallbackEnabled) return { intent: fallbackIntent };
 
   try {
-    const classifierPrompt = params.promptConfig.intent_classifier_prompt || defaultIntentClassifierPrompt();
+    const routerPrompt = buildSemanticRouterPrompt(params.promptConfig);
     const content = await collectTextStream(streamDeepSeek([
-      { role: "system", content: classifierPrompt },
+      { role: "system", content: routerPrompt },
       {
         role: "user",
         content: [
           `用户问题：${params.text}`,
-          `代码路由结果：${JSON.stringify(params.keywordIntent, null, 2)}`,
-          "请复核真实教学意图。只输出 JSON，不要解释。",
+          "请同时判断真实意图、真实教学问题和最合适的诊断模块。只输出 JSON，不要解释。",
         ].join("\n\n"),
       },
     ], {
@@ -430,36 +427,36 @@ async function maybeClassifyIntentWithLlm(params: {
       responseFormat: "json_object",
       userId: params.userId,
     }));
-    const semanticIntent = normalizeIntentResult(JSON.parse(extractJsonObject(content)), params.keywordIntent);
-    if (!semanticIntent) return params.keywordIntent;
-    const shouldPreferSemantic = params.keywordIntent.primary_intent === "general_question" ||
-      params.keywordIntent.primary_intent === "unknown" ||
-      semanticIntent.primary_intent !== "general_question" && semanticIntent.confidence >= Math.max(0.58, params.keywordIntent.confidence - 0.05);
-    if (!shouldPreferSemantic) return params.keywordIntent;
-    return {
-      ...semanticIntent,
-      route_method: "llm",
-      route_reason: `关键词路由置信度 ${params.keywordIntent.confidence}，触发语义兜底复核。代码路由原判为 ${params.keywordIntent.primary_intent}。`,
-      matched_signals: params.keywordIntent.matched_signals ?? [],
-    };
+    return normalizeSemanticRouteResult(JSON.parse(extractJsonObject(content)), params.text, fallbackIntent) ?? { intent: fallbackIntent };
   } catch (error) {
-    console.warn("hai llm intent fallback failed", error instanceof Error ? error.message : String(error));
-    return params.keywordIntent;
+    console.warn("hai llm semantic router failed", error instanceof Error ? error.message : String(error));
+    return { intent: fallbackIntent };
   }
-}
-
-function shouldUseLlmIntentFallback(intent: IntentResult, runtime: HaiRuntimeConfig) {
-  if (!runtime.routerLlmFallbackEnabled) return false;
-  const threshold = Math.max(0, Math.min(1, runtime.routerLlmConfidenceThreshold));
-  if (intent.confidence < threshold) return true;
-  if (intent.primary_intent === "general_question" || intent.primary_intent === "unknown") return true;
-  return /接近|复核|兜底/.test(intent.route_reason ?? "");
 }
 
 async function collectTextStream(stream: AsyncIterable<string>) {
   let output = "";
   for await (const token of stream) output += token;
   return output.trim();
+}
+
+function normalizeSemanticRouteResult(value: unknown, question: string, fallback: IntentResult): SemanticRouteResult | null {
+  const record = normalizeRecord(value);
+  const intentSource = "intent_result" in record ? record.intent_result : record;
+  const intent = normalizeIntentResult(intentSource, fallback);
+  if (!intent) return null;
+  const rewrite = normalizeProblemRewrite(record.problem_rewrite, question);
+  const diagnosticModule = normalizeIntentName(record.diagnostic_module) ?? intent.primary_intent;
+  return {
+    intent: {
+      ...intent,
+      route_method: "llm",
+      route_reason: String(record.route_reason || intent.route_reason || "LLM 语义路由根据真实教学问题直接判断。"),
+      matched_signals: [],
+    },
+    problem_rewrite: rewrite ?? undefined,
+    diagnostic_module: diagnosticModule,
+  };
 }
 
 function normalizeIntentResult(value: unknown, fallback: IntentResult): IntentResult | null {
@@ -477,7 +474,32 @@ function normalizeIntentResult(value: unknown, fallback: IntentResult): IntentRe
     implicit_need: String(record.implicit_need || fallback.implicit_need || ""),
     risk_of_wrong_framing: String(record.risk_of_wrong_framing || fallback.risk_of_wrong_framing || ""),
     confidence: Number.isFinite(confidence) ? Math.max(0, Math.min(0.98, confidence)) : Math.max(0.6, fallback.confidence),
+    route_method: "llm",
+    route_reason: String(record.route_reason || "LLM 语义路由根据真实教学问题直接判断。"),
+    matched_signals: [],
   };
+}
+
+function normalizeProblemRewrite(value: unknown, question: string): ProblemRewrite | null {
+  const record = normalizeRecord(value);
+  const surface = nonEmptyString(record.surface_problem);
+  const deeper = nonEmptyString(record.deeper_problem);
+  const reframing = nonEmptyString(record.hai_reframing);
+  const direction = nonEmptyString(record.recommended_answer_direction);
+  if (!surface || !deeper || !reframing || !direction) return null;
+  return {
+    original_question: question,
+    surface_problem: surface,
+    deeper_problem: deeper,
+    wrong_attribution_risk: nonEmptyString(record.wrong_attribution_risk) || undefined,
+    hai_reframing: reframing,
+    recommended_answer_direction: direction,
+  };
+}
+
+function nonEmptyString(value: unknown) {
+  const text = String(value ?? "").trim();
+  return text || null;
 }
 
 function normalizeIntentName(value: unknown): IntentName | null {
@@ -493,16 +515,54 @@ function extractJsonObject(text: string) {
   return match[0];
 }
 
-function defaultIntentClassifierPrompt() {
-  return `你是 HAI 的语义路由器。请根据教师问题判断最合适的 primary_intent。
-允许的 intent：${allowedIntents.join(", ")}
+function buildSemanticRouterPrompt(promptConfig: HAIPromptConfigMap) {
+  const configurableRules = [
+    promptConfig.intent_classifier_prompt ? `【可配置意图识别规则】\n${promptConfig.intent_classifier_prompt}` : "",
+    promptConfig.problem_rewriter_prompt ? `【可配置问题重构规则】\n${promptConfig.problem_rewriter_prompt}` : "",
+    promptConfig.diagnostic_router_prompt ? `【可配置诊断路由规则】\n${promptConfig.diagnostic_router_prompt}` : "",
+  ].filter(Boolean).join("\n\n");
+
+  return `你是 HAI 的 LLM 语义路由器。你是当前路由主判断，不是关键词兜底。
+你的任务是根据教师输入同时完成三件事：
+1. 识别真实教学意图 intent_result。
+2. 把表层诉求重构为真实教学诊断问题 problem_rewrite。
+3. 选择最适合的 diagnostic_module。
+
+允许的 intent 和 diagnostic_module：
+${allowedIntents.join(", ")}
+
 判断原则：
-1. 先看用户真正要解决的教学问题，不要只看表层措辞。
-2. 问课文、课题、目标、导入、任务链，优先 teaching_design。
-3. 问教案是否成立、活动很多但目标不清，优先 lesson_plan_diagnosis。
-4. 问听懂但做题错、怎么判断学会、反馈或评价证据，优先 assessment_feedback。
-5. 问公开课、说课、赛课、亮点，优先 public_lesson。
-只输出 JSON：{"primary_intent":"...","secondary_intents":[],"explicit_need":"...","implicit_need":"...","risk_of_wrong_framing":"...","confidence":0.0}`;
+1. 先看用户真正要解决的教学问题，不按关键词机械匹配。
+2. 用户表层说“有趣、互动、亮点、帮我写”，也要判断背后的目标、学情、评价、结构或边界问题。
+3. 公开课、说课、日常课、教案诊断、局部设计咨询要按真实需求区分。
+4. 如果用户粘贴或描述一套设计让你找问题，优先考虑 lesson_plan_diagnosis。
+5. 如果用户问某篇课文、某节课、目标、导入、任务链，优先考虑 teaching_design。
+6. 如果用户问听懂但做题错、怎么判断学会、反馈或评价证据，优先考虑 assessment_feedback。
+7. 如果用户问公开课、说课、赛课、亮点，优先考虑 public_lesson，但仍要识别是否其实是教案结构问题。
+8. confidence 表示你对语义判断的把握，范围 0 到 0.98。
+
+${configurableRules}
+
+只输出 JSON，格式必须是：
+{
+  "intent_result": {
+    "primary_intent": "...",
+    "secondary_intents": ["..."],
+    "explicit_need": "...",
+    "implicit_need": "...",
+    "risk_of_wrong_framing": "...",
+    "confidence": 0.0,
+    "route_reason": "..."
+  },
+  "problem_rewrite": {
+    "surface_problem": "...",
+    "deeper_problem": "...",
+    "wrong_attribution_risk": "...",
+    "hai_reframing": "...",
+    "recommended_answer_direction": "..."
+  },
+  "diagnostic_module": "..."
+}`;
 }
 
 async function loadConversation(

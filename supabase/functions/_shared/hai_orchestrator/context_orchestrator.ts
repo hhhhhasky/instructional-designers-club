@@ -4,13 +4,13 @@ import { coreIdentity, evaluatorPrompt, safetyBoundaries, stylePack } from "./pr
 import { rewriteProblem } from "./problem_rewriter.ts";
 import { planRetrieval, selectExpressions, selectLocalCases } from "./retrieval_planner.ts";
 import { routeDiagnosticFramework } from "./diagnostic_router.ts";
-import type { HAIContextPackage, HAIOrchestratorConfig, HAIPromptConfigMap, IntentResult } from "./types.ts";
+import type { HAIContextPackage, HAIOrchestratorConfig, HAIPromptConfigMap, IntentResult, SemanticRouteResult } from "./types.ts";
 
 export class HAIContextOrchestrator {
   buildInitialPackage(
     userQuestion: string,
     config?: Partial<HAIOrchestratorConfig>,
-    intentOverride?: IntentResult,
+    semanticRoute?: SemanticRouteResult | IntentResult,
     promptConfig: HAIPromptConfigMap = {},
   ): HAIContextPackage {
     const limits = {
@@ -19,11 +19,12 @@ export class HAIContextOrchestrator {
       theoryMax: Math.max(0, Math.round(config?.theoryMax ?? 1)),
       expressionMax: Math.max(0, Math.round(config?.expressionMax ?? 5)),
     };
-    const intent = intentOverride ?? classifyIntent(userQuestion);
+    const route = normalizeSemanticRoute(semanticRoute);
+    const intent = route?.intent ?? classifyIntent(userQuestion);
     const memorySelection = selectMemory(userQuestion, intent);
-    const problemRewrite = rewriteProblem(userQuestion, intent);
-    const diagnostic = routeDiagnosticFramework(intent.primary_intent);
-    const diagnosticFramework = promptConfig[`diagnostic_module.${intent.primary_intent}`] || diagnostic.diagnostic_framework;
+    const problemRewrite = route?.problem_rewrite ?? rewriteProblem(userQuestion, intent);
+    const diagnostic = routeDiagnosticFramework(intent.primary_intent, route?.diagnostic_module);
+    const diagnosticFramework = promptConfig[`diagnostic_module.${diagnostic.diagnostic_module}`] || diagnostic.diagnostic_framework;
     const retrievalPlan = planRetrieval(intent, problemRewrite);
     retrievalPlan.max_cases = limits.caseMax;
     retrievalPlan.max_methods = limits.methodMax;
@@ -53,4 +54,10 @@ export class HAIContextOrchestrator {
       style_pack: promptConfig.style_pack || stylePack,
     };
   }
+}
+
+function normalizeSemanticRoute(value?: SemanticRouteResult | IntentResult): SemanticRouteResult | null {
+  if (!value) return null;
+  if ("intent" in value) return value;
+  return { intent: value };
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Activity, AlertTriangle, Bot, BookOpen, CheckCircle2, GitBranch, KeyRound, Layers3, Loader2, Pencil, RefreshCw, Route, Save, Settings2, ShieldCheck, SlidersHorizontal, Ticket, Trash2, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -182,6 +182,7 @@ export default function HaiManagementSection() {
   const [orchestratorPromptConfigs, setOrchestratorPromptConfigs] = useState<HaiOrchestratorPromptConfig[]>([]);
   const [selectedPromptConfigKey, setSelectedPromptConfigKey] = useState("");
   const [promptConfigDraft, setPromptConfigDraft] = useState("");
+  const promptConfigDraftKeyRef = useRef("");
   const [selectedUserId, setSelectedUserId] = useState("");
   const [studentSearch, setStudentSearch] = useState("");
   const [selectedModuleId, setSelectedModuleId] = useState("");
@@ -228,6 +229,9 @@ export default function HaiManagementSection() {
     () => orchestratorPromptConfigs.find((item) => item.key === selectedPromptConfigKey) ?? orchestratorPromptConfigs[0] ?? null,
     [orchestratorPromptConfigs, selectedPromptConfigKey],
   );
+  const promptConfigDirty = selectedPromptConfig ? promptConfigDraft !== selectedPromptConfig.content : false;
+  const promptConfigMatchesDefault = selectedPromptConfig ? promptConfigDraft.trim() === selectedPromptConfig.default_content.trim() : false;
+  const enabledPromptConfigCount = orchestratorPromptConfigs.filter((item) => item.enabled).length;
   const promptConfigGroups = useMemo(() => {
     const groups = new Map<string, HaiOrchestratorPromptConfig[]>();
     for (const config of orchestratorPromptConfigs) {
@@ -264,11 +268,16 @@ export default function HaiManagementSection() {
 
   useEffect(() => {
     if (!selectedPromptConfig) {
+      promptConfigDraftKeyRef.current = "";
       setPromptConfigDraft("");
       return;
     }
-    setPromptConfigDraft(selectedPromptConfig.content);
-  }, [selectedPromptConfig]);
+    const keyChanged = promptConfigDraftKeyRef.current !== selectedPromptConfig.key;
+    if (keyChanged || !promptConfigDirty) {
+      promptConfigDraftKeyRef.current = selectedPromptConfig.key;
+      setPromptConfigDraft(selectedPromptConfig.content);
+    }
+  }, [selectedPromptConfig, promptConfigDirty]);
 
   async function loadAll() {
     setLoading(true);
@@ -479,16 +488,17 @@ export default function HaiManagementSection() {
     setSaving(true);
     setStatus("");
     try {
+      const updatedAt = new Date().toISOString();
       const { error } = await supabase
         .from("hai_orchestrator_prompt_configs")
         .update({
           ...updates,
-          updated_at: new Date().toISOString(),
+          updated_at: updatedAt,
         })
         .eq("key", config.key);
       if (error) throw error;
       setOrchestratorPromptConfigs((current) => current.map((item) => (
-        item.key === config.key ? { ...item, ...updates, updated_at: new Date().toISOString() } : item
+        item.key === config.key ? { ...item, ...updates, updated_at: updatedAt } : item
       )));
       setStatus("上下文编排 Prompt 已保存。");
     } catch (error) {
@@ -500,8 +510,9 @@ export default function HaiManagementSection() {
   }
 
   async function saveSelectedPromptConfig() {
-    if (!selectedPromptConfig || saving) return;
-    await updateOrchestratorPromptConfig(selectedPromptConfig, { content: promptConfigDraft });
+    const content = promptConfigDraft.trim();
+    if (!selectedPromptConfig || saving || !content || !promptConfigDirty) return;
+    await updateOrchestratorPromptConfig(selectedPromptConfig, { content });
   }
 
   async function resetSelectedPromptConfig() {
@@ -810,7 +821,7 @@ export default function HaiManagementSection() {
 
         <div className="grid gap-3 xl:grid-cols-4">
           <MetricCard icon={<Route className="h-4 w-4" />} label="核心链路" value={orchestratorEnabled ? "Context Orchestrator" : "Legacy Prompt"} />
-          <MetricCard icon={<Layers3 className="h-4 w-4" />} label="诊断模块" value="10 intents" />
+          <MetricCard icon={<Layers3 className="h-4 w-4" />} label="可编辑层" value={`${enabledPromptConfigCount}/${orchestratorPromptConfigs.length || 0}`} />
           <MetricCard icon={<ShieldCheck className="h-4 w-4" />} label="最近 trace" value={`${recentTraces.length} 条`} />
           <MetricCard icon={<CheckCircle2 className="h-4 w-4" />} label="当前版本" value={currentPrompt?.version_label ?? "未发布"} />
         </div>
@@ -840,16 +851,16 @@ export default function HaiManagementSection() {
             <div>
               <div className="mb-2 flex items-center gap-2">
                 <Route className="h-4 w-4 text-ac" />
-                <h3 className="text-ds-base font-ds-bold text-tx">混合路由策略</h3>
+                <h3 className="text-ds-base font-ds-bold text-tx">语义路由策略</h3>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="rounded-ds-md border border-bd bg-bg p-3">
-                  <p className="text-ds-sm font-ds-bold text-tx">代码规则直接判断</p>
-                  <p className="mt-2 text-ds-xs leading-relaxed text-txs">公开课/赛课/说课/亮点、教案诊断/活动很多/目标不清、AI 备课、PBL/跨学科、评价/反馈/出口题/大班额、课堂纪律等高置信场景。</p>
+                  <p className="text-ds-sm font-ds-bold text-tx">LLM 主路由</p>
+                  <p className="mt-2 text-ds-xs leading-relaxed text-txs">每轮先由 LLM 语义判断真实意图、问题重构和诊断模块，重点处理公开课、说课、日常课、教案诊断和局部设计咨询的真实需求差异。</p>
                 </div>
                 <div className="rounded-ds-md border border-bd bg-bg p-3">
-                  <p className="text-ds-sm font-ds-bold text-tx">LLM 语义兜底</p>
-                  <p className="mt-2 text-ds-xs leading-relaxed text-txs">关键词低置信、多意图接近、被判为普通问答或不确定、用户表层问题和真实教学问题可能不一致时，额外调用一次 JSON 路由复核。</p>
+                  <p className="text-ds-sm font-ds-bold text-tx">代码降级</p>
+                  <p className="mt-2 text-ds-xs leading-relaxed text-txs">只有在 LLM 路由关闭、调用失败或 JSON 不可用时，才回退到本地确定性规则，保证服务不中断。</p>
                 </div>
               </div>
             </div>
@@ -910,7 +921,11 @@ export default function HaiManagementSection() {
                     <div className="space-y-3">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-ds-sm font-ds-bold text-tx">{selectedPromptConfig.label}</p>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-ds-sm font-ds-bold text-tx">{selectedPromptConfig.label}</p>
+                            {promptConfigDirty && <Badge variant="outline" className="border-amber-200 text-amber-700">未保存</Badge>}
+                            {promptConfigMatchesDefault && <Badge variant="outline" className="border-bd text-txs">默认内容</Badge>}
+                          </div>
                           <p className="mt-1 text-[11px] text-txs">{selectedPromptConfig.description}</p>
                         </div>
                         <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -926,7 +941,7 @@ export default function HaiManagementSection() {
                             <RefreshCw className="h-3.5 w-3.5" />
                             默认
                           </Button>
-                          <Button size="sm" className="bg-ac text-white hover:bg-acd" disabled={saving || !promptConfigDraft.trim()} onClick={saveSelectedPromptConfig}>
+                          <Button size="sm" className="bg-ac text-white hover:bg-acd" disabled={saving || !promptConfigDraft.trim() || !promptConfigDirty} onClick={saveSelectedPromptConfig}>
                             <Save className="h-3.5 w-3.5" />
                             保存
                           </Button>
@@ -940,7 +955,7 @@ export default function HaiManagementSection() {
                       />
                       <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-txs">
                         <span>{selectedPromptConfig.key}</span>
-                        <span>更新于 {formatDateTime(selectedPromptConfig.updated_at)}</span>
+                        <span>{promptConfigDraft.length} 字 · 约 {estimateTokenCount(promptConfigDraft)} tokens · 更新于 {formatDateTime(selectedPromptConfig.updated_at)}</span>
                       </div>
                     </div>
                   ) : (

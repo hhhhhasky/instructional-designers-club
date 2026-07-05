@@ -32,6 +32,12 @@ export type IntentResult = {
   matched_signals?: string[];
 };
 
+export type SemanticRouteResult = {
+  intent: IntentResult;
+  problem_rewrite?: ProblemRewrite;
+  diagnostic_module?: IntentName;
+};
+
 export type MemorySelection = {
   should_load_memory: boolean;
   memory_types: MemoryType[];
