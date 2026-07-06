@@ -1,4 +1,4 @@
-import { Bell, CheckCheck, Gift, Star, TrendingDown, TrendingUp } from "lucide-react";
+import { Bell, CheckCheck, Gift, MessageCircle, Star, TrendingDown, TrendingUp } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getMyNotifications, markNotificationsRead } from "@/db/api";
@@ -12,6 +12,7 @@ const TYPE_META: Record<string, { Icon: typeof Bell; color: string }> = {
   level_change: { Icon: TrendingUp, color: "text-ac" },
   banned: { Icon: Star, color: "text-error-tx" },
   unbanned: { Icon: Star, color: "text-tl" },
+  course_question_reply: { Icon: MessageCircle, color: "text-ac" },
 };
 
 const MAX_VISIBLE = 5;

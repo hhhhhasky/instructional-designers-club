@@ -320,7 +320,7 @@ export interface Resource {
 }
 
 // 站内通知类型
-export type UserNotificationType = 'credit_reward' | 'credit_deduct' | 'level_change' | 'banned' | 'unbanned';
+export type UserNotificationType = 'credit_reward' | 'credit_deduct' | 'level_change' | 'banned' | 'unbanned' | 'course_question_reply';
 
 // 用户个人通知
 export interface UserNotification {

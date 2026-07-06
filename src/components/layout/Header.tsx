@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { GraduationCap, Menu, X, Settings, LogOut, User, BookOpen, ShieldCheck, BarChart3, Bell, CheckCheck, Gift, TrendingUp, TrendingDown } from "lucide-react";
+import { GraduationCap, Menu, X, Settings, LogOut, User, BookOpen, ShieldCheck, BarChart3, Bell, CheckCheck, Gift, TrendingUp, TrendingDown, MessageCircle } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import routes from "@/routes";
 import { useAuth } from "@/contexts/AuthContext";
@@ -83,6 +83,7 @@ export default function Header() {
     credit_reward: Gift,
     credit_deduct: TrendingDown,
     level_change: TrendingUp,
+    course_question_reply: MessageCircle,
   };
 
   useEffect(() => {
