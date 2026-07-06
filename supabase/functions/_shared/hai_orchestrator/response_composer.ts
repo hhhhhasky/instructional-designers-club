@@ -1,10 +1,5 @@
 import type { HAIContextPackage, ResponseEvaluation } from "./types.ts";
 
-type PromptRow = {
-  system_prompt: string;
-  developer_prompt: string;
-  response_contract: string;
-};
 
 type ModuleRow = {
   name: string;
@@ -17,7 +12,6 @@ type RetrievedTextContext = {
 };
 
 export function buildComposedSystemPrompt(params: {
-  prompt: PromptRow;
   module: ModuleRow;
   context: HAIContextPackage;
   memories: Array<{ category: string; content: string }>;
@@ -69,17 +63,11 @@ export function buildComposedSystemPrompt(params: {
     `【表达库】\n${expressionText}`,
     `【风格要求】\n${params.context.style_pack}`,
     params.context.response_composer_prompt || `【输出结构】\n1. 先给判断：这个问题不要先理解成什么。\n2. 再做重构：表面上是什么，更深层是什么。\n3. 指出常见误区。\n4. 给出专业框架。\n5. 给出可执行步骤。\n6. 最后用一句有判断力的话收束。`,
-    params.prompt.response_contract ? `【线上输出契约】\n${trimText(params.prompt.response_contract, 800)}` : "",
-    params.prompt.developer_prompt ? `【线上补充规则摘要】\n${trimText(params.prompt.developer_prompt, 900)}` : "",
     rewriteBlock,
     "不要输出内部 JSON、trace、检索规划或质检结果。",
   ].filter(Boolean).join("\n\n");
 }
 
-function trimText(text: string, maxChars: number) {
-  const normalized = text.trim();
-  return normalized.length > maxChars ? `${normalized.slice(0, maxChars)}...` : normalized;
-}
 
 function memoryLabel(category: string) {
   const labels: Record<string, string> = {

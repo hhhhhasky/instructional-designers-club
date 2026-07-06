@@ -100,9 +100,9 @@ Deno.serve(async (request) => {
     const clientRequestId = body.clientRequestId ? String(body.clientRequestId) : crypto.randomUUID();
     if (!text) throw new HttpError(400, "消息不能为空。");
 
-    const module = await loadModule(auth.admin, moduleSlug);
-    const prompt = await loadPrompt(auth.admin, module.id);
     const runtime = await loadHaiRuntimeConfig(auth.admin);
+    const module = await loadModule(auth.admin, moduleSlug);
+    const prompt = runtime.contextOrchestratorEnabled ? null : await loadPrompt(auth.admin, module.id);
     const completionOptions = buildChatCompletionOptions({ module, runtime });
     const configSnapshot = runtimeConfigSnapshot(runtime, completionOptions);
     const orchestratorPromptConfig = runtime.contextOrchestratorEnabled
@@ -138,13 +138,16 @@ Deno.serve(async (request) => {
       : await loadKnowledgeContext(auth.admin, text, module, runtime);
     const maxOutputTokens = completionOptions.maxTokens;
     const estimatedInputTokens = estimateTokens(text) +
-      estimateTokens(prompt.system_prompt) +
-      estimateTokens(prompt.developer_prompt) +
-      estimateTokens(prompt.response_contract) +
+      estimateTokens(prompt?.system_prompt ?? "") +
+      estimateTokens(prompt?.developer_prompt ?? "") +
+      estimateTokens(prompt?.response_contract ?? "") +
       estimateTokens(contextPackage?.core_identity ?? "") +
+      estimateTokens(contextPackage?.safety_boundaries ?? "") +
       estimateTokens(contextPackage?.diagnostic_framework ?? "") +
       estimateTokens(JSON.stringify(contextPackage?.intent_result ?? {})) +
       estimateTokens(JSON.stringify(contextPackage?.problem_rewrite ?? {})) +
+      estimateTokens(contextPackage?.style_pack ?? "") +
+      estimateTokens(contextPackage?.response_composer_prompt ?? "") +
       estimateTokens(materialContext.text) +
       estimateTokens(knowledgeContext.text);
     await reserveUsage({
@@ -195,14 +198,13 @@ Deno.serve(async (request) => {
     if (contextPackage) contextPackage.selected_memory = memories;
     const systemPrompt = contextPackage
       ? buildComposedSystemPrompt({
-        prompt,
         module,
         context: contextPackage,
         memories,
         materialContext,
         knowledgeContext,
       })
-      : buildLegacySystemPrompt(prompt, module, memories, materialContext, knowledgeContext);
+      : buildLegacySystemPrompt(requirePrompt(prompt), module, memories, materialContext, knowledgeContext);
     const messages: ChatMessage[] = [
       { role: "system", content: systemPrompt },
       ...recentMessages,
@@ -239,7 +241,6 @@ Deno.serve(async (request) => {
           if (contextPackage && evaluation && !evaluation.pass && runtime.evaluatorMaxRewrites > 0) {
             finalAnswer = "";
             const rewriteSystemPrompt = buildComposedSystemPrompt({
-              prompt,
               module,
               context: contextPackage,
               memories,
@@ -380,6 +381,11 @@ async function loadPrompt(admin: { from: (table: string) => any }, moduleId: str
   if (error) throw new HttpError(500, error.message);
   if (!data) throw new HttpError(500, "该 HAI 功能缺少已发布 Prompt。");
   return data as PromptRow;
+}
+
+function requirePrompt(prompt: PromptRow | null): PromptRow {
+  if (!prompt) throw new HttpError(500, "Context Orchestrator 已关闭，但该 HAI 功能缺少已发布 Prompt。");
+  return prompt;
 }
 
 async function loadOrchestratorPromptConfigs(admin: { from: (table: string) => any }): Promise<HAIPromptConfigMap> {
