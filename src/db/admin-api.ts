@@ -249,6 +249,101 @@ function clearPublicCourseCaches(courseId?: string): void {
   clearHomePageSnapshotCache();
 }
 
+type CourseWritePayload = Omit<Course, "id" | "view_count" | "created_at" | "updated_at">;
+
+const COURSE_WRITE_COLUMNS: readonly (keyof CourseWritePayload)[] = [
+  "title",
+  "description",
+  "instructor",
+  "category_id",
+  "category",
+  "level",
+  "duration",
+  "credits",
+  "status",
+  "membership_type",
+  "is_trial",
+  "image_url",
+  "video_url",
+  "audio_url",
+  "body",
+  "essence",
+  "images",
+  "plus_lesson_order",
+  "plus_representative",
+  "meeting_url",
+  "sort_order",
+];
+
+const TEXT_LIMITS: Partial<Record<keyof CourseWritePayload, number>> = {
+  title: 200,
+  instructor: 100,
+  category: 100,
+};
+
+function normalizeOptionalText(value: unknown): string | null {
+  if (typeof value !== "string") return value == null ? null : String(value);
+  const normalized = value.trim();
+  return normalized ? normalized : null;
+}
+
+function normalizeOptionalContent(value: unknown): string | null {
+  if (typeof value !== "string") return value == null ? null : String(value);
+  return value.trim() ? value : null;
+}
+
+function normalizeCourseWritePayload(course: CourseWritePayload): CourseWritePayload;
+function normalizeCourseWritePayload(course: Partial<CourseWritePayload>, partial: true): Partial<CourseWritePayload>;
+function normalizeCourseWritePayload(
+  course: Partial<CourseWritePayload>,
+  partial = false
+): CourseWritePayload | Partial<CourseWritePayload> {
+  const payload = {} as Partial<CourseWritePayload>;
+
+  for (const key of COURSE_WRITE_COLUMNS) {
+    if (partial && !(key in course)) continue;
+    const value = course[key];
+    if (
+      key === "description" ||
+      key === "instructor" ||
+      key === "category" ||
+      key === "image_url" ||
+      key === "video_url" ||
+      key === "audio_url" ||
+      key === "meeting_url" ||
+      key === "credits"
+    ) {
+      (payload as Record<keyof CourseWritePayload, unknown>)[key] = normalizeOptionalText(value);
+    } else if (key === "body" || key === "essence") {
+      (payload as Record<keyof CourseWritePayload, unknown>)[key] = normalizeOptionalContent(value);
+    } else if (key === "images") {
+      payload.images = Array.isArray(value)
+        ? value.map((url) => url.trim()).filter(Boolean)
+        : [];
+    } else {
+      (payload as Record<keyof CourseWritePayload, unknown>)[key] = value ?? null;
+    }
+  }
+
+  if (!partial || "title" in course) payload.title = normalizeOptionalText(course.title) ?? "";
+  if (!partial || "level" in course) payload.level = course.level ?? "入门";
+  if (!partial || "duration" in course) payload.duration = Number.isFinite(Number(course.duration)) ? Number(course.duration) : 0;
+  if (!partial || "status" in course) payload.status = course.status ?? "draft";
+  if (!partial || "membership_type" in course) payload.membership_type = course.membership_type ?? "plus";
+  if (!partial || "is_trial" in course) payload.is_trial = Boolean(course.is_trial);
+  if (!partial || "plus_representative" in course) payload.plus_representative = Boolean(course.plus_representative);
+  if (!partial || "sort_order" in course) payload.sort_order = Number.isFinite(Number(course.sort_order)) ? Number(course.sort_order) : 0;
+
+  for (const [key, limit] of Object.entries(TEXT_LIMITS) as [keyof CourseWritePayload, number][]) {
+    const value = payload[key];
+    if (typeof value === "string" && value.length > limit) {
+      throw new Error(`${key === "title" ? "课程名称" : key === "instructor" ? "讲师" : "分类"}不能超过 ${limit} 个字符`);
+    }
+  }
+
+  return payload as CourseWritePayload | Partial<CourseWritePayload>;
+}
+
 /**
  * 管理员获取课程分类，用于课程创建/编辑表单绑定 category_id
  */
@@ -387,9 +482,10 @@ export async function adminUpdateCourseCategory(
 export async function adminCreateCourse(
   course: Omit<Course, "id" | "view_count" | "created_at" | "updated_at">
 ): Promise<Course> {
+  const payload = normalizeCourseWritePayload(course);
   const { data, error } = await supabase
     .from("courses")
-    .insert(course)
+    .insert(payload)
     .select()
     .single();
   if (error) {
@@ -408,9 +504,10 @@ export async function adminUpdateCourse(
   courseId: string,
   updates: Partial<Course>
 ): Promise<Course> {
+  const payload = normalizeCourseWritePayload(updates, true);
   const { data, error } = await supabase
     .from("courses")
-    .update(updates)
+    .update(payload)
     .eq("id", courseId)
     .select()
     .single();

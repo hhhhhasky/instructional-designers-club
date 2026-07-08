@@ -93,6 +93,20 @@ const EMPTY_FORM: Omit<Course, "id" | "view_count" | "created_at" | "updated_at"
 type CourseForm = typeof EMPTY_FORM;
 type CategoryMode = "existing" | "new";
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message.trim()) return error.message;
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as { message?: unknown }).message === "string" &&
+    (error as { message: string }).message.trim()
+  ) {
+    return (error as { message: string }).message;
+  }
+  return fallback;
+}
+
 export default function CourseManagementSection() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [structureTracks, setStructureTracks] = useState<PlusTrackConfig[]>(PLUS_TRACKS);
@@ -409,8 +423,8 @@ export default function CourseManagementSection() {
         toast.success("课程创建成功");
       }
       setDialogOpen(false);
-    } catch {
-      toast.error(editingCourse ? "更新课程失败" : "创建课程失败");
+    } catch (error) {
+      toast.error(getErrorMessage(error, editingCourse ? "更新课程失败" : "创建课程失败"));
     } finally {
       setSaving(false);
     }
