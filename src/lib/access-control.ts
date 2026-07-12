@@ -21,64 +21,117 @@ function phoneToFakeEmail(phone: string): string {
   return `${phone}@phone.local`;
 }
 
+function getAuthErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof (error as { message?: unknown }).message === 'string'
+  ) {
+    return (error as { message: string }).message;
+  }
+  return String(error || '');
+}
+
+function isAuthNetworkFailure(error: unknown): boolean {
+  const message = getAuthErrorMessage(error).toLowerCase();
+  const name = error instanceof Error ? error.name.toLowerCase() : '';
+  return (
+    name.includes('fetch') ||
+    name.includes('network') ||
+    message.includes('load failed') ||
+    message.includes('failed to fetch') ||
+    message.includes('networkerror') ||
+    message.includes('network request failed') ||
+    message.includes('fetch failed')
+  );
+}
+
+function getSignUpErrorMessage(error: unknown): string {
+  const message = getAuthErrorMessage(error);
+  if (message.includes('already registered') || message.includes('User already registered')) {
+    return '该手机号已注册';
+  }
+  if (isAuthNetworkFailure(error)) {
+    return '注册失败：网络请求失败，请检查网络连接后重试';
+  }
+  return `注册失败：${message || '请稍后重试'}`;
+}
+
+function getSignInErrorMessage(error: unknown): string {
+  const message = getAuthErrorMessage(error);
+  if (message.includes('Invalid login credentials')) {
+    return '手机号或密码错误';
+  }
+  if (message.includes('Email not confirmed')) {
+    return '账号未完成验证。请在 Supabase Auth 设置中关闭邮箱确认，手机号登录才能直接使用。';
+  }
+  if (isAuthNetworkFailure(error)) {
+    return '登录失败：网络请求失败，请检查网络连接后重试';
+  }
+  return `登录失败：${message || '请稍后重试'}`;
+}
+
 export async function signUpWithPhone(
   phone: string,
   password: string,
   nickname: string,
 ): Promise<{ error: string | null; session: Session | null; user: User | null }> {
-  const { error, data } = await supabase.auth.signUp({
-    email: phoneToFakeEmail(phone),
-    password,
-    options: {
-      data: { phone, nickname },
-    },
-  });
+  try {
+    const { error, data } = await supabase.auth.signUp({
+      email: phoneToFakeEmail(phone),
+      password,
+      options: {
+        data: { phone, nickname },
+      },
+    });
 
-  if (error) {
-    console.error('signUp error:', error.message, error.status);
-    if (error.message.includes('already registered') || error.message.includes('User already registered')) {
-      return { error: '该手机号已注册', session: null, user: null };
+    if (error) {
+      console.error('signUp error:', error.message, error.status);
+      return { error: getSignUpErrorMessage(error), session: null, user: null };
     }
-    return { error: `注册失败：${error.message}`, session: null, user: null };
-  }
 
-  console.log('signUp success:', data.user?.id);
+    console.log('signUp success:', data.user?.id);
 
-  if (!data.session) {
-    const signInResult = await signInWithPhone(phone, password);
-    if (signInResult.error) {
-      return {
-        error: '注册成功，但当前项目未自动登录。请确认 Supabase 已关闭邮箱验证后再重试登录。',
-        session: null,
-        user: data.user,
-      };
+    if (!data.session) {
+      const signInResult = await signInWithPhone(phone, password);
+      if (signInResult.error) {
+        return {
+          error: '注册成功，但当前项目未自动登录。请确认 Supabase 已关闭邮箱验证后再重试登录。',
+          session: null,
+          user: data.user,
+        };
+      }
+      return signInResult;
     }
-    return signInResult;
-  }
 
-  return { error: null, session: data.session, user: data.user };
+    return { error: null, session: data.session, user: data.user };
+  } catch (error) {
+    console.error('signUp exception:', error);
+    return { error: getSignUpErrorMessage(error), session: null, user: null };
+  }
 }
 
 export async function signInWithPhone(
   phone: string,
   password: string,
 ): Promise<{ error: string | null; session: Session | null; user: User | null }> {
-  const { error, data } = await supabase.auth.signInWithPassword({
-    email: phoneToFakeEmail(phone),
-    password,
-  });
+  try {
+    const { error, data } = await supabase.auth.signInWithPassword({
+      email: phoneToFakeEmail(phone),
+      password,
+    });
 
-  if (error) {
-    if (error.message.includes('Invalid login credentials')) {
-      return { error: '手机号或密码错误', session: null, user: null };
+    if (error) {
+      return { error: getSignInErrorMessage(error), session: null, user: null };
     }
-    if (error.message.includes('Email not confirmed')) {
-      return { error: '账号未完成验证。请在 Supabase Auth 设置中关闭邮箱确认，手机号登录才能直接使用。', session: null, user: null };
-    }
-    return { error: `登录失败：${error.message}`, session: null, user: null };
+
+    return { error: null, session: data.session, user: data.user };
+  } catch (error) {
+    console.error('signIn exception:', error);
+    return { error: getSignInErrorMessage(error), session: null, user: null };
   }
-
-  return { error: null, session: data.session, user: data.user };
 }
 
 export async function signOut(): Promise<void> {

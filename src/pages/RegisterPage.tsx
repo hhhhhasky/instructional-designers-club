@@ -39,12 +39,17 @@ export default function RegisterPage() {
 
   const onSubmit = async (data: RegisterForm) => {
     setServerError('');
-    const result = await signUp(data.phone, data.password, data.nickname);
-    if (result.error) {
-      setServerError(result.error);
-      return;
+    try {
+      const result = await signUp(data.phone, data.password, data.nickname);
+      if (result.error) {
+        setServerError(result.error);
+        return;
+      }
+      navigate('/', { replace: true });
+    } catch (error) {
+      console.error('register submit error:', error);
+      setServerError('注册失败：网络请求失败，请检查网络连接后重试');
     }
-    navigate('/', { replace: true });
   };
 
   return (
