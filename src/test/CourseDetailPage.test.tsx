@@ -25,6 +25,7 @@ vi.mock('@/db/api', () => ({
   incrementCourseViewCount: vi.fn(),
   getCourseCatalogSnapshot: vi.fn(),
   getCourseDetailSnapshot: vi.fn(),
+  getCourseAttachments: vi.fn(),
   getCoursesByMembershipAndCategory: vi.fn(),
   getCoursesByMembershipType: vi.fn(),
   getCategoriesByMembershipType: vi.fn(),
@@ -58,6 +59,7 @@ import {
   getCourseById,
   getCourseCatalogSnapshot,
   getCourseDetailSnapshot,
+  getCourseAttachments,
   getCoursesByMembershipAndCategory,
   getCoursesByMembershipType,
   getCategoriesByMembershipType,
@@ -188,6 +190,7 @@ describe('CourseDetailPage — 课程导航功能', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.HTMLElement.prototype.scrollIntoView = vi.fn();
+    vi.mocked(getCourseAttachments).mockResolvedValue([]);
     vi.mocked(getCourseQuestions).mockResolvedValue([]);
     vi.mocked(getCourseQuestionTags).mockResolvedValue([]);
   });
@@ -202,6 +205,33 @@ describe('CourseDetailPage — 课程导航功能', () => {
     // "教学设计" 出现在多个位置（面包屑、Badge、目录标题），用 getAllByText
     expect(screen.getAllByText('教学设计').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('第一节：导入').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('显示课程下载文件列表', async () => {
+    vi.mocked(getCourseAttachments).mockResolvedValue([
+      {
+        id: 'att-1',
+        course_id: 'c1',
+        file_name: '课堂任务单.docx',
+        file_url: 'https://cdn.example.com/course-files/c1/task.docx',
+        storage_key: 'course-files/c1/task.docx',
+        mime_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        file_size: 2048,
+        file_type: 'document',
+        sort_order: 0,
+        is_active: true,
+        uploaded_by: 'admin-1',
+        created_at: '2026-07-12T00:00:00Z',
+        updated_at: '2026-07-12T00:00:00Z',
+      },
+    ]);
+
+    await renderAndWait('c1');
+
+    expect(await screen.findByText('下载文件')).toBeInTheDocument();
+    const fileLink = screen.getByRole('link', { name: /课堂任务单\.docx/ });
+    expect(fileLink).toHaveAttribute('href', 'https://cdn.example.com/course-files/c1/task.docx');
+    expect(fileLink).toHaveAttribute('download', '课堂任务单.docx');
   });
 
   // ============================

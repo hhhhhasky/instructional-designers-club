@@ -6,12 +6,15 @@ import CourseManagementSection from '@/components/admin/CourseManagementSection'
 import {
   adminCreateCourse,
   adminCreateCourseCategory,
+  adminDeleteCourseAttachment,
   adminUpdateCourse,
   adminUpdateCourseCategory,
+  getAdminCourseAttachments,
   getAdminCourseCategories,
   getAdminCourseList,
 } from '@/db/admin-api';
 import { getPlusCourseStructure } from '@/db/api';
+import { uploadCourseFile } from '@/db/course-media';
 import type { PlusTrackConfig } from '@/lib/plusCourseStructure';
 import type { Course } from '@/types/types';
 
@@ -37,14 +40,20 @@ vi.mock('@/db/admin-api', () => ({
   adminArchiveCourse: vi.fn(),
   adminCreateCourse: vi.fn(),
   adminCreateCourseCategory: vi.fn(),
+  adminDeleteCourseAttachment: vi.fn(),
   adminUpdateCourse: vi.fn(),
   adminUpdateCourseCategory: vi.fn(),
+  getAdminCourseAttachments: vi.fn(),
   getAdminCourseCategories: vi.fn(),
   getAdminCourseList: vi.fn(),
 }));
 
 vi.mock('@/db/api', () => ({
   getPlusCourseStructure: vi.fn(),
+}));
+
+vi.mock('@/db/course-media', () => ({
+  uploadCourseFile: vi.fn(),
 }));
 
 const testTracks: PlusTrackConfig[] = [
@@ -139,6 +148,23 @@ describe('CourseManagementSection', () => {
       { id: 'cat-learning', name: '学习科学篇', sort_order: 2, is_active: true, plus_track_id: 'theory' },
       { id: 'cat-open', name: '公开课篇', sort_order: 3, is_active: true, plus_track_id: 'scenarios' },
     ]);
+    vi.mocked(getAdminCourseAttachments).mockResolvedValue([]);
+    vi.mocked(adminDeleteCourseAttachment).mockResolvedValue();
+    vi.mocked(uploadCourseFile).mockResolvedValue({
+      id: 'att-1',
+      course_id: 'course-1',
+      file_name: '任务单.docx',
+      file_url: 'https://cdn.example.com/course-files/course-1/task.docx',
+      storage_key: 'course-files/course-1/task.docx',
+      mime_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      file_size: 1024,
+      file_type: 'document',
+      sort_order: 0,
+      is_active: true,
+      uploaded_by: 'admin-1',
+      created_at: '2026-07-12T00:00:00Z',
+      updated_at: '2026-07-12T00:00:00Z',
+    });
     vi.mocked(getPlusCourseStructure).mockResolvedValue(testTracks);
     vi.mocked(adminUpdateCourseCategory).mockResolvedValue({
       id: 'cat-shuoke',
@@ -182,6 +208,26 @@ describe('CourseManagementSection', () => {
     expect(updatePayload).not.toHaveProperty('plus_track_id');
     expect(updatePayload).not.toHaveProperty('plus_module_id');
     expect(updatePayload).not.toHaveProperty('plus_module_order');
+  });
+
+  it('uploads downloadable course files for an existing course', async () => {
+    const user = userEvent.setup();
+
+    render(<CourseManagementSection />);
+
+    await screen.findByText('Plus 示例课程');
+    await user.click(screen.getByTitle('编辑'));
+    await screen.findByText('下载文件');
+
+    const file = new File(['hello'], '任务单.docx', {
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    });
+    await user.upload(screen.getByLabelText('上传文件'), file);
+
+    await waitFor(() => {
+      expect(uploadCourseFile).toHaveBeenCalledWith('course-1', file);
+    });
+    expect(await screen.findByText('任务单.docx')).toBeInTheDocument();
   });
 
   it('filters the admin list by Plus track derived from course category', async () => {

@@ -2,6 +2,7 @@ import type {
   Activity,
   Announcement,
   Course,
+  CourseAttachment,
   CourseCategory,
   Faq,
   MemberProfile,
@@ -109,6 +110,9 @@ export interface LeaderboardStudentItem {
 }
 
 // ==================== API 函数 ====================
+
+const COURSE_ATTACHMENT_COLUMNS =
+  "id, course_id, file_name, file_url, storage_key, mime_type, file_size, file_type, sort_order, is_active, uploaded_by, created_at, updated_at";
 
 /**
  * 获取会员总览数据：总数、等级分布、月度增长趋势
@@ -534,6 +538,35 @@ export async function adminArchiveCourse(courseId: string): Promise<void> {
   }
   clearPublicCourseCaches(courseId);
   clearAllLearningDataCaches();
+}
+
+export async function getAdminCourseAttachments(courseId: string): Promise<CourseAttachment[]> {
+  const { data, error } = await supabase
+    .from("course_attachments")
+    .select(COURSE_ATTACHMENT_COLUMNS)
+    .eq("course_id", courseId)
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (error) {
+    console.error("getAdminCourseAttachments error:", error);
+    throw error;
+  }
+  return (data as CourseAttachment[]) ?? [];
+}
+
+export async function adminDeleteCourseAttachment(attachmentId: string): Promise<void> {
+  const { error } = await supabase.functions.invoke("upload-course-file", {
+    body: { action: "delete", attachmentId },
+  });
+  if (error) {
+    let message = error.message || "删除文件失败";
+    const context = "context" in error ? error.context : undefined;
+    if (context instanceof Response) {
+      const payload = await context.clone().json().catch(() => null) as { error?: string } | null;
+      if (payload?.error) message = payload.error;
+    }
+    throw new Error(message);
+  }
 }
 
 // ==================== 内容运营后台 · 内容管理（R-P0-02） ====================

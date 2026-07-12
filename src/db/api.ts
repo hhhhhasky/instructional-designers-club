@@ -4,6 +4,7 @@ import type {
   Activity,
   Announcement,
   Course,
+  CourseAttachment,
   CourseCategory,
   Faq,
   LearningOverview,
@@ -23,6 +24,9 @@ import { supabase } from "./supabase";
 
 const COURSE_SUMMARY_COLUMNS =
   'id, title, description, body, essence, instructor, category_id, category, level, duration, credits, status, membership_type, is_trial, image_url, video_url, audio_url, images, plus_lesson_order, plus_representative, meeting_url, sort_order, view_count, created_at, updated_at';
+
+const COURSE_ATTACHMENT_COLUMNS =
+  'id, course_id, file_name, file_url, storage_key, mime_type, file_size, file_type, sort_order, is_active, uploaded_by, created_at, updated_at';
 
 /**
  * 获取所有已发布的课程列表
@@ -96,6 +100,28 @@ export async function getCourseByIdAdmin(courseId: string): Promise<Course | nul
   } catch (error) {
     console.error('获取课程详情异常:', error);
     return null;
+  }
+}
+
+export async function getCourseAttachments(courseId: string): Promise<CourseAttachment[]> {
+  try {
+    const { data, error } = await supabase
+      .from('course_attachments')
+      .select(COURSE_ATTACHMENT_COLUMNS)
+      .eq('course_id', courseId)
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('获取课程附件失败:', error);
+      throw error;
+    }
+
+    return Array.isArray(data) ? data as CourseAttachment[] : [];
+  } catch (error) {
+    console.error('获取课程附件异常:', error);
+    return [];
   }
 }
 

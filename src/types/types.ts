@@ -51,6 +51,24 @@ export interface Course {
   updated_at: string | null;
 }
 
+export type CourseAttachmentType = 'video' | 'document' | 'image' | 'audio' | 'other';
+
+export interface CourseAttachment {
+  id: string;
+  course_id: string;
+  file_name: string;
+  file_url: string;
+  storage_key: string;
+  mime_type: string | null;
+  file_size: number | null;
+  file_type: CourseAttachmentType;
+  sort_order: number;
+  is_active: boolean;
+  uploaded_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // 课程问答
 export type CourseQuestionStatus = 'visible' | 'hidden' | 'deleted';
 export type CourseQuestionTagType = 'course_system';

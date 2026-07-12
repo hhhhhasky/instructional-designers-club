@@ -1,5 +1,22 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { Plus, Edit2, Archive, Eye, Search, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback, type ReactNode } from "react";
+import {
+  Plus,
+  Edit2,
+  Archive,
+  Eye,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  UploadCloud,
+  Loader2,
+  Trash2,
+  FileText,
+  FileVideo,
+  FileImage,
+  FileAudio,
+  File,
+} from "lucide-react";
 import { toast } from "sonner";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
 import { Button } from "@/components/ui/button";
@@ -19,10 +36,13 @@ import {
   adminUpdateCourseCategory,
   adminUpdateCourse,
   adminArchiveCourse,
+  adminDeleteCourseAttachment,
   getAdminCourseCategories,
+  getAdminCourseAttachments,
   type AdminCourseCategory,
 } from "@/db/admin-api";
 import { getPlusCourseStructure } from "@/db/api";
+import { uploadCourseFile } from "@/db/course-media";
 import MarkdownEditor from "@/components/admin/MarkdownEditor";
 import {
   PLUS_TRACKS,
@@ -31,7 +51,7 @@ import {
   resolvePlusCoursePlacement,
   type PlusTrackConfig,
 } from "@/lib/plusCourseStructure";
-import type { Course, MembershipType } from "@/types/types";
+import type { Course, CourseAttachment, MembershipType } from "@/types/types";
 
 const PAGE_SIZE = 20;
 
@@ -48,6 +68,24 @@ const MEMBERSHIP_OPTIONS: { value: MembershipType; label: string }[] = [
   { value: "plus", label: "Plus" },
   { value: "pro", label: "Pro" },
 ];
+const COURSE_ATTACHMENT_ACCEPT = [
+  ".mp4",
+  ".mov",
+  ".mp3",
+  ".m4a",
+  ".wav",
+  ".doc",
+  ".docx",
+  ".md",
+  ".markdown",
+  ".txt",
+  ".pdf",
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".webp",
+  ".gif",
+].join(",");
 
 const LEVEL_LABELS: Record<Course["level"], string> = {
   entry: "入门",
@@ -128,6 +166,9 @@ export default function CourseManagementSection() {
   const [categoryMode, setCategoryMode] = useState<CategoryMode>("existing");
   const [newCategoryName, setNewCategoryName] = useState("");
   const [categoryTrackId, setCategoryTrackId] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<CourseAttachment[]>([]);
+  const [attachmentsLoading, setAttachmentsLoading] = useState(false);
+  const [fileUploading, setFileUploading] = useState(false);
 
   // Category list for dropdown
   const [categories, setCategories] = useState<AdminCourseCategory[]>([]);
@@ -184,6 +225,31 @@ export default function CourseManagementSection() {
       toast.error("加载课程分类失败，请刷新重试");
     });
   }, []);
+
+  useEffect(() => {
+    if (!dialogOpen || !editingCourse) {
+      setAttachments([]);
+      setAttachmentsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setAttachmentsLoading(true);
+    getAdminCourseAttachments(editingCourse.id)
+      .then((items) => {
+        if (!cancelled) setAttachments(items);
+      })
+      .catch(() => {
+        if (!cancelled) toast.error("加载课程文件失败，请稍后重试");
+      })
+      .finally(() => {
+        if (!cancelled) setAttachmentsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dialogOpen, editingCourse]);
 
   // Client-side filter
   const filtered = useMemo(() => {
@@ -299,6 +365,7 @@ export default function CourseManagementSection() {
   const handleAdd = () => {
     setEditingCourse(null);
     setForm(EMPTY_FORM);
+    setAttachments([]);
     setCategoryMode("existing");
     setNewCategoryName("");
     setCategoryTrackId(null);
@@ -477,6 +544,34 @@ export default function CourseManagementSection() {
       category_id: category?.id ?? null,
     }));
     setCategoryTrackId(category?.plus_track_id ?? null);
+  };
+
+  const handleAttachmentUpload = async (files: FileList | null) => {
+    if (!editingCourse || !files || files.length === 0) return;
+
+    try {
+      setFileUploading(true);
+      const uploaded: CourseAttachment[] = [];
+      for (const file of Array.from(files)) {
+        uploaded.push(await uploadCourseFile(editingCourse.id, file));
+      }
+      setAttachments((prev) => [...prev, ...uploaded].sort(sortAttachments));
+      toast.success(uploaded.length > 1 ? `已上传 ${uploaded.length} 个文件` : "文件上传成功");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "文件上传失败"));
+    } finally {
+      setFileUploading(false);
+    }
+  };
+
+  const handleAttachmentDelete = async (attachment: CourseAttachment) => {
+    try {
+      await adminDeleteCourseAttachment(attachment.id);
+      setAttachments((prev) => prev.filter((item) => item.id !== attachment.id));
+      toast.success("文件已删除");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "文件删除失败"));
+    }
   };
 
   if (loading) return <LoadingOverlay message="正在加载课程数据..." />;
@@ -1029,6 +1124,98 @@ export default function CourseManagementSection() {
               </div>
             </div>
 
+            {/* 下载文件 */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-ds-sm font-ds-semibold text-tx">下载文件</h4>
+                  <p className="text-ds-xs text-txs mt-1">
+                    支持 MP4、音频、Word、Markdown、PDF 和常见图片，文件会上传至 Cloudflare R2。
+                  </p>
+                </div>
+                {editingCourse && (
+                  <label
+                    className={cn(
+                      "inline-flex items-center gap-1.5 px-3 py-1.5 text-ds-xs font-ds-medium border rounded-ds-md transition-colors",
+                      fileUploading
+                        ? "cursor-not-allowed border-bd bg-bgs text-txs"
+                        : "cursor-pointer border-ac/30 text-ac hover:bg-acl"
+                    )}
+                  >
+                    {fileUploading ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <UploadCloud className="w-3.5 h-3.5" />
+                    )}
+                    {fileUploading ? "上传中" : "上传文件"}
+                    <input
+                      type="file"
+                      multiple
+                      accept={COURSE_ATTACHMENT_ACCEPT}
+                      className="sr-only"
+                      disabled={fileUploading}
+                      onChange={(event) => {
+                        void handleAttachmentUpload(event.target.files);
+                        event.currentTarget.value = "";
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+
+              {!editingCourse ? (
+                <div className="rounded-ds-md border border-dashed border-bd bg-bgs/50 px-4 py-3 text-ds-sm text-txs">
+                  先创建课程并保存，再进入编辑上传下载文件。
+                </div>
+              ) : attachmentsLoading ? (
+                <div className="flex items-center gap-2 rounded-ds-md border border-bd bg-bgs/50 px-4 py-3 text-ds-sm text-txs">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  正在加载课程文件...
+                </div>
+              ) : attachments.length > 0 ? (
+                <div className="rounded-ds-md border border-bd overflow-hidden">
+                  {attachments.map((attachment) => (
+                    <div
+                      key={attachment.id}
+                      className="flex items-center gap-3 border-b border-bdl px-3 py-2.5 last:border-b-0"
+                    >
+                      <AttachmentIcon attachment={attachment} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-ds-sm font-ds-medium text-tx">
+                          {attachment.file_name}
+                        </p>
+                        <p className="text-ds-xs text-txs">
+                          {getAttachmentTypeLabel(attachment.file_type)}
+                          {attachment.file_size ? ` · ${formatFileSize(attachment.file_size)}` : ""}
+                        </p>
+                      </div>
+                      <a
+                        href={attachment.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-1.5 text-ds-xs text-ac border border-ac/30 rounded-ds-md hover:bg-acl transition-colors"
+                      >
+                        打开
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => void handleAttachmentDelete(attachment)}
+                        className="inline-flex items-center justify-center w-8 h-8 text-am hover:text-error-tx hover:bg-error-bg rounded-ds-md transition-colors"
+                        title="删除文件"
+                        aria-label={`删除 ${attachment.file_name}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-ds-md border border-dashed border-bd bg-bgs/50 px-4 py-3 text-ds-sm text-txs">
+                  当前课程还没有下载文件。
+                </div>
+              )}
+            </div>
+
             {/* 正文（长文） */}
             <div className="space-y-3">
               <h4 className="text-ds-sm font-ds-semibold text-tx">正文（长文）</h4>
@@ -1110,6 +1297,49 @@ export default function CourseManagementSection() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function sortAttachments(a: CourseAttachment, b: CourseAttachment) {
+  return (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.created_at.localeCompare(b.created_at);
+}
+
+function formatFileSize(size: number) {
+  if (!Number.isFinite(size) || size <= 0) return "";
+  const units = ["B", "KB", "MB", "GB"];
+  let value = size;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+  return `${value >= 10 || unitIndex === 0 ? value.toFixed(0) : value.toFixed(1)} ${units[unitIndex]}`;
+}
+
+function getAttachmentTypeLabel(type: CourseAttachment["file_type"]) {
+  const labels: Record<CourseAttachment["file_type"], string> = {
+    video: "视频",
+    audio: "音频",
+    document: "文档",
+    image: "图片",
+    other: "文件",
+  };
+  return labels[type] ?? "文件";
+}
+
+function AttachmentIcon({ attachment }: { attachment: CourseAttachment }) {
+  const className = "w-4 h-4";
+  const iconMap: Record<CourseAttachment["file_type"], ReactNode> = {
+    video: <FileVideo className={className} />,
+    audio: <FileAudio className={className} />,
+    document: <FileText className={className} />,
+    image: <FileImage className={className} />,
+    other: <File className={className} />,
+  };
+  return (
+    <span className="inline-flex items-center justify-center w-8 h-8 rounded-ds-md bg-bgs text-ac flex-shrink-0">
+      {iconMap[attachment.file_type] ?? iconMap.other}
+    </span>
   );
 }
 

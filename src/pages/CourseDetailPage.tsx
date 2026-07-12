@@ -1,8 +1,31 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, type ReactNode } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ExternalLink, Clock, Award, User, BookOpen, AlertCircle, ChevronLeft, ChevronRight, List, CheckCircle2, PlayCircle, Eye, Sparkles, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import {
+  ArrowLeft,
+  ExternalLink,
+  Clock,
+  Award,
+  User,
+  BookOpen,
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  List,
+  CheckCircle2,
+  PlayCircle,
+  Eye,
+  Sparkles,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Download,
+  FileText,
+  FileVideo,
+  FileImage,
+  FileAudio,
+  File,
+} from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
@@ -15,7 +38,7 @@ import TeacherAiCatalogToc from '@/components/course/TeacherAiCatalogToc';
 import PlusCatalogToc from '@/components/course/PlusCatalogToc';
 import CourseQuestionsPanel from '@/components/course/CourseQuestionsPanel';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { getCourseByIdAdmin, incrementCourseViewCount, getCourseCatalogSnapshot, getCourseDetailSnapshot, getLearningData } from '@/db/api';
+import { getCourseByIdAdmin, incrementCourseViewCount, getCourseCatalogSnapshot, getCourseDetailSnapshot, getLearningData, getCourseAttachments } from '@/db/api';
 import { canAccessCourse, recordCourseVisit, updateLearningProgress, getUserLearningRecords } from '@/lib/access-control';
 import {
   buildGamificationSnapshot,
@@ -24,7 +47,7 @@ import {
   type GamificationSnapshot,
 } from '@/lib/gamification';
 import { useAuth } from '@/contexts/AuthContext';
-import type { Course, LearningRecord } from '@/types/types';
+import type { Course, CourseAttachment, LearningRecord } from '@/types/types';
 import { cn } from '@/lib/utils';
 import {
   buildPlusTrackUrl,
@@ -72,6 +95,7 @@ export default function CourseDetailPage() {
   const [completionOpen, setCompletionOpen] = useState(false);
   const [completionSnapshot, setCompletionSnapshot] = useState<GamificationSnapshot | null>(null);
   const [completionAchievement, setCompletionAchievement] = useState<Achievement | null>(null);
+  const [attachments, setAttachments] = useState<CourseAttachment[]>([]);
 
   // 同系列课程列表
   const [siblingCourses, setSiblingCourses] = useState<Course[]>([]);
@@ -174,6 +198,7 @@ export default function CourseDetailPage() {
         setError(null);
         setShowUpgrade(false);
         setManuallyMarked(false);
+        setAttachments([]);
         setSiblingCourses([]);
         setTeacherAiCatalog({ categories: [], coursesByCategory: {} });
         setPlusAllCourses([]);
@@ -279,6 +304,28 @@ export default function CourseDetailPage() {
       }
     }
   }, [course, user, accessLevel, isLoading, navigate]);
+
+  useEffect(() => {
+    if (!course || isLoading) return;
+    if (profile?.role !== 'admin' && !canAccessCourse(accessLevel, course.membership_type)) {
+      setAttachments([]);
+      return;
+    }
+
+    let cancelled = false;
+    getCourseAttachments(course.id)
+      .then((items) => {
+        if (!cancelled) setAttachments(items);
+      })
+      .catch((err) => {
+        console.error('加载课程附件失败:', err);
+        if (!cancelled) setAttachments([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [course, accessLevel, profile?.role, isLoading]);
 
   // 页面离开时同步最终进度
   useEffect(() => {
@@ -794,6 +841,39 @@ export default function CourseDetailPage() {
                     isCompleted={isCurrentCompleted}
                   />
 
+                  {attachments.length > 0 && (
+                    <section className="py-7 border-b border-bdl">
+                      <h2 className="text-xl font-bold text-tx font-serif mb-3 flex items-center gap-2">
+                        <Download className="w-4 h-4 text-ac" />
+                        下载文件
+                      </h2>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {attachments.map((attachment) => (
+                          <a
+                            key={attachment.id}
+                            href={attachment.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download={attachment.file_name}
+                            className="group flex items-center gap-3 rounded-ds-md border border-bd bg-bgs/40 px-4 py-3 hover:border-ac/40 hover:bg-acl/40 transition-colors"
+                          >
+                            <AttachmentIcon attachment={attachment} />
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-ds-sm font-semibold text-tx group-hover:text-ac">
+                                {attachment.file_name}
+                              </span>
+                              <span className="block text-ds-xs text-txs">
+                                {getAttachmentTypeLabel(attachment.file_type)}
+                                {attachment.file_size ? ` · ${formatFileSize(attachment.file_size)}` : ""}
+                              </span>
+                            </span>
+                            <Download className="w-4 h-4 text-txs group-hover:text-ac flex-shrink-0" />
+                          </a>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
                   {/* 课程精华（可选）：思维导图等看课参考材料，有内容才显示 */}
                   {course.essence?.trim() && (
                     <section className="py-7 border-b border-bdl">
@@ -1093,5 +1173,45 @@ export default function CourseDetailPage() {
       />
     </div>
     </>
+  );
+}
+
+function formatFileSize(size: number) {
+  if (!Number.isFinite(size) || size <= 0) return "";
+  const units = ["B", "KB", "MB", "GB"];
+  let value = size;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+  return `${value >= 10 || unitIndex === 0 ? value.toFixed(0) : value.toFixed(1)} ${units[unitIndex]}`;
+}
+
+function getAttachmentTypeLabel(type: CourseAttachment["file_type"]) {
+  const labels: Record<CourseAttachment["file_type"], string> = {
+    video: "视频",
+    audio: "音频",
+    document: "文档",
+    image: "图片",
+    other: "文件",
+  };
+  return labels[type] ?? "文件";
+}
+
+function AttachmentIcon({ attachment }: { attachment: CourseAttachment }) {
+  const className = "w-4 h-4";
+  const iconMap = {
+    video: <FileVideo className={className} />,
+    audio: <FileAudio className={className} />,
+    document: <FileText className={className} />,
+    image: <FileImage className={className} />,
+    other: <File className={className} />,
+  } satisfies Record<CourseAttachment["file_type"], ReactNode>;
+
+  return (
+    <span className="inline-flex items-center justify-center w-9 h-9 rounded-ds-md bg-bc text-ac border border-bd flex-shrink-0">
+      {iconMap[attachment.file_type] ?? iconMap.other}
+    </span>
   );
 }
