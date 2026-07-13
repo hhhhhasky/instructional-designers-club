@@ -50,9 +50,9 @@ type DraftMessage = Pick<HaiMessage, "id" | "role" | "content" | "created_at"> &
 };
 
 export const HAI_STARTER_QUESTIONS = [
-  "我准备上一节公开课，但现在的教学设计比较平，应该先从哪里改？",
-  "学生上课参与度不高，我该如何判断问题出在活动设计还是任务难度？",
-  "我有一份教案，怎样快速检查目标、活动和评价是否对齐？",
+  "公开课设计太平，应该先改哪里？",
+  "学生参与度低，怎么判断问题原因？",
+  "如何检查目标、活动和评价是否对齐？",
 ] as const;
 
 export default function HaiPage() {
@@ -74,7 +74,7 @@ export default function HaiPage() {
   const [busy, setBusy] = useState(false);
   const [booting, setBooting] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const messagesScrollRef = useRef<HTMLDivElement | null>(null);
 
   const visibleModules = useMemo(() => modules.filter((item) => item.slug === "ask-han"), [modules]);
   const activeModule = visibleModules.find((item) => item.slug === activeModuleSlug) ?? visibleModules[0] ?? modules[0] ?? null;
@@ -145,8 +145,14 @@ export default function HaiPage() {
   }, [activeConversationId]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+    const scrollRegion = messagesScrollRef.current;
+    if (scrollRegion) scrollRegion.scrollTop = scrollRegion.scrollHeight;
   }, [messages]);
+
+  useEffect(() => {
+    document.body.classList.add("hai-chat-active");
+    return () => document.body.classList.remove("hai-chat-active");
+  }, []);
 
   async function refreshConversations(nextActiveId?: string | null) {
     const rows = await getHaiConversations();
@@ -332,20 +338,22 @@ export default function HaiPage() {
         canonicalPath="/hai"
         keywords="HAI,AI教研,问问哈老师"
       />
-      <div className="hai-page flex min-h-screen w-full max-w-full flex-col overflow-x-hidden bg-cream">
-        <Header />
-        <main className="flex-1 pt-20 pb-6 px-3 md:px-5">
-          <div className="mx-auto flex h-[calc(100dvh-7rem)] w-full max-w-[1440px] flex-col overflow-hidden rounded-ds-lg border border-bd bg-white shadow-ds-md xl:grid xl:grid-cols-[280px_minmax(0,1fr)_300px]">
+      <div className="hai-page flex min-h-0 w-full max-w-full flex-col overflow-hidden bg-cream md:min-h-screen">
+        <div className="hidden md:block">
+          <Header />
+        </div>
+        <main className="flex min-h-0 flex-1 overflow-hidden p-0 md:px-5 md:pb-6 md:pt-20">
+          <div className="mx-auto flex h-full min-h-0 w-full max-w-[1440px] flex-col overflow-hidden border-bd bg-white md:h-[calc(100dvh-7rem)] md:rounded-ds-lg md:border md:shadow-ds-md xl:grid xl:grid-cols-[280px_minmax(0,1fr)_300px]">
             <aside className="hidden min-h-0 border-r border-bd bg-bgs/70 xl:block">
               {history}
             </aside>
 
-            <section className="flex h-[calc(100dvh-7rem)] min-h-0 min-w-0 flex-col">
-              <div className="flex items-center justify-between gap-3 border-b border-bd bg-white px-4 py-3">
+            <section className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+              <div className="flex shrink-0 items-center justify-between gap-2 border-b border-bd bg-white px-2.5 py-2 md:gap-3 md:px-4 md:py-3">
                 <div className="flex min-w-0 items-center gap-2">
                   <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
                     <SheetTrigger asChild>
-                      <Button variant="ghost" size="icon" className="xl:hidden">
+                      <Button variant="ghost" size="icon" className="h-9 w-9 xl:hidden">
                         <Menu className="w-5 h-5" />
                       </Button>
                     </SheetTrigger>
@@ -365,12 +373,12 @@ export default function HaiPage() {
                       </div>
                     </SheetContent>
                   </Sheet>
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-ds-full bg-acl">
-                    <Bot className="h-5 w-5 text-ac" />
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-ds-full bg-acl md:h-9 md:w-9">
+                    <Bot className="h-4.5 w-4.5 text-ac md:h-5 md:w-5" />
                   </div>
                   <div className="min-w-0">
-                    <h1 className="truncate text-ds-lg font-ds-black text-tx">HAI</h1>
-                    <p className="truncate text-ds-xs text-txs">
+                    <h1 className="truncate text-ds-base font-ds-black leading-tight text-tx md:text-ds-lg">HAI</h1>
+                    <p className="hidden truncate text-ds-xs text-txs sm:block">
                       {activeModule ? activeModule.name : "AI 教研助手"}
                     </p>
                   </div>
@@ -379,9 +387,9 @@ export default function HaiPage() {
                   {access?.allowed && (
                     <Sheet>
                       <SheetTrigger asChild>
-                        <Button size="sm" variant="outline" className="xl:hidden">
+                        <Button size="sm" variant="outline" className="h-9 w-9 px-0 xl:hidden xl:w-auto xl:px-3" aria-label="打开上下文">
                           <Pin className="h-4 w-4" />
-                          <span className="hidden sm:inline">上下文</span>
+                          <span className="hidden xl:inline">上下文</span>
                         </Button>
                       </SheetTrigger>
                       <SheetContent side="right" className="w-[320px] overflow-y-auto bg-[#fbfaf8] p-0" hideCloseButton>
@@ -399,9 +407,15 @@ export default function HaiPage() {
                       </SheetContent>
                     </Sheet>
                   )}
-                  <Button size="sm" variant="outline" onClick={() => startNewConversation(activeModuleSlug)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-9 w-9 px-0 sm:w-auto sm:px-3"
+                    onClick={() => startNewConversation(activeModuleSlug)}
+                    aria-label="新建 Session"
+                  >
                     <Plus className="w-4 h-4" />
-                    新 Session
+                    <span className="hidden sm:inline">新 Session</span>
                   </Button>
                 </div>
               </div>
@@ -422,7 +436,12 @@ export default function HaiPage() {
                 />
               ) : (
                 <>
-                  <div className="min-h-0 flex-1 overflow-y-auto bg-[#fbfaf8] px-4 py-5">
+                  <div
+                    ref={messagesScrollRef}
+                    className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain bg-[#fbfaf8] px-3 py-3 scroll-smooth md:px-4 md:py-5"
+                    aria-label="对话内容"
+                    data-testid="hai-message-scroll-region"
+                  >
                     {messages.length === 0 ? (
                       <EmptyState
                         module={activeModule}
@@ -438,12 +457,11 @@ export default function HaiPage() {
                             question={message.role === "assistant" ? findPreviousQuestion(messages, index) : undefined}
                           />
                         ))}
-                        <div ref={messagesEndRef} />
                       </div>
                     )}
                   </div>
 
-                  <div className="border-t border-bd bg-white p-3 md:p-4">
+                  <div className="shrink-0 border-t border-bd bg-white p-2.5 md:p-4" data-testid="hai-composer">
                     {status && (
                       <p className="mb-2 rounded-ds-md border border-red-200 bg-red-50 px-3 py-2 text-ds-sm text-red-700">
                         {status}
@@ -451,6 +469,7 @@ export default function HaiPage() {
                     )}
                     <div className="mx-auto flex w-full max-w-3xl min-w-0 gap-2">
                       <textarea
+                        rows={1}
                         value={draft}
                         onChange={(event) => setDraft(event.target.value)}
                         onKeyDown={(event) => {
@@ -460,11 +479,12 @@ export default function HaiPage() {
                           }
                         }}
                         placeholder={activeModule ? `发送给「${activeModule.short_label}」` : "输入你的教学问题"}
-                        className="min-h-[72px] min-w-0 flex-1 resize-none rounded-ds-lg border border-bd bg-bg px-4 py-3 text-[16px] leading-relaxed text-tx outline-none transition focus:border-ac focus:ring-2 focus:ring-ac/15"
+                        className="h-[52px] min-h-[52px] min-w-0 flex-1 resize-none rounded-ds-md border border-bd bg-bg px-3.5 py-3 text-[16px] leading-relaxed text-tx outline-none transition focus:border-ac focus:ring-2 focus:ring-ac/15 md:h-[72px] md:min-h-[72px] md:rounded-ds-lg md:px-4"
                         disabled={busy}
+                        aria-label="输入教学问题"
                       />
                       <Button
-                        className="h-[72px] w-14 rounded-ds-lg bg-ac text-white hover:bg-acd"
+                        className="h-[52px] w-[52px] rounded-ds-md bg-ac text-white hover:bg-acd md:h-[72px] md:w-14 md:rounded-ds-lg"
                         disabled={busy || !draft.trim()}
                         onClick={() => void handleSend()}
                         aria-label="发送"
@@ -482,7 +502,9 @@ export default function HaiPage() {
             </aside>
           </div>
         </main>
-        <Footer />
+        <div className="hidden md:block">
+          <Footer />
+        </div>
       </div>
     </>
   );
@@ -647,15 +669,21 @@ export function EmptyState({
   onQuestionSelect: (question: string) => void;
 }) {
   return (
-    <div className="mx-auto flex h-full min-h-[440px] max-w-2xl flex-col items-center justify-center py-6 text-center">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-ds-full bg-acl">
-        <Brain className="h-7 w-7 text-ac" />
+    <div className="mx-auto flex h-full min-h-0 max-w-2xl flex-col items-stretch justify-start py-2 text-left sm:items-center sm:justify-center sm:py-6 sm:text-center">
+      <div className="flex items-center gap-3 sm:flex-col sm:gap-0">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-ds-full bg-acl sm:mb-4 sm:h-14 sm:w-14">
+          <Brain className="h-5 w-5 text-ac sm:h-7 sm:w-7" />
+        </div>
+        <div className="min-w-0">
+          <h2 className="text-ds-lg font-ds-black leading-tight text-tx sm:text-ds-2xl">{module?.name ?? "HAI"}</h2>
+          <p className="mt-0.5 truncate text-ds-sm leading-relaxed text-txs sm:mt-2 sm:max-w-xl sm:whitespace-normal sm:text-ds-base">
+            {module?.description ?? "把你的备课困惑告诉我，我们从最值得改的地方开始。"}
+          </p>
+        </div>
       </div>
-      <h2 className="text-ds-2xl font-ds-black text-tx">{module?.name ?? "HAI"}</h2>
-      <p className="mt-2 max-w-xl text-ds-base leading-relaxed text-txs">{module?.description ?? "把你的备课困惑告诉我，我们从最值得改的地方开始。"}</p>
-      <div className="mt-6 w-full text-left">
-        <p className="mb-2 text-center text-ds-xs font-ds-semibold tracking-[0.12em] text-txt">不知道从哪问？试试这些</p>
-        <div className="grid gap-2.5 sm:grid-cols-3">
+      <div className="mt-4 w-full text-left sm:mt-6">
+        <p className="mb-2 text-ds-xs font-ds-semibold tracking-[0.08em] text-txt sm:text-center sm:tracking-[0.12em]">不知道从哪问？试试这些</p>
+        <div className="grid gap-2 sm:grid-cols-3 sm:gap-2.5">
           {HAI_STARTER_QUESTIONS.map((question, index) => (
             <button
               key={question}
@@ -663,16 +691,16 @@ export function EmptyState({
               aria-label={question}
               onClick={() => onQuestionSelect(question)}
               disabled={busy}
-              className="group flex min-h-[108px] items-start gap-3 rounded-ds-lg border border-bd bg-white p-4 text-left shadow-ds-xs transition hover:-translate-y-0.5 hover:border-ac/40 hover:shadow-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/30 disabled:cursor-not-allowed disabled:opacity-60"
+              className="group flex min-h-11 min-w-0 items-center gap-2.5 rounded-ds-md border border-bd bg-white px-3 py-2 text-left shadow-ds-xs transition hover:-translate-y-0.5 hover:border-ac/40 hover:shadow-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/30 disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-[96px] sm:items-start sm:gap-3 sm:rounded-ds-lg sm:p-4"
             >
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-ds-full bg-acl text-ds-xs font-ds-bold text-ac transition group-hover:bg-ac group-hover:text-white">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-ds-full bg-acl text-[11px] font-ds-bold text-ac transition group-hover:bg-ac group-hover:text-white sm:h-6 sm:w-6 sm:text-ds-xs">
                 {index + 1}
               </span>
-              <span className="text-ds-sm leading-relaxed text-tx">{question}</span>
+              <span className="min-w-0 flex-1 truncate text-ds-sm leading-relaxed text-tx sm:whitespace-normal">{question}</span>
             </button>
           ))}
         </div>
-        <p className="mt-3 text-center text-ds-xs text-txt">点击问题后会直接发送，你也可以在下方写自己的问题</p>
+        <p className="mt-2 text-ds-xs text-txt sm:mt-3 sm:text-center">点击后直接发送，也可以在下方写自己的问题</p>
       </div>
     </div>
   );

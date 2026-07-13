@@ -1,11 +1,56 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { EmptyState, HAI_STARTER_QUESTIONS, MessageBubble } from "@/pages/HaiPage";
+import { MemoryRouter } from "react-router-dom";
+import HaiPage, { EmptyState, HAI_STARTER_QUESTIONS, MessageBubble } from "@/pages/HaiPage";
 import { copyHaiAnswer, shareHaiExchange } from "@/lib/hai-share";
 
-vi.mock("@/components/layout/Header", () => ({ default: () => null }));
-vi.mock("@/components/common/Footer", () => ({ default: () => null }));
+vi.mock("@/components/layout/Header", () => ({ default: () => <div data-testid="global-header" /> }));
+vi.mock("@/components/common/Footer", () => ({ default: () => <div data-testid="global-footer" /> }));
+vi.mock("@/components/common/PageMeta", () => ({ default: () => null }));
+
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuth: () => ({ user: { id: "user-1" }, loading: false }),
+}));
+
+vi.mock("@/db/hai-api", () => ({
+  archiveHaiConversation: vi.fn(),
+  archiveHaiMemory: vi.fn(),
+  createHaiMemory: vi.fn(),
+  getHaiAccessStatus: vi.fn().mockResolvedValue({
+    access: { authenticated: true, allowed: true },
+    usage: { daily_used: 0, weekly_used: 0, daily_limit: 1000, weekly_limit: 5000 },
+  }),
+  getHaiConversations: vi.fn().mockResolvedValue([]),
+  getHaiMemories: vi.fn().mockResolvedValue([]),
+  getHaiMessages: vi.fn().mockResolvedValue([]),
+  getHaiModules: vi.fn().mockResolvedValue([{
+    id: "module-1",
+    slug: "ask-han",
+    name: "问问哈老师",
+    short_label: "哈老师",
+    description: "从教学目标和学习证据出发诊断你的备课问题。",
+    icon_key: "bot",
+    category: "chat",
+    input_schema: [],
+    default_model: "test-model",
+    default_temperature: 0.5,
+    default_max_output_tokens: 1000,
+    thinking_enabled: false,
+    default_top_p: null,
+    reasoning_effort: "high",
+    response_format: "text",
+    stop_sequences: [],
+    history_message_limit: 20,
+    memory_limit: 8,
+    material_match_count: 0,
+    knowledge_match_count: 5,
+    sort_order: 1,
+    is_enabled: true,
+  }]),
+  redeemHaiInvite: vi.fn(),
+  streamHaiChat: vi.fn(),
+}));
 
 vi.mock("sonner", () => ({
   toast: {
@@ -34,6 +79,28 @@ describe("HAI new conversation guidance", () => {
 
     expect(onQuestionSelect).toHaveBeenCalledOnce();
     expect(onQuestionSelect).toHaveBeenCalledWith(HAI_STARTER_QUESTIONS[1]);
+  });
+});
+
+describe("HAI mobile chat shell", () => {
+  it("locks the page shell and leaves the message region as the single vertical scroller", async () => {
+    const { unmount } = render(
+      <MemoryRouter initialEntries={["/hai"]}>
+        <HaiPage />
+      </MemoryRouter>,
+    );
+
+    const scrollRegion = await screen.findByTestId("hai-message-scroll-region");
+    const composer = screen.getByTestId("hai-composer");
+
+    expect(document.body).toHaveClass("hai-chat-active");
+    expect(scrollRegion).toHaveClass("overflow-y-auto", "overscroll-contain", "flex-1");
+    expect(composer).toHaveClass("shrink-0");
+    expect(screen.getByTestId("global-header").parentElement).toHaveClass("hidden", "md:block");
+    expect(screen.getByTestId("global-footer").parentElement).toHaveClass("hidden", "md:block");
+
+    unmount();
+    expect(document.body).not.toHaveClass("hai-chat-active");
   });
 });
 

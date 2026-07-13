@@ -113,6 +113,18 @@
   }
 }
 
+@media (max-width: 767px) {
+  body.hai-chat-active {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  .hai-page {
+    height: calc(100dvh - 4rem - env(safe-area-inset-bottom));
+    overscroll-behavior: none;
+  }
+}
+
 /* =============================================
    工具类
    ============================================= */
