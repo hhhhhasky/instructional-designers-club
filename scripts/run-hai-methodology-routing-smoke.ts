@@ -1,7 +1,8 @@
 import {
-  buildHanMethodCatalogForRouter,
   hanMethodCardIds,
 } from "../supabase/functions/_shared/hai_orchestrator/knowledge/method_bank/han_course_method_cards.ts";
+import { classifyIntent } from "../supabase/functions/_shared/hai_orchestrator/intent_classifier.ts";
+import { buildSemanticRouterPrompt } from "../supabase/functions/_shared/hai_orchestrator/semantic_router_prompt.ts";
 import { estimateTokens } from "../supabase/functions/_shared/hai.ts";
 
 const apiKey = Deno.env.get("DEEPSEEK_API_KEY");
@@ -93,16 +94,16 @@ const cases = [
   { id: "no-match", question: "学校明天几点放学？", expected: [] },
 ];
 
-const systemPrompt = `你是 HAI 的课程方法语义路由测试器。
-请从下列课程方法目录中，为用户问题选择最能解释当前题眼的方法。
-优先选择具体下位方法，不要只要涉及教学就选择总领框架。
-通常只选一个，最多两个；第二个只能解释必要依赖。没有真正匹配就返回空数组。
-只能使用目录中的 id。只输出 JSON：{"methodology_ids":["..."],"reason":"..."}
-
-${buildHanMethodCatalogForRouter()}`;
-
 const results = [];
 for (const item of cases) {
+  const systemPrompt = buildSemanticRouterPrompt({
+    question: item.question,
+    fallbackIntent: classifyIntent(item.question),
+  });
+  const userPrompt = [
+    `用户问题：${item.question}`,
+    "请同时判断真实意图、真实教学问题、最合适的诊断模块和课程方法。只输出 JSON，不要解释。",
+  ].join("\n\n");
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
@@ -113,10 +114,10 @@ for (const item of cases) {
       model,
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: item.question },
+        { role: "user", content: userPrompt },
       ],
       temperature: 0,
-      max_tokens: 300,
+      max_tokens: 900,
       stream: false,
       response_format: { type: "json_object" },
       thinking: { type: "disabled" },
@@ -133,6 +134,7 @@ for (const item of cases) {
   const content = String(data?.choices?.[0]?.message?.content || "{}");
   const parsed = JSON.parse(content) as {
     methodology_ids?: unknown;
+    methodology_reason?: unknown;
     reason?: unknown;
   };
   const ids = Array.isArray(parsed.methodology_ids)
@@ -148,13 +150,13 @@ for (const item of cases) {
     pass,
     expected: item.expected,
     actual: ids,
-    reason: String(parsed.reason || ""),
+    reason: String(parsed.methodology_reason || parsed.reason || ""),
     question: item.question,
     messages: [
       { role: "system", content: systemPrompt },
-      { role: "user", content: item.question },
+      { role: "user", content: userPrompt },
     ],
-    estimated_input_tokens: estimateTokens(`${systemPrompt}\n${item.question}`),
+    estimated_input_tokens: estimateTokens(`${systemPrompt}\n${userPrompt}`),
     raw_output: content,
   });
   console.log(
@@ -165,9 +167,15 @@ for (const item of cases) {
 }
 
 const passed = results.filter((item) => item.pass).length;
-console.log(
-  JSON.stringify({ passed, total: results.length, results }, null, 2),
-);
+const tokenCounts = results.map((item) => item.estimated_input_tokens);
+const tokenSummary = {
+  average: Math.round(
+    tokenCounts.reduce((sum, value) => sum + value, 0) / tokenCounts.length,
+  ),
+  min: Math.min(...tokenCounts),
+  max: Math.max(...tokenCounts),
+};
+console.log(JSON.stringify({ passed, total: results.length, tokenSummary }));
 const outputDir = new URL("../docs/hai-quality-runs/", import.meta.url);
 await Deno.mkdir(outputDir, { recursive: true });
 const fileStamp = new Date().toISOString().replaceAll(":", "-").replaceAll(
@@ -191,6 +199,7 @@ function renderPromptArtifact(
     "",
     `- 生成时间：${new Date().toISOString()}`,
     `- 结果：${passedCount}/${items.length} 通过`,
+    `- 估算输入 token：平均 ${tokenSummary.average}，最小 ${tokenSummary.min}，最大 ${tokenSummary.max}`,
     "",
   ];
   for (const item of items) {

@@ -1,4 +1,4 @@
-import type { IntentName } from "../../types.ts";
+import type { IntentName, IntentResult } from "../../types.ts";
 
 export type HanMethodCardKind =
   | "methodology"
@@ -652,6 +652,8 @@ export const hanCourseMethodCards: HanMethodCard[] = [
       "问题太多",
       "问题递进",
       "满堂问",
+      "思考不深入",
+      "学生都能答",
     ],
     intents: [
       "teaching_design",
@@ -1606,4 +1608,104 @@ export function buildHanMethodCatalogForRouter() {
       card.avoidWhen.length > 0 ? `不适用：${card.avoidWhen.join("；")}` : "",
     ].filter(Boolean).join("｜")
   ).join("\n");
+}
+
+export function buildHanMethodIndexForRouter() {
+  return hanCourseMethodCards.map((card) => `${card.id}｜${card.name}`).join(
+    "\n",
+  );
+}
+
+export function selectHanMethodCandidatesForRouter(
+  question: string,
+  intent: IntentResult,
+  maxCandidates = 6,
+) {
+  const limit = Math.max(0, Math.min(10, Math.round(maxCandidates)));
+  if (limit === 0) return [];
+  const normalizedQuestion = normalizeRouterText(question);
+  const questionBigrams = toBigrams(normalizedQuestion);
+
+  return hanCourseMethodCards
+    .map((card) => {
+      let lexicalScore = 0;
+      for (const term of [card.name, ...card.aliases, ...card.queryTerms]) {
+        const normalizedTerm = normalizeRouterText(term);
+        if (!normalizedTerm || !normalizedQuestion.includes(normalizedTerm)) {
+          continue;
+        }
+        lexicalScore += Math.min(20, 8 + normalizedTerm.length);
+      }
+      const cardText = normalizeRouterText([
+        card.name,
+        ...card.aliases,
+        card.summary,
+        ...card.useWhen,
+        ...card.queryTerms,
+      ].join(" "));
+      const overlapScore = bigramRecall(questionBigrams, toBigrams(cardText)) *
+        18;
+      const intentScore = card.intents.includes(intent.primary_intent)
+        ? 4
+        : (intent.secondary_intents ?? []).some((item) =>
+            card.intents.includes(item)
+          )
+        ? 1.5
+        : 0;
+      return {
+        card,
+        score: lexicalScore + overlapScore + intentScore + card.priority / 1000,
+        hasSignal: lexicalScore > 0 || overlapScore >= 4.5,
+      };
+    })
+    .filter((item) => item.hasSignal)
+    .sort((a, b) => b.score - a.score || b.card.priority - a.card.priority)
+    .slice(0, limit)
+    .map((item) => item.card);
+}
+
+export function buildHanMethodCandidateCatalogForRouter(
+  question: string,
+  intent: IntentResult,
+  maxCandidates = 6,
+) {
+  const cards = selectHanMethodCandidatesForRouter(
+    question,
+    intent,
+    maxCandidates,
+  );
+  if (cards.length === 0) return "无明显候选。";
+  return cards.map((card) =>
+    [
+      card.id,
+      card.name,
+      card.summary,
+      `适用：${card.useWhen.join("；")}`,
+      card.avoidWhen.length > 0 ? `边界：${card.avoidWhen.join("；")}` : "",
+    ].filter(Boolean).join("｜")
+  ).join("\n");
+}
+
+function normalizeRouterText(text: string) {
+  return text.toLowerCase().replace(
+    /[\s，。！？、；：,.!?;:'"“”‘’（）()\-_+｜]/g,
+    "",
+  );
+}
+
+function toBigrams(text: string) {
+  const result = new Set<string>();
+  for (let index = 0; index < text.length - 1; index += 1) {
+    result.add(text.slice(index, index + 2));
+  }
+  return result;
+}
+
+function bigramRecall(question: Set<string>, card: Set<string>) {
+  if (question.size === 0 || card.size === 0) return 0;
+  let matches = 0;
+  for (const gram of question) {
+    if (card.has(gram)) matches += 1;
+  }
+  return matches / question.size;
 }

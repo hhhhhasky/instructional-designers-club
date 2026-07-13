@@ -22,16 +22,17 @@ import {
 } from "../_shared/hai.ts";
 import { HAIContextOrchestrator } from "../_shared/hai_orchestrator/context_orchestrator.ts";
 import { classifyIntent } from "../_shared/hai_orchestrator/intent_classifier.ts";
-import {
-  buildHanMethodCatalogForRouter,
-  hanMethodCardIds,
-} from "../_shared/hai_orchestrator/knowledge/method_bank/han_course_method_cards.ts";
+import { hanMethodCardIds } from "../_shared/hai_orchestrator/knowledge/method_bank/han_course_method_cards.ts";
 import { memoryCategoryMatchesTypes } from "../_shared/hai_orchestrator/memory_selector.ts";
 import {
   buildComposedSystemPrompt,
   normalizeHaiVoiceFormatting,
 } from "../_shared/hai_orchestrator/response_composer.ts";
 import { evaluateResponse } from "../_shared/hai_orchestrator/response_evaluator.ts";
+import {
+  buildSemanticRouterPrompt,
+  semanticRouterAllowedIntents,
+} from "../_shared/hai_orchestrator/semantic_router_prompt.ts";
 import type {
   HAIPromptConfigMap,
   HAITrace,
@@ -95,21 +96,6 @@ type PromptSnapshot = {
   final_answer: string;
 };
 
-const allowedIntents: IntentName[] = [
-  "teaching_design",
-  "lesson_plan_diagnosis",
-  "public_lesson",
-  "learning_profile",
-  "classroom_management",
-  "learning_motivation",
-  "assessment_feedback",
-  "ai_lesson_planning",
-  "pbl_crossdisciplinary",
-  "teacher_growth",
-  "general_question",
-  "unknown",
-];
-
 const orchestrator = new HAIContextOrchestrator();
 
 const retiredMethodologyMarkers = [
@@ -164,7 +150,6 @@ Deno.serve(async (request) => {
     const semanticRoute = runtime.contextOrchestratorEnabled
       ? await routeSemanticallyWithLlm({
         text,
-        promptConfig: orchestratorPromptConfig,
         runtime,
         completionOptions,
         userId: auth.user.id,
@@ -580,7 +565,6 @@ async function loadOrchestratorPromptConfigs(
 
 async function routeSemanticallyWithLlm(params: {
   text: string;
-  promptConfig: HAIPromptConfigMap;
   runtime: HaiRuntimeConfig;
   completionOptions: HaiChatCompletionOptions;
   userId: string;
@@ -592,7 +576,10 @@ async function routeSemanticallyWithLlm(params: {
   }
 
   try {
-    const routerPrompt = buildSemanticRouterPrompt(params.promptConfig);
+    const routerPrompt = buildSemanticRouterPrompt({
+      question: params.text,
+      fallbackIntent,
+    });
     const routerMessages: ChatMessage[] = [
       { role: "system", content: routerPrompt },
       {
@@ -737,7 +724,7 @@ function nonEmptyString(value: unknown) {
 
 function normalizeIntentName(value: unknown): IntentName | null {
   const intent = String(value || "").trim() as IntentName;
-  return allowedIntents.includes(intent) ? intent : null;
+  return semanticRouterAllowedIntents.includes(intent) ? intent : null;
 }
 
 function extractJsonObject(text: string) {
@@ -746,72 +733,6 @@ function extractJsonObject(text: string) {
   const match = trimmed.match(/\{[\s\S]*\}/);
   if (!match) throw new Error("LLM intent response is not JSON.");
   return match[0];
-}
-
-function buildSemanticRouterPrompt(promptConfig: HAIPromptConfigMap) {
-  const configurableRules = [
-    promptConfig.intent_classifier_prompt
-      ? `【可配置意图识别规则】\n${promptConfig.intent_classifier_prompt}`
-      : "",
-    promptConfig.problem_rewriter_prompt
-      ? `【可配置问题重构规则】\n${promptConfig.problem_rewriter_prompt}`
-      : "",
-    promptConfig.diagnostic_router_prompt
-      ? `【可配置诊断路由规则】\n${promptConfig.diagnostic_router_prompt}`
-      : "",
-  ].filter(Boolean).join("\n\n");
-
-  return `你是 HAI 的 LLM 语义路由器。你是当前路由主判断，不是关键词兜底。
-你的任务是根据教师输入同时完成四件事：
-1. 识别真实教学意图 intent_result。
-2. 把表层诉求重构为真实教学诊断问题 problem_rewrite。
-3. 选择最适合的 diagnostic_module。
-4. 从哈老师课程方法目录中选择最能解释当前题眼的 methodology_ids。
-
-允许的 intent 和 diagnostic_module：
-${allowedIntents.join(", ")}
-
-判断原则：
-1. 先看用户真正要解决的教学问题，不按关键词机械匹配。
-2. 用户表层说“有趣、互动、亮点、帮我写”，也要判断背后的目标、学情、评价、结构或边界问题。
-3. 公开课、说课、日常课、教案诊断、局部设计咨询要按真实需求区分。
-4. 如果用户粘贴或描述一套设计让你找问题，优先考虑 lesson_plan_diagnosis。
-5. 如果用户问某篇课文、某节课、目标、导入、任务链，优先考虑 teaching_design。
-6. 如果用户问听懂但做题错、怎么判断学会、反馈或评价证据，优先考虑 assessment_feedback。
-7. 如果用户问公开课、说课、赛课、亮点，优先考虑 public_lesson，但仍要识别是否其实是教案结构问题。
-8. confidence 表示你对语义判断的把握，范围 0 到 0.98。
-9. 方法选择必须基于语义和适用边界，不按词面机械匹配。优先选择具体的下位方法，只有用户确实需要全局结构时才选择备课流程＋教学设计框架。
-10. methodology_ids 最多两个，主方法放第一位。通常只选一个；第二个只能是解释必要依赖的辅助方法。没有真正匹配的方法就返回空数组，绝不能编造 id。
-11. 区分用户不会做、不想做、时间不够、课型流程错误和教学设计逻辑错误，这些问题应选择不同方法。
-
-哈老师课程方法目录，每行格式为 id、名称、课程、摘要、适用与边界：
-${buildHanMethodCatalogForRouter()}
-
-${configurableRules}
-
-只输出 JSON，格式必须是：
-{
-  "intent_result": {
-    "primary_intent": "...",
-    "secondary_intents": ["..."],
-    "explicit_need": "...",
-    "implicit_need": "...",
-    "risk_of_wrong_framing": "...",
-    "confidence": 0.0,
-    "route_reason": "..."
-  },
-  "problem_rewrite": {
-    "surface_problem": "...",
-    "deeper_problem": "...",
-    "wrong_attribution_risk": "...",
-    "hai_reframing": "...",
-    "recommended_answer_direction": "..."
-  },
-  "diagnostic_module": "...",
-  "methodology_ids": ["课程方法 id，主方法在前"],
-  "methodology_reason": "为什么这个方法最能解释当前题眼，以及为什么不选相邻方法",
-  "methodology_confidence": 0.0
-}`;
 }
 
 async function loadConversation(

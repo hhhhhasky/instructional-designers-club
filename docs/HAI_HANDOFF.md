@@ -774,3 +774,19 @@ R12 新增管理员专用 `capturePromptSnapshot` 调试参数。开启后，`ha
 同一个“目标、活动、评价对不上”问题的确定性组装对比中，system prompt 从 7,577 估算 token 降到 1,360，降幅 82.1%；当前问题被重复加入消息数组的问题也已修复。新增编排测试会确认所有保留层出现、所有停用层不出现，且 system prompt 低于设定 token 上限。
 
 详细设计、启停矩阵、权限边界和复现命令见 `docs/HAI_PROMPT_SNAPSHOT_AND_COMPACT_ORCHESTRATION.md`。迁移文件为 `supabase/migrations/20260713170000_hai_r12_compact_orchestration.sql`。该迁移已线上执行并登记，`hai-chat` 已部署为 v13。真实管理员快照显示回答生成输入为 1,661 tokens，当前问题只出现一次，六个保留层全部存在，停用层全部未注入。语义路由独立调用为 6,054 tokens，作为后续降本优化点。
+
+### 9.12 R13 semantic router 精简（2026-07-13，待发布）
+
+R13 只调整第一阶段语义路由，不改变已经稳定的回答生成编排。旧 router 每轮注入 35 张方法卡的完整紧凑详情，并重复拼入意图识别、问题重构和诊断路由三段配置，因此线上快照达到 6,054 token。
+
+新链路使用“35 张卡的 id/名称完整索引＋最多 6 张本题候选卡详情”。本地召回只负责缩小模型阅读范围，最终意图、问题重构、诊断模块和方法 id 仍由同一次 LLM 语义判断返回；没有候选的方法也可以从完整索引选择，非教学问题不会强配方法。旧三段配置资料继续保留，但迁移后标记停用，避免后台误显示为正在注入。
+
+验证结果：候选召回 15/15；非教学问题候选为空；生产同款 DeepSeek 路由 16/16；估算输入 token 平均 1,334、最小 1,133、最大 1,821，相比 R12 线上 6,054 典型下降约 78%。完整 system/user prompt 和模型原始 JSON 已落盘到本机 `docs/hai-quality-runs/2026-07-13T09-13-05-535Z-methodology-routing-smoke.md`，该目录不提交 Git。
+
+主要文件：
+
+- `supabase/functions/_shared/hai_orchestrator/semantic_router_prompt.ts`
+- `supabase/functions/_shared/hai_orchestrator/semantic_router_prompt_test.ts`
+- `supabase/functions/_shared/hai_orchestrator/knowledge/method_bank/han_course_method_cards.ts`
+- `scripts/run-hai-methodology-routing-smoke.ts`
+- `supabase/migrations/20260713180000_hai_r13_compact_semantic_router.sql`
