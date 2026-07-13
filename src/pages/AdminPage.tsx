@@ -6,6 +6,7 @@ import MemberOverviewSection from "@/components/admin/MemberOverviewSection";
 import CourseRankingsSection from "@/components/admin/CourseRankingsSection";
 import InactiveStudentsSection from "@/components/admin/InactiveStudentsSection";
 import StudentLeaderboardSection from "@/components/admin/StudentLeaderboardSection";
+import HaiDashboardSection from "@/components/admin/HaiDashboardSection";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
@@ -35,6 +36,7 @@ export default function AdminPage() {
           <TabsTrigger value="courses">课程排行</TabsTrigger>
           <TabsTrigger value="inactive">沉默学员</TabsTrigger>
           <TabsTrigger value="leaderboard">学员排行榜</TabsTrigger>
+          <TabsTrigger value="hai">HAI 看板</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -51,6 +53,10 @@ export default function AdminPage() {
 
         <TabsContent value="leaderboard">
           <StudentLeaderboardSection />
+        </TabsContent>
+
+        <TabsContent value="hai">
+          <HaiDashboardSection />
         </TabsContent>
       </Tabs>
     </AdminPageShell>

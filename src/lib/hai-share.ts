@@ -3,10 +3,16 @@ export interface HaiShareContent {
   answer: string;
 }
 
-export type HaiShareResult = "shared" | "downloaded" | "cancelled";
-
 const SHARE_IMAGE_WIDTH = 1080;
 const SHARE_IMAGE_MAX_HEIGHT = 15000;
+export const HAI_SHARE_QR_URL = "/images/hai/hai-register-qr.png";
+export const HAI_SHARE_CTA = {
+  eyebrow: "HAI 新用户礼遇",
+  headline: "注册 HAI，免费送",
+  benefit: "10 万 Token",
+  promise: "解答你的备课难题",
+  qrLabel: "扫码注册 HAI",
+} as const;
 
 export async function copyHaiAnswer(content: string): Promise<void> {
   if (navigator.clipboard?.writeText) {
@@ -27,7 +33,10 @@ export async function copyHaiAnswer(content: string): Promise<void> {
 }
 
 export async function createHaiShareImage({ question, answer }: HaiShareContent): Promise<Blob> {
-  await document.fonts?.ready;
+  const [, qrImage] = await Promise.all([
+    document.fonts?.ready,
+    loadImage(HAI_SHARE_QR_URL),
+  ]);
 
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
@@ -46,7 +55,10 @@ export async function createHaiShareImage({ question, answer }: HaiShareContent)
 
   const questionHeight = Math.max(128, questionLines.length * 58 + 80);
   const answerHeight = Math.max(220, answerLines.length * 52 + 112);
-  const requestedHeight = 184 + questionHeight + 32 + answerHeight + 150;
+  const ctaTop = 48;
+  const ctaHeight = 270;
+  const questionTop = ctaTop + ctaHeight + 32;
+  const requestedHeight = questionTop + questionHeight + 32 + answerHeight + 126;
   const canvasHeight = Math.min(SHARE_IMAGE_MAX_HEIGHT, requestedHeight);
 
   canvas.width = SHARE_IMAGE_WIDTH;
@@ -54,14 +66,8 @@ export async function createHaiShareImage({ question, answer }: HaiShareContent)
 
   drawShareBackground(context, canvasHeight);
 
-  context.fillStyle = "#2c2420";
-  context.font = '900 48px "Noto Serif SC", "Songti SC", serif';
-  context.fillText("HAI", 76, 96);
-  context.fillStyle = "#806f65";
-  context.font = '400 25px "LXGW WenKai", "PingFang SC", sans-serif';
-  context.fillText("问问哈老师 · 教学设计咨询", 184, 91);
+  drawShareCta(context, qrImage, ctaTop, ctaHeight);
 
-  const questionTop = 142;
   drawRoundedRect(context, 76, questionTop, contentWidth, questionHeight, 34, "#c45d3e");
   context.fillStyle = "rgba(255,255,255,0.78)";
   context.font = '700 23px "LXGW WenKai", "PingFang SC", sans-serif';
@@ -111,29 +117,6 @@ export async function createHaiShareImage({ question, answer }: HaiShareContent)
   context.textAlign = "left";
 
   return canvasToBlob(canvas);
-}
-
-export async function shareHaiExchange(content: HaiShareContent): Promise<HaiShareResult> {
-  const blob = await createHaiShareImage(content);
-  const filename = `HAI-教学咨询-${formatFileDate(new Date())}.png`;
-  const file = new File([blob], filename, { type: "image/png" });
-
-  if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
-    try {
-      await navigator.share({
-        files: [file],
-        title: "HAI 教学咨询",
-        text: "分享一段来自 HAI 的教学设计咨询",
-      });
-      return "shared";
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return "cancelled";
-      // Some desktop browsers expose share() but reject file sharing at runtime.
-    }
-  }
-
-  downloadBlob(blob, filename);
-  return "downloaded";
 }
 
 export function markdownToShareText(markdown: string): string {
@@ -214,6 +197,64 @@ function drawShareBackground(context: CanvasRenderingContext2D, height: number) 
   context.fill();
 }
 
+function drawShareCta(
+  context: CanvasRenderingContext2D,
+  qrImage: HTMLImageElement,
+  top: number,
+  height: number,
+) {
+  const left = 76;
+  const width = SHARE_IMAGE_WIDTH - 152;
+  drawRoundedRect(context, left, top, width, height, 36, "#244f48");
+
+  context.save();
+  roundedRectPath(context, left, top, width, height, 36);
+  context.clip();
+  const glow = context.createRadialGradient(left + 520, top + 250, 20, left + 520, top + 250, 360);
+  glow.addColorStop(0, "rgba(241,181,151,0.25)");
+  glow.addColorStop(1, "rgba(241,181,151,0)");
+  context.fillStyle = glow;
+  context.fillRect(left, top, width, height);
+  context.fillStyle = "rgba(255,255,255,0.06)";
+  context.beginPath();
+  context.arc(left + 690, top - 20, 190, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+
+  drawRoundedRect(context, 108, top + 28, 176, 39, 20, "rgba(255,255,255,0.14)");
+  context.fillStyle = "#f6e8dc";
+  context.font = '700 20px "LXGW WenKai", "PingFang SC", sans-serif';
+  context.fillText(HAI_SHARE_CTA.eyebrow, 126, top + 55);
+
+  context.fillStyle = "#ffffff";
+  context.font = '700 38px "Noto Serif SC", "Songti SC", serif';
+  context.fillText(HAI_SHARE_CTA.headline, 108, top + 121);
+  context.fillStyle = "#f1b597";
+  context.font = '900 50px "Noto Serif SC", "Songti SC", serif';
+  context.fillText(HAI_SHARE_CTA.benefit, 108, top + 181);
+  context.fillStyle = "rgba(255,255,255,0.84)";
+  context.font = '400 25px "LXGW WenKai", "PingFang SC", sans-serif';
+  context.fillText(HAI_SHARE_CTA.promise, 108, top + 226);
+
+  drawRoundedRect(context, 804, top + 24, 168, 168, 22, "#ffffff");
+  context.drawImage(qrImage, 814, top + 34, 148, 148);
+  context.fillStyle = "rgba(255,255,255,0.82)";
+  context.font = '700 21px "LXGW WenKai", "PingFang SC", sans-serif';
+  context.textAlign = "center";
+  context.fillText(HAI_SHARE_CTA.qrLabel, 888, top + 228);
+  context.textAlign = "left";
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.decoding = "async";
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("HAI 二维码加载失败"));
+    image.src = src;
+  });
+}
+
 function drawRoundedRect(
   context: CanvasRenderingContext2D,
   x: number,
@@ -265,25 +306,4 @@ function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
       else reject(new Error("分享图生成失败"));
     }, "image/png");
   });
-}
-
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-function formatFileDate(date: Date) {
-  const parts = new Intl.DateTimeFormat("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date);
-  const pick = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? "";
-  return `${pick("year")}${pick("month")}${pick("day")}`;
 }

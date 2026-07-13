@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import HaiPage, { EmptyState, HAI_STARTER_QUESTIONS, MessageBubble } from "@/pages/HaiPage";
-import { copyHaiAnswer, shareHaiExchange } from "@/lib/hai-share";
+import { copyHaiAnswer, createHaiShareImage } from "@/lib/hai-share";
 
 vi.mock("@/components/layout/Header", () => ({ default: () => <div data-testid="global-header" /> }));
 vi.mock("@/components/common/Footer", () => ({ default: () => <div data-testid="global-footer" /> }));
@@ -61,7 +61,7 @@ vi.mock("sonner", () => ({
 
 vi.mock("@/lib/hai-share", () => ({
   copyHaiAnswer: vi.fn(),
-  shareHaiExchange: vi.fn(),
+  createHaiShareImage: vi.fn(),
 }));
 
 describe("HAI new conversation guidance", () => {
@@ -108,7 +108,15 @@ describe("HAI assistant message actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(copyHaiAnswer).mockResolvedValue(undefined);
-    vi.mocked(shareHaiExchange).mockResolvedValue("downloaded");
+    vi.mocked(createHaiShareImage).mockResolvedValue(new Blob(["share-image"], { type: "image/png" }));
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: vi.fn(() => "blob:hai-share-preview"),
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: vi.fn(),
+    });
   });
 
   it("copies the full assistant answer", async () => {
@@ -131,7 +139,7 @@ describe("HAI assistant message actions", () => {
     expect(screen.getByText("已复制")).toBeInTheDocument();
   });
 
-  it("generates a share image from the paired question and answer", async () => {
+  it("generates and previews a share image without downloading it", async () => {
     const user = userEvent.setup();
     render(
       <MessageBubble
@@ -147,10 +155,16 @@ describe("HAI assistant message actions", () => {
 
     await user.click(screen.getByRole("button", { name: "把这轮问答生成分享图" }));
 
-    expect(shareHaiExchange).toHaveBeenCalledWith({
+    expect(createHaiShareImage).toHaveBeenCalledWith({
       question: "这份教案应该先改哪里？",
       answer: "先看目标是否清楚。",
     });
+    expect(await screen.findByTestId("hai-share-preview-image")).toHaveAttribute(
+      "src",
+      "blob:hai-share-preview",
+    );
+    expect(screen.getByText("手机长按图片选择保存或转发，电脑端可右键保存。")).toBeInTheDocument();
+    expect(document.querySelector("a[download]")).not.toBeInTheDocument();
   });
 
   it("hides actions while an answer is still streaming", () => {

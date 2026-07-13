@@ -23,9 +23,17 @@ import PageMeta from "@/components/common/PageMeta";
 import MarkdownRenderer from "@/components/common/MarkdownRenderer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
-import { copyHaiAnswer, shareHaiExchange } from "@/lib/hai-share";
+import { copyHaiAnswer, createHaiShareImage } from "@/lib/hai-share";
 import {
   archiveHaiConversation,
   archiveHaiMemory,
@@ -580,6 +588,11 @@ export function MessageBubble({ message, question }: { message: DraftMessage; qu
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [sharePreviewUrl, setSharePreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => () => {
+    if (sharePreviewUrl) URL.revokeObjectURL(sharePreviewUrl);
+  }, [sharePreviewUrl]);
 
   async function handleCopy() {
     try {
@@ -596,9 +609,9 @@ export function MessageBubble({ message, question }: { message: DraftMessage; qu
     if (!question || sharing) return;
     setSharing(true);
     try {
-      const result = await shareHaiExchange({ question, answer: message.content });
-      if (result === "downloaded") toast.success("分享图已生成并保存");
-      if (result === "shared") toast.success("分享图已生成");
+      const blob = await createHaiShareImage({ question, answer: message.content });
+      setSharePreviewUrl(URL.createObjectURL(blob));
+      toast.success("分享图已生成，长按图片即可保存或转发");
     } catch {
       toast.error("分享图生成失败，请稍后重试");
     } finally {
@@ -607,55 +620,98 @@ export function MessageBubble({ message, question }: { message: DraftMessage; qu
   }
 
   return (
-    <div className={`flex min-w-0 ${isUser ? "justify-end" : "justify-start"}`}>
-      <div
-        className={`min-w-0 max-w-[94%] rounded-ds-lg border px-4 py-3 shadow-ds-xs sm:max-w-[88%] ${
-          isUser
-            ? "border-ac/20 bg-ac text-white"
-            : "border-bd bg-white text-tx"
-        }`}
-      >
-        {isUser ? (
-          <p className="whitespace-pre-wrap text-ds-base leading-relaxed">{message.content}</p>
-        ) : message.content ? (
-          <>
-            <div className="min-w-0 overflow-x-auto">
-              <MarkdownRenderer content={message.content} />
-            </div>
-            {!message.pending && (
-              <div className="mt-3 flex items-center gap-1 border-t border-bdl pt-2">
-                <button
-                  type="button"
-                  onClick={() => void handleCopy()}
-                  className="inline-flex min-h-9 items-center gap-1.5 rounded-ds-md px-2.5 text-ds-sm text-txs transition hover:bg-bgs hover:text-ac focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/30"
-                  aria-label="复制这条回答"
-                >
-                  {copied ? <Check className="h-4 w-4 text-tl" /> : <Copy className="h-4 w-4" />}
-                  {copied ? "已复制" : "复制"}
-                </button>
-                {question && (
+    <>
+      <div className={`flex min-w-0 ${isUser ? "justify-end" : "justify-start"}`}>
+        <div
+          className={`min-w-0 max-w-[94%] rounded-ds-lg border px-4 py-3 shadow-ds-xs sm:max-w-[88%] ${
+            isUser
+              ? "border-ac/20 bg-ac text-white"
+              : "border-bd bg-white text-tx"
+          }`}
+        >
+          {isUser ? (
+            <p className="whitespace-pre-wrap text-ds-base leading-relaxed">{message.content}</p>
+          ) : message.content ? (
+            <>
+              <div className="min-w-0 overflow-x-auto">
+                <MarkdownRenderer content={message.content} />
+              </div>
+              {!message.pending && (
+                <div className="mt-3 flex items-center gap-1 border-t border-bdl pt-2">
                   <button
                     type="button"
-                    onClick={() => void handleShare()}
-                    disabled={sharing}
-                    className="inline-flex min-h-9 items-center gap-1.5 rounded-ds-md px-2.5 text-ds-sm text-txs transition hover:bg-bgs hover:text-ac focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/30 disabled:cursor-wait disabled:opacity-60"
-                    aria-label="把这轮问答生成分享图"
+                    onClick={() => void handleCopy()}
+                    className="inline-flex min-h-9 items-center gap-1.5 rounded-ds-md px-2.5 text-ds-sm text-txs transition hover:bg-bgs hover:text-ac focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/30"
+                    aria-label="复制这条回答"
                   >
-                    {sharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
-                    {sharing ? "生成中" : "转发"}
+                    {copied ? <Check className="h-4 w-4 text-tl" /> : <Copy className="h-4 w-4" />}
+                    {copied ? "已复制" : "复制"}
                   </button>
-                )}
-              </div>
-            )}
-          </>
-        ) : (
-          <span className="inline-flex items-center text-ds-sm text-txs">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            思考中
-          </span>
-        )}
+                  {question && (
+                    <button
+                      type="button"
+                      onClick={() => void handleShare()}
+                      disabled={sharing}
+                      className="inline-flex min-h-9 items-center gap-1.5 rounded-ds-md px-2.5 text-ds-sm text-txs transition hover:bg-bgs hover:text-ac focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/30 disabled:cursor-wait disabled:opacity-60"
+                      aria-label="把这轮问答生成分享图"
+                    >
+                      {sharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+                      {sharing ? "生成中" : "转发"}
+                    </button>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <span className="inline-flex items-center text-ds-sm text-txs">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              思考中
+            </span>
+          )}
+        </div>
       </div>
-    </div>
+
+      <Dialog
+        open={Boolean(sharePreviewUrl)}
+        onOpenChange={(open) => {
+          if (!open) setSharePreviewUrl(null);
+        }}
+      >
+        <DialogContent
+          className="flex max-h-[calc(100dvh-1rem)] max-w-2xl flex-col gap-0 overflow-hidden rounded-ds-lg border-bd bg-white p-0 shadow-ds-xl sm:max-h-[calc(100dvh-2rem)]"
+          hideCloseButton
+        >
+          <DialogHeader className="shrink-0 border-b border-bd bg-white px-4 py-3 text-left sm:px-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <DialogTitle className="font-ds-black text-tx">分享图已生成</DialogTitle>
+                <DialogDescription className="mt-1 text-txs">
+                  手机长按图片选择保存或转发，电脑端可右键保存。
+                </DialogDescription>
+              </div>
+              <DialogClose asChild>
+                <Button size="icon-sm" variant="ghost" className="shrink-0" aria-label="关闭分享图预览">
+                  <X className="h-4 w-4" />
+                </Button>
+              </DialogClose>
+            </div>
+          </DialogHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#eee8df] p-2 sm:p-5">
+            {sharePreviewUrl && (
+              <img
+                src={sharePreviewUrl}
+                alt="HAI 教学咨询分享图，长按可保存或转发"
+                className="mx-auto block h-auto w-full max-w-[540px] rounded-ds-md bg-white shadow-ds-lg"
+                data-testid="hai-share-preview-image"
+              />
+            )}
+          </div>
+          <div className="shrink-0 border-t border-bd bg-white px-4 py-3 text-center text-ds-sm text-txs">
+            长按图片 · 存储到照片 · 转发给同事
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

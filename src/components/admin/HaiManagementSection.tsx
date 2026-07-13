@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Activity, AlertTriangle, Bot, BookOpen, CheckCircle2, GitBranch, KeyRound, Layers3, Loader2, Pencil, RefreshCw, Route, Save, Settings2, ShieldCheck, SlidersHorizontal, Ticket, Trash2, UserPlus, X } from "lucide-react";
+import { Bot, BookOpen, CheckCircle2, GitBranch, KeyRound, Layers3, Loader2, Pencil, RefreshCw, Route, Save, Settings2, SlidersHorizontal, Ticket, Trash2, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/db/supabase";
@@ -59,74 +59,6 @@ interface HaiPromptVersion {
   created_at: string;
 }
 
-interface HaiUsageEvent {
-  id: string;
-  user_id: string;
-  event_type: string;
-  route: string | null;
-  status: "started" | "completed" | "failed" | "rejected" | "cached";
-  total_tokens: number;
-  input_tokens: number;
-  output_tokens: number;
-  duration_ms: number | null;
-  created_at: string;
-  metadata: Record<string, unknown>;
-  profiles?: HaiUserAccessRow["profiles"];
-}
-
-interface HaiUsageAlert {
-  id: string;
-  user_id: string;
-  alert_type: string;
-  severity: "info" | "warning" | "critical";
-  message: string;
-  status: "open" | "resolved" | "ignored";
-  created_at: string;
-  profiles?: HaiUserAccessRow["profiles"];
-}
-
-interface HaiTraceMessage {
-  id: string;
-  conversation_id: string;
-  content: string;
-  metadata: Record<string, unknown>;
-  input_tokens: number | null;
-  output_tokens: number | null;
-  created_at: string;
-}
-
-interface HaiContextTrace {
-  question?: string;
-  intent_result?: {
-    primary_intent?: string;
-    confidence?: number;
-    route_method?: string;
-    route_reason?: string;
-    matched_signals?: string[];
-  };
-  memory_selection?: {
-    should_load_memory?: boolean;
-    memory_types?: string[];
-  };
-  diagnostic_module?: string;
-  retrieval_plan?: {
-    retrieve_cases?: boolean;
-    retrieve_methods?: boolean;
-    retrieve_theory?: boolean;
-    retrieve_expressions?: boolean;
-    max_cases?: number;
-    max_methods?: number;
-    max_theories?: number;
-    max_expressions?: number;
-  };
-  retrieved_context_ids?: Array<string | null | undefined>;
-  evaluation_result?: {
-    pass?: boolean;
-    score?: number;
-    problems?: string[];
-  };
-}
-
 interface HaiKnowledgeSource {
   id: string;
   title: string;
@@ -174,9 +106,6 @@ export default function HaiManagementSection() {
   const [modules, setModules] = useState<HaiFeatureModule[]>([]);
   const [quotas, setQuotas] = useState<HaiQuotaPolicy[]>([]);
   const [prompts, setPrompts] = useState<HaiPromptVersion[]>([]);
-  const [usageEvents, setUsageEvents] = useState<HaiUsageEvent[]>([]);
-  const [usageAlerts, setUsageAlerts] = useState<HaiUsageAlert[]>([]);
-  const [traceMessages, setTraceMessages] = useState<HaiTraceMessage[]>([]);
   const [knowledgeSources, setKnowledgeSources] = useState<HaiKnowledgeSource[]>([]);
   const [runtimeSettings, setRuntimeSettings] = useState<HaiRuntimeSetting[]>([]);
   const [orchestratorPromptConfigs, setOrchestratorPromptConfigs] = useState<HaiOrchestratorPromptConfig[]>([]);
@@ -240,13 +169,6 @@ export default function HaiManagementSection() {
     }
     return Array.from(groups.entries());
   }, [orchestratorPromptConfigs]);
-  const recentTraces = useMemo(
-    () => traceMessages
-      .map((message) => ({ message, trace: traceOf(message.metadata) }))
-      .filter((item): item is { message: HaiTraceMessage; trace: HaiContextTrace } => Boolean(item.trace))
-      .slice(0, 5),
-    [traceMessages],
-  );
   const orchestratorEnabled = Boolean(runtimeSettings.find((item) => item.key === "context.orchestrator_enabled")?.value ?? true);
   const evaluatorEnabled = Boolean(runtimeSettings.find((item) => item.key === "evaluator.enabled")?.value ?? true);
   const passScore = Number(runtimeSettings.find((item) => item.key === "evaluator.pass_score")?.value ?? 78);
@@ -291,9 +213,6 @@ export default function HaiManagementSection() {
         moduleResult,
         quotaResult,
         promptResult,
-        usageResult,
-        alertResult,
-        traceResult,
         knowledgeResult,
         knowledgeChunkResult,
         runtimeResult,
@@ -321,23 +240,6 @@ export default function HaiManagementSection() {
           .select("*")
           .order("created_at", { ascending: false }),
         supabase
-          .from("hai_usage_events")
-          .select("*, profiles(nickname, phone, access_level)")
-          .order("created_at", { ascending: false })
-          .limit(50),
-        supabase
-          .from("hai_usage_alerts")
-          .select("*, profiles!user_id(nickname, phone, access_level)")
-          .eq("status", "open")
-          .order("created_at", { ascending: false })
-          .limit(20),
-        supabase
-          .from("hai_messages")
-          .select("id, conversation_id, content, metadata, input_tokens, output_tokens, created_at")
-          .eq("role", "assistant")
-          .order("created_at", { ascending: false })
-          .limit(30),
-        supabase
           .from("hai_knowledge_sources")
           .select("id, title, topic, source_type, visibility, is_active, metadata, updated_at")
           .order("updated_at", { ascending: false })
@@ -362,9 +264,6 @@ export default function HaiManagementSection() {
       if (moduleResult.error) throw moduleResult.error;
       if (quotaResult.error) throw quotaResult.error;
       if (promptResult.error) throw promptResult.error;
-      if (usageResult.error) throw usageResult.error;
-      if (alertResult.error) throw alertResult.error;
-      if (traceResult.error) throw traceResult.error;
       if (knowledgeResult.error) throw knowledgeResult.error;
       if (knowledgeChunkResult.error) throw knowledgeChunkResult.error;
       if (runtimeResult.error) throw runtimeResult.error;
@@ -378,9 +277,6 @@ export default function HaiManagementSection() {
       setSelectedModuleId((current) => current || moduleRows[0]?.id || "");
       setQuotas((quotaResult.data as HaiQuotaPolicy[]) ?? []);
       setPrompts((promptResult.data as HaiPromptVersion[]) ?? []);
-      setUsageEvents((usageResult.data as HaiUsageEvent[]) ?? []);
-      setUsageAlerts((alertResult.data as HaiUsageAlert[]) ?? []);
-      setTraceMessages(((traceResult.data as HaiTraceMessage[]) ?? []).filter((message) => Boolean(traceOf(message.metadata))));
       const chunkCounts = new Map<string, number>();
       for (const chunk of (knowledgeChunkResult.data ?? []) as Array<{ source_id: string }>) {
         chunkCounts.set(chunk.source_id, (chunkCounts.get(chunk.source_id) ?? 0) + 1);
@@ -822,11 +718,11 @@ export default function HaiManagementSection() {
         <div className="grid gap-3 xl:grid-cols-4">
           <MetricCard icon={<Route className="h-4 w-4" />} label="核心链路" value={orchestratorEnabled ? "Context Orchestrator" : "Legacy Prompt"} />
           <MetricCard icon={<Layers3 className="h-4 w-4" />} label="可编辑层" value={`${enabledPromptConfigCount}/${orchestratorPromptConfigs.length || 0}`} />
-          <MetricCard icon={<ShieldCheck className="h-4 w-4" />} label="最近 trace" value={`${recentTraces.length} 条`} />
+          <MetricCard icon={<Settings2 className="h-4 w-4" />} label="启用参数" value={`${runtimeSettings.filter((setting) => setting.enabled).length}/${runtimeSettings.length || 0}`} />
           <MetricCard icon={<CheckCircle2 className="h-4 w-4" />} label="当前版本" value={currentPrompt?.version_label ?? "未发布"} />
         </div>
 
-        <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
+        <div className="mt-4">
           <div className="space-y-4">
             <div>
               <div className="mb-2 flex items-center gap-2">
@@ -966,56 +862,6 @@ export default function HaiManagementSection() {
             </div>
           </div>
 
-          <div className="rounded-ds-md border border-bd bg-bg p-3">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Activity className="h-4 w-4 text-ac" />
-                <h3 className="text-ds-base font-ds-bold text-tx">最近编排 trace</h3>
-              </div>
-              <Button size="sm" variant="outline" onClick={() => void loadAll()}>
-                <RefreshCw className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-            <div className="space-y-2">
-              {recentTraces.length === 0 ? (
-                <p className="rounded-ds-md bg-white px-3 py-8 text-center text-ds-sm text-txs">暂无编排 trace。需要开启记录参数快照并完成一次 HAI 单聊。</p>
-              ) : recentTraces.map(({ message, trace }) => (
-                <div key={message.id} className="rounded-ds-md border border-bd bg-white p-3">
-                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline">{trace.intent_result?.primary_intent ?? "unknown"}</Badge>
-                      <Badge variant="outline">{trace.intent_result?.route_method ?? "route"}</Badge>
-                      <Badge variant="outline" className={trace.evaluation_result?.pass ? "border-ac/30 text-ac" : "border-red-200 text-red-600"}>
-                        {typeof trace.evaluation_result?.score === "number" ? `${trace.evaluation_result.score} 分` : "未评分"}
-                      </Badge>
-                    </div>
-                    <span className="text-ds-xs text-txs">{formatDateTime(message.created_at)}</span>
-                  </div>
-                  <p className="line-clamp-2 text-ds-sm leading-relaxed text-tx">{trace.question ?? "无问题文本"}</p>
-                  <div className="mt-2 grid grid-cols-2 gap-2 text-ds-xs text-txs">
-                    <span>诊断：{trace.diagnostic_module ?? "-"}</span>
-                    <span>记忆：{trace.memory_selection?.should_load_memory ? (trace.memory_selection.memory_types?.length ?? 0) : 0} 类</span>
-                    <span>上下文：{trace.retrieved_context_ids?.filter(Boolean).length ?? 0} 条</span>
-                    <span>置信：{typeof trace.intent_result?.confidence === "number" ? trace.intent_result.confidence : "-"}</span>
-                  </div>
-                  {trace.intent_result?.matched_signals && trace.intent_result.matched_signals.length > 0 && (
-                    <p className="mt-2 line-clamp-1 text-ds-xs text-txs">信号：{trace.intent_result.matched_signals.join(" / ")}</p>
-                  )}
-                  {trace.evaluation_result?.problems && trace.evaluation_result.problems.length > 0 && (
-                    <p className="mt-2 line-clamp-2 text-ds-xs leading-relaxed text-red-600">
-                      {trace.evaluation_result.problems.join("；")}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-            <div className="mt-3 rounded-ds-md border border-bd bg-white p-3">
-              <p className="mb-2 text-ds-xs font-ds-bold text-tx">Golden Eval</p>
-              <code className="block overflow-x-auto whitespace-nowrap rounded-ds-sm bg-bg px-2 py-2 text-[11px] text-txs">
-                HAI_EVAL_ACCESS_TOKEN=... node scripts/run-hai-context-eval.mjs
-              </code>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -1087,78 +933,6 @@ export default function HaiManagementSection() {
               })}
             </tbody>
           </table>
-        </div>
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">
-        <div className="rounded-ds-lg border border-bd bg-white p-4">
-          <div className="mb-4 flex items-center gap-2">
-            <Activity className="h-5 w-5 text-ac" />
-            <h2 className="text-ds-lg font-ds-bold text-tx">最近用量</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-ds-sm">
-              <thead className="text-txs">
-                <tr className="border-b border-bd">
-                  <th className="py-2">时间</th>
-                  <th>用户</th>
-                  <th>接口</th>
-                  <th>状态</th>
-                  <th>Token</th>
-                  <th>耗时</th>
-                </tr>
-              </thead>
-              <tbody>
-                {usageEvents.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="py-8 text-center text-txs">暂无 HAI 调用记录</td>
-                  </tr>
-                ) : usageEvents.map((event) => {
-                  const profile = profileOf(event.profiles);
-                  return (
-                    <tr key={event.id} className="border-b border-bdl">
-                      <td className="py-2 text-txs">{formatDateTime(event.created_at)}</td>
-                      <td>{profile?.nickname ?? event.user_id}<br /><span className="text-txs">{profile?.phone}</span></td>
-                      <td>{event.route ?? event.event_type}</td>
-                      <td>
-                        <Badge variant="outline" className={event.status === "failed" ? "border-red-200 text-red-600" : ""}>
-                          {event.status}
-                        </Badge>
-                      </td>
-                      <td>{formatNumber(event.total_tokens)}</td>
-                      <td>{event.duration_ms ? `${event.duration_ms}ms` : "-"}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="rounded-ds-lg border border-bd bg-white p-4">
-          <div className="mb-4 flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-ac" />
-            <h2 className="text-ds-lg font-ds-bold text-tx">额度告警</h2>
-          </div>
-          <div className="space-y-2">
-            {usageAlerts.length === 0 ? (
-              <p className="rounded-ds-md bg-bg px-3 py-8 text-center text-ds-sm text-txs">暂无未处理告警</p>
-            ) : usageAlerts.map((alert) => {
-              const profile = profileOf(alert.profiles);
-              return (
-                <div key={alert.id} className="rounded-ds-md border border-bd bg-bg p-3">
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <Badge variant="outline" className={alert.severity === "critical" ? "border-red-200 text-red-600" : ""}>
-                      {alert.severity}
-                    </Badge>
-                    <span className="text-ds-xs text-txs">{formatDateTime(alert.created_at)}</span>
-                  </div>
-                  <p className="text-ds-sm font-ds-semibold text-tx">{profile?.nickname ?? alert.user_id}</p>
-                  <p className="mt-1 text-ds-sm leading-relaxed text-txs">{alert.message}</p>
-                </div>
-              );
-            })}
-          </div>
         </div>
       </section>
 
@@ -1508,16 +1282,6 @@ function RuntimeSettingCard({
   );
 }
 
-function traceOf(metadata: Record<string, unknown>): HaiContextTrace | null {
-  const trace = metadata.hai_context_trace;
-  if (!isRecord(trace)) return null;
-  return trace as HaiContextTrace;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 function profileOf(value: HaiUserAccessRow["profiles"]) {
   return Array.isArray(value) ? value[0] ?? null : value ?? null;
 }
@@ -1533,10 +1297,6 @@ function formatDateTime(value: string) {
   } catch {
     return "";
   }
-}
-
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("zh-CN").format(value);
 }
 
 function chunkKnowledge(content: string) {
