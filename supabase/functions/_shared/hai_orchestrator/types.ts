@@ -36,6 +36,9 @@ export type SemanticRouteResult = {
   intent: IntentResult;
   problem_rewrite?: ProblemRewrite;
   diagnostic_module?: IntentName;
+  methodology_ids?: string[];
+  methodology_reason?: string;
+  methodology_confidence?: number;
 };
 
 export type MemorySelection = {
@@ -88,10 +91,30 @@ export type RetrievedContextItem = {
   metadata?: Record<string, unknown>;
 };
 
+export type RetrievedMethodCard = {
+  id: string;
+  name: string;
+  course: string;
+  kind: string;
+  ownership: string;
+  summary: string;
+  useWhen: string[];
+  avoidWhen: string[];
+  coreJudgement: string;
+  moves: string[];
+  answerFocus: string;
+  related: string[];
+  sourceRefs: string[];
+};
+
 export type HAIContextPackage = {
   user_question: string;
   core_identity: string;
   safety_boundaries: string;
+  core_axioms?: string;
+  han_methodology?: string;
+  methodology_focus?: string;
+  formula_bank?: string;
   response_composer_prompt?: string;
   evaluator_prompt?: string;
   intent_result: IntentResult;
@@ -102,7 +125,7 @@ export type HAIContextPackage = {
   diagnostic_module: IntentName;
   retrieval_plan: RetrievalPlan;
   retrieved_cases?: RetrievedCase[];
-  retrieved_methods?: unknown[];
+  retrieved_methods?: RetrievedMethodCard[];
   retrieved_theories?: unknown[];
   retrieved_expressions?: string[];
   style_pack: string;
@@ -140,6 +163,8 @@ export type HAITrace = {
   memory_selection: MemorySelection;
   problem_rewrite: ProblemRewrite;
   diagnostic_module: IntentName;
+  methodology_ids?: string[];
+  methodology_reason?: string;
   retrieval_plan: RetrievalPlan;
   retrieved_context_ids: Array<string | null | undefined>;
   draft_answer: string;

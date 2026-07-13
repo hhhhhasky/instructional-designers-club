@@ -68,5 +68,19 @@
     "expected_intent": "teaching_design",
     "must_include": ["目标", "学情", "评价证据", "学习主线"],
     "must_avoid": ["先安排流程", "找几个活动"]
+  },
+  {
+    "id": "golden_011",
+    "question": "我讲得挺清楚了呀，学生怎么还是不会做？是不是我再讲细一点就行？",
+    "expected_intent": "assessment_feedback",
+    "must_include": ["你接下来第一件可以做的事是", "学习证据", "假懂"],
+    "must_avoid": ["你觉得呢", "要不要", "你看这样行吗", "是不是可以", "再讲细一点", "讲得更清楚"]
+  },
+  {
+    "id": "golden_012",
+    "question": "三年级孩子注意力短，我上课多搞点小游戏吸引他们，这样设计可以吗？",
+    "expected_intent": "learning_motivation",
+    "must_include": ["你接下来第一件可以做的事是", "认知入口", "学习必要感"],
+    "must_avoid": ["你觉得呢", "要不要", "你看这样行吗", "是不是可以", "多搞点游戏", "增加趣味"]
   }
 ]

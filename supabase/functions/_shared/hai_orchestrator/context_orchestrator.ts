@@ -1,6 +1,7 @@
 import { classifyIntent } from "./intent_classifier.ts";
 import { selectMemory } from "./memory_selector.ts";
-import { coreIdentity, evaluatorPrompt, safetyBoundaries, stylePack } from "./prompts.ts";
+import { selectHanMethodology } from "./methodology_router.ts";
+import { coreIdentity, evaluatorPrompt, hanMethodology, safetyBoundaries, stylePack } from "./prompts.ts";
 import { rewriteProblem } from "./problem_rewriter.ts";
 import { planRetrieval, selectExpressions, selectLocalCases } from "./retrieval_planner.ts";
 import { routeDiagnosticFramework } from "./diagnostic_router.ts";
@@ -30,6 +31,13 @@ export class HAIContextOrchestrator {
     retrievalPlan.max_methods = limits.methodMax;
     retrievalPlan.max_theories = retrievalPlan.retrieve_theory ? limits.theoryMax : 0;
     retrievalPlan.max_expressions = limits.expressionMax;
+    const methodology = selectHanMethodology({
+      question: userQuestion,
+      intent,
+      rewrite: problemRewrite,
+      semanticRoute: route,
+      maxMethods: limits.methodMax,
+    });
     const cases = retrievalPlan.retrieve_cases
       ? selectLocalCases(intent, problemRewrite, retrievalPlan.max_cases)
       : [];
@@ -41,6 +49,10 @@ export class HAIContextOrchestrator {
       user_question: userQuestion,
       core_identity: promptConfig.core_identity || coreIdentity,
       safety_boundaries: promptConfig.safety_boundaries || safetyBoundaries,
+      core_axioms: promptConfig.core_axioms,
+      han_methodology: promptConfig.han_methodology || hanMethodology,
+      methodology_focus: methodology.focus,
+      formula_bank: promptConfig.formula_bank,
       response_composer_prompt: promptConfig.response_composer_prompt,
       evaluator_prompt: promptConfig.response_evaluator_prompt || evaluatorPrompt,
       intent_result: intent,
@@ -50,6 +62,7 @@ export class HAIContextOrchestrator {
       diagnostic_module: diagnostic.diagnostic_module,
       retrieval_plan: retrievalPlan,
       retrieved_cases: cases,
+      retrieved_methods: methodology.cards,
       retrieved_expressions: expressions,
       style_pack: promptConfig.style_pack || stylePack,
     };
