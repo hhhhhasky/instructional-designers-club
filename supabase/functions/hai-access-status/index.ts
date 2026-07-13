@@ -1,4 +1,4 @@
-import { handleCors, jsonResponse, requireUser } from "../_shared/hai.ts";
+import { handleCors, HttpError, jsonResponse, requireUser } from "../_shared/hai.ts";
 
 Deno.serve(async (request) => {
   const cors = handleCors(request);
@@ -12,8 +12,8 @@ Deno.serve(async (request) => {
     const { data: usage } = await userClient.rpc("hai_usage_summary");
     return jsonResponse({ access: data, usage: usage ?? null });
   } catch (error) {
+    const status = error instanceof HttpError ? error.status : 500;
     const message = error instanceof Error ? error.message : "读取 HAI 权限失败。";
-    return jsonResponse({ message }, 500);
+    return jsonResponse({ message }, status);
   }
 });
-

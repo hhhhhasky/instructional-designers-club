@@ -109,7 +109,7 @@ export async function getHaiAccessStatus(): Promise<{
   usage: HaiUsageSummary | null;
 }> {
   const { data, error } = await supabase.functions.invoke("hai-access-status");
-  if (error) throw error;
+  if (error) throw new Error(await getFunctionErrorMessage(error, "读取 HAI 权限失败。"));
   return normalizeAccessPayload(data);
 }
 
@@ -120,7 +120,7 @@ export async function redeemHaiInvite(code: string): Promise<{
   const { data, error } = await supabase.functions.invoke("hai-redeem-invite", {
     body: { code },
   });
-  if (error) throw error;
+  if (error) throw new Error(await getFunctionErrorMessage(error, "邀请码兑换失败。"));
   return normalizeAccessPayload(data);
 }
 
@@ -348,6 +348,20 @@ function normalizeAccessPayload(value: unknown) {
     access: (isRecord(record.access) ? record.access : {}) as unknown as HaiAccessStatus,
     usage: (isRecord(record.usage) ? record.usage : null) as HaiUsageSummary | null,
   };
+}
+
+async function getFunctionErrorMessage(error: unknown, fallback: string): Promise<string> {
+  let message = error instanceof Error && error.message.trim() ? error.message : fallback;
+  if (!isRecord(error)) return message;
+
+  const context = error.context;
+  if (context instanceof Response) {
+    const payload = await context.clone().json().catch(() => null);
+    if (isRecord(payload) && typeof payload.message === "string" && payload.message.trim()) {
+      message = payload.message;
+    }
+  }
+  return message;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
