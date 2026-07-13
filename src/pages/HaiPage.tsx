@@ -4,6 +4,8 @@ import {
   Archive,
   Bot,
   Brain,
+  Check,
+  Copy,
   History,
   Loader2,
   LockKeyhole,
@@ -11,8 +13,10 @@ import {
   Pin,
   Plus,
   Send,
+  Share2,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/common/Footer";
 import PageMeta from "@/components/common/PageMeta";
@@ -21,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
+import { copyHaiAnswer, shareHaiExchange } from "@/lib/hai-share";
 import {
   archiveHaiConversation,
   archiveHaiMemory,
@@ -43,6 +48,12 @@ import {
 type DraftMessage = Pick<HaiMessage, "id" | "role" | "content" | "created_at"> & {
   pending?: boolean;
 };
+
+export const HAI_STARTER_QUESTIONS = [
+  "我准备上一节公开课，但现在的教学设计比较平，应该先从哪里改？",
+  "学生上课参与度不高，我该如何判断问题出在活动设计还是任务难度？",
+  "我有一份教案，怎样快速检查目标、活动和评价是否对齐？",
+] as const;
 
 export default function HaiPage() {
   const navigate = useNavigate();
@@ -166,8 +177,8 @@ export default function HaiPage() {
     }
   }
 
-  async function handleSend() {
-    const text = draft.trim();
+  async function handleSend(suggestedQuestion?: string) {
+    const text = (suggestedQuestion ?? draft).trim();
     if (!text || busy || !activeModule) return;
     setBusy(true);
     setStatus("");
@@ -321,15 +332,15 @@ export default function HaiPage() {
         canonicalPath="/hai"
         keywords="HAI,AI教研,问问哈老师"
       />
-      <div className="min-h-screen bg-cream flex flex-col">
+      <div className="hai-page flex min-h-screen w-full max-w-full flex-col overflow-x-hidden bg-cream">
         <Header />
         <main className="flex-1 pt-20 pb-6 px-3 md:px-5">
-          <div className="mx-auto flex h-[calc(100vh-7rem)] w-full max-w-[1440px] flex-col overflow-hidden rounded-ds-lg border border-bd bg-white shadow-ds-md xl:grid xl:grid-cols-[280px_minmax(0,1fr)_300px]">
+          <div className="mx-auto flex h-[calc(100dvh-7rem)] w-full max-w-[1440px] flex-col overflow-hidden rounded-ds-lg border border-bd bg-white shadow-ds-md xl:grid xl:grid-cols-[280px_minmax(0,1fr)_300px]">
             <aside className="hidden min-h-0 border-r border-bd bg-bgs/70 xl:block">
               {history}
             </aside>
 
-            <section className="flex h-[calc(100vh-7rem)] min-h-0 flex-col">
+            <section className="flex h-[calc(100dvh-7rem)] min-h-0 min-w-0 flex-col">
               <div className="flex items-center justify-between gap-3 border-b border-bd bg-white px-4 py-3">
                 <div className="flex min-w-0 items-center gap-2">
                   <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
@@ -413,11 +424,19 @@ export default function HaiPage() {
                 <>
                   <div className="min-h-0 flex-1 overflow-y-auto bg-[#fbfaf8] px-4 py-5">
                     {messages.length === 0 ? (
-                      <EmptyState module={activeModule} />
+                      <EmptyState
+                        module={activeModule}
+                        busy={busy}
+                        onQuestionSelect={(question) => void handleSend(question)}
+                      />
                     ) : (
                       <div className="mx-auto flex max-w-3xl flex-col gap-4">
-                        {messages.map((message) => (
-                          <MessageBubble key={message.id} message={message} />
+                        {messages.map((message, index) => (
+                          <MessageBubble
+                            key={message.id}
+                            message={message}
+                            question={message.role === "assistant" ? findPreviousQuestion(messages, index) : undefined}
+                          />
                         ))}
                         <div ref={messagesEndRef} />
                       </div>
@@ -430,7 +449,7 @@ export default function HaiPage() {
                         {status}
                       </p>
                     )}
-                    <div className="mx-auto flex max-w-3xl gap-2">
+                    <div className="mx-auto flex w-full max-w-3xl min-w-0 gap-2">
                       <textarea
                         value={draft}
                         onChange={(event) => setDraft(event.target.value)}
@@ -441,7 +460,7 @@ export default function HaiPage() {
                           }
                         }}
                         placeholder={activeModule ? `发送给「${activeModule.short_label}」` : "输入你的教学问题"}
-                        className="min-h-[72px] flex-1 resize-none rounded-ds-lg border border-bd bg-bg px-4 py-3 text-ds-base leading-relaxed text-tx outline-none transition focus:border-ac focus:ring-2 focus:ring-ac/15"
+                        className="min-h-[72px] min-w-0 flex-1 resize-none rounded-ds-lg border border-bd bg-bg px-4 py-3 text-[16px] leading-relaxed text-tx outline-none transition focus:border-ac focus:ring-2 focus:ring-ac/15"
                         disabled={busy}
                       />
                       <Button
@@ -535,12 +554,40 @@ function HistoryPanel({
   );
 }
 
-function MessageBubble({ message }: { message: DraftMessage }) {
+export function MessageBubble({ message, question }: { message: DraftMessage; question?: string }) {
   const isUser = message.role === "user";
+  const [copied, setCopied] = useState(false);
+  const [sharing, setSharing] = useState(false);
+
+  async function handleCopy() {
+    try {
+      await copyHaiAnswer(message.content);
+      setCopied(true);
+      toast.success("回答已复制");
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      toast.error("复制失败，请长按选择文字复制");
+    }
+  }
+
+  async function handleShare() {
+    if (!question || sharing) return;
+    setSharing(true);
+    try {
+      const result = await shareHaiExchange({ question, answer: message.content });
+      if (result === "downloaded") toast.success("分享图已生成并保存");
+      if (result === "shared") toast.success("分享图已生成");
+    } catch {
+      toast.error("分享图生成失败，请稍后重试");
+    } finally {
+      setSharing(false);
+    }
+  }
+
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+    <div className={`flex min-w-0 ${isUser ? "justify-end" : "justify-start"}`}>
       <div
-        className={`max-w-[88%] rounded-ds-lg border px-4 py-3 shadow-ds-xs ${
+        className={`min-w-0 max-w-[94%] rounded-ds-lg border px-4 py-3 shadow-ds-xs sm:max-w-[88%] ${
           isUser
             ? "border-ac/20 bg-ac text-white"
             : "border-bd bg-white text-tx"
@@ -549,7 +596,36 @@ function MessageBubble({ message }: { message: DraftMessage }) {
         {isUser ? (
           <p className="whitespace-pre-wrap text-ds-base leading-relaxed">{message.content}</p>
         ) : message.content ? (
-          <MarkdownRenderer content={message.content} />
+          <>
+            <div className="min-w-0 overflow-x-auto">
+              <MarkdownRenderer content={message.content} />
+            </div>
+            {!message.pending && (
+              <div className="mt-3 flex items-center gap-1 border-t border-bdl pt-2">
+                <button
+                  type="button"
+                  onClick={() => void handleCopy()}
+                  className="inline-flex min-h-9 items-center gap-1.5 rounded-ds-md px-2.5 text-ds-sm text-txs transition hover:bg-bgs hover:text-ac focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/30"
+                  aria-label="复制这条回答"
+                >
+                  {copied ? <Check className="h-4 w-4 text-tl" /> : <Copy className="h-4 w-4" />}
+                  {copied ? "已复制" : "复制"}
+                </button>
+                {question && (
+                  <button
+                    type="button"
+                    onClick={() => void handleShare()}
+                    disabled={sharing}
+                    className="inline-flex min-h-9 items-center gap-1.5 rounded-ds-md px-2.5 text-ds-sm text-txs transition hover:bg-bgs hover:text-ac focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/30 disabled:cursor-wait disabled:opacity-60"
+                    aria-label="把这轮问答生成分享图"
+                  >
+                    {sharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+                    {sharing ? "生成中" : "转发"}
+                  </button>
+                )}
+              </div>
+            )}
+          </>
         ) : (
           <span className="inline-flex items-center text-ds-sm text-txs">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -561,14 +637,43 @@ function MessageBubble({ message }: { message: DraftMessage }) {
   );
 }
 
-function EmptyState({ module }: { module: HaiFeatureModule | null }) {
+export function EmptyState({
+  module,
+  busy,
+  onQuestionSelect,
+}: {
+  module: HaiFeatureModule | null;
+  busy: boolean;
+  onQuestionSelect: (question: string) => void;
+}) {
   return (
-    <div className="mx-auto flex h-full min-h-[360px] max-w-xl flex-col items-center justify-center text-center">
+    <div className="mx-auto flex h-full min-h-[440px] max-w-2xl flex-col items-center justify-center py-6 text-center">
       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-ds-full bg-acl">
         <Brain className="h-7 w-7 text-ac" />
       </div>
       <h2 className="text-ds-2xl font-ds-black text-tx">{module?.name ?? "HAI"}</h2>
-      <p className="mt-2 text-ds-base leading-relaxed text-txs">{module?.description ?? "选择一个模块开始新的教研 Session。"}</p>
+      <p className="mt-2 max-w-xl text-ds-base leading-relaxed text-txs">{module?.description ?? "把你的备课困惑告诉我，我们从最值得改的地方开始。"}</p>
+      <div className="mt-6 w-full text-left">
+        <p className="mb-2 text-center text-ds-xs font-ds-semibold tracking-[0.12em] text-txt">不知道从哪问？试试这些</p>
+        <div className="grid gap-2.5 sm:grid-cols-3">
+          {HAI_STARTER_QUESTIONS.map((question, index) => (
+            <button
+              key={question}
+              type="button"
+              aria-label={question}
+              onClick={() => onQuestionSelect(question)}
+              disabled={busy}
+              className="group flex min-h-[108px] items-start gap-3 rounded-ds-lg border border-bd bg-white p-4 text-left shadow-ds-xs transition hover:-translate-y-0.5 hover:border-ac/40 hover:shadow-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/30 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-ds-full bg-acl text-ds-xs font-ds-bold text-ac transition group-hover:bg-ac group-hover:text-white">
+                {index + 1}
+              </span>
+              <span className="text-ds-sm leading-relaxed text-tx">{question}</span>
+            </button>
+          ))}
+        </div>
+        <p className="mt-3 text-center text-ds-xs text-txt">点击问题后会直接发送，你也可以在下方写自己的问题</p>
+      </div>
     </div>
   );
 }
@@ -606,7 +711,7 @@ function LockedPanel({
                 onSubmit();
               }
             }}
-            className="h-11 flex-1 rounded-ds-md border border-bd bg-bg px-3 text-ds-base outline-none focus:border-ac focus:ring-2 focus:ring-ac/15"
+            className="h-11 min-w-0 flex-1 rounded-ds-md border border-bd bg-bg px-3 text-[16px] outline-none focus:border-ac focus:ring-2 focus:ring-ac/15"
             placeholder="邀请码"
             disabled={busy}
           />
@@ -683,7 +788,7 @@ function UsagePanel({
           <textarea
             value={memoryDraft}
             onChange={(event) => onMemoryDraftChange(event.target.value)}
-            className="min-h-[76px] w-full resize-none rounded-ds-sm border border-bd bg-bg px-2 py-2 text-ds-sm leading-relaxed"
+            className="min-h-[76px] w-full resize-none rounded-ds-sm border border-bd bg-bg px-2 py-2 text-[16px] leading-relaxed md:text-ds-sm"
             placeholder="写一条 HAI 需要记住的信息"
             disabled={busy}
           />
@@ -733,6 +838,13 @@ function formatDate(value: string) {
   } catch {
     return "";
   }
+}
+
+function findPreviousQuestion(messages: DraftMessage[], assistantIndex: number) {
+  for (let index = assistantIndex - 1; index >= 0; index -= 1) {
+    if (messages[index]?.role === "user") return messages[index].content;
+  }
+  return undefined;
 }
 
 function formatNumber(value: number) {
