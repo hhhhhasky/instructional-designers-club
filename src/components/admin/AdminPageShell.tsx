@@ -221,29 +221,37 @@ export default function AdminPageShell({
   return (
     <>
       <PageMeta title={title} description="" noIndex />
-      <div className="min-h-screen bg-cream flex flex-col">
+      <div className="min-h-screen bg-[#f4efe7] flex flex-col">
         <Header />
-        <main className="flex-1 pt-20 pb-12 px-4">
-          <div className="max-w-7xl mx-auto pt-4 md:pt-8 animate-fade-in">
-            <button
-              onClick={() => navigate("/")}
-              className="inline-flex items-center gap-1.5 text-ds-sm text-txs hover:text-ac transition-colors mb-4 group"
-            >
-              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-              返回首页
-            </button>
-
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-ds-full bg-pink-soft flex items-center justify-center shadow-ds-sm">
-                  <ShieldCheck className="w-5 h-5 text-ac" />
-                </div>
-                <div>
-                  <h1 className="text-ds-xl font-ds-black text-tx">{title}</h1>
-                  <p className="text-ds-sm text-txs">{description}</p>
+        <main className="relative flex-1 overflow-hidden px-4 pb-14 pt-20">
+          <div className="pointer-events-none absolute left-[-120px] top-32 h-72 w-72 rounded-full bg-ac/5 blur-3xl" />
+          <div className="pointer-events-none absolute right-[-80px] top-[420px] h-64 w-64 rounded-full bg-tl/5 blur-3xl" />
+          <div className="relative mx-auto max-w-[1400px] animate-fade-in pt-4 md:pt-7">
+            <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <button
+                  onClick={() => navigate("/")}
+                  className="group mb-3 inline-flex items-center gap-1.5 text-ds-xs font-ds-bold text-txs transition-colors hover:text-ac"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+                  返回俱乐部前台
+                </button>
+                <div className="flex items-center gap-3">
+                  <div className="grid h-11 w-11 place-items-center rounded-ds-lg bg-[#173d39] shadow-ds-md">
+                    <ShieldCheck className="h-5 w-5 text-[#efb393]" />
+                  </div>
+                  <div>
+                    <div className="mb-0.5 flex items-center gap-2">
+                      <span className="text-[10px] font-ds-black tracking-[0.18em] text-ac">ADMIN STUDIO</span>
+                      <span className="h-1 w-1 rounded-full bg-am" />
+                      <span className="text-[10px] text-txt">仅管理员可见</span>
+                    </div>
+                    <h1 className="font-serif text-ds-2xl font-ds-black tracking-tight text-tx md:text-ds-3xl">{title}</h1>
+                    <p className="mt-0.5 text-ds-xs text-txs md:text-ds-sm">{description}</p>
+                  </div>
                 </div>
               </div>
-              {actions}
+              <div className="flex items-center gap-2">{actions}</div>
             </div>
 
             {children}

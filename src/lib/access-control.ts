@@ -127,6 +127,22 @@ export async function signInWithPhone(
       return { error: getSignInErrorMessage(error), session: null, user: null };
     }
 
+    if (data.user) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('status')
+        .eq('id', data.user.id)
+        .maybeSingle();
+      if (profileError) {
+        console.error('signIn profile status check error:', profileError.message);
+      }
+      if (profile?.status === 'banned') {
+        await supabase.auth.signOut();
+        clearProfileCache(data.user.id);
+        return { error: '该账号已停用，请联系管理员', session: null, user: null };
+      }
+    }
+
     return { error: null, session: data.session, user: data.user };
   } catch (error) {
     console.error('signIn exception:', error);

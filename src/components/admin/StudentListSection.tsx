@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
 import { Button } from "@/components/ui/button";
 import type { StudentItem } from "@/db/admin-api";
-import { adminAdjustBonusCredits, adminUpdateUserAccessLevel, getAdminStudentList } from "@/db/admin-api";
+import { adminAdjustBonusCredits, adminUpdateUserAccessLevel, adminUpdateUserStatus, getAdminStudentList } from "@/db/admin-api";
 import { cn } from "@/lib/utils";
 import type { MembershipType } from "@/types/types";
 
@@ -103,6 +103,8 @@ export default function StudentListSection() {
   const [creditAmount, setCreditAmount] = useState("");
   const [creditReason, setCreditReason] = useState("");
   const [creditSaving, setCreditSaving] = useState(false);
+  const [statusUserId, setStatusUserId] = useState<string | null>(null);
+  const [statusSaving, setStatusSaving] = useState(false);
 
   const openCreditDialog = (userId: string) => {
     setCreditUserId(userId);
@@ -177,6 +179,25 @@ export default function StudentListSection() {
       toast.error(message);
     } finally {
       setCreditSaving(false);
+    }
+  };
+
+  const handleStatusUpdate = async () => {
+    if (!statusUserId) return;
+    const student = students.find((item) => item.id === statusUserId);
+    if (!student) return;
+    const nextStatus = student.status === "active" ? "banned" : "active";
+
+    try {
+      setStatusSaving(true);
+      const result = await adminUpdateUserStatus(student.id, nextStatus);
+      setStudents((items) => items.map((item) => item.id === student.id ? { ...item, status: result.status } : item));
+      toast.success(nextStatus === "banned" ? `已停用 ${student.nickname} 的账号` : `已恢复 ${student.nickname} 的账号`);
+      setStatusUserId(null);
+    } catch (err) {
+      toast.error(err instanceof Error && err.message ? err.message : "账号状态更新失败");
+    } finally {
+      setStatusSaving(false);
     }
   };
 
@@ -357,7 +378,14 @@ export default function StudentListSection() {
                     </button>
                   </td>
                   <td className="px-4 py-3 text-center">
-                    <StatusBadge status={student.status} />
+                    <button
+                      type="button"
+                      onClick={() => setStatusUserId(student.id)}
+                      className="cursor-pointer transition hover:opacity-75"
+                      title={student.status === "active" ? "点击停用账号" : "点击恢复账号"}
+                    >
+                      <StatusBadge status={student.status} />
+                    </button>
                   </td>
                   <td className="px-4 py-3 text-txs">
                     {formatDate(student.created_at)}
@@ -538,6 +566,40 @@ export default function StudentListSection() {
           </div>
         </div>
       )}
+
+      {statusUserId && (() => {
+        const student = students.find((item) => item.id === statusUserId);
+        if (!student) return null;
+        const willBan = student.status === "active";
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <button type="button" aria-label="关闭账号状态确认" className="absolute inset-0 bg-black/45" onClick={() => !statusSaving && setStatusUserId(null)} />
+            <div className="relative mx-4 w-full max-w-md overflow-hidden rounded-ds-xl border border-bd bg-white shadow-ds-xl">
+              <div className={`h-1.5 ${willBan ? "bg-red-500" : "bg-tl"}`} />
+              <div className="p-6">
+                <div className={`grid h-11 w-11 place-items-center rounded-full ${willBan ? "bg-red-50 text-red-600" : "bg-tll text-tl"}`}>
+                  {willBan ? "停" : "启"}
+                </div>
+                <h3 className="mt-4 text-ds-lg font-ds-black text-tx">{willBan ? "确认停用会员账号？" : "确认恢复会员账号？"}</h3>
+                <p className="mt-2 text-ds-sm leading-6 text-txs">
+                  {willBan
+                    ? `${student.nickname} 将无法继续登录俱乐部，但学习记录、问答和学分都会保留。`
+                    : `${student.nickname} 将重新获得登录和学习权限，原有数据不变。`}
+                </p>
+                <div className="mt-4 rounded-ds-md bg-bgs px-3 py-2 text-[11px] text-txs">
+                  账号：{student.nickname} · {maskPhone(student.phone)} · {student.access_level.toUpperCase()}
+                </div>
+                <div className="mt-6 flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setStatusUserId(null)} disabled={statusSaving}>取消</Button>
+                  <Button className={willBan ? "bg-red-600 text-white hover:bg-red-700" : "bg-tl text-white hover:bg-tl/90"} onClick={() => void handleStatusUpdate()} disabled={statusSaving}>
+                    {statusSaving ? "正在保存..." : willBan ? "确认停用" : "确认恢复"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

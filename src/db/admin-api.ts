@@ -78,6 +78,12 @@ export interface AccessLevelUpdateResult {
   updated_at?: string;
 }
 
+export interface UserStatusUpdateResult {
+  id: string;
+  status: StudentItem["status"];
+  updated_at?: string;
+}
+
 export interface InactiveStudentItem {
   id: string;
   nickname: string;
@@ -198,6 +204,30 @@ export async function adminUpdateUserAccessLevel(
   }
 
   return result as AccessLevelUpdateResult;
+}
+
+/**
+ * 管理员停用或恢复普通会员账号。
+ */
+export async function adminUpdateUserStatus(
+  userId: string,
+  newStatus: StudentItem["status"],
+): Promise<UserStatusUpdateResult> {
+  const { data, error } = await supabase.rpc("admin_update_user_status", {
+    p_user_id: userId,
+    p_new_status: newStatus,
+  });
+  if (error) {
+    console.error("adminUpdateUserStatus error:", error);
+    throw error;
+  }
+
+  const result = Array.isArray(data) ? data[0] : data;
+  if (!result || result.id !== userId || result.status !== newStatus) {
+    throw new Error("账号状态未更新，请刷新后重试");
+  }
+
+  return result as UserStatusUpdateResult;
 }
 
 /**

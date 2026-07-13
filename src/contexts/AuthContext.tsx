@@ -83,6 +83,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const p = await loadProfile(s.user.id);
+      if (p?.status === 'banned') {
+        await doSignOut();
+        if (mounted && profileLoadId.current === requestId) {
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+        }
+        return;
+      }
       if (mounted && profileLoadId.current === requestId) {
         setProfile(p);
         setLoading(false);
@@ -127,6 +137,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(result.session);
         setUser(result.session.user);
         const p = await loadProfile(result.session.user.id, { fresh: true });
+        if (p?.status === 'banned') {
+          await doSignOut();
+          if (profileLoadId.current === requestId) {
+            setSession(null);
+            setUser(null);
+            setProfile(null);
+          }
+          return { error: '该账号已停用，请联系管理员' };
+        }
         if (profileLoadId.current === requestId) {
           setProfile(p);
         }
