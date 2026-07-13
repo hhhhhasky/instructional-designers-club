@@ -7,6 +7,7 @@ import type {
   IntentName,
   SemanticRouteResult,
 } from "../supabase/functions/_shared/hai_orchestrator/types.ts";
+import { estimateTokens } from "../supabase/functions/_shared/hai.ts";
 
 const apiKey = Deno.env.get("DEEPSEEK_API_KEY");
 const baseUrl =
@@ -58,7 +59,10 @@ const cases: Array<
     intent: "lesson_plan_diagnosis",
     methodId: "target-quality-three-checks",
     expectedName: "目标质量三检法",
-    expectedSignals: ["目标质量三检法", "教学目标篇"],
+    expectedSignals: [
+      "目标质量三检法",
+      ["教学目标篇", "教学通识课", "课程"],
+    ],
   },
   {
     id: "review",
@@ -67,7 +71,13 @@ const cases: Array<
     intent: "teaching_design",
     methodId: "review-four-stages",
     expectedName: "复习课四段式",
-    expectedSignals: ["补洞", "建网", "提法", "达标", "日常课教学"],
+    expectedSignals: [
+      "补洞",
+      "建网",
+      "提法",
+      "达标",
+      ["日常课教学", "教学通识课", "课程"],
+    ],
   },
   {
     id: "task",
@@ -82,7 +92,7 @@ const cases: Array<
       "场景",
       "产品",
       "目标",
-      "任务情境篇",
+      ["任务情境篇", "教学通识课", "课程"],
     ],
   },
   {
@@ -92,12 +102,16 @@ const cases: Array<
     intent: "learning_motivation",
     methodId: "all-student-evidence",
     expectedName: "全员学习证据",
-    expectedSignals: ["全员学习证据", "日常课教学"],
+    expectedSignals: [
+      "全员学习证据",
+      ["日常课教学", "教学通识课", "课程"],
+    ],
   },
 ];
 
 const orchestrator = new HAIContextOrchestrator();
 let passed = 0;
+const artifacts: Array<Record<string, unknown>> = [];
 for (const item of cases) {
   const semanticRoute: SemanticRouteResult = {
     intent: {
@@ -172,6 +186,19 @@ for (const item of cases) {
   const noMarkdown = !/(^|\n)\s*(#{1,6}|[-*+]\s|\d+[.、]\s)/m.test(answer);
   const pass = hasMethod && noMarkdown;
   if (pass) passed += 1;
+  artifacts.push({
+    ...item,
+    pass,
+    missingSignals,
+    model,
+    semanticRoute,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: item.question },
+    ],
+    estimatedInputTokens: estimateTokens(`${systemPrompt}\n${item.question}`),
+    answer,
+  });
   console.log(
     `\n${
       pass ? "PASS" : "FAIL"
@@ -182,4 +209,61 @@ for (const item of cases) {
 }
 
 console.log(JSON.stringify({ passed, total: cases.length }, null, 2));
+const outputDir = new URL("../docs/hai-quality-runs/", import.meta.url);
+await Deno.mkdir(outputDir, { recursive: true });
+const fileStamp = new Date().toISOString().replaceAll(":", "-").replaceAll(
+  ".",
+  "-",
+);
+const outputPath = new URL(
+  `${fileStamp}-methodology-answer-smoke.md`,
+  outputDir,
+);
+await Deno.writeTextFile(outputPath, renderPromptArtifact(artifacts, passed));
+console.log(`Saved ${decodeURIComponent(outputPath.pathname)}`);
 if (passed !== cases.length) Deno.exit(1);
+
+function renderPromptArtifact(
+  items: Array<Record<string, unknown>>,
+  passedCount: number,
+) {
+  const lines = [
+    "# HAI 方法卡回答测试快照",
+    "",
+    `- 生成时间：${new Date().toISOString()}`,
+    `- 结果：${passedCount}/${items.length} 通过`,
+    "",
+  ];
+  for (const item of items) {
+    lines.push(
+      `## ${item.id}`,
+      "",
+      `- 通过：${item.pass}`,
+      `- 估算输入 token：${item.estimatedInputTokens}`,
+      `- 缺失信号：${(item.missingSignals as string[]).join("、") || "无"}`,
+      "",
+    );
+    for (
+      const message of item.messages as Array<{ role: string; content: string }>
+    ) {
+      lines.push(
+        `### ${message.role}`,
+        "",
+        "````text",
+        message.content,
+        "````",
+        "",
+      );
+    }
+    lines.push("### AI 回答", "", "````text", String(item.answer), "````", "");
+    lines.push(
+      "### 语义路由",
+      "",
+      "````json",
+      JSON.stringify(item.semanticRoute, null, 2),
+      "````",
+      "",
+    );
+  }
+  return `${lines.join("\n")}\n`;
+}

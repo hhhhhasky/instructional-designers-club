@@ -98,10 +98,22 @@ export interface HaiMaterial {
   updated_at: string;
 }
 
+export interface HaiPromptSnapshotModelCall {
+  stage: "semantic_router" | "answer_draft" | "answer_rewrite";
+  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
+  estimated_input_tokens: number;
+}
+
+export interface HaiPromptSnapshot {
+  captured_at: string;
+  model_calls: HaiPromptSnapshotModelCall[];
+  final_answer: string;
+}
+
 export type HaiStreamEvent =
   | { type: "ready"; conversationId: string; moduleSlug: string; mode?: "chat" | "roundtable" }
   | { type: "token"; token: string }
-  | { type: "done"; conversationId: string; messageId: string; usage?: { inputTokens: number; outputTokens: number; totalTokens: number } }
+  | { type: "done"; conversationId: string; messageId: string; usage?: { inputTokens: number; outputTokens: number; totalTokens: number }; promptSnapshot?: HaiPromptSnapshot }
   | { type: "error"; message: string };
 
 export async function getHaiAccessStatus(): Promise<{
@@ -290,6 +302,7 @@ export async function streamHaiChat(
     message: string;
     mode?: "chat" | "roundtable";
     roleIds?: string[];
+    capturePromptSnapshot?: boolean;
   },
   handlers: {
     onEvent: (event: HaiStreamEvent) => void;

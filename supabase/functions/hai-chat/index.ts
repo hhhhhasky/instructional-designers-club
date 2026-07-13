@@ -83,6 +83,18 @@ type RetrievedContext = {
   citations: Array<Record<string, unknown>>;
 };
 
+type PromptSnapshotModelCall = {
+  stage: "semantic_router" | "answer_draft" | "answer_rewrite";
+  messages: ChatMessage[];
+  estimated_input_tokens: number;
+};
+
+type PromptSnapshot = {
+  captured_at: string;
+  model_calls: PromptSnapshotModelCall[];
+  final_answer: string;
+};
+
 const allowedIntents: IntentName[] = [
   "teaching_design",
   "lesson_plan_diagnosis",
@@ -120,7 +132,7 @@ Deno.serve(async (request) => {
   try {
     if (request.method !== "POST") throw new HttpError(405, "只支持 POST。");
     const auth = await requireUser(request);
-    await assertHaiAccess(auth.userClient);
+    const accessStatus = await assertHaiAccess(auth.userClient);
 
     const body = await request.json().catch(() => ({}));
     const text = String(body.message || "").trim();
@@ -131,7 +143,13 @@ Deno.serve(async (request) => {
     const clientRequestId = body.clientRequestId
       ? String(body.clientRequestId)
       : crypto.randomUUID();
+    const capturePromptSnapshot = body.capturePromptSnapshot === true;
     if (!text) throw new HttpError(400, "消息不能为空。");
+    if (capturePromptSnapshot && accessStatus.is_admin !== true) {
+      throw new HttpError(403, "完整提示词快照仅供管理员调试。");
+    }
+
+    const promptModelCalls: PromptSnapshotModelCall[] = [];
 
     const runtime = await loadHaiRuntimeConfig(auth.admin);
     const module = await loadModule(auth.admin, moduleSlug);
@@ -150,37 +168,28 @@ Deno.serve(async (request) => {
         runtime,
         completionOptions,
         userId: auth.user.id,
+        onModelCall: capturePromptSnapshot
+          ? (call) => promptModelCalls.push(call)
+          : undefined,
       })
       : null;
     const contextPackage = runtime.contextOrchestratorEnabled
       ? orchestrator.buildInitialPackage(
         text,
         {
-          caseMax: runtime.orchestratorCaseMax,
+          caseMax: 0,
           methodMax: runtime.orchestratorMethodMax,
-          theoryMax: runtime.orchestratorTheoryMax,
-          expressionMax: runtime.orchestratorExpressionMax,
+          theoryMax: 0,
+          expressionMax: 0,
         },
         semanticRoute ?? undefined,
         orchestratorPromptConfig,
       )
       : null;
-    const materialContext = await loadMaterialContext(
-      auth.admin,
-      auth.user.id,
-      contextPackage?.retrieval_plan.case_query || text,
-      requestedConversationId,
-      module,
-      runtime,
-    );
-    const knowledgeContext = contextPackage
-      ? await loadKnowledgeContextFromPlan(
-        auth.admin,
-        contextPackage.retrieval_plan,
-        module,
-        runtime,
-      )
-      : await loadKnowledgeContext(auth.admin, text, module, runtime);
+    // Compact orchestration intentionally leaves material and generic knowledge
+    // retrieval available in code/config, but does not load or inject them.
+    const materialContext: RetrievedContext = { text: "", citations: [] };
+    const knowledgeContext: RetrievedContext = { text: "", citations: [] };
     const maxOutputTokens = completionOptions.maxTokens;
     const estimatedInputTokens = estimateTokens(text) +
       estimateTokens(prompt?.system_prompt ?? "") +
@@ -188,16 +197,11 @@ Deno.serve(async (request) => {
       estimateTokens(prompt?.response_contract ?? "") +
       estimateTokens(contextPackage?.core_identity ?? "") +
       estimateTokens(contextPackage?.safety_boundaries ?? "") +
-      estimateTokens(contextPackage?.han_methodology ?? "") +
-      estimateTokens(contextPackage?.methodology_focus ?? "") +
       estimateTokens(JSON.stringify(contextPackage?.retrieved_methods ?? [])) +
-      estimateTokens(contextPackage?.diagnostic_framework ?? "") +
       estimateTokens(JSON.stringify(contextPackage?.intent_result ?? {})) +
+      estimateTokens(JSON.stringify(contextPackage?.memory_selection ?? {})) +
       estimateTokens(JSON.stringify(contextPackage?.problem_rewrite ?? {})) +
-      estimateTokens(contextPackage?.style_pack ?? "") +
-      estimateTokens(contextPackage?.response_composer_prompt ?? "") +
-      estimateTokens(materialContext.text) +
-      estimateTokens(knowledgeContext.text);
+      estimateTokens(contextPackage?.style_pack ?? "");
     await reserveUsage({
       userClient: auth.userClient,
       requestId: clientRequestId,
@@ -236,7 +240,8 @@ Deno.serve(async (request) => {
 
     const conversationId = conversation.id;
     const startedAt = Date.now();
-    const { error: userMessageError } = await auth.admin.from("hai_messages")
+    const { data: userMessage, error: userMessageError } = await auth.admin
+      .from("hai_messages")
       .insert({
         conversation_id: conversationId,
         user_id: auth.user.id,
@@ -245,7 +250,9 @@ Deno.serve(async (request) => {
         metadata: { module_slug: module.slug },
         token_estimate: estimateTokens(text),
         input_tokens: estimateTokens(text),
-      });
+      })
+      .select("id")
+      .single();
     if (userMessageError) throw new HttpError(500, userMessageError.message);
     await rememberExplicitTeacherFacts(auth.admin, auth.user.id, text);
 
@@ -255,6 +262,7 @@ Deno.serve(async (request) => {
       conversationId,
       module,
       runtime,
+      String(userMessage.id),
     );
     const memorySelection = contextPackage?.memory_selection ??
       legacyMemorySelection();
@@ -300,6 +308,11 @@ Deno.serve(async (request) => {
           });
 
           const draftMessages = messages;
+          if (capturePromptSnapshot) {
+            promptModelCalls.push(
+              buildPromptSnapshotCall("answer_draft", draftMessages),
+            );
+          }
           for await (
             const token of streamDeepSeek(messages, {
               ...completionOptions,
@@ -337,6 +350,11 @@ Deno.serve(async (request) => {
               ...recentMessages,
               { role: "user", content: text },
             ];
+            if (capturePromptSnapshot) {
+              promptModelCalls.push(
+                buildPromptSnapshotCall("answer_rewrite", finalMessages),
+              );
+            }
             for await (
               const token of streamDeepSeek(finalMessages, {
                 ...completionOptions,
@@ -442,6 +460,14 @@ Deno.serve(async (request) => {
             }, configSnapshot),
           });
 
+          const promptSnapshot: PromptSnapshot | undefined =
+            capturePromptSnapshot
+              ? {
+                captured_at: new Date().toISOString(),
+                model_calls: promptModelCalls,
+                final_answer: finalAnswer,
+              }
+              : undefined;
           sendSse(controller, encoder, {
             type: "done",
             conversationId,
@@ -451,6 +477,7 @@ Deno.serve(async (request) => {
               outputTokens,
               totalTokens: inputTokens + outputTokens,
             },
+            promptSnapshot,
           });
         } catch (error) {
           const message = error instanceof Error
@@ -557,6 +584,7 @@ async function routeSemanticallyWithLlm(params: {
   runtime: HaiRuntimeConfig;
   completionOptions: HaiChatCompletionOptions;
   userId: string;
+  onModelCall?: (call: PromptSnapshotModelCall) => void;
 }): Promise<SemanticRouteResult> {
   const fallbackIntent = classifyIntent(params.text);
   if (!params.runtime.routerLlmFallbackEnabled) {
@@ -565,7 +593,7 @@ async function routeSemanticallyWithLlm(params: {
 
   try {
     const routerPrompt = buildSemanticRouterPrompt(params.promptConfig);
-    const content = await collectTextStream(streamDeepSeek([
+    const routerMessages: ChatMessage[] = [
       { role: "system", content: routerPrompt },
       {
         role: "user",
@@ -574,7 +602,11 @@ async function routeSemanticallyWithLlm(params: {
           "请同时判断真实意图、真实教学问题、最合适的诊断模块和课程方法。只输出 JSON，不要解释。",
         ].join("\n\n"),
       },
-    ], {
+    ];
+    params.onModelCall?.(
+      buildPromptSnapshotCall("semantic_router", routerMessages),
+    );
+    const content = await collectTextStream(streamDeepSeek(routerMessages, {
       model: params.completionOptions.model,
       temperature: 0,
       topP: params.completionOptions.topP,
@@ -748,7 +780,7 @@ ${allowedIntents.join(", ")}
 6. 如果用户问听懂但做题错、怎么判断学会、反馈或评价证据，优先考虑 assessment_feedback。
 7. 如果用户问公开课、说课、赛课、亮点，优先考虑 public_lesson，但仍要识别是否其实是教案结构问题。
 8. confidence 表示你对语义判断的把握，范围 0 到 0.98。
-9. 方法选择必须基于语义和适用边界，不按词面机械匹配。优先选择具体的下位方法，不要只要涉及教学设计就一律选择 CREATE。
+9. 方法选择必须基于语义和适用边界，不按词面机械匹配。优先选择具体的下位方法，只有用户确实需要全局结构时才选择备课流程＋教学设计框架。
 10. methodology_ids 最多两个，主方法放第一位。通常只选一个；第二个只能是解释必要依赖的辅助方法。没有真正匹配的方法就返回空数组，绝不能编造 id。
 11. 区分用户不会做、不想做、时间不够、课型流程错误和教学设计逻辑错误，这些问题应选择不同方法。
 
@@ -803,6 +835,7 @@ async function loadRecentMessages(
   conversationId: string,
   module: ModuleRow,
   runtime: HaiRuntimeConfig,
+  excludeMessageId?: string,
 ): Promise<MessageRow[]> {
   const limit = boundedLimit(
     module.history_message_limit,
@@ -811,14 +844,15 @@ async function loadRecentMessages(
     80,
   );
   if (limit <= 0) return [];
-  const { data, error } = await admin
+  let query = admin
     .from("hai_messages")
     .select("role, content")
     .eq("conversation_id", conversationId)
     .eq("user_id", userId)
     .in("role", ["user", "assistant"])
-    .order("created_at", { ascending: false })
-    .limit(limit);
+    .order("created_at", { ascending: false });
+  if (excludeMessageId) query = query.neq("id", excludeMessageId);
+  const { data, error } = await query.limit(limit);
   if (error) throw new HttpError(500, error.message);
   return ((data ?? []) as MessageRow[]).reverse();
 }
@@ -1109,4 +1143,17 @@ function boundedLimit(
   const candidate = Number(value);
   const next = Number.isFinite(candidate) ? candidate : fallback;
   return Math.min(max, Math.max(min, Math.round(next)));
+}
+
+function buildPromptSnapshotCall(
+  stage: PromptSnapshotModelCall["stage"],
+  messages: ChatMessage[],
+): PromptSnapshotModelCall {
+  return {
+    stage,
+    messages: messages.map((message) => ({ ...message })),
+    estimated_input_tokens: estimateTokens(
+      messages.map((message) => message.content).join("\n"),
+    ),
+  };
 }

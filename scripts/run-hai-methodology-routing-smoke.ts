@@ -2,6 +2,7 @@ import {
   buildHanMethodCatalogForRouter,
   hanMethodCardIds,
 } from "../supabase/functions/_shared/hai_orchestrator/knowledge/method_bank/han_course_method_cards.ts";
+import { estimateTokens } from "../supabase/functions/_shared/hai.ts";
 
 const apiKey = Deno.env.get("DEEPSEEK_API_KEY");
 const baseUrl =
@@ -148,6 +149,13 @@ for (const item of cases) {
     expected: item.expected,
     actual: ids,
     reason: String(parsed.reason || ""),
+    question: item.question,
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: item.question },
+    ],
+    estimated_input_tokens: estimateTokens(`${systemPrompt}\n${item.question}`),
+    raw_output: content,
   });
   console.log(
     `${pass ? "PASS" : "FAIL"} ${item.id} expected=${
@@ -160,4 +168,61 @@ const passed = results.filter((item) => item.pass).length;
 console.log(
   JSON.stringify({ passed, total: results.length, results }, null, 2),
 );
+const outputDir = new URL("../docs/hai-quality-runs/", import.meta.url);
+await Deno.mkdir(outputDir, { recursive: true });
+const fileStamp = new Date().toISOString().replaceAll(":", "-").replaceAll(
+  ".",
+  "-",
+);
+const outputPath = new URL(
+  `${fileStamp}-methodology-routing-smoke.md`,
+  outputDir,
+);
+await Deno.writeTextFile(outputPath, renderPromptArtifact(results, passed));
+console.log(`Saved ${decodeURIComponent(outputPath.pathname)}`);
 if (passed !== results.length) Deno.exit(1);
+
+function renderPromptArtifact(
+  items: Array<Record<string, unknown>>,
+  passedCount: number,
+) {
+  const lines = [
+    "# HAI 方法语义路由测试快照",
+    "",
+    `- 生成时间：${new Date().toISOString()}`,
+    `- 结果：${passedCount}/${items.length} 通过`,
+    "",
+  ];
+  for (const item of items) {
+    lines.push(
+      `## ${item.id}`,
+      "",
+      `- 通过：${item.pass}`,
+      `- 估算输入 token：${item.estimated_input_tokens}`,
+      `- 期望：${(item.expected as string[]).join("、") || "[]"}`,
+      `- 实际：${(item.actual as string[]).join("、") || "[]"}`,
+      "",
+    );
+    for (
+      const message of item.messages as Array<{ role: string; content: string }>
+    ) {
+      lines.push(
+        `### ${message.role}`,
+        "",
+        "````text",
+        message.content,
+        "````",
+        "",
+      );
+    }
+    lines.push(
+      "### 模型原始输出",
+      "",
+      "````json",
+      String(item.raw_output),
+      "````",
+      "",
+    );
+  }
+  return `${lines.join("\n")}\n`;
+}

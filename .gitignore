@@ -42,3 +42,10 @@ supabase/.temp/
 
 # Playwright MCP
 .playwright-mcp/
+
+# HAI prompt audit artifacts contain full system/user messages. Keep local only.
+docs/hai-quality-runs/*-context-orchestrator-eval.md
+docs/hai-quality-runs/*-context-orchestrator-eval.json
+docs/hai-quality-runs/*-methodology-answer-smoke.md
+docs/hai-quality-runs/*-methodology-routing-smoke.md
+docs/hai-optimization-runs/*system-prompt*.md
