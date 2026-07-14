@@ -184,4 +184,25 @@ describe("HAI assistant message actions", () => {
     expect(screen.queryByRole("button", { name: "复制这条回答" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "把这轮问答生成分享图" })).not.toBeInTheDocument();
   });
+
+  it("records whether an assistant answer was helpful", async () => {
+    const user = userEvent.setup();
+    const onFeedback = vi.fn();
+    render(
+      <MessageBubble
+        message={{
+          id: "assistant-feedback",
+          role: "assistant",
+          content: "先检查学习证据，再决定是否重讲。",
+          created_at: "2026-07-13T08:00:00.000Z",
+        }}
+        feedback="down"
+        onFeedback={onFeedback}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "这条回答没帮助" })).toHaveAttribute("aria-pressed", "true");
+    await user.click(screen.getByRole("button", { name: "这条回答有帮助" }));
+    expect(onFeedback).toHaveBeenCalledWith("assistant-feedback", "up");
+  });
 });

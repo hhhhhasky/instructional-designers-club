@@ -9,6 +9,7 @@ import {
   Gauge,
   RefreshCw,
   ShieldCheck,
+  Sparkles,
   Users,
 } from "lucide-react";
 import {
@@ -26,6 +27,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   getAdminHaiDashboard,
+  rollbackHaiDailyReview,
+  triggerHaiDailyReview,
   type HaiDashboardData,
   type HaiDashboardRangeDays,
 } from "@/db/hai-analytics";
@@ -42,6 +45,8 @@ export default function HaiDashboardSection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [reviewing, setReviewing] = useState(false);
+  const [rollingBack, setRollingBack] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,6 +90,36 @@ export default function HaiDashboardSection() {
   if (!data) return null;
 
   const { summary } = data;
+  const latestReview = data.daily_reviews[0];
+
+  async function runReviewNow() {
+    if (reviewing) return;
+    setReviewing(true);
+    setError("");
+    try {
+      await triggerHaiDailyReview();
+      setRefreshKey((key) => key + 1);
+    } catch {
+      setError("手动复盘执行失败，请确认每日复盘函数和服务端密钥已部署。");
+    } finally {
+      setReviewing(false);
+    }
+  }
+
+  async function rollbackLatestReview() {
+    if (!latestReview || rollingBack) return;
+    setRollingBack(true);
+    setError("");
+    try {
+      await rollbackHaiDailyReview(latestReview.run_date);
+      setRefreshKey((key) => key + 1);
+    } catch {
+      setError("回滚失败，请检查该次复盘的发布前快照。");
+    } finally {
+      setRollingBack(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-ds-xl bg-[#244f48] p-5 text-white shadow-ds-lg md:p-7">
@@ -133,6 +168,67 @@ export default function HaiDashboardSection() {
           <HeroMetric icon={Database} label="Token 消耗" value={formatCompactNumber(summary.total_tokens)} suffix="" />
           <HeroMetric icon={Gauge} label="人均 Token" value={formatCompactNumber(summary.average_tokens_per_user)} suffix="" />
         </div>
+      </section>
+
+      <section className="rounded-ds-lg border border-bd bg-white p-4 shadow-ds-xs md:p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-ac" />
+              <h3 className="text-ds-lg font-ds-black text-tx">每日复盘与受控迭代</h3>
+            </div>
+            <p className="mt-1 text-ds-xs leading-relaxed text-txs">
+              每天 00:05 复盘前一日全部 HAI 回答；点踩优先。仅低风险且反事实 A/B 提分的表达层改动自动上线，核心边界与路由只生成待审核候选。
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {latestReview?.publish_mode === "gated_auto" && (
+              <Button variant="outline" disabled={rollingBack} onClick={() => void rollbackLatestReview()}>
+                {rollingBack ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {rollingBack ? "回滚中" : "回滚最近自动发布"}
+              </Button>
+            )}
+            <Button variant="outline" disabled={reviewing} onClick={() => void runReviewNow()}>
+              {reviewing ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+              {reviewing ? "复盘执行中" : "立即复盘昨日"}
+            </Button>
+          </div>
+        </div>
+
+        {latestReview ? (
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <ReviewMetric label="最近日期" value={latestReview.run_date} note={reviewStatusLabel(latestReview.status)} />
+            <ReviewMetric label="复盘回答" value={`${latestReview.turns_evaluated}`} note={`低分 ${latestReview.low_score_count} 条`} />
+            <ReviewMetric label="严格评分" value={latestReview.average_score == null ? "-" : `${latestReview.average_score}`} note={latestReview.pass_rate == null ? "尚无通过率" : `通过率 ${Math.round(latestReview.pass_rate * 100)}%`} />
+            <ReviewMetric label="用户反馈" value={`${latestReview.positive_feedback_count}/${latestReview.negative_feedback_count}`} note="点赞 / 点踩" />
+            <ReviewMetric label="发布结果" value={publishModeLabel(latestReview.publish_mode)} note={latestReview.note || latestReview.error_message || "无备注"} />
+          </div>
+        ) : (
+          <p className="mt-5 rounded-ds-md bg-bg px-4 py-8 text-center text-ds-sm text-txs">尚无每日复盘记录，部署后可先手动补跑昨日。</p>
+        )}
+
+        {data.daily_reviews.length > 0 && (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[760px] text-left text-ds-sm">
+              <thead className="text-txs">
+                <tr className="border-b border-bd"><th className="py-2">日期</th><th>状态</th><th className="text-right">回答</th><th className="text-right">均分</th><th className="text-right">低分</th><th>发布</th><th>结论</th></tr>
+              </thead>
+              <tbody>
+                {data.daily_reviews.slice(0, 7).map((run) => (
+                  <tr key={run.id} className="border-b border-bdl">
+                    <td className="py-2 font-ds-semibold text-tx">{run.run_date}</td>
+                    <td><Badge variant="outline">{reviewStatusLabel(run.status)}</Badge></td>
+                    <td className="text-right text-txs">{run.turns_evaluated}</td>
+                    <td className="text-right text-tx">{run.average_score ?? "-"}</td>
+                    <td className="text-right text-red-600">{run.low_score_count}</td>
+                    <td className="text-txs">{publishModeLabel(run.publish_mode)}</td>
+                    <td className="max-w-sm truncate text-txs">{run.error_message || run.note || "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       {error && (
@@ -342,6 +438,18 @@ function TokenMeter({ label, value, total, color }: { label: string; value: numb
 
 function MiniMetric({ label, value }: { label: string; value: string }) {
   return <div><p className="text-[11px] text-txs">{label}</p><p className="mt-1 text-ds-lg font-ds-black text-tx">{value}</p></div>;
+}
+
+function ReviewMetric({ label, value, note }: { label: string; value: string; note: string }) {
+  return <div className="rounded-ds-md bg-bg p-3"><p className="text-[11px] text-txs">{label}</p><p className="mt-1 text-ds-lg font-ds-black text-tx">{value}</p><p className="mt-1 line-clamp-1 text-[11px] text-txs">{note}</p></div>;
+}
+
+function reviewStatusLabel(status: "running" | "completed" | "failed" | "skipped") {
+  return { running: "执行中", completed: "已完成", failed: "失败", skipped: "已跳过" }[status];
+}
+
+function publishModeLabel(mode: "none" | "pending" | "gated_auto" | "manual" | "rolled_back") {
+  return { none: "未改动", pending: "待审核", gated_auto: "门禁自动发布", manual: "人工发布", rolled_back: "已回滚" }[mode];
 }
 
 function RankMark({ rank }: { rank: number }) {

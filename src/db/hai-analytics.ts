@@ -78,6 +78,26 @@ export interface HaiRecentTrace {
   created_at: string;
 }
 
+export interface HaiDailyReviewRun {
+  id: string;
+  run_date: string;
+  status: "running" | "completed" | "failed" | "skipped";
+  turns_evaluated: number;
+  average_score: number | null;
+  pass_rate: number | null;
+  low_score_count: number;
+  positive_feedback_count: number;
+  negative_feedback_count: number;
+  issues_found: Array<Record<string, unknown>>;
+  changes_applied: Array<Record<string, unknown>>;
+  changes_pending: Array<Record<string, unknown>>;
+  publish_mode: "none" | "pending" | "gated_auto" | "manual" | "rolled_back";
+  note: string | null;
+  error_message: string | null;
+  completed_at: string | null;
+  created_at: string;
+}
+
 export interface HaiDashboardData {
   range_days: HaiDashboardRangeDays;
   summary: {
@@ -99,6 +119,7 @@ export interface HaiDashboardData {
   recent_events: Array<HaiUsageEventRow & { profile: HaiProfile | null }>;
   alerts: Array<HaiUsageAlertRow & { profile: HaiProfile | null }>;
   recent_traces: HaiRecentTrace[];
+  daily_reviews: HaiDailyReviewRun[];
 }
 
 const PAGE_SIZE = 1000;
@@ -107,7 +128,7 @@ const MAX_EVENT_PAGES = 20;
 export async function getAdminHaiDashboard(rangeDays: HaiDashboardRangeDays): Promise<HaiDashboardData> {
   const now = new Date();
   const since = startOfRange(rangeDays, now).toISOString();
-  const [events, alertResult, traceResult] = await Promise.all([
+  const [events, alertResult, traceResult, reviewResult] = await Promise.all([
     fetchUsageEvents(since),
     supabase
       .from("hai_usage_alerts")
@@ -122,10 +143,16 @@ export async function getAdminHaiDashboard(rangeDays: HaiDashboardRangeDays): Pr
       .gte("created_at", since)
       .order("created_at", { ascending: false })
       .limit(1000),
+    supabase
+      .from("hai_optimization_log")
+      .select("id, run_date, status, turns_evaluated, average_score, pass_rate, low_score_count, positive_feedback_count, negative_feedback_count, issues_found, changes_applied, changes_pending, publish_mode, note, error_message, completed_at, created_at")
+      .order("run_date", { ascending: false })
+      .limit(14),
   ]);
 
   if (alertResult.error) throw alertResult.error;
   if (traceResult.error) throw traceResult.error;
+  if (reviewResult.error) throw reviewResult.error;
 
   return buildHaiDashboardData(
     events,
@@ -133,7 +160,24 @@ export async function getAdminHaiDashboard(rangeDays: HaiDashboardRangeDays): Pr
     (traceResult.data as HaiTraceMessageRow[]) ?? [],
     rangeDays,
     now,
+    (reviewResult.data as HaiDailyReviewRun[]) ?? [],
   );
+}
+
+export async function triggerHaiDailyReview(runDate?: string) {
+  const { data, error } = await supabase.functions.invoke("hai-daily-review", {
+    body: { trigger: "admin", force: true, ...(runDate ? { runDate } : {}) },
+  });
+  if (error) throw error;
+  return data as Record<string, unknown>;
+}
+
+export async function rollbackHaiDailyReview(runDate: string) {
+  const { data, error } = await supabase.functions.invoke("hai-daily-review", {
+    body: { action: "rollback", runDate },
+  });
+  if (error) throw error;
+  return data as Record<string, unknown>;
 }
 
 async function fetchUsageEvents(since: string): Promise<HaiUsageEventRow[]> {
@@ -165,6 +209,7 @@ export function buildHaiDashboardData(
   traceMessages: HaiTraceMessageRow[],
   rangeDays: HaiDashboardRangeDays,
   now = new Date(),
+  dailyReviews: HaiDailyReviewRun[] = [],
 ): HaiDashboardData {
   const dailyMap = createDailyBuckets(rangeDays, now);
   const rankings = new Map<string, HaiUserRanking>();
@@ -263,6 +308,7 @@ export function buildHaiDashboardData(
     recent_events: events.slice(0, 30).map((event) => ({ ...event, profile: profileOf(event.profiles) })),
     alerts: alerts.map((alert) => ({ ...alert, profile: profileOf(alert.profiles) })),
     recent_traces: traces.slice(0, 8),
+    daily_reviews: dailyReviews,
   };
 }
 

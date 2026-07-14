@@ -1,3 +1,5 @@
+project_id = "isjflmyhbvdlmcsaewbq"
+
 [api]
 port = 54321
 schemas = ["public", "graphql_public"]

@@ -112,4 +112,5 @@ const dashboardFixture: HaiDashboardData = {
     problems: [],
     created_at: "2026-07-13T10:00:00.000Z",
   }],
+  daily_reviews: [],
 };

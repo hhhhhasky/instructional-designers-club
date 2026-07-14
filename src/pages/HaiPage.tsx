@@ -14,6 +14,8 @@ import {
   Plus,
   Send,
   Share2,
+  ThumbsDown,
+  ThumbsUp,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -42,13 +44,16 @@ import {
   getHaiConversations,
   getHaiMemories,
   getHaiMessages,
+  getHaiMessageFeedback,
   getHaiModules,
   redeemHaiInvite,
   streamHaiChat,
+  setHaiMessageFeedback,
   type HaiAccessStatus,
   type HaiConversation,
   type HaiFeatureModule,
   type HaiMessage,
+  type HaiMessageFeedback,
   type HaiUserMemory,
   type HaiUsageSummary,
 } from "@/db/hai-api";
@@ -72,6 +77,7 @@ export default function HaiPage() {
   const [conversations, setConversations] = useState<HaiConversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<DraftMessage[]>([]);
+  const [messageFeedback, setMessageFeedback] = useState<Record<string, HaiMessageFeedback["rating"]>>({});
   const [memories, setMemories] = useState<HaiUserMemory[]>([]);
   const [activeModuleSlug, setActiveModuleSlug] = useState("ask-han");
   const [draft, setDraft] = useState("");
@@ -136,13 +142,20 @@ export default function HaiPage() {
   useEffect(() => {
     if (!activeConversationId) {
       setMessages([]);
+      setMessageFeedback({});
       return;
     }
     let cancelled = false;
     (async () => {
       try {
         const rows = await getHaiMessages(activeConversationId);
-        if (!cancelled) setMessages(rows);
+        const feedbackRows = await getHaiMessageFeedback(
+          rows.filter((message) => message.role === "assistant").map((message) => message.id),
+        );
+        if (!cancelled) {
+          setMessages(rows);
+          setMessageFeedback(Object.fromEntries(feedbackRows.map((item) => [item.message_id, item.rating])));
+        }
       } catch (error) {
         if (!cancelled) setStatus(error instanceof Error ? error.message : "消息加载失败。");
       }
@@ -167,6 +180,16 @@ export default function HaiPage() {
     setConversations(rows);
     if (nextActiveId !== undefined) {
       setActiveConversationId(nextActiveId);
+    }
+  }
+
+  async function handleMessageFeedback(messageId: string, rating: "up" | "down") {
+    try {
+      const feedback = await setHaiMessageFeedback(messageId, rating);
+      setMessageFeedback((current) => ({ ...current, [messageId]: feedback.rating }));
+      toast.success(rating === "up" ? "已记录：这条回答有帮助" : "已记录：今晚复盘会优先分析这条回答");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "评价保存失败，请稍后重试");
     }
   }
 
@@ -256,6 +279,10 @@ export default function HaiPage() {
       if (nextConversationId) {
         const rows = await getHaiMessages(nextConversationId);
         setMessages(rows);
+        const feedbackRows = await getHaiMessageFeedback(
+          rows.filter((message) => message.role === "assistant").map((message) => message.id),
+        );
+        setMessageFeedback(Object.fromEntries(feedbackRows.map((item) => [item.message_id, item.rating])));
       }
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "HAI 请求失败。");
@@ -463,6 +490,8 @@ export default function HaiPage() {
                             key={message.id}
                             message={message}
                             question={message.role === "assistant" ? findPreviousQuestion(messages, index) : undefined}
+                            feedback={messageFeedback[message.id]}
+                            onFeedback={handleMessageFeedback}
                           />
                         ))}
                       </div>
@@ -584,7 +613,17 @@ function HistoryPanel({
   );
 }
 
-export function MessageBubble({ message, question }: { message: DraftMessage; question?: string }) {
+export function MessageBubble({
+  message,
+  question,
+  feedback,
+  onFeedback,
+}: {
+  message: DraftMessage;
+  question?: string;
+  feedback?: "up" | "down";
+  onFeedback?: (messageId: string, rating: "up" | "down") => void | Promise<void>;
+}) {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
@@ -659,6 +698,29 @@ export function MessageBubble({ message, question }: { message: DraftMessage; qu
                       {sharing ? "生成中" : "转发"}
                     </button>
                   )}
+                  <span className="ml-auto text-[11px] text-txs">这条回答有帮助吗？</span>
+                  <button
+                    type="button"
+                    onClick={() => void onFeedback?.(message.id, "up")}
+                    className={`inline-flex h-9 w-9 items-center justify-center rounded-ds-md transition hover:bg-bgs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/30 ${
+                      feedback === "up" ? "bg-tll text-tl" : "text-txs hover:text-tl"
+                    }`}
+                    aria-label="这条回答有帮助"
+                    aria-pressed={feedback === "up"}
+                  >
+                    <ThumbsUp className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void onFeedback?.(message.id, "down")}
+                    className={`inline-flex h-9 w-9 items-center justify-center rounded-ds-md transition hover:bg-bgs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/30 ${
+                      feedback === "down" ? "bg-red-50 text-red-600" : "text-txs hover:text-red-600"
+                    }`}
+                    aria-label="这条回答没帮助"
+                    aria-pressed={feedback === "down"}
+                  >
+                    <ThumbsDown className="h-4 w-4" />
+                  </button>
                 </div>
               )}
             </>

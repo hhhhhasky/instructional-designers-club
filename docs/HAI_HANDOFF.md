@@ -1,8 +1,10 @@
 # HAI 子系统接手文档
 
 > 生成时间：2026-07-03
-> 最后更新：2026-07-13
-> 状态：✅ 数据库迁移已执行 · ✅ Edge Functions 已部署 · ✅ 核心单聊测试面已简化 · ✅ 旧 HAI 知识库已迁移 · ✅ 单聊已接入并部署 Context Orchestrator MVP · ✅ HAI 配置页已接入编排参数与 trace
+> 最后更新：2026-07-14
+> 状态：✅ 数据库迁移已执行 · ✅ Edge Functions 已部署 · ✅ 核心单聊测试面已简化 · ✅ 旧 HAI 知识库已迁移 · ✅ 单聊已接入并部署 Context Orchestrator MVP · ✅ HAI 配置页已接入编排参数与 trace · ✅ 每日复盘后端与 00:05 cron 已上线
+
+> 2026-07-14 新增：每日 00:05 自动复盘、用户点赞/点踩、严格离线评分、候选 Prompt、反事实 A/B、低风险门禁发布、发布快照回滚和管理看板。后端迁移、Edge Function、secret、cron 已线上核验；前端随本次代码发布生效。实现与运行规则见 `docs/HAI_DAILY_REVIEW_AUTOPILOT.md`。
 
 ---
 

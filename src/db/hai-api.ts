@@ -70,6 +70,16 @@ export interface HaiMessage {
   created_at: string;
 }
 
+export interface HaiMessageFeedback {
+  id: string;
+  message_id: string;
+  user_id: string;
+  rating: "up" | "down";
+  reason: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface HaiUserMemory {
   id: string;
   user_id: string;
@@ -165,6 +175,36 @@ export async function getHaiMessages(conversationId: string): Promise<HaiMessage
     .order("created_at", { ascending: true });
   if (error) throw error;
   return (data as HaiMessage[]) ?? [];
+}
+
+export async function getHaiMessageFeedback(messageIds: string[]): Promise<HaiMessageFeedback[]> {
+  if (messageIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from("hai_message_feedback")
+    .select("*")
+    .in("message_id", messageIds);
+  if (error) throw error;
+  return (data as HaiMessageFeedback[]) ?? [];
+}
+
+export async function setHaiMessageFeedback(
+  messageId: string,
+  rating: "up" | "down",
+): Promise<HaiMessageFeedback> {
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user) throw new Error("请先登录后再评价。 ");
+  const { data, error } = await supabase
+    .from("hai_message_feedback")
+    .upsert({
+      message_id: messageId,
+      user_id: authData.user.id,
+      rating,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "message_id,user_id" })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as HaiMessageFeedback;
 }
 
 export async function archiveHaiConversation(conversationId: string): Promise<void> {
