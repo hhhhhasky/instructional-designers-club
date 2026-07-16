@@ -1,5 +1,3 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Archive,
   Bot,
@@ -18,13 +16,18 @@ import {
   ThumbsUp,
   X,
 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import Header from "@/components/layout/Header";
 import Footer from "@/components/common/Footer";
-import PageMeta from "@/components/common/PageMeta";
 import MarkdownRenderer from "@/components/common/MarkdownRenderer";
-import { Button } from "@/components/ui/button";
+import PageMeta from "@/components/common/PageMeta";
+import HaiProfileOnboardingDialog, {
+  type HaiProfileOnboardingMemory,
+} from "@/components/hai/HaiProfileOnboardingDialog";
+import Header from "@/components/layout/Header";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogClose,
@@ -35,7 +38,6 @@ import {
 } from "@/components/ui/dialog";
 import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
-import { copyHaiAnswer, createHaiShareImage } from "@/lib/hai-share";
 import {
   archiveHaiConversation,
   archiveHaiMemory,
@@ -43,20 +45,23 @@ import {
   getHaiAccessStatus,
   getHaiConversations,
   getHaiMemories,
-  getHaiMessages,
   getHaiMessageFeedback,
+  getHaiMessages,
   getHaiModules,
-  redeemHaiInvite,
-  streamHaiChat,
-  setHaiMessageFeedback,
   type HaiAccessStatus,
   type HaiConversation,
   type HaiFeatureModule,
   type HaiMessage,
   type HaiMessageFeedback,
-  type HaiUserMemory,
   type HaiUsageSummary,
+  type HaiUserMemory,
+  hasCompletedHaiProfileOnboarding,
+  redeemHaiInvite,
+  saveHaiProfileMemories,
+  setHaiMessageFeedback,
+  streamHaiChat,
 } from "@/db/hai-api";
+import { copyHaiAnswer, createHaiShareImage } from "@/lib/hai-share";
 
 type DraftMessage = Pick<HaiMessage, "id" | "role" | "content" | "created_at"> & {
   pending?: boolean;
@@ -88,6 +93,9 @@ export default function HaiPage() {
   const [busy, setBusy] = useState(false);
   const [booting, setBooting] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [profileOnboardingOpen, setProfileOnboardingOpen] = useState(false);
+  const [profileOnboardingSaving, setProfileOnboardingSaving] = useState(false);
+  const [profileOnboardingError, setProfileOnboardingError] = useState("");
   const messagesScrollRef = useRef<HTMLDivElement | null>(null);
 
   const visibleModules = useMemo(() => modules.filter((item) => item.slug === "ask-han"), [modules]);
@@ -119,14 +127,16 @@ export default function HaiPage() {
         setModules(moduleRows);
         setActiveModuleSlug("ask-han");
         if (access.allowed) {
-          const [rows, memoryRows] = await Promise.all([
+          const [rows, memoryRows, profileCompleted] = await Promise.all([
             getHaiConversations(),
             getHaiMemories(),
+            hasCompletedHaiProfileOnboarding(),
           ]);
           if (cancelled) return;
           setConversations(rows);
           setMemories(memoryRows);
           setActiveConversationId((current) => current ?? rows[0]?.id ?? null);
+          setProfileOnboardingOpen(!profileCompleted);
         }
       } catch (error) {
         if (!cancelled) setStatus(error instanceof Error ? error.message : "HAI 初始化失败。");
@@ -204,8 +214,13 @@ export default function HaiPage() {
       setUsage(result.usage);
       setInviteCode("");
       if (result.access.allowed) {
-        await refreshConversations(null);
-        setMemories(await getHaiMemories());
+        const [, memoryRows, profileCompleted] = await Promise.all([
+          refreshConversations(null),
+          getHaiMemories(),
+          hasCompletedHaiProfileOnboarding(),
+        ]);
+        setMemories(memoryRows);
+        setProfileOnboardingOpen(!profileCompleted);
       }
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "邀请码兑换失败。");
@@ -327,6 +342,25 @@ export default function HaiPage() {
   async function handleArchiveMemory(memoryId: string) {
     await archiveHaiMemory(memoryId);
     setMemories((current) => current.filter((item) => item.id !== memoryId));
+  }
+
+  async function handleProfileOnboardingSubmit(profileMemories: HaiProfileOnboardingMemory[]) {
+    if (!user || profileOnboardingSaving) return;
+    setProfileOnboardingSaving(true);
+    setProfileOnboardingError("");
+    try {
+      await saveHaiProfileMemories({
+        userId: user.id,
+        memories: profileMemories,
+      });
+      setMemories(await getHaiMemories());
+      setProfileOnboardingOpen(false);
+      toast.success("个人信息已保存，HAI 会在之后的咨询中记住这些背景");
+    } catch (error) {
+      setProfileOnboardingError(error instanceof Error ? error.message : "个人信息保存失败，请稍后重试。");
+    } finally {
+      setProfileOnboardingSaving(false);
+    }
   }
 
   function startNewConversation(moduleSlug?: string) {
@@ -543,6 +577,18 @@ export default function HaiPage() {
           <Footer />
         </div>
       </div>
+      {access?.allowed && (
+        <HaiProfileOnboardingDialog
+          open={profileOnboardingOpen}
+          saving={profileOnboardingSaving}
+          error={profileOnboardingError}
+          onSubmit={handleProfileOnboardingSubmit}
+          onSkip={() => {
+            setProfileOnboardingError("");
+            setProfileOnboardingOpen(false);
+          }}
+        />
+      )}
     </>
   );
 }

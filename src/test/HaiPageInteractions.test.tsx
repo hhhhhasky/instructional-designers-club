@@ -1,9 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
-import HaiPage, { EmptyState, HAI_STARTER_QUESTIONS, MessageBubble } from "@/pages/HaiPage";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  getHaiMemories,
+  hasCompletedHaiProfileOnboarding,
+  saveHaiProfileMemories,
+} from "@/db/hai-api";
 import { copyHaiAnswer, createHaiShareImage } from "@/lib/hai-share";
+import HaiPage, { EmptyState, HAI_STARTER_QUESTIONS, MessageBubble } from "@/pages/HaiPage";
 
 vi.mock("@/components/layout/Header", () => ({ default: () => <div data-testid="global-header" /> }));
 vi.mock("@/components/common/Footer", () => ({ default: () => <div data-testid="global-footer" /> }));
@@ -24,6 +29,7 @@ vi.mock("@/db/hai-api", () => ({
   getHaiConversations: vi.fn().mockResolvedValue([]),
   getHaiMemories: vi.fn().mockResolvedValue([]),
   getHaiMessages: vi.fn().mockResolvedValue([]),
+  getHaiMessageFeedback: vi.fn().mockResolvedValue([]),
   getHaiModules: vi.fn().mockResolvedValue([{
     id: "module-1",
     slug: "ask-han",
@@ -48,7 +54,10 @@ vi.mock("@/db/hai-api", () => ({
     sort_order: 1,
     is_enabled: true,
   }]),
+  hasCompletedHaiProfileOnboarding: vi.fn().mockResolvedValue(true),
   redeemHaiInvite: vi.fn(),
+  saveHaiProfileMemories: vi.fn().mockResolvedValue([]),
+  setHaiMessageFeedback: vi.fn(),
   streamHaiChat: vi.fn(),
 }));
 
@@ -67,6 +76,9 @@ vi.mock("@/lib/hai-share", () => ({
 describe("HAI new conversation guidance", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(getHaiMemories).mockResolvedValue([]);
+    vi.mocked(hasCompletedHaiProfileOnboarding).mockResolvedValue(true);
+    vi.mocked(saveHaiProfileMemories).mockResolvedValue([]);
   });
 
   it("offers three starter questions and selects one with a single tap", async () => {
@@ -79,6 +91,49 @@ describe("HAI new conversation guidance", () => {
 
     expect(onQuestionSelect).toHaveBeenCalledOnce();
     expect(onQuestionSelect).toHaveBeenCalledWith(HAI_STARTER_QUESTIONS[1]);
+  });
+});
+
+describe("HAI first-entry profile onboarding", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(getHaiMemories).mockResolvedValue([]);
+    vi.mocked(hasCompletedHaiProfileOnboarding).mockResolvedValue(false);
+    vi.mocked(saveHaiProfileMemories).mockResolvedValue([]);
+  });
+
+  it("collects a university teacher profile with click-first questions and saves it as memories", async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={["/hai"]}>
+        <HaiPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByTestId("hai-profile-onboarding")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "高校" }));
+    await user.click(screen.getByRole("button", { name: "其他 / 专业课" }));
+    await user.type(screen.getByPlaceholderText("例如：课程与教学论、机械设计"), "课程与教学论");
+    await user.click(screen.getByRole("button", { name: "下一步" }));
+    await user.click(screen.getByRole("button", { name: "4—7 年" }));
+    await user.click(screen.getByRole("button", { name: "一线任课教师" }));
+    await user.click(screen.getByRole("button", { name: "教学目标与重难点" }));
+    await user.click(screen.getByRole("button", { name: "评价与学习证据" }));
+    await user.click(screen.getByRole("button", { name: "下一步" }));
+    await user.click(screen.getByRole("button", { name: "先直接指出最核心的问题" }));
+    await user.click(screen.getByRole("button", { name: "完成，让 HAI 记住我" }));
+
+    expect(saveHaiProfileMemories).toHaveBeenCalledWith({
+      userId: "user-1",
+      memories: [
+        { category: "basic_info", content: "我目前主要在高校任教。" },
+        { category: "basic_info", content: "我主要教授课程与教学论。" },
+        { category: "basic_info", content: "我的教龄是4—7 年。" },
+        { category: "basic_info", content: "我目前的主要角色是一线任课教师。" },
+        { category: "challenge", content: "我目前最常遇到的教学问题是教学目标与重难点、评价与学习证据。" },
+        { category: "teaching_preference", content: "我更希望 HAI 先直接指出最核心的问题。" },
+      ],
+    });
   });
 });
 

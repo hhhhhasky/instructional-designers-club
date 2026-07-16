@@ -92,6 +92,13 @@ export interface HaiUserMemory {
   updated_at: string;
 }
 
+export interface HaiProfileMemoryInput {
+  category: "basic_info" | "challenge" | "teaching_preference";
+  content: string;
+}
+
+export const HAI_PROFILE_ONBOARDING_SOURCE = "profile_onboarding_v1";
+
 export interface HaiMaterial {
   id: string;
   user_id: string;
@@ -221,6 +228,35 @@ export async function getHaiMemories(): Promise<HaiUserMemory[]> {
     .select("*")
     .eq("status", "active")
     .order("updated_at", { ascending: false });
+  if (error) throw error;
+  return (data as HaiUserMemory[]) ?? [];
+}
+
+export async function hasCompletedHaiProfileOnboarding(): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("hai_user_memories")
+    .select("id")
+    .eq("source_type", HAI_PROFILE_ONBOARDING_SOURCE)
+    .limit(1);
+  if (error) throw error;
+  return Boolean(data?.length);
+}
+
+export async function saveHaiProfileMemories(params: {
+  userId: string;
+  memories: HaiProfileMemoryInput[];
+}): Promise<HaiUserMemory[]> {
+  const { data, error } = await supabase
+    .from("hai_user_memories")
+    .insert(params.memories.map((memory) => ({
+      user_id: params.userId,
+      category: memory.category,
+      content: memory.content,
+      confidence: 1,
+      source_type: HAI_PROFILE_ONBOARDING_SOURCE,
+      status: "active",
+    })))
+    .select("*");
   if (error) throw error;
   return (data as HaiUserMemory[]) ?? [];
 }
