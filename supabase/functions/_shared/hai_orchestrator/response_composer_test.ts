@@ -6,7 +6,10 @@ import type { SemanticRouteResult } from "./types.ts";
 const question = "复习课总是把教材重新讲一遍，学生综合题还是不会，怎么改？";
 const semanticRoute: SemanticRouteResult = {
   intent: {
-    primary_intent: "teaching_design",
+    primary_intent: "daily_improvement_diagnosis",
+    scene: "review_lesson",
+    user_goal: "diagnosis",
+    support_depth: "advice",
     explicit_need: "改进复习课",
     implicit_need: "从重新讲解转向迁移学习",
     confidence: 0.95,
@@ -19,7 +22,7 @@ const semanticRoute: SemanticRouteResult = {
     hai_reframing: "不是再讲细一点，而是重做复习课流程",
     recommended_answer_direction: "用复习课四段式定位一个最早断点",
   },
-  diagnostic_module: "teaching_design",
+  diagnostic_module: "daily_improvement_diagnosis",
   methodology_ids: ["review-four-stages"],
 };
 
@@ -38,10 +41,9 @@ Deno.test("compact composer keeps only required answer layers", () => {
     { caseMax: 3, methodMax: 2, theoryMax: 2, expressionMax: 5 },
     semanticRoute,
     {
-      core_axioms: "SENTINEL_AXIOMS",
-      han_methodology: "SENTINEL_FULL_METHODOLOGY",
-      formula_bank: "SENTINEL_FORMULA_BANK",
-      response_composer_prompt: "SENTINEL_RESPONSE_COMPOSER",
+      "diagnostic_module.daily_improvement_diagnosis":
+        "SENTINEL_DIAGNOSTIC_FRAMEWORK",
+      "custom_context.answer_preference": "SENTINEL_CUSTOM_CONTEXT",
     },
   );
   const prompt = buildComposedSystemPrompt({
@@ -60,6 +62,9 @@ Deno.test("compact composer keeps only required answer layers", () => {
       "用户记忆选择",
       "每周只有两节复习课",
       "问题重构",
+      "本轮诊断模块",
+      "SENTINEL_DIAGNOSTIC_FRAMEWORK",
+      "SENTINEL_CUSTOM_CONTEXT",
       "本轮方法卡",
       "复习课四段式",
       "风格要求",
@@ -68,14 +73,9 @@ Deno.test("compact composer keeps only required answer layers", () => {
 
   for (
     const disabled of [
-      "SENTINEL_AXIOMS",
-      "SENTINEL_FULL_METHODOLOGY",
-      "SENTINEL_FORMULA_BANK",
-      "SENTINEL_RESPONSE_COMPOSER",
       "SENTINEL_USER_MATERIAL",
       "SENTINEL_KNOWLEDGE",
       "当前功能模块",
-      "诊断框架",
       "检索规划",
       "案例库命中",
       "教学设计公式库",
@@ -87,5 +87,34 @@ Deno.test("compact composer keeps only required answer layers", () => {
   const tokens = estimateTokens(prompt);
   if (tokens > 2200) {
     throw new Error(`compact prompt is too long: ${tokens} tokens`);
+  }
+});
+
+Deno.test("database-created diagnostic module becomes the selected answer context", () => {
+  const orchestrator = new HAIContextOrchestrator();
+  const context = orchestrator.buildInitialPackage(
+    "学生总打断课堂，我应该怎么处理？",
+    { caseMax: 0, methodMax: 0, theoryMax: 0, expressionMax: 0 },
+    {
+      intent: {
+        primary_intent: "daily_improvement_diagnosis",
+        scene: "daily_lesson",
+        user_goal: "diagnosis",
+        support_depth: "advice",
+        explicit_need: "处理课堂秩序",
+        confidence: 0.95,
+        route_method: "llm",
+      },
+      diagnostic_module: "classroom_management",
+    },
+    {
+      "diagnostic_module.classroom_management": "DYNAMIC_CLASSROOM_DIAGNOSTIC",
+    },
+  );
+  if (context.diagnostic_module !== "classroom_management") {
+    throw new Error(context.diagnostic_module);
+  }
+  if (context.diagnostic_framework !== "DYNAMIC_CLASSROOM_DIAGNOSTIC") {
+    throw new Error(context.diagnostic_framework);
   }
 });

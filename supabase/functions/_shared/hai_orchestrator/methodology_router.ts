@@ -2,6 +2,7 @@ import {
   getHanMethodCard,
   hanCourseMethodCards,
   type HanMethodCard,
+  methodIntentTagFor,
 } from "./knowledge/method_bank/han_course_method_cards.ts";
 import type {
   IntentResult,
@@ -21,7 +22,9 @@ export function selectHanMethodology(params: {
   rewrite: ProblemRewrite;
   semanticRoute?: SemanticRouteResult | null;
   maxMethods?: number;
+  methodCards?: HanMethodCard[];
 }): HanMethodologySelection {
+  const methodCards = params.methodCards ?? hanCourseMethodCards;
   const maxMethods = Math.max(
     0,
     Math.min(2, Math.round(params.maxMethods ?? 1)),
@@ -36,13 +39,19 @@ export function selectHanMethodology(params: {
   }
   const preferredIds = params.semanticRoute?.methodology_ids ?? [];
   const preferredCards = uniqueCards(
-    preferredIds.map(getHanMethodCard).filter((card): card is HanMethodCard =>
-      Boolean(card)
-    ),
+    preferredIds
+      .map((id) => getHanMethodCard(id, methodCards))
+      .filter((card): card is HanMethodCard => Boolean(card)),
   );
   const cards = preferredCards.length > 0
     ? preferredCards.slice(0, maxMethods)
-    : selectFallbackCards(params.question, params.intent, params.rewrite, 1);
+    : selectFallbackCards(
+      params.question,
+      params.intent,
+      params.rewrite,
+      1,
+      methodCards,
+    );
 
   if (cards.length === 0) {
     return {
@@ -92,6 +101,7 @@ function selectFallbackCards(
   intent: IntentResult,
   rewrite: ProblemRewrite,
   maxMethods: number,
+  methodCards: HanMethodCard[],
 ) {
   const haystack = normalize(
     [
@@ -105,7 +115,7 @@ function selectFallbackCards(
     ].filter(Boolean).join(" "),
   );
 
-  return hanCourseMethodCards
+  return methodCards
     .map((card) => {
       let termMatches = 0;
       let score = 0;
@@ -114,7 +124,9 @@ function selectFallbackCards(
         termMatches += 1;
         score += term === card.name || card.aliases.includes(term) ? 12 : 8;
       }
-      if (card.intents.includes(intent.primary_intent)) score += 3;
+      if (card.intents.includes(methodIntentTagFor(intent.primary_intent))) {
+        score += 3;
+      }
       score += card.priority / 100;
       return { card, score, termMatches };
     })

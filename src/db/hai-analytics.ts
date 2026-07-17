@@ -70,6 +70,9 @@ export interface HaiRecentTrace {
   id: string;
   question: string;
   intent: string;
+  scene: string;
+  user_goal: string;
+  support_depth: string;
   route_method: string;
   diagnostic_module: string;
   score: number | null;
@@ -356,6 +359,9 @@ function toTrace(message: HaiTraceMessageRow): HaiRecentTrace | null {
     id: message.id,
     question: stringOf(trace.question) || "无问题文本",
     intent: stringOf(intent?.primary_intent) || "unknown",
+    scene: stringOf(intent?.scene) || "unclear",
+    user_goal: stringOf(intent?.user_goal) || "unclear",
+    support_depth: stringOf(intent?.support_depth) || "advice",
     route_method: stringOf(intent?.route_method) || "-",
     diagnostic_module: stringOf(trace.diagnostic_module) || "-",
     score: numberOf(evaluation?.score),

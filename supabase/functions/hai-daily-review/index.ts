@@ -1,23 +1,23 @@
 import {
+  type ChatMessage,
   createAdminClient,
   jsonResponse,
   normalizeRecord,
   requireUser,
   streamDeepSeek,
-  type ChatMessage,
 } from "../_shared/hai.ts";
 import {
   calculateAbGate,
+  type DailyReviewEvaluation,
   explicitDateWindow,
   normalizeCandidate,
   normalizeEvaluation,
   previousShanghaiDayWindow,
+  type PromptCandidate,
   REVIEW_DIMENSIONS,
+  type ReviewWindow,
   summarizeEvaluations,
   validateCandidate,
-  type DailyReviewEvaluation,
-  type PromptCandidate,
-  type ReviewWindow,
 } from "../_shared/hai_daily_review.ts";
 
 type MessageRow = {
@@ -64,7 +64,9 @@ const model = Deno.env.get("DEEPSEEK_MODEL") || "deepseek-v4-flash";
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return jsonResponse({ ok: true });
-  if (request.method !== "POST") return jsonResponse({ message: "只支持 POST。" }, 405);
+  if (request.method !== "POST") {
+    return jsonResponse({ message: "只支持 POST。" }, 405);
+  }
 
   const admin = createAdminClient();
   let window = previousShanghaiDayWindow();
@@ -75,7 +77,9 @@ Deno.serve(async (request) => {
     authorized = true;
     const body = normalizeRecord(await request.json().catch(() => ({})));
     if (body.action === "rollback") {
-      if (typeof body.runDate !== "string") throw new Error("回滚必须提供 runDate。");
+      if (typeof body.runDate !== "string") {
+        throw new Error("回滚必须提供 runDate。");
+      }
       const rollback = await rollbackDailyReview(admin, body.runDate);
       return jsonResponse({ ok: true, ...rollback });
     }
@@ -84,8 +88,16 @@ Deno.serve(async (request) => {
       ? explicitDateWindow(body.runDate)
       : previousShanghaiDayWindow();
     const existing = await loadExistingRun(admin, window.runDate);
-    if (!force && existing && ["running", "completed", "skipped"].includes(String(existing.status))) {
-      return jsonResponse({ ok: true, skipped: true, reason: "该日期已复盘。", run: existing });
+    if (
+      !force && existing &&
+      ["running", "completed", "skipped"].includes(String(existing.status))
+    ) {
+      return jsonResponse({
+        ok: true,
+        skipped: true,
+        reason: "该日期已复盘。",
+        run: existing,
+      });
     }
 
     const settings = await loadSettings(admin);
@@ -95,7 +107,11 @@ Deno.serve(async (request) => {
         note: "daily_review.enabled=false，已跳过。",
         completed_at: new Date().toISOString(),
       });
-      return jsonResponse({ ok: true, skipped: true, reason: "每日复盘已关闭。" });
+      return jsonResponse({
+        ok: true,
+        skipped: true,
+        reason: "每日复盘已关闭。",
+      });
     }
 
     await writeRun(admin, window, {
@@ -122,14 +138,19 @@ Deno.serve(async (request) => {
   }
 });
 
-async function rollbackDailyReview(admin: ReturnType<typeof createAdminClient>, runDate: string) {
+async function rollbackDailyReview(
+  admin: ReturnType<typeof createAdminClient>,
+  runDate: string,
+) {
   const run = await loadExistingRun(admin, explicitDateWindow(runDate).runDate);
   if (!run) throw new Error("没有找到该日期的复盘记录。");
   if (run.publish_mode !== "gated_auto" && run.publish_mode !== "manual") {
     throw new Error("该复盘没有可回滚的已发布改动。");
   }
   const before = normalizeRecord(run.config_snapshot_before);
-  const appliedRows = Array.isArray(run.changes_applied) ? run.changes_applied : [];
+  const appliedRows = Array.isArray(run.changes_applied)
+    ? run.changes_applied
+    : [];
   const restored: string[] = [];
   for (const raw of appliedRows) {
     const key = String(normalizeRecord(raw).key || "");
@@ -155,7 +176,11 @@ async function rollbackDailyReview(admin: ReturnType<typeof createAdminClient>, 
   return { runDate, restored };
 }
 
-async function runDailyReview(admin: ReturnType<typeof createAdminClient>, window: ReviewWindow, settings: DailyReviewSettings) {
+async function runDailyReview(
+  admin: ReturnType<typeof createAdminClient>,
+  window: ReviewWindow,
+  settings: DailyReviewSettings,
+) {
   const turns = await loadTurns(admin, window, settings.maxTurns);
   const feedbackCounts = {
     positive: turns.filter((turn) => turn.feedback?.rating === "up").length,
@@ -171,14 +196,20 @@ async function runDailyReview(admin: ReturnType<typeof createAdminClient>, windo
       note: "该自然日没有可复盘的 HAI assistant trace。",
       completed_at: new Date().toISOString(),
     });
-    return { skipped: true, reason: "没有可复盘的对话。", runDate: window.runDate };
+    return {
+      skipped: true,
+      reason: "没有可复盘的对话。",
+      runDate: window.runDate,
+    };
   }
 
   const evaluations = await evaluateTurns(turns, settings.passScore);
   const evaluationSummary = summarizeEvaluations(evaluations);
   const lowEvaluations = evaluations.filter((item) => !item.passed);
   const promptConfigs = await loadPromptConfigs(admin);
-  const configMap = new Map(promptConfigs.map((config) => [config.key, config]));
+  const configMap = new Map(
+    promptConfigs.map((config) => [config.key, config]),
+  );
   const snapshotBefore = snapshot(promptConfigs);
 
   const candidates = lowEvaluations.length >= settings.minLowScoreTurns
@@ -202,13 +233,25 @@ async function runDailyReview(admin: ReturnType<typeof createAdminClient>, windo
     const eligibleBySample = turns.length >= settings.minTurnsForPublish &&
       lowEvaluations.length >= settings.minLowScoreTurns;
 
-    if (validation.autoPublishable && eligibleBySample && settings.autoPublishMode === "gated" && !appliedOne) {
-      const ab = await runCounterfactualAb(turns, evaluations, candidate, promptConfigs, settings);
+    if (
+      validation.autoPublishable && eligibleBySample &&
+      settings.autoPublishMode === "gated" && !appliedOne
+    ) {
+      const ab = await runCounterfactualAb(
+        turns,
+        evaluations,
+        candidate,
+        promptConfigs,
+        settings,
+      );
       result.ab = ab;
       if (ab.passed) {
         const { error } = await admin
           .from("hai_orchestrator_prompt_configs")
-          .update({ content: candidate.proposed_content, updated_at: new Date().toISOString() })
+          .update({
+            content: candidate.proposed_content,
+            updated_at: new Date().toISOString(),
+          })
           .eq("key", candidate.key);
         if (error) throw error;
         changesApplied.push({
@@ -220,23 +263,37 @@ async function runDailyReview(admin: ReturnType<typeof createAdminClient>, windo
         });
         appliedOne = true;
       } else {
-        changesPending.push({ ...candidate, gate_reasons: ["反事实 A/B 未通过。"], ab });
+        changesPending.push({
+          ...candidate,
+          gate_reasons: ["反事实 A/B 未通过。"],
+          ab,
+        });
       }
     } else {
       const gateReasons = [...validation.reasons];
-      if (!validation.autoPublishable) gateReasons.push("不属于低风险自动发布层。 ");
+      if (!validation.autoPublishable) {
+        gateReasons.push("不属于低风险自动发布层。 ");
+      }
       if (!eligibleBySample) gateReasons.push("日样本量或低分样本量不足。 ");
-      if (settings.autoPublishMode !== "gated") gateReasons.push("当前为 review_only 模式。 ");
+      if (settings.autoPublishMode !== "gated") {
+        gateReasons.push("当前为 review_only 模式。 ");
+      }
       if (appliedOne) gateReasons.push("单次复盘最多自动发布一处改动。 ");
       changesPending.push({ ...candidate, gate_reasons: gateReasons });
     }
     candidateResults.push(result);
   }
 
-  const promptConfigsAfter = changesApplied.length > 0 ? await loadPromptConfigs(admin) : promptConfigs;
+  const promptConfigsAfter = changesApplied.length > 0
+    ? await loadPromptConfigs(admin)
+    : promptConfigs;
   const issueRows = lowEvaluations.map((item) => ({
     dimension: weakestDimension(item),
-    severity: item.total_score < 60 ? "high" : item.total_score < 75 ? "medium" : "low",
+    severity: item.total_score < 60
+      ? "high"
+      : item.total_score < 75
+      ? "medium"
+      : "low",
     turn_id: item.message_id,
     summary: item.summary,
     problems: item.problems,
@@ -264,7 +321,11 @@ async function runDailyReview(admin: ReturnType<typeof createAdminClient>, windo
     candidate_changes: candidates,
     config_snapshot_before: snapshotBefore,
     config_snapshot_after: snapshot(promptConfigsAfter),
-    publish_mode: changesApplied.length > 0 ? "gated_auto" : candidates.length > 0 ? "pending" : "none",
+    publish_mode: changesApplied.length > 0
+      ? "gated_auto"
+      : candidates.length > 0
+      ? "pending"
+      : "none",
     note: changesApplied.length > 0
       ? `已通过门禁自动发布 ${changesApplied.length} 处低风险 Prompt 改动。`
       : lowEvaluations.length > 0
@@ -287,14 +348,26 @@ async function runDailyReview(admin: ReturnType<typeof createAdminClient>, windo
 async function authorize(request: Request) {
   const configuredSecret = Deno.env.get("HAI_DAILY_REVIEW_SECRET") || "";
   const suppliedSecret = request.headers.get("x-hai-review-secret") || "";
-  if (configuredSecret && suppliedSecret && timingSafeEqual(configuredSecret, suppliedSecret)) return;
+  if (
+    configuredSecret && suppliedSecret &&
+    timingSafeEqual(configuredSecret, suppliedSecret)
+  ) return;
 
   const auth = await requireUser(request);
-  const { data, error } = await auth.admin.from("profiles").select("role").eq("id", auth.user.id).maybeSingle();
-  if (error || data?.role !== "admin") throw new Error("仅管理员或定时任务可触发每日复盘。");
+  const { data, error } = await auth.admin.from("profiles").select("role").eq(
+    "id",
+    auth.user.id,
+  ).maybeSingle();
+  if (error || data?.role !== "admin") {
+    throw new Error("仅管理员或定时任务可触发每日复盘。");
+  }
 }
 
-async function loadTurns(admin: ReturnType<typeof createAdminClient>, window: ReviewWindow, maxTurns: number) {
+async function loadTurns(
+  admin: ReturnType<typeof createAdminClient>,
+  window: ReviewWindow,
+  maxTurns: number,
+) {
   const { data, error } = await admin
     .from("hai_messages")
     .select("id, content, metadata, created_at")
@@ -315,10 +388,14 @@ async function loadTurns(admin: ReturnType<typeof createAdminClient>, window: Re
     .select("message_id, rating, reason")
     .in("message_id", messages.map((message) => message.id));
   if (feedbackError) throw feedbackError;
-  const feedbackMap = new Map(((feedbackData ?? []) as FeedbackRow[]).map((row) => [row.message_id, row]));
+  const feedbackMap = new Map(
+    ((feedbackData ?? []) as FeedbackRow[]).map((row) => [row.message_id, row]),
+  );
 
   const turns = messages.map((message): ReviewTurn => {
-    const trace = normalizeRecord(normalizeRecord(message.metadata).hai_context_trace);
+    const trace = normalizeRecord(
+      normalizeRecord(message.metadata).hai_context_trace,
+    );
     return {
       message_id: message.id,
       created_at: message.created_at,
@@ -329,7 +406,8 @@ async function loadTurns(admin: ReturnType<typeof createAdminClient>, window: Re
     };
   });
   return turns.sort((a, b) => {
-    const feedbackPriority = Number(b.feedback?.rating === "down") - Number(a.feedback?.rating === "down");
+    const feedbackPriority = Number(b.feedback?.rating === "down") -
+      Number(a.feedback?.rating === "down");
     return feedbackPriority || b.created_at.localeCompare(a.created_at);
   }).slice(0, maxTurns);
 }
@@ -347,13 +425,16 @@ async function evaluateTurns(turns: ReviewTurn[], passScore: number) {
       : [];
     return rows.map((row) => {
       const messageId = String(normalizeRecord(row).message_id || "");
-      const feedback = batch.find((turn) => turn.message_id === messageId)?.feedback?.rating;
+      const feedback = batch.find((turn) => turn.message_id === messageId)
+        ?.feedback?.rating;
       return normalizeEvaluation(row, passScore, feedback);
     }).filter((item): item is DailyReviewEvaluation => Boolean(item));
   }));
   const evaluations = results.flat();
   if (evaluations.length !== turns.length) {
-    throw new Error(`评价器返回 ${evaluations.length}/${turns.length} 条，已中止自动发布。`);
+    throw new Error(
+      `评价器返回 ${evaluations.length}/${turns.length} 条，已中止自动发布。`,
+    );
   }
   return evaluations;
 }
@@ -370,13 +451,16 @@ async function proposeCandidates(
     answer: turnMap.get(evaluation.message_id)?.answer,
     feedback: turnMap.get(evaluation.message_id)?.feedback,
   }));
-  const editableConfigs = configs.filter((config) => [
-    "style_pack",
-    "core_identity",
-    "semantic_router_prompt",
-    "problem_rewriter_prompt",
-    "methodology_router_prompt",
-  ].includes(config.key));
+  const editableConfigs = configs.filter((config) =>
+    [
+      "style_pack",
+      "core_identity",
+      "semantic_router_prompt",
+      "safety_boundaries",
+    ].includes(config.key) ||
+    config.key.startsWith("diagnostic_module.") ||
+    config.key.startsWith("custom_context.")
+  );
   const value = await callJson([
     {
       role: "system",
@@ -384,19 +468,23 @@ async function proposeCandidates(
         "你负责 HAI 的每日提示词优化。只修复被多条真实低分样本共同证明的稳定失败模式，不为改而改。",
         "最多给 2 个候选；每个必须返回该 key 的完整 proposed_content，不得只给 diff。",
         "必须保留当前有效规则；不得删除事实边界、交付边界或未知就说未知。避免 Prompt 膨胀。",
-        "style_pack 可以标 low risk；身份、路由、问题重构、方法论一律标 medium/high，仅待人工审核。",
-        "输出 JSON：{\"candidates\":[{\"key\":\"...\",\"proposed_content\":\"...\",\"reason\":\"...\",\"risk\":\"low|medium|high\",\"evidence_message_ids\":[\"...\"]}]}",
+        "style_pack 可以标 low risk；身份、路由、诊断模块、自定义上下文和安全边界一律标 medium/high，仅待人工审核。",
+        '输出 JSON：{"candidates":[{"key":"...","proposed_content":"...","reason":"...","risk":"low|medium|high","evidence_message_ids":["..."]}]}',
       ].join("\n"),
     },
     {
       role: "user",
-      content: `低分证据：\n${JSON.stringify(evidence)}\n\n当前可编辑配置：\n${JSON.stringify(editableConfigs)}`,
+      content: `低分证据：\n${JSON.stringify(evidence)}\n\n当前可编辑配置：\n${
+        JSON.stringify(editableConfigs)
+      }`,
     },
   ], 10000);
   const rows = Array.isArray(normalizeRecord(value).candidates)
     ? normalizeRecord(value).candidates as unknown[]
     : [];
-  return rows.map(normalizeCandidate).filter((item): item is PromptCandidate => Boolean(item)).slice(0, 2);
+  return rows.map(normalizeCandidate).filter((item): item is PromptCandidate =>
+    Boolean(item)
+  ).slice(0, 2);
 }
 
 async function runCounterfactualAb(
@@ -406,9 +494,20 @@ async function runCounterfactualAb(
   configs: PromptConfigRow[],
   settings: DailyReviewSettings,
 ) {
-  const lowIds = new Set(baselineEvaluations.filter((item) => !item.passed).map((item) => item.message_id));
-  const sample = turns.filter((turn) => lowIds.has(turn.message_id)).slice(0, 5);
-  const promptMap = new Map(configs.filter((item) => item.enabled).map((item) => [item.key, item.content]));
+  const lowIds = new Set(
+    baselineEvaluations.filter((item) => !item.passed).map((item) =>
+      item.message_id
+    ),
+  );
+  const sample = turns.filter((turn) => lowIds.has(turn.message_id)).slice(
+    0,
+    5,
+  );
+  const promptMap = new Map(
+    configs.filter((item) => item.enabled).map((
+      item,
+    ) => [item.key, item.content]),
+  );
   promptMap.set(candidate.key, candidate.proposed_content);
 
   const answers = await Promise.all(sample.map(async (turn) => {
@@ -438,8 +537,14 @@ async function runCounterfactualAb(
   }));
   const candidateEvaluations = await evaluateTurns(answers, settings.passScore);
   const sampleIds = new Set(sample.map((turn) => turn.message_id));
-  const baseline = baselineEvaluations.filter((item) => sampleIds.has(item.message_id));
-  return calculateAbGate({ baseline, candidate: candidateEvaluations, minimumImprovement: settings.minAbImprovement });
+  const baseline = baselineEvaluations.filter((item) =>
+    sampleIds.has(item.message_id)
+  );
+  return calculateAbGate({
+    baseline,
+    candidate: candidateEvaluations,
+    minimumImprovement: settings.minAbImprovement,
+  });
 }
 
 function buildEvaluationPrompt(turns: ReviewTurn[], passScore: number) {
@@ -448,19 +553,21 @@ function buildEvaluationPrompt(turns: ReviewTurn[], passScore: number) {
     "六维各 0-100：intent 真实问题识别；teaching_judgment 专业判断；actionability 可执行抓手；factual_boundary 不编造且边界清楚；style 像哈老师且不讨好套话；brevity 聚焦不冗长。",
     "真正问题识别与教学判断最重要。表层迎合、正确废话、无依据教材事实、代写整套方案应显著扣分。",
     `total_score 由系统重算；passed 以 ${passScore} 为线。用户点踩是强负信号，不能被模型高分覆盖。`,
-    "target_layer 只能填 style_pack/core_identity/semantic_router_prompt/problem_rewriter_prompt/methodology_router_prompt/safety_boundaries/code_or_data/unknown。",
-    "输出 JSON：{\"evaluations\":[{\"message_id\":\"...\",\"scores\":{\"intent\":0,\"teaching_judgment\":0,\"actionability\":0,\"factual_boundary\":0,\"style\":0,\"brevity\":0},\"problems\":[\"...\"],\"summary\":\"...\",\"target_layer\":\"...\"}]}",
-    `待评价轮次：\n${JSON.stringify(turns.map((turn) => ({
-      message_id: turn.message_id,
-      question: turn.question,
-      answer: turn.answer,
-      feedback: turn.feedback,
-      route: {
-        intent_result: turn.trace.intent_result,
-        problem_rewrite: turn.trace.problem_rewrite,
-        diagnostic_module: turn.trace.diagnostic_module,
-      },
-    })))}`,
+    "target_layer 只能填 style_pack/core_identity/semantic_router_prompt/diagnostic_module/custom_context/safety_boundaries/code_or_data/unknown。",
+    '输出 JSON：{"evaluations":[{"message_id":"...","scores":{"intent":0,"teaching_judgment":0,"actionability":0,"factual_boundary":0,"style":0,"brevity":0},"problems":["..."],"summary":"...","target_layer":"..."}]}',
+    `待评价轮次：\n${
+      JSON.stringify(turns.map((turn) => ({
+        message_id: turn.message_id,
+        question: turn.question,
+        answer: turn.answer,
+        feedback: turn.feedback,
+        route: {
+          intent_result: turn.trace.intent_result,
+          problem_rewrite: turn.trace.problem_rewrite,
+          diagnostic_module: turn.trace.diagnostic_module,
+        },
+      })))
+    }`,
   ].join("\n\n");
 }
 
@@ -471,21 +578,31 @@ async function callJson(messages: ChatMessage[], maxTokens: number) {
   return JSON.parse(match[0]);
 }
 
-async function callText(messages: ChatMessage[], maxTokens: number, responseFormat: "text" | "json_object" = "text") {
+async function callText(
+  messages: ChatMessage[],
+  maxTokens: number,
+  responseFormat: "text" | "json_object" = "text",
+) {
   let output = "";
-  for await (const token of streamDeepSeek(messages, {
-    model,
-    temperature: 0.1,
-    topP: 0.8,
-    maxTokens,
-    thinkingEnabled: false,
-    responseFormat,
-  })) output += token;
+  for await (
+    const token of streamDeepSeek(messages, {
+      model,
+      temperature: 0.1,
+      topP: 0.8,
+      maxTokens,
+      thinkingEnabled: false,
+      responseFormat,
+    })
+  ) output += token;
   return output.trim();
 }
 
-async function loadSettings(admin: ReturnType<typeof createAdminClient>): Promise<DailyReviewSettings> {
-  const { data, error } = await admin.from("hai_runtime_settings").select("key, value").like("key", "daily_review.%");
+async function loadSettings(
+  admin: ReturnType<typeof createAdminClient>,
+): Promise<DailyReviewSettings> {
+  const { data, error } = await admin.from("hai_runtime_settings").select(
+    "key, value",
+  ).like("key", "daily_review.%");
   if (error) throw error;
   const values = new Map((data ?? []).map((row) => [row.key, row.value]));
   const mode = String(values.get("daily_review.auto_publish_mode") ?? "gated");
@@ -493,14 +610,34 @@ async function loadSettings(admin: ReturnType<typeof createAdminClient>): Promis
     enabled: Boolean(values.get("daily_review.enabled") ?? true),
     autoPublishMode: mode === "review_only" ? "review_only" : "gated",
     passScore: numberSetting(values, "daily_review.pass_score", 80, 60, 95),
-    minTurnsForPublish: numberSetting(values, "daily_review.min_turns_for_publish", 10, 3, 100),
-    minLowScoreTurns: numberSetting(values, "daily_review.min_low_score_turns", 3, 2, 20),
-    minAbImprovement: numberSetting(values, "daily_review.min_ab_improvement", 4, 1, 20),
+    minTurnsForPublish: numberSetting(
+      values,
+      "daily_review.min_turns_for_publish",
+      10,
+      3,
+      100,
+    ),
+    minLowScoreTurns: numberSetting(
+      values,
+      "daily_review.min_low_score_turns",
+      3,
+      2,
+      20,
+    ),
+    minAbImprovement: numberSetting(
+      values,
+      "daily_review.min_ab_improvement",
+      4,
+      1,
+      20,
+    ),
     maxTurns: numberSetting(values, "daily_review.max_turns", 200, 10, 500),
   };
 }
 
-async function loadPromptConfigs(admin: ReturnType<typeof createAdminClient>): Promise<PromptConfigRow[]> {
+async function loadPromptConfigs(
+  admin: ReturnType<typeof createAdminClient>,
+): Promise<PromptConfigRow[]> {
   const { data, error } = await admin
     .from("hai_orchestrator_prompt_configs")
     .select("key, label, content, enabled, updated_at")
@@ -509,8 +646,12 @@ async function loadPromptConfigs(admin: ReturnType<typeof createAdminClient>): P
   return (data ?? []) as PromptConfigRow[];
 }
 
-async function loadExistingRun(admin: ReturnType<typeof createAdminClient>, runDate: string) {
-  const { data, error } = await admin.from("hai_optimization_log").select("*").eq("run_date", runDate).maybeSingle();
+async function loadExistingRun(
+  admin: ReturnType<typeof createAdminClient>,
+  runDate: string,
+) {
+  const { data, error } = await admin.from("hai_optimization_log").select("*")
+    .eq("run_date", runDate).maybeSingle();
   if (error) throw error;
   return data;
 }
@@ -538,21 +679,36 @@ function snapshot(configs: PromptConfigRow[]) {
 }
 
 function weakestDimension(evaluation: DailyReviewEvaluation) {
-  return [...REVIEW_DIMENSIONS].sort((a, b) => evaluation.scores[a] - evaluation.scores[b])[0];
+  return [...REVIEW_DIMENSIONS].sort((a, b) =>
+    evaluation.scores[a] - evaluation.scores[b]
+  )[0];
 }
 
-function numberSetting(values: Map<string, unknown>, key: string, fallback: number, min: number, max: number) {
+function numberSetting(
+  values: Map<string, unknown>,
+  key: string,
+  fallback: number,
+  min: number,
+  max: number,
+) {
   const value = Number(values.get(key));
-  return Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : fallback;
+  return Number.isFinite(value)
+    ? Math.max(min, Math.min(max, value))
+    : fallback;
 }
 
 function chunk<T>(values: T[], size: number) {
-  return Array.from({ length: Math.ceil(values.length / size) }, (_, index) => values.slice(index * size, (index + 1) * size));
+  return Array.from(
+    { length: Math.ceil(values.length / size) },
+    (_, index) => values.slice(index * size, (index + 1) * size),
+  );
 }
 
 function timingSafeEqual(left: string, right: string) {
   if (left.length !== right.length) return false;
   let difference = 0;
-  for (let index = 0; index < left.length; index += 1) difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  for (let index = 0; index < left.length; index += 1) {
+    difference |= left.charCodeAt(index) ^ right.charCodeAt(index);
+  }
   return difference === 0;
 }

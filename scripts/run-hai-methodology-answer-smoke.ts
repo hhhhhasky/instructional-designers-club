@@ -4,8 +4,11 @@ import {
   normalizeHaiVoiceFormatting,
 } from "../supabase/functions/_shared/hai_orchestrator/response_composer.ts";
 import type {
+  DiagnosticModuleName,
   IntentName,
   SemanticRouteResult,
+  TeachingScene,
+  UserGoal,
 } from "../supabase/functions/_shared/hai_orchestrator/types.ts";
 import { estimateTokens } from "../supabase/functions/_shared/hai.ts";
 
@@ -23,6 +26,9 @@ const cases: Array<
     id: string;
     question: string;
     intent: IntentName;
+    scene: TeachingScene;
+    userGoal: UserGoal;
+    diagnosticModule: DiagnosticModuleName;
     methodId: string;
     expectedName: string;
     expectedSignals: Array<string | string[]>;
@@ -31,7 +37,10 @@ const cases: Array<
   {
     id: "master-framework",
     question: "我总分不清备课步骤和教案要素，你能讲清楚它们之间是什么关系吗？",
-    intent: "teaching_design",
+    intent: "teaching_concept_qa",
+    scene: "general_teaching",
+    userGoal: "concept_qa",
+    diagnosticModule: "teaching_concept_qa",
     methodId: "lesson-preparation-design-master",
     expectedName: "备课流程＋教学设计框架",
     expectedSignals: [
@@ -48,7 +57,10 @@ const cases: Array<
     id: "three-foundations",
     question:
       "学习科学、教学科学和教育哲学，在我的教学框架里分别解决什么问题？",
-    intent: "general_question",
+    intent: "teaching_concept_qa",
+    scene: "general_teaching",
+    userGoal: "concept_qa",
+    diagnosticModule: "teaching_concept_qa",
     methodId: "teaching-foundations-three-domains",
     expectedName: "教学框架三大底层领域",
     expectedSignals: ["学习科学", "教学科学", "教育哲学", "教学通识课"],
@@ -56,7 +68,10 @@ const cases: Array<
   {
     id: "target",
     question: "我的教学目标写的是理解课文内容、培养核心素养，这样写合格吗？",
-    intent: "lesson_plan_diagnosis",
+    intent: "daily_improvement_diagnosis",
+    scene: "daily_lesson",
+    userGoal: "diagnosis",
+    diagnosticModule: "daily_improvement_diagnosis",
     methodId: "target-quality-three-checks",
     expectedName: "目标质量三检法",
     expectedSignals: [
@@ -68,7 +83,10 @@ const cases: Array<
     id: "review",
     question:
       "复习课我总是把教材从头到尾重新讲一遍，学生综合题还是不会，应该怎么改？",
-    intent: "teaching_design",
+    intent: "daily_improvement_diagnosis",
+    scene: "review_lesson",
+    userGoal: "diagnosis",
+    diagnosticModule: "daily_improvement_diagnosis",
     methodId: "review-four-stages",
     expectedName: "复习课四段式",
     expectedSignals: [
@@ -83,7 +101,10 @@ const cases: Array<
     id: "task",
     question:
       "我设计的任务是请同学们做一张海报，但学生还是不知道具体要做什么，怎么修改？",
-    intent: "pbl_crossdisciplinary",
+    intent: "daily_improvement_diagnosis",
+    scene: "daily_lesson",
+    userGoal: "diagnosis",
+    diagnosticModule: "daily_improvement_diagnosis",
     methodId: "task-script-five-elements",
     expectedName: "任务脚本五要素",
     expectedSignals: [
@@ -99,7 +120,10 @@ const cases: Array<
     id: "participation",
     question:
       "课堂小组讨论很热闹，但总是几个人在说，其他人课后还是不会，怎么办？",
-    intent: "learning_motivation",
+    intent: "daily_improvement_diagnosis",
+    scene: "daily_lesson",
+    userGoal: "diagnosis",
+    diagnosticModule: "daily_improvement_diagnosis",
     methodId: "all-student-evidence",
     expectedName: "全员学习证据",
     expectedSignals: [
@@ -116,6 +140,9 @@ for (const item of cases) {
   const semanticRoute: SemanticRouteResult = {
     intent: {
       primary_intent: item.intent,
+      scene: item.scene,
+      user_goal: item.userGoal,
+      support_depth: "advice",
       explicit_need: item.question,
       implicit_need: "需要使用课程方法做出针对性诊断。",
       confidence: 0.95,
@@ -128,7 +155,7 @@ for (const item of cases) {
       hai_reframing: "使用课程方法完成诊断，而不是给通用建议。",
       recommended_answer_direction: "讲透一条主线，只给一个精准抓手。",
     },
-    diagnostic_module: item.intent,
+    diagnostic_module: item.diagnosticModule,
     methodology_ids: [item.methodId],
     methodology_reason: `该问题与${item.expectedName}的适用情境直接匹配。`,
     methodology_confidence: 0.95,

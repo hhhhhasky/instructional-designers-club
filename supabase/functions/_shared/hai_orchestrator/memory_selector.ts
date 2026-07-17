@@ -1,22 +1,50 @@
-import type { IntentName, IntentResult, MemorySelection, MemoryType } from "./types.ts";
+import type {
+  IntentName,
+  IntentResult,
+  MemorySelection,
+  MemoryType,
+} from "./types.ts";
 
 const defaultMemoryTypes: Partial<Record<IntentName, MemoryType[]>> = {
-  public_lesson: ["basic_profile", "current_task", "recurring_patterns", "past_advice", "preferences"],
-  lesson_plan_diagnosis: ["basic_profile", "current_task", "recurring_patterns", "preferences"],
-  learning_profile: ["basic_profile", "recurring_patterns", "execution_feedback"],
-  classroom_management: ["basic_profile", "recurring_patterns", "execution_feedback"],
-  learning_motivation: ["basic_profile", "recurring_patterns", "past_advice", "preferences"],
-  assessment_feedback: ["basic_profile", "current_task", "recurring_patterns", "execution_feedback"],
-  ai_lesson_planning: ["basic_profile", "current_task", "preferences", "past_advice"],
-  pbl_crossdisciplinary: ["basic_profile", "current_task", "preferences"],
-  teacher_growth: ["basic_profile", "recurring_patterns", "execution_feedback", "preferences"],
-  teaching_design: ["basic_profile", "current_task", "recurring_patterns", "preferences"],
+  showcase_lesson_diagnosis: [
+    "basic_profile",
+    "current_task",
+    "recurring_patterns",
+    "past_advice",
+    "preferences",
+  ],
+  showcase_lesson_design: [
+    "basic_profile",
+    "current_task",
+    "past_advice",
+    "preferences",
+  ],
+  daily_improvement_diagnosis: [
+    "basic_profile",
+    "current_task",
+    "recurring_patterns",
+    "execution_feedback",
+    "preferences",
+  ],
+  daily_improvement_design: [
+    "basic_profile",
+    "current_task",
+    "recurring_patterns",
+    "preferences",
+  ],
 };
 
-export function selectMemory(question: string, intent: IntentResult): MemorySelection {
-  const asksHistory = /上次|之前|刚才|继续|沿用|我的|我们班|我教|记得|还记得|偏好|限制|这个班|这个学生/.test(question);
+export function selectMemory(
+  question: string,
+  intent: IntentResult,
+): MemorySelection {
+  const asksHistory =
+    /上次|之前|刚才|继续|沿用|我的|我们班|我教|记得|还记得|偏好|限制|这个班|这个学生/
+      .test(question);
   const types = defaultMemoryTypes[intent.primary_intent] ?? [];
-  const shouldLoad = asksHistory || types.length > 0 && intent.primary_intent !== "general_question" && intent.primary_intent !== "unknown";
+  const shouldLoad = asksHistory || types.length > 0 &&
+      intent.primary_intent !== "teaching_concept_qa" &&
+      intent.primary_intent !== "unknown";
 
   if (!shouldLoad) {
     return {
@@ -27,7 +55,9 @@ export function selectMemory(question: string, intent: IntentResult): MemorySele
   }
 
   const memoryTypes = asksHistory
-    ? Array.from(new Set<MemoryType>([...types, "past_advice", "execution_feedback"]))
+    ? Array.from(
+      new Set<MemoryType>([...types, "past_advice", "execution_feedback"]),
+    )
     : types;
 
   return {
@@ -39,7 +69,10 @@ export function selectMemory(question: string, intent: IntentResult): MemorySele
   };
 }
 
-export function memoryCategoryMatchesTypes(category: string, memoryTypes: MemoryType[]) {
+export function memoryCategoryMatchesTypes(
+  category: string,
+  memoryTypes: MemoryType[],
+) {
   if (memoryTypes.length === 0) return false;
   const mapped = mapMemoryCategory(category);
   return memoryTypes.includes(mapped);

@@ -1,16 +1,33 @@
 export type IntentName =
-  | "teaching_design"
-  | "lesson_plan_diagnosis"
-  | "public_lesson"
-  | "learning_profile"
-  | "classroom_management"
-  | "learning_motivation"
-  | "assessment_feedback"
-  | "ai_lesson_planning"
-  | "pbl_crossdisciplinary"
-  | "teacher_growth"
-  | "general_question"
+  | "showcase_lesson_diagnosis"
+  | "showcase_lesson_design"
+  | "daily_improvement_diagnosis"
+  | "daily_improvement_design"
+  | "teaching_concept_qa"
   | "unknown";
+
+export type TeachingScene =
+  | "public_lesson"
+  | "lesson_presentation"
+  | "competition_lesson"
+  | "daily_lesson"
+  | "review_lesson"
+  | "exam_review"
+  | "general_teaching"
+  | "unclear";
+
+export type UserGoal =
+  | "diagnosis"
+  | "design_support"
+  | "concept_qa"
+  | "unclear";
+
+export type SupportDepth =
+  | "advice"
+  | "ideas"
+  | "demonstration";
+
+export type DiagnosticModuleName = string;
 
 export type MemoryType =
   | "basic_profile"
@@ -23,6 +40,9 @@ export type MemoryType =
 export type IntentResult = {
   primary_intent: IntentName;
   secondary_intents?: IntentName[];
+  scene: TeachingScene;
+  user_goal: UserGoal;
+  support_depth: SupportDepth;
   explicit_need: string;
   implicit_need?: string;
   risk_of_wrong_framing?: string;
@@ -35,7 +55,7 @@ export type IntentResult = {
 export type SemanticRouteResult = {
   intent: IntentResult;
   problem_rewrite?: ProblemRewrite;
-  diagnostic_module?: IntentName;
+  diagnostic_module?: DiagnosticModuleName;
   methodology_ids?: string[];
   methodology_reason?: string;
   methodology_confidence?: number;
@@ -111,18 +131,13 @@ export type HAIContextPackage = {
   user_question: string;
   core_identity: string;
   safety_boundaries: string;
-  core_axioms?: string;
-  han_methodology?: string;
-  methodology_focus?: string;
-  formula_bank?: string;
-  response_composer_prompt?: string;
-  evaluator_prompt?: string;
   intent_result: IntentResult;
   memory_selection: MemorySelection;
   selected_memory?: unknown;
   problem_rewrite: ProblemRewrite;
   diagnostic_framework: string;
-  diagnostic_module: IntentName;
+  diagnostic_module: DiagnosticModuleName;
+  custom_context_layers?: Array<{ key: string; content: string }>;
   retrieval_plan: RetrievalPlan;
   retrieved_cases?: RetrievedCase[];
   retrieved_methods?: RetrievedMethodCard[];
@@ -162,7 +177,7 @@ export type HAITrace = {
   intent_result: IntentResult;
   memory_selection: MemorySelection;
   problem_rewrite: ProblemRewrite;
-  diagnostic_module: IntentName;
+  diagnostic_module: DiagnosticModuleName;
   methodology_ids?: string[];
   methodology_reason?: string;
   retrieval_plan: RetrievalPlan;

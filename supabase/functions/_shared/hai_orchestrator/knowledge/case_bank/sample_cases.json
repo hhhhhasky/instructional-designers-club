@@ -1,7 +1,7 @@
 [
   {
     "id": "case_learning_motivation_001",
-    "intent": "learning_motivation",
+    "intent": "daily_improvement_diagnosis",
     "user_question": "我上课学生总是不爱听，是不是应该多加点游戏和互动？",
     "surface_problem": "用户认为课堂趣味性不足",
     "deeper_problem": "学生可能没有进入学习任务，也没有意识到学习的必要性",
@@ -11,7 +11,7 @@
   },
   {
     "id": "case_public_lesson_001",
-    "intent": "public_lesson",
+    "intent": "showcase_lesson_design",
     "user_question": "公开课怎么设计亮点？是不是要加 AI、闯关和小组合作？",
     "surface_problem": "用户把亮点理解为形式包装",
     "deeper_problem": "这节课可能缺少能被看见的理解变化",
@@ -21,7 +21,7 @@
   },
   {
     "id": "case_lesson_plan_001",
-    "intent": "lesson_plan_diagnosis",
+    "intent": "daily_improvement_diagnosis",
     "user_question": "我的教案活动很多，但总觉得不聚焦，怎么办？",
     "surface_problem": "用户感觉活动丰富但课堂不聚焦",
     "deeper_problem": "目标、活动和评价证据可能没有形成一致链条",
@@ -31,7 +31,7 @@
   },
   {
     "id": "case_assessment_feedback_001",
-    "intent": "assessment_feedback",
+    "intent": "daily_improvement_design",
     "user_question": "大班额课堂我怎么及时反馈？一个班五十多人，根本看不过来。",
     "surface_problem": "用户认为大班额导致无法逐个反馈",
     "deeper_problem": "反馈系统可能过度依赖教师逐一批改，缺少低成本学习证据",
@@ -41,7 +41,7 @@
   },
   {
     "id": "case_ai_lesson_planning_001",
-    "intent": "ai_lesson_planning",
+    "intent": "daily_improvement_diagnosis",
     "user_question": "我用 AI 备课，为什么生成的教案都很普通？",
     "surface_problem": "用户觉得 AI 生成内容模板化",
     "deeper_problem": "用户可能只让 AI 输出教案，没有让 AI 参与目标、学情和任务诊断",

@@ -52,7 +52,14 @@ describe("HAI dashboard aggregation", () => {
       failed_count: 1,
     });
     expect(result.daily_usage.reduce((sum, day) => sum + day.requests, 0)).toBe(3);
-    expect(result.recent_traces[0]).toMatchObject({ score: 80, passed: true, intent: "lesson_design" });
+    expect(result.recent_traces[0]).toMatchObject({
+      score: 80,
+      passed: true,
+      intent: "showcase_lesson_diagnosis",
+      scene: "public_lesson",
+      user_goal: "diagnosis",
+      support_depth: "advice",
+    });
   });
 
   it("returns stable zero-state metrics when no one has used HAI", () => {
@@ -90,8 +97,14 @@ function traceMessage(id: string, score: number, pass: boolean): HaiTraceMessage
     metadata: {
       hai_context_trace: {
         question: "公开课应该先改哪里？",
-        intent_result: { primary_intent: "lesson_design", route_method: "llm" },
-        diagnostic_module: "goal_alignment",
+        intent_result: {
+          primary_intent: "showcase_lesson_diagnosis",
+          scene: "public_lesson",
+          user_goal: "diagnosis",
+          support_depth: "advice",
+          route_method: "llm",
+        },
+        diagnostic_module: "showcase_lesson_diagnosis",
         evaluation_result: { score, pass, problems: pass ? [] : ["建议不够聚焦"] },
       },
     },

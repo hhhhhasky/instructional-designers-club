@@ -1,11 +1,25 @@
 import { classifyIntent } from "./intent_classifier.ts";
 import { selectMemory } from "./memory_selector.ts";
 import { selectHanMethodology } from "./methodology_router.ts";
-import { coreIdentity, evaluatorPrompt, hanMethodology, safetyBoundaries, stylePack } from "./prompts.ts";
+import {
+  hanCourseMethodCards,
+  type HanMethodCard,
+} from "./knowledge/method_bank/han_course_method_cards.ts";
+import { coreIdentity, safetyBoundaries, stylePack } from "./prompts.ts";
 import { rewriteProblem } from "./problem_rewriter.ts";
-import { planRetrieval, selectExpressions, selectLocalCases } from "./retrieval_planner.ts";
+import {
+  planRetrieval,
+  selectExpressions,
+  selectLocalCases,
+} from "./retrieval_planner.ts";
 import { routeDiagnosticFramework } from "./diagnostic_router.ts";
-import type { HAIContextPackage, HAIOrchestratorConfig, HAIPromptConfigMap, IntentResult, SemanticRouteResult } from "./types.ts";
+import type {
+  HAIContextPackage,
+  HAIOrchestratorConfig,
+  HAIPromptConfigMap,
+  IntentResult,
+  SemanticRouteResult,
+} from "./types.ts";
 
 export class HAIContextOrchestrator {
   buildInitialPackage(
@@ -13,6 +27,7 @@ export class HAIContextOrchestrator {
     config?: Partial<HAIOrchestratorConfig>,
     semanticRoute?: SemanticRouteResult | IntentResult,
     promptConfig: HAIPromptConfigMap = {},
+    methodCards: HanMethodCard[] = hanCourseMethodCards,
   ): HAIContextPackage {
     const limits = {
       caseMax: Math.max(0, Math.round(config?.caseMax ?? 3)),
@@ -23,13 +38,26 @@ export class HAIContextOrchestrator {
     const route = normalizeSemanticRoute(semanticRoute);
     const intent = route?.intent ?? classifyIntent(userQuestion);
     const memorySelection = selectMemory(userQuestion, intent);
-    const problemRewrite = route?.problem_rewrite ?? rewriteProblem(userQuestion, intent);
-    const diagnostic = routeDiagnosticFramework(intent.primary_intent, route?.diagnostic_module);
-    const diagnosticFramework = promptConfig[`diagnostic_module.${diagnostic.diagnostic_module}`] || diagnostic.diagnostic_framework;
+    const problemRewrite = route?.problem_rewrite ??
+      rewriteProblem(userQuestion, intent);
+    const diagnostic = routeDiagnosticFramework(
+      intent.primary_intent,
+      route?.diagnostic_module,
+    );
+    const diagnosticFramework =
+      promptConfig[`diagnostic_module.${diagnostic.diagnostic_module}`] ||
+      diagnostic.diagnostic_framework;
+    const customContextLayers = Object.entries(promptConfig)
+      .filter(([key, content]) =>
+        key.startsWith("custom_context.") && content.trim()
+      )
+      .map(([key, content]) => ({ key, content }));
     const retrievalPlan = planRetrieval(intent, problemRewrite);
     retrievalPlan.max_cases = limits.caseMax;
     retrievalPlan.max_methods = limits.methodMax;
-    retrievalPlan.max_theories = retrievalPlan.retrieve_theory ? limits.theoryMax : 0;
+    retrievalPlan.max_theories = retrievalPlan.retrieve_theory
+      ? limits.theoryMax
+      : 0;
     retrievalPlan.max_expressions = limits.expressionMax;
     const methodology = selectHanMethodology({
       question: userQuestion,
@@ -37,6 +65,7 @@ export class HAIContextOrchestrator {
       rewrite: problemRewrite,
       semanticRoute: route,
       maxMethods: limits.methodMax,
+      methodCards,
     });
     const cases = retrievalPlan.retrieve_cases
       ? selectLocalCases(intent, problemRewrite, retrievalPlan.max_cases)
@@ -49,17 +78,12 @@ export class HAIContextOrchestrator {
       user_question: userQuestion,
       core_identity: promptConfig.core_identity || coreIdentity,
       safety_boundaries: promptConfig.safety_boundaries || safetyBoundaries,
-      core_axioms: promptConfig.core_axioms,
-      han_methodology: promptConfig.han_methodology || hanMethodology,
-      methodology_focus: methodology.focus,
-      formula_bank: promptConfig.formula_bank,
-      response_composer_prompt: promptConfig.response_composer_prompt,
-      evaluator_prompt: promptConfig.response_evaluator_prompt || evaluatorPrompt,
       intent_result: intent,
       memory_selection: memorySelection,
       problem_rewrite: problemRewrite,
       diagnostic_framework: diagnosticFramework,
       diagnostic_module: diagnostic.diagnostic_module,
+      custom_context_layers: customContextLayers,
       retrieval_plan: retrievalPlan,
       retrieved_cases: cases,
       retrieved_methods: methodology.cards,
@@ -69,7 +93,9 @@ export class HAIContextOrchestrator {
   }
 }
 
-function normalizeSemanticRoute(value?: SemanticRouteResult | IntentResult): SemanticRouteResult | null {
+function normalizeSemanticRoute(
+  value?: SemanticRouteResult | IntentResult,
+): SemanticRouteResult | null {
   if (!value) return null;
   if ("intent" in value) return value;
   return { intent: value };

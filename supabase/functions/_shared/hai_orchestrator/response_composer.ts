@@ -48,6 +48,9 @@ export function buildComposedSystemPrompt(params: {
       `重写指令：\n${params.evaluation.rewrite_instructions}`,
     ].join("\n")
     : "";
+  const customContextText = (params.context.custom_context_layers ?? [])
+    .map((layer) => `【自定义上下文｜${layer.key}】\n${layer.content}`)
+    .join("\n\n");
 
   return [
     params.context.core_identity,
@@ -58,6 +61,8 @@ export function buildComposedSystemPrompt(params: {
       JSON.stringify(params.context.memory_selection)
     }\n${memoryText}\n只在相关时自然融入，不复述分类名；冲突时以当前输入为准。`,
     `【问题重构】\n${JSON.stringify(params.context.problem_rewrite)}`,
+    `【本轮诊断模块｜${params.context.diagnostic_module}】\n${params.context.diagnostic_framework}`,
+    customContextText,
     `【本轮方法卡】\n${methodCardText}\n方法卡必须真正改变判断和建议，不只报名称。回答中自然说出主方法名称和所属课程。完整方法先用一句交代全貌，再聚焦一个抓手。只展开一个主方法，辅助方法最多一句。`,
     `【风格要求】\n${params.context.style_pack}`,
     rewriteBlock,

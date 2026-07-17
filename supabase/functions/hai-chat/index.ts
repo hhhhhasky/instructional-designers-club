@@ -22,7 +22,12 @@ import {
 } from "../_shared/hai.ts";
 import { HAIContextOrchestrator } from "../_shared/hai_orchestrator/context_orchestrator.ts";
 import { classifyIntent } from "../_shared/hai_orchestrator/intent_classifier.ts";
-import { hanMethodCardIds } from "../_shared/hai_orchestrator/knowledge/method_bank/han_course_method_cards.ts";
+import {
+  hanCourseMethodCards,
+  type HanMethodCard,
+  type HanMethodCardConfigRow,
+  mergeHanMethodCards,
+} from "../_shared/hai_orchestrator/knowledge/method_bank/han_course_method_cards.ts";
 import { memoryCategoryMatchesTypes } from "../_shared/hai_orchestrator/memory_selector.ts";
 import {
   buildComposedSystemPrompt,
@@ -31,9 +36,14 @@ import {
 import { evaluateResponse } from "../_shared/hai_orchestrator/response_evaluator.ts";
 import {
   buildSemanticRouterPrompt,
+  semanticRouterAllowedDiagnosticModules,
   semanticRouterAllowedIntents,
+  semanticRouterAllowedScenes,
+  semanticRouterAllowedSupportDepths,
+  semanticRouterAllowedUserGoals,
 } from "../_shared/hai_orchestrator/semantic_router_prompt.ts";
 import type {
+  DiagnosticModuleName,
   HAIPromptConfigMap,
   HAITrace,
   IntentName,
@@ -42,6 +52,9 @@ import type {
   ProblemRewrite,
   RetrievalPlan,
   SemanticRouteResult,
+  SupportDepth,
+  TeachingScene,
+  UserGoal,
 } from "../_shared/hai_orchestrator/types.ts";
 
 type ModuleRow = {
@@ -147,12 +160,17 @@ Deno.serve(async (request) => {
     const orchestratorPromptConfig = runtime.contextOrchestratorEnabled
       ? await loadOrchestratorPromptConfigs(auth.admin)
       : {};
+    const methodCards = runtime.contextOrchestratorEnabled
+      ? await loadMethodCards(auth.admin)
+      : hanCourseMethodCards;
     const semanticRoute = runtime.contextOrchestratorEnabled
       ? await routeSemanticallyWithLlm({
         text,
         runtime,
         completionOptions,
         userId: auth.user.id,
+        promptConfig: orchestratorPromptConfig,
+        methodCards,
         onModelCall: capturePromptSnapshot
           ? (call) => promptModelCalls.push(call)
           : undefined,
@@ -169,6 +187,7 @@ Deno.serve(async (request) => {
         },
         semanticRoute ?? undefined,
         orchestratorPromptConfig,
+        methodCards,
       )
       : null;
     // Compact orchestration intentionally leaves material and generic knowledge
@@ -563,11 +582,31 @@ async function loadOrchestratorPromptConfigs(
   return map;
 }
 
+async function loadMethodCards(
+  admin: { from: (table: string) => any },
+): Promise<HanMethodCard[]> {
+  const { data, error } = await admin
+    .from("hai_method_card_configs")
+    .select(
+      "id, name, aliases, course, kind, ownership, priority, summary, use_when, avoid_when, core_judgement, moves, answer_focus, query_terms, intents, related, source_refs, enabled, is_deleted, updated_at",
+    );
+  if (error) {
+    console.warn("hai method card config load failed", error.message);
+    return hanCourseMethodCards;
+  }
+  return mergeHanMethodCards(
+    (data ?? []) as HanMethodCardConfigRow[],
+    hanCourseMethodCards,
+  );
+}
+
 async function routeSemanticallyWithLlm(params: {
   text: string;
   runtime: HaiRuntimeConfig;
   completionOptions: HaiChatCompletionOptions;
   userId: string;
+  promptConfig: HAIPromptConfigMap;
+  methodCards: HanMethodCard[];
   onModelCall?: (call: PromptSnapshotModelCall) => void;
 }): Promise<SemanticRouteResult> {
   const fallbackIntent = classifyIntent(params.text);
@@ -579,6 +618,14 @@ async function routeSemanticallyWithLlm(params: {
     const routerPrompt = buildSemanticRouterPrompt({
       question: params.text,
       fallbackIntent,
+      policyPrompt: params.promptConfig.semantic_router_prompt,
+      diagnosticModules: diagnosticModuleNamesFromPromptConfig(
+        params.promptConfig,
+      ),
+      diagnosticModuleCatalog: diagnosticModuleCatalogFromPromptConfig(
+        params.promptConfig,
+      ),
+      methodCards: params.methodCards,
     });
     const routerMessages: ChatMessage[] = [
       { role: "system", content: routerPrompt },
@@ -606,6 +653,8 @@ async function routeSemanticallyWithLlm(params: {
       JSON.parse(extractJsonObject(content)),
       params.text,
       fallbackIntent,
+      diagnosticModuleNamesFromPromptConfig(params.promptConfig),
+      new Set(params.methodCards.map((card) => card.id)),
     ) ?? { intent: fallbackIntent };
   } catch (error) {
     console.warn(
@@ -626,6 +675,9 @@ function normalizeSemanticRouteResult(
   value: unknown,
   question: string,
   fallback: IntentResult,
+  allowedDiagnosticModules: DiagnosticModuleName[] =
+    semanticRouterAllowedDiagnosticModules,
+  allowedMethodCardIds = new Set(hanCourseMethodCards.map((card) => card.id)),
 ): SemanticRouteResult | null {
   const record = normalizeRecord(value);
   const intentSource = "intent_result" in record
@@ -634,12 +686,14 @@ function normalizeSemanticRouteResult(
   const intent = normalizeIntentResult(intentSource, fallback);
   if (!intent) return null;
   const rewrite = normalizeProblemRewrite(record.problem_rewrite, question);
-  const diagnosticModule = normalizeIntentName(record.diagnostic_module) ??
-    intent.primary_intent;
+  const diagnosticModule = normalizeDiagnosticModuleName(
+    record.diagnostic_module,
+    allowedDiagnosticModules,
+  );
   const methodologyIds = Array.isArray(record.methodology_ids)
     ? record.methodology_ids
       .map((item) => String(item || "").trim())
-      .filter((item) => hanMethodCardIds.has(item))
+      .filter((item) => allowedMethodCardIds.has(item))
       .filter((item, index, all) => all.indexOf(item) === index)
       .slice(0, 2)
     : [];
@@ -655,7 +709,7 @@ function normalizeSemanticRouteResult(
       matched_signals: [],
     },
     problem_rewrite: rewrite ?? undefined,
-    diagnostic_module: diagnosticModule,
+    diagnostic_module: diagnosticModule ?? undefined,
     methodology_ids: methodologyIds,
     methodology_reason: nonEmptyString(record.methodology_reason) || undefined,
     methodology_confidence: Number.isFinite(methodologyConfidence)
@@ -680,6 +734,10 @@ function normalizeIntentResult(
   return {
     primary_intent: primary,
     secondary_intents: secondary,
+    scene: normalizeTeachingScene(record.scene) ?? fallback.scene,
+    user_goal: normalizeUserGoal(record.user_goal) ?? fallback.user_goal,
+    support_depth: normalizeSupportDepth(record.support_depth) ??
+      fallback.support_depth,
     explicit_need: String(record.explicit_need || fallback.explicit_need),
     implicit_need: String(record.implicit_need || fallback.implicit_need || ""),
     risk_of_wrong_framing: String(
@@ -725,6 +783,59 @@ function nonEmptyString(value: unknown) {
 function normalizeIntentName(value: unknown): IntentName | null {
   const intent = String(value || "").trim() as IntentName;
   return semanticRouterAllowedIntents.includes(intent) ? intent : null;
+}
+
+function normalizeDiagnosticModuleName(
+  value: unknown,
+  allowedModules: DiagnosticModuleName[] =
+    semanticRouterAllowedDiagnosticModules,
+): DiagnosticModuleName | null {
+  const module = String(value || "").trim() as DiagnosticModuleName;
+  return allowedModules.includes(module) ? module : null;
+}
+
+function diagnosticModuleNamesFromPromptConfig(
+  promptConfig: HAIPromptConfigMap,
+) {
+  return Array.from(
+    new Set([
+      ...semanticRouterAllowedDiagnosticModules,
+      ...Object.keys(promptConfig)
+        .filter((key) => key.startsWith("diagnostic_module."))
+        .map((key) => key.slice("diagnostic_module.".length))
+        .filter(Boolean),
+    ]),
+  );
+}
+
+function diagnosticModuleCatalogFromPromptConfig(
+  promptConfig: HAIPromptConfigMap,
+) {
+  const modules = Object.entries(promptConfig)
+    .filter(([key, content]) =>
+      key.startsWith("diagnostic_module.") && content.trim()
+    )
+    .map(([key, content]) => {
+      const id = key.slice("diagnostic_module.".length);
+      const summary = content.trim().split("\n")[0].slice(0, 100);
+      return `${id}｜${summary}`;
+    });
+  return modules.length > 0 ? modules.join("\n") : undefined;
+}
+
+function normalizeTeachingScene(value: unknown): TeachingScene | null {
+  const scene = String(value || "").trim() as TeachingScene;
+  return semanticRouterAllowedScenes.includes(scene) ? scene : null;
+}
+
+function normalizeUserGoal(value: unknown): UserGoal | null {
+  const goal = String(value || "").trim() as UserGoal;
+  return semanticRouterAllowedUserGoals.includes(goal) ? goal : null;
+}
+
+function normalizeSupportDepth(value: unknown): SupportDepth | null {
+  const depth = String(value || "").trim() as SupportDepth;
+  return semanticRouterAllowedSupportDepths.includes(depth) ? depth : null;
 }
 
 function extractJsonObject(text: string) {

@@ -23,6 +23,10 @@ create index if not exists hai_message_feedback_rating_created_idx
 
 alter table public.hai_message_feedback enable row level security;
 
+grant select, insert, update, delete
+  on public.hai_message_feedback
+  to authenticated, service_role;
+
 drop policy if exists "hai_message_feedback own or admin" on public.hai_message_feedback;
 create policy "hai_message_feedback own or admin"
   on public.hai_message_feedback for select to authenticated

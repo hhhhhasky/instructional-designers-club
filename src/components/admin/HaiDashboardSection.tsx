@@ -32,6 +32,12 @@ import {
   type HaiDashboardData,
   type HaiDashboardRangeDays,
 } from "@/db/hai-analytics";
+import {
+  haiIntentLabel,
+  haiSceneLabel,
+  haiSupportDepthLabel,
+  haiUserGoalLabel,
+} from "@/lib/hai-intents";
 
 const RANGE_OPTIONS: Array<{ value: HaiDashboardRangeDays; label: string }> = [
   { value: 7, label: "近 7 天" },
@@ -378,13 +384,16 @@ export default function HaiDashboardSection() {
           {data.recent_traces.map((trace) => (
             <div key={trace.id} className="rounded-ds-md border border-bd bg-bg p-3">
               <div className="flex flex-wrap items-center gap-1.5">
-                <Badge variant="outline">{trace.intent}</Badge>
+                <Badge variant="outline">{haiIntentLabel(trace.intent)}</Badge>
                 <Badge variant="outline" className={trace.passed === false ? "border-red-200 text-red-600" : "border-tl/30 text-tl"}>
                   {trace.score === null ? "未评分" : `${trace.score} 分`}
                 </Badge>
               </div>
               <p className="mt-3 line-clamp-3 text-ds-sm leading-relaxed text-tx">{trace.question}</p>
               <div className="mt-3 space-y-1 text-[11px] text-txs">
+                <p>场景：{haiSceneLabel(trace.scene)}</p>
+                <p>目的：{haiUserGoalLabel(trace.user_goal)}</p>
+                <p>支持：{haiSupportDepthLabel(trace.support_depth)}</p>
                 <p>路由：{trace.route_method}</p>
                 <p className="truncate">诊断：{trace.diagnostic_module}</p>
                 <p>{formatDateTime(trace.created_at)}</p>

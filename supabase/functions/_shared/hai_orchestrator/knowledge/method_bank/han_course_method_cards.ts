@@ -1,5 +1,19 @@
 import type { IntentName, IntentResult } from "../../types.ts";
 
+export type MethodIntentTag =
+  | "teaching_design"
+  | "lesson_plan_diagnosis"
+  | "public_lesson"
+  | "learning_profile"
+  | "classroom_management"
+  | "learning_motivation"
+  | "assessment_feedback"
+  | "ai_lesson_planning"
+  | "pbl_crossdisciplinary"
+  | "teacher_growth"
+  | "general_question"
+  | "unknown";
+
 export type HanMethodCardKind =
   | "methodology"
   | "framework"
@@ -25,9 +39,32 @@ export type HanMethodCard = {
   moves: string[];
   answerFocus: string;
   queryTerms: string[];
-  intents: IntentName[];
+  intents: MethodIntentTag[];
   related: string[];
   sourceRefs: string[];
+};
+
+export type HanMethodCardConfigRow = {
+  id: string;
+  name: string;
+  aliases: string[];
+  course: string;
+  kind: HanMethodCardKind;
+  ownership: HanMethodCard["ownership"];
+  priority: number;
+  summary: string;
+  use_when: string[];
+  avoid_when: string[];
+  core_judgement: string;
+  moves: string[];
+  answer_focus: string;
+  query_terms: string[];
+  intents: MethodIntentTag[];
+  related: string[];
+  source_refs: string[];
+  enabled: boolean;
+  is_deleted: boolean;
+  updated_at?: string;
 };
 
 export const hanCourseMethodCards: HanMethodCard[] = [
@@ -1593,12 +1630,35 @@ export const hanMethodCardIds = new Set(
   hanCourseMethodCards.map((card) => card.id),
 );
 
-export function getHanMethodCard(id: string) {
-  return hanCourseMethodCards.find((card) => card.id === id);
+export function mergeHanMethodCards(
+  rows: HanMethodCardConfigRow[],
+  defaults: HanMethodCard[] = hanCourseMethodCards,
+) {
+  const cards = new Map(defaults.map((card) => [card.id, card]));
+  for (const row of rows) {
+    if (!row.id) continue;
+    if (row.enabled === false || row.is_deleted === true) {
+      cards.delete(row.id);
+      continue;
+    }
+    cards.set(row.id, methodCardFromConfigRow(row));
+  }
+  return Array.from(cards.values()).sort((a, b) =>
+    b.priority - a.priority || a.id.localeCompare(b.id)
+  );
 }
 
-export function buildHanMethodCatalogForRouter() {
-  return hanCourseMethodCards.map((card) =>
+export function getHanMethodCard(
+  id: string,
+  cards: HanMethodCard[] = hanCourseMethodCards,
+) {
+  return cards.find((card) => card.id === id);
+}
+
+export function buildHanMethodCatalogForRouter(
+  cards: HanMethodCard[] = hanCourseMethodCards,
+) {
+  return cards.map((card) =>
     [
       card.id,
       card.name,
@@ -1610,8 +1670,10 @@ export function buildHanMethodCatalogForRouter() {
   ).join("\n");
 }
 
-export function buildHanMethodIndexForRouter() {
-  return hanCourseMethodCards.map((card) => `${card.id}｜${card.name}`).join(
+export function buildHanMethodIndexForRouter(
+  cards: HanMethodCard[] = hanCourseMethodCards,
+) {
+  return cards.map((card) => `${card.id}｜${card.name}`).join(
     "\n",
   );
 }
@@ -1620,13 +1682,14 @@ export function selectHanMethodCandidatesForRouter(
   question: string,
   intent: IntentResult,
   maxCandidates = 6,
+  cards: HanMethodCard[] = hanCourseMethodCards,
 ) {
   const limit = Math.max(0, Math.min(10, Math.round(maxCandidates)));
   if (limit === 0) return [];
   const normalizedQuestion = normalizeRouterText(question);
   const questionBigrams = toBigrams(normalizedQuestion);
 
-  return hanCourseMethodCards
+  return cards
     .map((card) => {
       let lexicalScore = 0;
       for (const term of [card.name, ...card.aliases, ...card.queryTerms]) {
@@ -1645,10 +1708,11 @@ export function selectHanMethodCandidatesForRouter(
       ].join(" "));
       const overlapScore = bigramRecall(questionBigrams, toBigrams(cardText)) *
         18;
-      const intentScore = card.intents.includes(intent.primary_intent)
+      const primaryIntentTag = methodIntentTagFor(intent.primary_intent);
+      const intentScore = card.intents.includes(primaryIntentTag)
         ? 4
         : (intent.secondary_intents ?? []).some((item) =>
-            card.intents.includes(item)
+            card.intents.includes(methodIntentTagFor(item))
           )
         ? 1.5
         : 0;
@@ -1664,18 +1728,32 @@ export function selectHanMethodCandidatesForRouter(
     .map((item) => item.card);
 }
 
+export function methodIntentTagFor(intent: IntentName): MethodIntentTag {
+  const map: Record<IntentName, MethodIntentTag> = {
+    showcase_lesson_diagnosis: "public_lesson",
+    showcase_lesson_design: "public_lesson",
+    daily_improvement_diagnosis: "lesson_plan_diagnosis",
+    daily_improvement_design: "teaching_design",
+    teaching_concept_qa: "general_question",
+    unknown: "unknown",
+  };
+  return map[intent];
+}
+
 export function buildHanMethodCandidateCatalogForRouter(
   question: string,
   intent: IntentResult,
   maxCandidates = 6,
+  cards: HanMethodCard[] = hanCourseMethodCards,
 ) {
-  const cards = selectHanMethodCandidatesForRouter(
+  const selectedCards = selectHanMethodCandidatesForRouter(
     question,
     intent,
     maxCandidates,
+    cards,
   );
-  if (cards.length === 0) return "无明显候选。";
-  return cards.map((card) =>
+  if (selectedCards.length === 0) return "无明显候选。";
+  return selectedCards.map((card) =>
     [
       card.id,
       card.name,
@@ -1684,6 +1762,28 @@ export function buildHanMethodCandidateCatalogForRouter(
       card.avoidWhen.length > 0 ? `边界：${card.avoidWhen.join("；")}` : "",
     ].filter(Boolean).join("｜")
   ).join("\n");
+}
+
+function methodCardFromConfigRow(row: HanMethodCardConfigRow): HanMethodCard {
+  return {
+    id: row.id,
+    name: row.name,
+    aliases: row.aliases ?? [],
+    course: row.course,
+    kind: row.kind,
+    ownership: row.ownership,
+    priority: Math.max(0, Math.min(100, Math.round(row.priority ?? 50))),
+    summary: row.summary ?? "",
+    useWhen: row.use_when ?? [],
+    avoidWhen: row.avoid_when ?? [],
+    coreJudgement: row.core_judgement ?? "",
+    moves: row.moves ?? [],
+    answerFocus: row.answer_focus ?? "",
+    queryTerms: row.query_terms ?? [],
+    intents: row.intents ?? [],
+    related: row.related ?? [],
+    sourceRefs: row.source_refs ?? [],
+  };
 }
 
 function normalizeRouterText(text: string) {

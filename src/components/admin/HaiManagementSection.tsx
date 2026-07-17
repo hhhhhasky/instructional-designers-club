@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { Bot, BookOpen, CheckCircle2, GitBranch, KeyRound, Layers3, Loader2, Pencil, RefreshCw, Route, Save, Settings2, SlidersHorizontal, Ticket, Trash2, UserPlus, X } from "lucide-react";
+import { Bot, BookOpen, CheckCircle2, GitBranch, KeyRound, Layers3, Loader2, Pencil, Plus, RefreshCw, Route, Save, Settings2, SlidersHorizontal, Ticket, Trash2, UserPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/db/supabase";
@@ -99,6 +99,97 @@ interface HaiOrchestratorPromptConfig {
   updated_at: string;
 }
 
+type HanMethodCardKind =
+  | "methodology"
+  | "framework"
+  | "method"
+  | "strategy"
+  | "consultation_standard";
+
+type HanMethodCardOwnership =
+  | "han_course"
+  | "course_adapted_theory"
+  | "consultation_calibration";
+
+type MethodIntentTag =
+  | "teaching_design"
+  | "lesson_plan_diagnosis"
+  | "public_lesson"
+  | "learning_profile"
+  | "classroom_management"
+  | "learning_motivation"
+  | "assessment_feedback"
+  | "ai_lesson_planning"
+  | "pbl_crossdisciplinary"
+  | "teacher_growth"
+  | "general_question"
+  | "unknown";
+
+interface HanMethodCard {
+  id: string;
+  name: string;
+  aliases: string[];
+  course: string;
+  kind: HanMethodCardKind;
+  ownership: HanMethodCardOwnership;
+  priority: number;
+  summary: string;
+  useWhen: string[];
+  avoidWhen: string[];
+  coreJudgement: string;
+  moves: string[];
+  answerFocus: string;
+  queryTerms: string[];
+  intents: MethodIntentTag[];
+  related: string[];
+  sourceRefs: string[];
+}
+
+interface HaiMethodCardConfigRow {
+  id: string;
+  name: string;
+  aliases: string[];
+  course: string;
+  kind: HanMethodCardKind;
+  ownership: HanMethodCardOwnership;
+  priority: number;
+  summary: string;
+  use_when: string[];
+  avoid_when: string[];
+  core_judgement: string;
+  moves: string[];
+  answer_focus: string;
+  query_terms: string[];
+  intents: MethodIntentTag[];
+  related: string[];
+  source_refs: string[];
+  enabled: boolean;
+  is_deleted: boolean;
+  updated_at: string;
+  created_at?: string;
+}
+
+type MethodCardAdminItem = HanMethodCard & {
+  enabled: boolean;
+  isBuiltin: boolean;
+  hasDatabaseOverride: boolean;
+  updatedAt: string | null;
+};
+
+type PromptConfigKind = "custom_context" | "diagnostic_module";
+
+const BASE_PROMPT_CONFIG_KEYS = new Set([
+  "core_identity",
+  "safety_boundaries",
+  "semantic_router_prompt",
+  "style_pack",
+  "diagnostic_module.showcase_lesson_diagnosis",
+  "diagnostic_module.showcase_lesson_design",
+  "diagnostic_module.daily_improvement_diagnosis",
+  "diagnostic_module.daily_improvement_design",
+  "diagnostic_module.teaching_concept_qa",
+]);
+
 export default function HaiManagementSection() {
   const [students, setStudents] = useState<StudentItem[]>([]);
   const [accessRows, setAccessRows] = useState<HaiUserAccessRow[]>([]);
@@ -109,8 +200,22 @@ export default function HaiManagementSection() {
   const [knowledgeSources, setKnowledgeSources] = useState<HaiKnowledgeSource[]>([]);
   const [runtimeSettings, setRuntimeSettings] = useState<HaiRuntimeSetting[]>([]);
   const [orchestratorPromptConfigs, setOrchestratorPromptConfigs] = useState<HaiOrchestratorPromptConfig[]>([]);
+  const [defaultMethodCards, setDefaultMethodCards] = useState<HanMethodCard[]>([]);
+  const [methodCardConfigRows, setMethodCardConfigRows] = useState<HaiMethodCardConfigRow[]>([]);
+  const [selectedMethodCardId, setSelectedMethodCardId] = useState("");
+  const [methodCardDraft, setMethodCardDraft] = useState<MethodCardAdminItem | null>(null);
+  const [methodCardSearch, setMethodCardSearch] = useState("");
+  const [creatingMethodCard, setCreatingMethodCard] = useState(false);
   const [selectedPromptConfigKey, setSelectedPromptConfigKey] = useState("");
   const [promptConfigDraft, setPromptConfigDraft] = useState("");
+  const [showPromptConfigCreator, setShowPromptConfigCreator] = useState(false);
+  const [promptConfigCreateDraft, setPromptConfigCreateDraft] = useState({
+    kind: "custom_context" as PromptConfigKind,
+    slug: "",
+    label: "",
+    description: "",
+    content: "",
+  });
   const promptConfigDraftKeyRef = useRef("");
   const [selectedUserId, setSelectedUserId] = useState("");
   const [studentSearch, setStudentSearch] = useState("");
@@ -158,13 +263,36 @@ export default function HaiManagementSection() {
     () => orchestratorPromptConfigs.find((item) => item.key === selectedPromptConfigKey) ?? orchestratorPromptConfigs[0] ?? null,
     [orchestratorPromptConfigs, selectedPromptConfigKey],
   );
+  const methodCardItems = useMemo(
+    () => buildMethodCardAdminItems(defaultMethodCards, methodCardConfigRows),
+    [defaultMethodCards, methodCardConfigRows],
+  );
+  const filteredMethodCardItems = useMemo(() => {
+    const keyword = methodCardSearch.trim().toLowerCase();
+    if (!keyword) return methodCardItems;
+    return methodCardItems.filter((card) =>
+      [
+        card.id,
+        card.name,
+        card.course,
+        card.summary,
+        ...card.aliases,
+        ...card.queryTerms,
+      ].some((value) => value.toLowerCase().includes(keyword))
+    );
+  }, [methodCardItems, methodCardSearch]);
+  const selectedMethodCard = useMemo(
+    () => methodCardItems.find((card) => card.id === selectedMethodCardId) ?? null,
+    [methodCardItems, selectedMethodCardId],
+  );
   const promptConfigDirty = selectedPromptConfig ? promptConfigDraft !== selectedPromptConfig.content : false;
   const promptConfigMatchesDefault = selectedPromptConfig ? promptConfigDraft.trim() === selectedPromptConfig.default_content.trim() : false;
   const enabledPromptConfigCount = orchestratorPromptConfigs.filter((item) => item.enabled).length;
   const promptConfigGroups = useMemo(() => {
     const groups = new Map<string, HaiOrchestratorPromptConfig[]>();
     for (const config of orchestratorPromptConfigs) {
-      const label = `${config.layer_order}｜${config.layer_key}`;
+      const statusLabel = config.enabled ? "当前生效" : "已停用 / 归档";
+      const label = `${statusLabel} · ${config.layer_order}｜${config.layer_key}`;
       groups.set(label, [...(groups.get(label) ?? []), config]);
     }
     return Array.from(groups.entries());
@@ -201,6 +329,15 @@ export default function HaiManagementSection() {
     }
   }, [selectedPromptConfig, promptConfigDirty]);
 
+  useEffect(() => {
+    if (creatingMethodCard) return;
+    if (!selectedMethodCard) {
+      setMethodCardDraft(null);
+      return;
+    }
+    setMethodCardDraft(cloneMethodCardAdminItem(selectedMethodCard));
+  }, [creatingMethodCard, selectedMethodCard]);
+
   async function loadAll() {
     setLoading(true);
     setLoadError("");
@@ -217,6 +354,7 @@ export default function HaiManagementSection() {
         knowledgeChunkResult,
         runtimeResult,
         orchestratorPromptResult,
+        methodCardResult,
       ] = await Promise.all([
         getAdminStudentList(),
         supabase
@@ -257,6 +395,7 @@ export default function HaiManagementSection() {
           .select("*")
           .order("layer_order", { ascending: true })
           .order("key", { ascending: true }),
+        supabase.functions.invoke("hai-method-cards-admin", { body: {} }),
       ]);
 
       if (accessResult.error) throw accessResult.error;
@@ -268,6 +407,7 @@ export default function HaiManagementSection() {
       if (knowledgeChunkResult.error) throw knowledgeChunkResult.error;
       if (runtimeResult.error) throw runtimeResult.error;
       if (orchestratorPromptResult.error) throw orchestratorPromptResult.error;
+      if (methodCardResult.error) throw methodCardResult.error;
 
       setStudents(studentRows);
       setAccessRows((accessResult.data as HaiUserAccessRow[]) ?? []);
@@ -289,6 +429,23 @@ export default function HaiManagementSection() {
       const promptConfigRows = (orchestratorPromptResult.data as HaiOrchestratorPromptConfig[]) ?? [];
       setOrchestratorPromptConfigs(promptConfigRows);
       setSelectedPromptConfigKey((current) => current || promptConfigRows[0]?.key || "");
+      const methodCardPayload = (methodCardResult.data ?? {}) as {
+        default_cards?: HanMethodCard[];
+        override_rows?: HaiMethodCardConfigRow[];
+      };
+      const methodCardDefaults = methodCardPayload.default_cards ?? [];
+      const methodCardRows = methodCardPayload.override_rows ?? [];
+      setDefaultMethodCards(methodCardDefaults);
+      setMethodCardConfigRows(methodCardRows);
+      const methodCards = buildMethodCardAdminItems(
+        methodCardDefaults,
+        methodCardRows,
+      );
+      setSelectedMethodCardId((current) =>
+        methodCards.some((card) => card.id === current)
+          ? current
+          : methodCards[0]?.id ?? ""
+      );
     } catch (error) {
       const message = error instanceof Error ? error.message : "未知错误";
       setLoadError(message);
@@ -415,6 +572,273 @@ export default function HaiManagementSection() {
     if (!selectedPromptConfig || saving) return;
     setPromptConfigDraft(selectedPromptConfig.default_content);
     await updateOrchestratorPromptConfig(selectedPromptConfig, { content: selectedPromptConfig.default_content });
+  }
+
+  async function createOrchestratorPromptConfig() {
+    if (saving) return;
+    const slug = normalizePromptConfigSlug(promptConfigCreateDraft.slug);
+    const content = promptConfigCreateDraft.content.trim();
+    const label = promptConfigCreateDraft.label.trim();
+    if (!slug || !content || !label) {
+      setStatus("新增失败：请填写名称、英文标识和提示词内容。");
+      return;
+    }
+    const prefix = promptConfigCreateDraft.kind === "diagnostic_module"
+      ? "diagnostic_module"
+      : "custom_context";
+    const key = `${prefix}.${slug}`;
+    if (orchestratorPromptConfigs.some((item) => item.key === key)) {
+      setStatus(`新增失败：${key} 已存在。`);
+      return;
+    }
+    setSaving(true);
+    setStatus("");
+    try {
+      const now = new Date().toISOString();
+      const row: HaiOrchestratorPromptConfig = {
+        key,
+        layer_order: promptConfigCreateDraft.kind === "diagnostic_module" ? 4 : 6,
+        layer_key: prefix,
+        label,
+        description: promptConfigCreateDraft.description.trim() ||
+          (promptConfigCreateDraft.kind === "diagnostic_module"
+            ? "管理员新增的动态诊断模块。保存后自动进入语义路由候选。"
+            : "管理员新增的通用上下文层。启用后自动注入回答编排。"),
+        content,
+        default_content: content,
+        enabled: true,
+        updated_at: now,
+      };
+      const { error } = await supabase
+        .from("hai_orchestrator_prompt_configs")
+        .insert(row);
+      if (error) throw error;
+      setOrchestratorPromptConfigs((current) =>
+        sortPromptConfigs([...current, row])
+      );
+      setSelectedPromptConfigKey(key);
+      setPromptConfigCreateDraft({
+        kind: "custom_context",
+        slug: "",
+        label: "",
+        description: "",
+        content: "",
+      });
+      setShowPromptConfigCreator(false);
+      setStatus(promptConfigCreateDraft.kind === "diagnostic_module"
+        ? "新的诊断模块已创建，并已同步到语义路由和后端数据库。"
+        : "新的上下文层已创建，并已同步到回答编排和后端数据库。");
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "未知错误";
+      setStatus(`新增失败：${msg}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteOrchestratorPromptConfig(
+    config: HaiOrchestratorPromptConfig,
+  ) {
+    if (saving || BASE_PROMPT_CONFIG_KEYS.has(config.key)) return;
+    if (!window.confirm(`确定删除“${config.label}”吗？删除后会立即停止注入 HAI。`)) {
+      return;
+    }
+    setSaving(true);
+    setStatus("");
+    try {
+      const { error } = await supabase
+        .from("hai_orchestrator_prompt_configs")
+        .delete()
+        .eq("key", config.key);
+      if (error) throw error;
+      const remaining = orchestratorPromptConfigs.filter((item) =>
+        item.key !== config.key
+      );
+      setOrchestratorPromptConfigs(remaining);
+      setSelectedPromptConfigKey(remaining[0]?.key ?? "");
+      setStatus("上下文层已删除，并已从后端数据库和运行时编排中移除。");
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "未知错误";
+      setStatus(`删除上下文失败：${msg}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function startCreateMethodCard() {
+    setCreatingMethodCard(true);
+    setSelectedMethodCardId("");
+    setMethodCardDraft(createEmptyMethodCardDraft());
+  }
+
+  function cancelCreateMethodCard() {
+    setCreatingMethodCard(false);
+    const fallback = methodCardItems[0] ?? null;
+    setSelectedMethodCardId(fallback?.id ?? "");
+    setMethodCardDraft(fallback ? cloneMethodCardAdminItem(fallback) : null);
+  }
+
+  async function saveMethodCard() {
+    if (!methodCardDraft || saving) return;
+    const normalizedId = normalizePromptConfigSlug(methodCardDraft.id);
+    const normalized = {
+      ...methodCardDraft,
+      id: normalizedId,
+      name: methodCardDraft.name.trim(),
+      course: methodCardDraft.course.trim(),
+      summary: methodCardDraft.summary.trim(),
+      coreJudgement: methodCardDraft.coreJudgement.trim(),
+      answerFocus: methodCardDraft.answerFocus.trim(),
+    };
+    if (
+      !normalized.id ||
+      !normalized.name ||
+      !normalized.course ||
+      !normalized.summary ||
+      !normalized.coreJudgement ||
+      !normalized.answerFocus
+    ) {
+      setStatus("方法卡保存失败：请填写标识、名称、课程、摘要、核心判断和回答聚焦。");
+      return;
+    }
+    if (
+      creatingMethodCard &&
+      methodCardItems.some((card) => card.id === normalized.id)
+    ) {
+      setStatus(`方法卡保存失败：${normalized.id} 已存在。`);
+      return;
+    }
+    setSaving(true);
+    setStatus("");
+    try {
+      const now = new Date().toISOString();
+      const row = methodCardToConfigRow(normalized, now);
+      const { error } = await supabase
+        .from("hai_method_card_configs")
+        .upsert(row);
+      if (error) throw error;
+      setMethodCardConfigRows((current) => [
+        ...current.filter((item) => item.id !== row.id),
+        row,
+      ]);
+      setCreatingMethodCard(false);
+      setSelectedMethodCardId(row.id);
+      setStatus("方法卡已保存到后端数据库，并已同步到语义路由和回答编排。");
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "未知错误";
+      setStatus(`方法卡保存失败：${msg}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function toggleMethodCard(card: MethodCardAdminItem) {
+    if (saving) return;
+    setMethodCardDraft((current) =>
+      current?.id === card.id ? { ...current, enabled: !card.enabled } : current
+    );
+    await persistMethodCardOverride(
+      { ...card, enabled: !card.enabled },
+      !card.enabled ? "方法卡已启用。" : "方法卡已停用，运行时不会再选择它。",
+    );
+  }
+
+  async function resetMethodCardToDefault(card: MethodCardAdminItem) {
+    if (saving || !card.isBuiltin || !card.hasDatabaseOverride) return;
+    if (!window.confirm(`确定把“${card.name}”恢复为代码默认版本吗？`)) {
+      return;
+    }
+    setSaving(true);
+    setStatus("");
+    try {
+      const { error } = await supabase
+        .from("hai_method_card_configs")
+        .delete()
+        .eq("id", card.id);
+      if (error) throw error;
+      setMethodCardConfigRows((current) =>
+        current.filter((item) => item.id !== card.id)
+      );
+      const defaultCard = defaultMethodCards.find((item) => item.id === card.id);
+      setMethodCardDraft(defaultCard
+        ? cloneMethodCardAdminItem(toDefaultMethodCardAdminItem(defaultCard))
+        : null);
+      setStatus("方法卡已恢复为代码默认版本。");
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "未知错误";
+      setStatus(`方法卡恢复失败：${msg}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteMethodCard(card: MethodCardAdminItem) {
+    if (saving) return;
+    if (!window.confirm(`确定删除“${card.name}”吗？删除后路由不会再选择它。`)) {
+      return;
+    }
+    setSaving(true);
+    setStatus("");
+    try {
+      if (card.isBuiltin) {
+        const row = methodCardToConfigRow(
+          { ...card, enabled: false },
+          new Date().toISOString(),
+          true,
+        );
+        const { error } = await supabase
+          .from("hai_method_card_configs")
+          .upsert(row);
+        if (error) throw error;
+        setMethodCardConfigRows((current) => [
+          ...current.filter((item) => item.id !== row.id),
+          row,
+        ]);
+      } else {
+        const { error } = await supabase
+          .from("hai_method_card_configs")
+          .delete()
+          .eq("id", card.id);
+        if (error) throw error;
+        setMethodCardConfigRows((current) =>
+          current.filter((item) => item.id !== card.id)
+        );
+      }
+      setCreatingMethodCard(false);
+      setSelectedMethodCardId("");
+      setMethodCardDraft(null);
+      setStatus("方法卡已删除，并已从路由候选和回答上下文中移除。");
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "未知错误";
+      setStatus(`方法卡删除失败：${msg}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function persistMethodCardOverride(
+    card: MethodCardAdminItem,
+    successMessage: string,
+  ) {
+    setSaving(true);
+    setStatus("");
+    try {
+      const row = methodCardToConfigRow(card, new Date().toISOString());
+      const { error } = await supabase
+        .from("hai_method_card_configs")
+        .upsert(row);
+      if (error) throw error;
+      setMethodCardConfigRows((current) => [
+        ...current.filter((item) => item.id !== row.id),
+        row,
+      ]);
+      setStatus(successMessage);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "未知错误";
+      setStatus(`方法卡保存失败：${msg}`);
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function updateQuota(policy: HaiQuotaPolicy, updates: Partial<HaiQuotaPolicy>) {
@@ -686,9 +1110,10 @@ export default function HaiManagementSection() {
     <div className="space-y-6">
       {status && (
         <div className={`rounded-ds-md border px-4 py-3 text-ds-sm ${
-          status.startsWith("创建失败") || status.startsWith("授权失败") || status.startsWith("发布失败") || status.startsWith("入库失败")
+          status.startsWith("创建失败") || status.startsWith("新增失败") || status.startsWith("授权失败") || status.startsWith("发布失败") || status.startsWith("入库失败")
             || status.startsWith("删除失败") || status.startsWith("重新分块失败") || status.startsWith("加载原文失败") || status.startsWith("修改失败")
-            || status.startsWith("编排配置保存失败")
+            || status.startsWith("编排配置保存失败") || status.startsWith("删除上下文失败")
+            || status.startsWith("方法卡保存失败") || status.startsWith("方法卡删除失败") || status.startsWith("方法卡恢复失败")
             ? "border-red-200 bg-red-50 text-red-700"
             : "border-bd bg-white text-tx"
         }`}>
@@ -702,7 +1127,7 @@ export default function HaiManagementSection() {
             <GitBranch className="h-5 w-5 shrink-0 text-ac" />
             <div className="min-w-0">
               <h2 className="text-ds-lg font-ds-bold text-tx">上下文编排</h2>
-              <p className="mt-1 text-ds-xs text-txs">单聊链路：意图识别、按需记忆、问题重构、诊断框架、检索规划、回答质检与 trace。</p>
+              <p className="mt-1 text-ds-xs text-txs">单聊链路：场景与用户目的识别、按需记忆、问题重构、诊断框架、检索规划、回答质检与 trace。</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -715,9 +1140,10 @@ export default function HaiManagementSection() {
           </div>
         </div>
 
-        <div className="grid gap-3 xl:grid-cols-4">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <MetricCard icon={<Route className="h-4 w-4" />} label="核心链路" value={orchestratorEnabled ? "Context Orchestrator" : "Legacy Prompt"} />
           <MetricCard icon={<Layers3 className="h-4 w-4" />} label="可编辑层" value={`${enabledPromptConfigCount}/${orchestratorPromptConfigs.length || 0}`} />
+          <MetricCard icon={<BookOpen className="h-4 w-4" />} label="课程方法卡" value={`${methodCardItems.filter((card) => card.enabled).length}/${methodCardItems.length || 0}`} />
           <MetricCard icon={<Settings2 className="h-4 w-4" />} label="启用参数" value={`${runtimeSettings.filter((setting) => setting.enabled).length}/${runtimeSettings.length || 0}`} />
           <MetricCard icon={<CheckCircle2 className="h-4 w-4" />} label="当前版本" value={currentPrompt?.version_label ?? "未发布"} />
         </div>
@@ -752,7 +1178,7 @@ export default function HaiManagementSection() {
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="rounded-ds-md border border-bd bg-bg p-3">
                   <p className="text-ds-sm font-ds-bold text-tx">LLM 主路由</p>
-                  <p className="mt-2 text-ds-xs leading-relaxed text-txs">每轮先由 LLM 语义判断真实意图、问题重构和诊断模块，重点处理公开课、说课、日常课、教案诊断和局部设计咨询的真实需求差异。</p>
+                  <p className="mt-2 text-ds-xs leading-relaxed text-txs">每轮先由 LLM 识别公开课、说课、赛课或日常提分场景，再判断用户要诊断已有方案、获得设计思路，还是进行教学概念答疑。局部示范只提供结构样例和局部改法，不生成完整教案或完整说课稿。</p>
                 </div>
                 <div className="rounded-ds-md border border-bd bg-bg p-3">
                   <p className="text-ds-sm font-ds-bold text-tx">代码降级</p>
@@ -777,10 +1203,87 @@ export default function HaiManagementSection() {
             )}
 
             <div>
-              <div className="mb-2 flex items-center gap-2">
-                <Layers3 className="h-4 w-4 text-ac" />
-                <h3 className="text-ds-base font-ds-bold text-tx">分层上下文</h3>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Layers3 className="h-4 w-4 text-ac" />
+                  <div>
+                    <h3 className="text-ds-base font-ds-bold text-tx">分层上下文</h3>
+                    <p className="mt-1 text-[11px] text-txs">基础层保持精简；新增普通上下文会注入回答，新增诊断模块会自动进入语义路由候选。</p>
+                  </div>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => setShowPromptConfigCreator((current) => !current)}>
+                  {showPromptConfigCreator ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                  {showPromptConfigCreator ? "取消新增" : "新增可编辑层"}
+                </Button>
               </div>
+              {showPromptConfigCreator && (
+                <div className="mb-3 rounded-ds-md border border-ac/20 bg-ac/5 p-3">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <label className="text-ds-xs text-txs">
+                      层类型
+                      <select
+                        value={promptConfigCreateDraft.kind}
+                        onChange={(event) => setPromptConfigCreateDraft((current) => ({
+                          ...current,
+                          kind: event.target.value as PromptConfigKind,
+                        }))}
+                        className="mt-1 h-10 w-full rounded-ds-md border border-bd bg-white px-3 text-ds-sm text-tx"
+                      >
+                        <option value="custom_context">普通上下文层</option>
+                        <option value="diagnostic_module">诊断模块</option>
+                      </select>
+                    </label>
+                    <label className="text-ds-xs text-txs">
+                      显示名称
+                      <input
+                        value={promptConfigCreateDraft.label}
+                        onChange={(event) => setPromptConfigCreateDraft((current) => ({ ...current, label: event.target.value }))}
+                        placeholder={promptConfigCreateDraft.kind === "diagnostic_module" ? "例如：诊断模块：课堂管理" : "例如：回答案例边界"}
+                        className="mt-1 h-10 w-full rounded-ds-md border border-bd bg-white px-3 text-ds-sm text-tx"
+                      />
+                    </label>
+                    <label className="text-ds-xs text-txs">
+                      英文标识
+                      <input
+                        value={promptConfigCreateDraft.slug}
+                        onChange={(event) => setPromptConfigCreateDraft((current) => ({ ...current, slug: event.target.value }))}
+                        placeholder="例如 classroom_management"
+                        className="mt-1 h-10 w-full rounded-ds-md border border-bd bg-white px-3 text-ds-sm text-tx"
+                      />
+                      <span className="mt-1 block">数据库键：{promptConfigCreateDraft.kind}.{normalizePromptConfigSlug(promptConfigCreateDraft.slug) || "your_key"}</span>
+                    </label>
+                    <label className="text-ds-xs text-txs">
+                      用途说明
+                      <input
+                        value={promptConfigCreateDraft.description}
+                        onChange={(event) => setPromptConfigCreateDraft((current) => ({ ...current, description: event.target.value }))}
+                        placeholder="说明何时使用这一层"
+                        className="mt-1 h-10 w-full rounded-ds-md border border-bd bg-white px-3 text-ds-sm text-tx"
+                      />
+                    </label>
+                  </div>
+                  <label className="mt-3 block text-ds-xs text-txs">
+                    提示词内容
+                    <textarea
+                      value={promptConfigCreateDraft.content}
+                      onChange={(event) => setPromptConfigCreateDraft((current) => ({ ...current, content: event.target.value }))}
+                      placeholder={promptConfigCreateDraft.kind === "diagnostic_module" ? "写明适用场景、诊断重点、常见误区和回答要求。" : "写明希望 HAI 每次回答都遵循的补充上下文。"}
+                      className="mt-1 min-h-36 w-full rounded-ds-md border border-bd bg-white px-3 py-2 text-ds-sm leading-relaxed text-tx"
+                    />
+                  </label>
+                  <div className="mt-3 flex justify-end">
+                    <Button
+                      size="sm"
+                      className="bg-ac text-white hover:bg-acd"
+                      disabled={saving || !promptConfigCreateDraft.label.trim() || !normalizePromptConfigSlug(promptConfigCreateDraft.slug) || !promptConfigCreateDraft.content.trim()}
+                      onClick={createOrchestratorPromptConfig}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      创建并同步
+                    </Button>
+                  </div>
+                </div>
+              )}
               <div className="grid gap-3 lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,1.2fr)]">
                 <div className="max-h-[520px] overflow-auto rounded-ds-md border border-bd bg-bg p-2">
                   {promptConfigGroups.length === 0 ? (
@@ -819,6 +1322,9 @@ export default function HaiManagementSection() {
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="text-ds-sm font-ds-bold text-tx">{selectedPromptConfig.label}</p>
+                            {selectedPromptConfig.key === "semantic_router_prompt" && selectedPromptConfig.enabled && (
+                              <Badge variant="outline" className="border-ac/30 text-ac">运行时路由策略</Badge>
+                            )}
                             {promptConfigDirty && <Badge variant="outline" className="border-amber-200 text-amber-700">未保存</Badge>}
                             {promptConfigMatchesDefault && <Badge variant="outline" className="border-bd text-txs">默认内容</Badge>}
                           </div>
@@ -829,9 +1335,10 @@ export default function HaiManagementSection() {
                             <input
                               type="checkbox"
                               checked={selectedPromptConfig.enabled}
+                              disabled={BASE_PROMPT_CONFIG_KEYS.has(selectedPromptConfig.key)}
                               onChange={(event) => updateOrchestratorPromptConfig(selectedPromptConfig, { enabled: event.target.checked })}
                             />
-                            启用
+                            {BASE_PROMPT_CONFIG_KEYS.has(selectedPromptConfig.key) ? "基础层" : "启用"}
                           </label>
                           <Button size="sm" variant="outline" disabled={saving} onClick={resetSelectedPromptConfig}>
                             <RefreshCw className="h-3.5 w-3.5" />
@@ -841,6 +1348,12 @@ export default function HaiManagementSection() {
                             <Save className="h-3.5 w-3.5" />
                             保存
                           </Button>
+                          {!BASE_PROMPT_CONFIG_KEYS.has(selectedPromptConfig.key) && (
+                            <Button size="sm" variant="outline" className="border-red-200 text-red-600 hover:bg-red-50" disabled={saving} onClick={() => deleteOrchestratorPromptConfig(selectedPromptConfig)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                              删除
+                            </Button>
+                          )}
                         </div>
                       </div>
                       <textarea
@@ -856,6 +1369,334 @@ export default function HaiManagementSection() {
                     </div>
                   ) : (
                     <p className="px-3 py-12 text-center text-ds-sm text-txs">选择一个编排层后编辑。</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-ac" />
+                  <div>
+                    <h3 className="text-ds-base font-ds-bold text-tx">课程方法卡</h3>
+                    <p className="mt-1 text-[11px] text-txs">
+                      默认方法卡可由数据库覆盖；新增、修改、启停和删除会同步影响语义路由与最终回答。
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className="border-ac/30 text-ac">
+                    {methodCardItems.filter((card) => card.enabled).length}/{methodCardItems.length} 启用
+                  </Badge>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={creatingMethodCard ? cancelCreateMethodCard : startCreateMethodCard}
+                  >
+                    {creatingMethodCard ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                    {creatingMethodCard ? "取消新增" : "新增方法卡"}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid gap-3 lg:grid-cols-[minmax(240px,0.72fr)_minmax(0,1.28fr)]">
+                <div className="rounded-ds-md border border-bd bg-bg p-2">
+                  <input
+                    value={methodCardSearch}
+                    onChange={(event) => setMethodCardSearch(event.target.value)}
+                    placeholder="搜索名称、课程、标识或关键词"
+                    className="mb-2 h-9 w-full rounded-ds-sm border border-bd bg-white px-2 text-ds-sm"
+                  />
+                  <div className="max-h-[680px] space-y-1 overflow-auto">
+                    {filteredMethodCardItems.map((card) => (
+                      <button
+                        key={card.id}
+                        type="button"
+                        onClick={() => {
+                          setCreatingMethodCard(false);
+                          setSelectedMethodCardId(card.id);
+                        }}
+                        className={`w-full rounded-ds-sm border px-2 py-2 text-left transition ${
+                          selectedMethodCardId === card.id && !creatingMethodCard
+                            ? "border-ac/40 bg-white"
+                            : "border-transparent hover:bg-white"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="min-w-0 truncate text-ds-sm font-ds-bold text-tx">
+                            {card.name}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className={card.enabled
+                              ? "shrink-0 border-ac/30 text-ac"
+                              : "shrink-0 border-bd text-txs"}
+                          >
+                            {card.enabled ? "启用" : "停用"}
+                          </Badge>
+                        </div>
+                        <p className="mt-1 truncate text-[11px] text-txs">
+                          {card.course} · {card.id}
+                        </p>
+                        <p className="mt-1 text-[11px] text-txs">
+                          {card.hasDatabaseOverride ? "数据库版本" : "代码默认"}
+                        </p>
+                      </button>
+                    ))}
+                    {filteredMethodCardItems.length === 0 && (
+                      <p className="px-3 py-10 text-center text-ds-sm text-txs">
+                        没有匹配的方法卡。
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-ds-md border border-bd bg-bg p-3">
+                  {methodCardDraft ? (
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-ds-sm font-ds-bold text-tx">
+                              {creatingMethodCard ? "新增课程方法卡" : methodCardDraft.name}
+                            </p>
+                            {!creatingMethodCard && (
+                              <Badge variant="outline" className="border-bd text-txs">
+                                {methodCardDraft.hasDatabaseOverride ? "数据库覆盖" : "代码默认"}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="mt-1 text-[11px] text-txs">
+                            方法卡名称、适用边界、判断逻辑、动作与关键词都会参与路由和回答。
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {!creatingMethodCard && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={saving}
+                              onClick={() => void toggleMethodCard(methodCardDraft)}
+                            >
+                              {methodCardDraft.enabled ? "停用" : "启用"}
+                            </Button>
+                          )}
+                          {!creatingMethodCard &&
+                            methodCardDraft.isBuiltin &&
+                            methodCardDraft.hasDatabaseOverride && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={saving}
+                              onClick={() => void resetMethodCardToDefault(methodCardDraft)}
+                            >
+                              <RefreshCw className="h-3.5 w-3.5" />
+                              恢复默认
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            className="bg-ac text-white hover:bg-acd"
+                            disabled={saving}
+                            onClick={() => void saveMethodCard()}
+                          >
+                            <Save className="h-3.5 w-3.5" />
+                            保存
+                          </Button>
+                          {!creatingMethodCard && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-red-200 text-red-600 hover:bg-red-50"
+                              disabled={saving}
+                              onClick={() => void deleteMethodCard(methodCardDraft)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              删除
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                        <MethodCardTextField
+                          label="英文标识"
+                          value={methodCardDraft.id}
+                          disabled={!creatingMethodCard}
+                          onChange={(value) => setMethodCardDraft((current) =>
+                            current ? { ...current, id: normalizePromptConfigSlug(value) } : current
+                          )}
+                        />
+                        <MethodCardTextField
+                          label="方法名称"
+                          value={methodCardDraft.name}
+                          onChange={(value) => setMethodCardDraft((current) =>
+                            current ? { ...current, name: value } : current
+                          )}
+                        />
+                        <MethodCardTextField
+                          label="所属课程"
+                          value={methodCardDraft.course}
+                          onChange={(value) => setMethodCardDraft((current) =>
+                            current ? { ...current, course: value } : current
+                          )}
+                        />
+                        <label className="text-ds-xs text-txs">
+                          类型
+                          <select
+                            value={methodCardDraft.kind}
+                            onChange={(event) => setMethodCardDraft((current) =>
+                              current
+                                ? { ...current, kind: event.target.value as HanMethodCard["kind"] }
+                                : current
+                            )}
+                            className="mt-1 h-10 w-full rounded-ds-md border border-bd bg-white px-3 text-ds-sm text-tx"
+                          >
+                            <option value="methodology">总方法论</option>
+                            <option value="framework">框架</option>
+                            <option value="method">方法</option>
+                            <option value="strategy">策略</option>
+                            <option value="consultation_standard">咨询校准标准</option>
+                          </select>
+                        </label>
+                        <label className="text-ds-xs text-txs">
+                          来源归属
+                          <select
+                            value={methodCardDraft.ownership}
+                            onChange={(event) => setMethodCardDraft((current) =>
+                              current
+                                ? { ...current, ownership: event.target.value as HanMethodCard["ownership"] }
+                                : current
+                            )}
+                            className="mt-1 h-10 w-full rounded-ds-md border border-bd bg-white px-3 text-ds-sm text-tx"
+                          >
+                            <option value="han_course">哈老师课程方法</option>
+                            <option value="course_adapted_theory">课程吸收改造理论</option>
+                            <option value="consultation_calibration">咨询反馈校准</option>
+                          </select>
+                        </label>
+                        <label className="text-ds-xs text-txs">
+                          路由优先级
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={methodCardDraft.priority}
+                            onChange={(event) => setMethodCardDraft((current) =>
+                              current
+                                ? {
+                                  ...current,
+                                  priority: Math.max(0, Math.min(100, Number(event.target.value) || 0)),
+                                }
+                                : current
+                            )}
+                            className="mt-1 h-10 w-full rounded-ds-md border border-bd bg-white px-3 text-ds-sm text-tx"
+                          />
+                        </label>
+                      </div>
+
+                      <MethodCardTextarea
+                        label="方法摘要"
+                        value={methodCardDraft.summary}
+                        onChange={(value) => setMethodCardDraft((current) =>
+                          current ? { ...current, summary: value } : current
+                        )}
+                      />
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <MethodCardListField
+                          label="别名"
+                          value={methodCardDraft.aliases}
+                          placeholder="每行一个别名"
+                          onChange={(value) => setMethodCardDraft((current) =>
+                            current ? { ...current, aliases: value } : current
+                          )}
+                        />
+                        <MethodCardListField
+                          label="路由关键词"
+                          value={methodCardDraft.queryTerms}
+                          placeholder="每行一个关键词或用户表达"
+                          onChange={(value) => setMethodCardDraft((current) =>
+                            current ? { ...current, queryTerms: value } : current
+                          )}
+                        />
+                        <MethodCardListField
+                          label="适用情境"
+                          value={methodCardDraft.useWhen}
+                          placeholder="每行一个适用条件"
+                          onChange={(value) => setMethodCardDraft((current) =>
+                            current ? { ...current, useWhen: value } : current
+                          )}
+                        />
+                        <MethodCardListField
+                          label="不适用边界"
+                          value={methodCardDraft.avoidWhen}
+                          placeholder="每行一个不适用条件"
+                          onChange={(value) => setMethodCardDraft((current) =>
+                            current ? { ...current, avoidWhen: value } : current
+                          )}
+                        />
+                      </div>
+                      <MethodCardTextarea
+                        label="核心判断"
+                        value={methodCardDraft.coreJudgement}
+                        onChange={(value) => setMethodCardDraft((current) =>
+                          current ? { ...current, coreJudgement: value } : current
+                        )}
+                      />
+                      <MethodCardListField
+                        label="操作动作"
+                        value={methodCardDraft.moves}
+                        placeholder="每行一个可执行动作"
+                        onChange={(value) => setMethodCardDraft((current) =>
+                          current ? { ...current, moves: value } : current
+                        )}
+                      />
+                      <MethodCardTextarea
+                        label="回答聚焦"
+                        value={methodCardDraft.answerFocus}
+                        onChange={(value) => setMethodCardDraft((current) =>
+                          current ? { ...current, answerFocus: value } : current
+                        )}
+                      />
+                      <div className="grid gap-3 md:grid-cols-3">
+                        <MethodCardListField
+                          label="适用诊断标签"
+                          value={methodCardDraft.intents}
+                          placeholder="如 teaching_design"
+                          onChange={(value) => setMethodCardDraft((current) =>
+                            current
+                              ? { ...current, intents: value as HanMethodCard["intents"] }
+                              : current
+                          )}
+                        />
+                        <MethodCardListField
+                          label="关联方法卡 ID"
+                          value={methodCardDraft.related}
+                          placeholder="每行一个关联 ID"
+                          onChange={(value) => setMethodCardDraft((current) =>
+                            current ? { ...current, related: value } : current
+                          )}
+                        />
+                        <MethodCardListField
+                          label="资料来源"
+                          value={methodCardDraft.sourceRefs}
+                          placeholder="每行一个文件或来源"
+                          onChange={(value) => setMethodCardDraft((current) =>
+                            current ? { ...current, sourceRefs: value } : current
+                          )}
+                        />
+                      </div>
+                      <p className="text-[11px] text-txs">
+                        {methodCardDraft.updatedAt
+                          ? `数据库更新于 ${formatDateTime(methodCardDraft.updatedAt)}`
+                          : "当前为代码默认版本，保存后会生成数据库覆盖记录。"}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="px-3 py-16 text-center text-ds-sm text-txs">
+                      选择一张方法卡，或新增方法卡。
+                    </p>
                   )}
                 </div>
               </div>
@@ -1570,5 +2411,247 @@ function RuntimeSettingInput({
         {setting.unit && <span className="shrink-0 text-ds-xs text-txs">{setting.unit}</span>}
       </div>
     </label>
+  );
+}
+
+function MethodCardTextField({
+  label,
+  value,
+  disabled = false,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  disabled?: boolean;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="text-ds-xs text-txs">
+      {label}
+      <input
+        value={value}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-1 h-10 w-full rounded-ds-md border border-bd bg-white px-3 text-ds-sm text-tx disabled:bg-bdl disabled:text-txs"
+      />
+    </label>
+  );
+}
+
+function MethodCardTextarea({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block text-ds-xs text-txs">
+      {label}
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-1 min-h-24 w-full rounded-ds-md border border-bd bg-white px-3 py-2 text-ds-sm leading-relaxed text-tx"
+      />
+    </label>
+  );
+}
+
+function MethodCardListField({
+  label,
+  value,
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  value: string[];
+  placeholder: string;
+  onChange: (value: string[]) => void;
+}) {
+  return (
+    <label className="block text-ds-xs text-txs">
+      {label}
+      <textarea
+        value={value.join("\n")}
+        placeholder={placeholder}
+        onChange={(event) => onChange(splitMethodCardLines(event.target.value))}
+        className="mt-1 min-h-28 w-full rounded-ds-md border border-bd bg-white px-3 py-2 text-ds-sm leading-relaxed text-tx"
+      />
+    </label>
+  );
+}
+
+function buildMethodCardAdminItems(
+  defaultCards: HanMethodCard[],
+  rows: HaiMethodCardConfigRow[],
+): MethodCardAdminItem[] {
+  const defaults = new Map(
+    defaultCards.map((card) => [
+      card.id,
+      toDefaultMethodCardAdminItem(card),
+    ]),
+  );
+  const cards = new Map(defaults);
+  for (const row of rows) {
+    if (!row.id) continue;
+    if (row.is_deleted) {
+      cards.delete(row.id);
+      continue;
+    }
+    cards.set(row.id, {
+      ...methodCardFromConfigRow(row),
+      enabled: row.enabled !== false,
+      isBuiltin: defaults.has(row.id),
+      hasDatabaseOverride: true,
+      updatedAt: row.updated_at ?? null,
+    });
+  }
+  return Array.from(cards.values()).sort((a, b) =>
+    b.priority - a.priority || a.name.localeCompare(b.name, "zh-CN")
+  );
+}
+
+function toDefaultMethodCardAdminItem(
+  card: HanMethodCard,
+): MethodCardAdminItem {
+  return {
+    ...cloneHanMethodCard(card),
+    enabled: true,
+    isBuiltin: true,
+    hasDatabaseOverride: false,
+    updatedAt: null,
+  };
+}
+
+function methodCardFromConfigRow(
+  row: HaiMethodCardConfigRow,
+): HanMethodCard {
+  return {
+    id: row.id,
+    name: row.name,
+    aliases: row.aliases ?? [],
+    course: row.course,
+    kind: row.kind,
+    ownership: row.ownership,
+    priority: row.priority,
+    summary: row.summary,
+    useWhen: row.use_when ?? [],
+    avoidWhen: row.avoid_when ?? [],
+    coreJudgement: row.core_judgement,
+    moves: row.moves ?? [],
+    answerFocus: row.answer_focus,
+    queryTerms: row.query_terms ?? [],
+    intents: row.intents ?? [],
+    related: row.related ?? [],
+    sourceRefs: row.source_refs ?? [],
+  };
+}
+
+function methodCardToConfigRow(
+  card: MethodCardAdminItem,
+  updatedAt: string,
+  isDeleted = false,
+): HaiMethodCardConfigRow {
+  return {
+    id: card.id,
+    name: card.name.trim(),
+    aliases: cleanMethodCardLines(card.aliases),
+    course: card.course.trim(),
+    kind: card.kind,
+    ownership: card.ownership,
+    priority: Math.max(0, Math.min(100, Math.round(card.priority))),
+    summary: card.summary.trim(),
+    use_when: cleanMethodCardLines(card.useWhen),
+    avoid_when: cleanMethodCardLines(card.avoidWhen),
+    core_judgement: card.coreJudgement.trim(),
+    moves: cleanMethodCardLines(card.moves),
+    answer_focus: card.answerFocus.trim(),
+    query_terms: cleanMethodCardLines(card.queryTerms),
+    intents: cleanMethodCardLines(card.intents) as HanMethodCard["intents"],
+    related: cleanMethodCardLines(card.related),
+    source_refs: cleanMethodCardLines(card.sourceRefs),
+    enabled: isDeleted ? false : card.enabled,
+    is_deleted: isDeleted,
+    updated_at: updatedAt,
+  };
+}
+
+function createEmptyMethodCardDraft(): MethodCardAdminItem {
+  return {
+    id: "",
+    name: "",
+    aliases: [],
+    course: "教学通识课",
+    kind: "method",
+    ownership: "han_course",
+    priority: 50,
+    summary: "",
+    useWhen: [],
+    avoidWhen: [],
+    coreJudgement: "",
+    moves: [],
+    answerFocus: "",
+    queryTerms: [],
+    intents: [],
+    related: [],
+    sourceRefs: [],
+    enabled: true,
+    isBuiltin: false,
+    hasDatabaseOverride: false,
+    updatedAt: null,
+  };
+}
+
+function cloneMethodCardAdminItem(
+  card: MethodCardAdminItem,
+): MethodCardAdminItem {
+  return {
+    ...cloneHanMethodCard(card),
+    enabled: card.enabled,
+    isBuiltin: card.isBuiltin,
+    hasDatabaseOverride: card.hasDatabaseOverride,
+    updatedAt: card.updatedAt,
+  };
+}
+
+function cloneHanMethodCard(card: HanMethodCard): HanMethodCard {
+  return {
+    ...card,
+    aliases: [...card.aliases],
+    useWhen: [...card.useWhen],
+    avoidWhen: [...card.avoidWhen],
+    moves: [...card.moves],
+    queryTerms: [...card.queryTerms],
+    intents: [...card.intents],
+    related: [...card.related],
+    sourceRefs: [...card.sourceRefs],
+  };
+}
+
+function splitMethodCardLines(value: string) {
+  return value.replace(/\r\n?/g, "\n").split("\n");
+}
+
+function cleanMethodCardLines(value: string[]) {
+  return value.map((item) => item.trim()).filter((item, index, all) =>
+    Boolean(item) && all.indexOf(item) === index
+  );
+}
+
+function normalizePromptConfigSlug(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_")
+    .replace(/[^a-z0-9_]/g, "")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function sortPromptConfigs(configs: HaiOrchestratorPromptConfig[]) {
+  return [...configs].sort((a, b) =>
+    a.layer_order - b.layer_order || a.key.localeCompare(b.key)
   );
 }
