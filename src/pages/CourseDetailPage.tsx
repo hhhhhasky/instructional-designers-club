@@ -97,6 +97,7 @@ export default function CourseDetailPage() {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeLevel, setUpgradeLevel] = useState<'plus' | 'pro'>('plus');
   const videoRef = useRef<HTMLVideoElement>(null);
+  const contentScrollRef = useRef<HTMLDivElement>(null);
   const lastSyncedProgress = useRef(0);
   const lastSyncedAudioProgress = useRef(0);
   const [manuallyMarked, setManuallyMarked] = useState(false);
@@ -377,6 +378,13 @@ export default function CourseDetailPage() {
     return () => { syncProgress(); };
   }, [syncProgress]);
 
+  // 桌面端课程正文使用独立滚动容器；切换课程后回到正文顶部。
+  useEffect(() => {
+    if (contentScrollRef.current) {
+      contentScrollRef.current.scrollTop = 0;
+    }
+  }, [course?.id, protectedContentCourseId]);
+
   // 计算当前课程在系列中的位置
   const currentIndex = siblingCourses.findIndex(c => c.id === id);
   const prevCourse = currentIndex > 0 ? siblingCourses[currentIndex - 1] : null;
@@ -614,12 +622,12 @@ export default function CourseDetailPage() {
           keywords={course.category || undefined}
         />
       )}
-    <div className="min-h-screen bg-cream flex flex-col">
+    <div className="min-h-screen bg-cream flex flex-col lg:h-dvh lg:min-h-0 lg:overflow-hidden">
       <Header />
 
-      <main className="flex-1 pt-20 pb-ds-11">
+      <main className="flex-1 pt-20 pb-ds-11 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden lg:pb-4">
         {/* Breadcrumb — 不用动画，避免叠层上下文问题 */}
-        <div className="max-w-7xl mx-auto px-4 pt-5 pb-1">
+        <div className="max-w-7xl mx-auto w-full px-4 pt-5 pb-1 lg:flex-none">
           <div className="flex items-center gap-1.5 text-sm text-tx/60">
             <button
               onClick={handleBack}
@@ -641,7 +649,7 @@ export default function CourseDetailPage() {
 
         {/* 管理员预览横幅 */}
         {profile?.role === 'admin' && course.status !== 'published' && (
-          <div className="max-w-7xl mx-auto px-4 pt-3">
+          <div className="max-w-7xl mx-auto w-full px-4 pt-3 lg:flex-none">
             <div className="bg-am/10 border border-am/30 rounded-ds-lg px-4 py-2.5 flex items-center gap-2 text-ds-sm text-am">
               <Eye className="w-4 h-4 flex-shrink-0" />
               <span>
@@ -652,16 +660,20 @@ export default function CourseDetailPage() {
         )}
 
         {/* Main Content: Video + Sidebar */}
-        <div className="max-w-7xl mx-auto px-4 pt-4">
-          <div className={cn('flex', (isProCourse || isPlusCourse) ? 'gap-4' : 'gap-5')}>
+        <div className="max-w-7xl mx-auto w-full px-4 pt-4 lg:flex-1 lg:min-h-0 lg:overflow-hidden">
+          <div
+            data-testid="course-detail-desktop-layout"
+            className={cn('flex', (isProCourse || isPlusCourse) ? 'gap-4' : 'gap-5', 'lg:h-full lg:min-h-0')}
+          >
             {/* 教师AI课：左侧可折叠全量目录（桌面端常驻） */}
             {hasTeacherAiCatalog && (
               <aside
-                className="hidden lg:block flex-shrink-0 self-start sticky top-20 transition-all duration-200"
+                data-testid="desktop-course-catalog"
+                className="hidden lg:block flex-shrink-0 self-start lg:self-stretch lg:h-full lg:min-h-0 transition-all duration-200"
                 style={{ width: tocOpen ? 260 : 48 }}
               >
                 {tocOpen ? (
-                  <div className="bg-bc rounded-lg border border-bd shadow-ds-elegant overflow-hidden h-[calc(100vh-7rem)] max-h-[680px] flex flex-col">
+                  <div className="bg-bc rounded-lg border border-bd shadow-ds-elegant overflow-hidden h-full min-h-0 flex flex-col">
                     <div className="flex items-center justify-between px-3 py-3 border-b border-bdl bg-warm/30">
                       <h3 className="font-bold text-tx text-sm">教师AI课目录</h3>
                       <button
@@ -679,7 +691,7 @@ export default function CourseDetailPage() {
                       currentCourseId={course.id}
                       onSelect={handleNavigateToCourse}
                       learningRecords={learningRecords}
-                      className="flex-1"
+                      className="flex-1 min-h-0"
                     />
                   </div>
                 ) : (
@@ -698,11 +710,12 @@ export default function CourseDetailPage() {
             {/* 教学通识课：左侧可折叠全量目录（桌面端常驻） */}
             {hasPlusCatalog && (
               <aside
-                className="hidden lg:block flex-shrink-0 self-start sticky top-20 transition-all duration-200"
+                data-testid="desktop-course-catalog"
+                className="hidden lg:block flex-shrink-0 self-start lg:self-stretch lg:h-full lg:min-h-0 transition-all duration-200"
                 style={{ width: tocOpen ? 260 : 48 }}
               >
                 {tocOpen ? (
-                  <div className="bg-bc rounded-lg border border-bd shadow-ds-elegant overflow-hidden h-[calc(100vh-7rem)] max-h-[680px] flex flex-col">
+                  <div className="bg-bc rounded-lg border border-bd shadow-ds-elegant overflow-hidden h-full min-h-0 flex flex-col">
                     <div className="flex items-center justify-between px-3 py-3 border-b border-bdl bg-warm/30">
                       <h3 className="font-bold text-tx text-sm">教学通识课目录</h3>
                       <button
@@ -720,7 +733,7 @@ export default function CourseDetailPage() {
                       currentCourseId={course.id}
                       onSelect={handleNavigateToCourse}
                       learningRecords={learningRecords}
-                      className="flex-1"
+                      className="flex-1 min-h-0"
                     />
                   </div>
                 ) : (
@@ -737,7 +750,11 @@ export default function CourseDetailPage() {
               </aside>
             )}
             {/* Left: Video + Details */}
-            <div className="flex-1 min-w-0">
+            <div
+              ref={contentScrollRef}
+              data-testid="course-detail-scroll-region"
+              className="flex-1 min-w-0 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pb-6 lg:[scrollbar-gutter:stable]"
+            >
               <div className="bg-bc rounded-ds-lg border border-bd shadow-ds-elegant overflow-hidden">
 
                 {/* Hero Video */}
@@ -1034,8 +1051,11 @@ export default function CourseDetailPage() {
 
             {/* Right: Sidebar - Desktop（仅 Free；教师AI课/教学通识课改用左侧全量目录） */}
             {!isProCourse && !isPlusCourse && siblingCourses.length > 0 && (
-              <aside className="hidden lg:block w-72 flex-shrink-0">
-                <div className="sticky top-24 bg-bc rounded-lg border border-bd shadow-ds-elegant overflow-hidden">
+              <aside
+                data-testid="desktop-course-catalog"
+                className="hidden lg:block w-72 flex-shrink-0 lg:h-full lg:min-h-0"
+              >
+                <div className="bg-bc rounded-lg border border-bd shadow-ds-elegant overflow-hidden h-full min-h-0 flex flex-col">
                   {/* Sidebar Header */}
                   <div className="px-4 py-3 border-b border-bdl bg-warm/30">
                     <h3 className="font-bold text-tx text-sm flex items-center gap-2">
@@ -1046,7 +1066,7 @@ export default function CourseDetailPage() {
                   </div>
 
                   {/* Course List */}
-                  <div className="max-h-[calc(100vh-160px)] overflow-y-auto">
+                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pb-6">
                     {siblingCourses.map((sibling, index) => {
                       const isCurrent = sibling.id === id;
                       const progress = getProgress(sibling.id);
@@ -1265,7 +1285,9 @@ export default function CourseDetailPage() {
         </div>
       </nav>
 
-      <Footer />
+      <div className="lg:hidden">
+        <Footer />
+      </div>
       <CourseConfirmDialog open={showConfirmDialog} onConfirm={handleConfirmStart} />
       <CourseCompletionDialog
         open={completionOpen}

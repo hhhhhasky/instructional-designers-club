@@ -37,8 +37,8 @@ export default function PlusCatalogToc({
   }, [currentCourseId]);
 
   return (
-    <div className={cn('overflow-y-auto overscroll-contain', className)}>
-      <nav className="p-2">
+    <div className={cn('min-h-0 overflow-y-auto overscroll-contain', className)}>
+      <nav className="p-2 pb-6">
         {tracks.map((track, trackIdx) => {
           const modulesWithCourses = track.modules
             .map((module) => ({

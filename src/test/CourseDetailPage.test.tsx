@@ -396,6 +396,25 @@ describe('CourseDetailPage — 课程导航功能', () => {
     expect(screen.getAllByText('第二节：核心概念').length).toBeGreaterThanOrEqual(1);
   });
 
+  it('桌面端目录与课程内容使用彼此独立的滚动区域', async () => {
+    await renderAndWait('c1');
+
+    const layout = screen.getByTestId('course-detail-desktop-layout');
+    const catalog = screen.getByTestId('desktop-course-catalog');
+    const content = screen.getByTestId('course-detail-scroll-region');
+
+    expect(layout).toHaveClass('lg:h-full', 'lg:min-h-0');
+    expect(catalog).toHaveClass('lg:h-full', 'lg:min-h-0');
+    expect(content).toHaveClass(
+      'lg:h-full',
+      'lg:min-h-0',
+      'lg:overflow-y-auto',
+      'lg:overscroll-contain',
+      'lg:pb-6',
+    );
+    expect(content).not.toContainElement(catalog);
+  });
+
   // ============================
   // 测试点 9：只有一个课程时不显示导航
   // ============================
