@@ -1,4 +1,5 @@
 import { createAsyncCache } from "@/lib/async-cache";
+import { getCourseCoverUrl, withProtectedCourseCover } from "@/lib/course-cover";
 import { getModuleIcon, normalizePlusCourseStructure, type PlusTrackConfig } from "@/lib/plusCourseStructure";
 import type {
   Activity,
@@ -22,11 +23,8 @@ import type {
 } from "@/types/types";
 import { supabase } from "./supabase";
 
-const COURSE_SUMMARY_COLUMNS =
-  'id, title, description, body, essence, instructor, category_id, category, level, duration, credits, status, membership_type, is_trial, image_url, video_url, audio_url, images, plus_lesson_order, plus_representative, meeting_url, sort_order, view_count, created_at, updated_at';
-
-const COURSE_ATTACHMENT_COLUMNS =
-  'id, course_id, file_name, file_url, storage_key, mime_type, file_size, file_type, sort_order, is_active, uploaded_by, created_at, updated_at';
+const COURSE_PUBLIC_COLUMNS =
+  'id, title, description, instructor, category_id, category, level, duration, credits, status, membership_type, is_trial, password_access_enabled, image_url, plus_lesson_order, plus_representative, sort_order, view_count, created_at, updated_at, has_video, has_audio, has_body, has_essence, has_images, has_meeting';
 
 /**
  * 获取所有已发布的课程列表
@@ -36,7 +34,7 @@ export async function getCourses(): Promise<Course[]> {
   try {
     const { data, error } = await supabase
       .from('courses')
-      .select('*')
+      .select(COURSE_PUBLIC_COLUMNS)
       .eq('status', 'published')
       .order('sort_order', { ascending: true });
 
@@ -45,7 +43,7 @@ export async function getCourses(): Promise<Course[]> {
       throw error;
     }
 
-    return Array.isArray(data) ? data : [];
+    return Array.isArray(data) ? data.map((course) => withProtectedCourseCover(course as Course)) : [];
   } catch (error) {
     console.error('获取课程列表异常:', error);
     return [];
@@ -61,7 +59,7 @@ export async function getCourseById(courseId: string): Promise<Course | null> {
   try {
     const { data, error } = await supabase
       .from('courses')
-      .select('*')
+      .select(COURSE_PUBLIC_COLUMNS)
       .eq('id', courseId)
       .eq('status', 'published')
       .maybeSingle();
@@ -71,7 +69,7 @@ export async function getCourseById(courseId: string): Promise<Course | null> {
       throw error;
     }
 
-    return data;
+    return data ? withProtectedCourseCover(data as Course) : null;
   } catch (error) {
     console.error('获取课程详情异常:', error);
     return null;
@@ -85,11 +83,9 @@ export async function getCourseById(courseId: string): Promise<Course | null> {
  */
 export async function getCourseByIdAdmin(courseId: string): Promise<Course | null> {
   try {
-    const { data, error } = await supabase
-      .from('courses')
-      .select('*')
-      .eq('id', courseId)
-      .maybeSingle();
+    const { data, error } = await supabase.rpc('admin_course_detail', {
+      p_course_id: courseId,
+    });
 
     if (error) {
       console.error('getCourseByIdAdmin error:', error);
@@ -100,28 +96,6 @@ export async function getCourseByIdAdmin(courseId: string): Promise<Course | nul
   } catch (error) {
     console.error('获取课程详情异常:', error);
     return null;
-  }
-}
-
-export async function getCourseAttachments(courseId: string): Promise<CourseAttachment[]> {
-  try {
-    const { data, error } = await supabase
-      .from('course_attachments')
-      .select(COURSE_ATTACHMENT_COLUMNS)
-      .eq('course_id', courseId)
-      .eq('is_active', true)
-      .order('sort_order', { ascending: true })
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.error('获取课程附件失败:', error);
-      throw error;
-    }
-
-    return Array.isArray(data) ? data as CourseAttachment[] : [];
-  } catch (error) {
-    console.error('获取课程附件异常:', error);
-    return [];
   }
 }
 
@@ -166,7 +140,7 @@ export async function getCoursesByCategory(category: string): Promise<Course[]> 
   try {
     let query = supabase
       .from('courses')
-      .select('*')
+      .select(COURSE_PUBLIC_COLUMNS)
       .eq('status', 'published')
       .order('sort_order', { ascending: true });
 
@@ -182,7 +156,7 @@ export async function getCoursesByCategory(category: string): Promise<Course[]> 
       throw error;
     }
 
-    return Array.isArray(data) ? data : [];
+    return Array.isArray(data) ? data.map((course) => withProtectedCourseCover(course as Course)) : [];
   } catch (error) {
     console.error('获取分类课程异常:', error);
     return [];
@@ -198,7 +172,7 @@ export async function getCoursesByMembershipType(membershipType: MembershipType)
   try {
     let query = supabase
       .from('courses')
-      .select('*')
+      .select(COURSE_PUBLIC_COLUMNS)
       .eq('status', 'published')
       .order('sort_order', { ascending: true });
 
@@ -218,7 +192,7 @@ export async function getCoursesByMembershipType(membershipType: MembershipType)
       throw error;
     }
 
-    return Array.isArray(data) ? data : [];
+    return Array.isArray(data) ? data.map((course) => withProtectedCourseCover(course as Course)) : [];
   } catch (error) {
     console.error('获取会员类型课程异常:', error);
     return [];
@@ -288,7 +262,7 @@ export async function getCoursesByMembershipAndCategory(
   try {
     let query = supabase
       .from('courses')
-      .select('*')
+      .select(COURSE_PUBLIC_COLUMNS)
       .eq('status', 'published')
       .order('sort_order', { ascending: true });
 
@@ -311,7 +285,7 @@ export async function getCoursesByMembershipAndCategory(
       throw error;
     }
 
-    return Array.isArray(data) ? data : [];
+    return Array.isArray(data) ? data.map((course) => withProtectedCourseCover(course as Course)) : [];
   } catch (error) {
     console.error('获取会员类型和分类课程异常:', error);
     return [];
@@ -402,6 +376,70 @@ export async function incrementCourseViewCount(courseId: string): Promise<void> 
   } catch (error) {
     console.error('增加课程浏览次数异常:', error);
   }
+}
+
+export type CourseContentAccessSource = 'public' | 'membership' | 'password' | 'admin';
+
+export interface ProtectedCourseContent {
+  course: Course;
+  attachments: CourseAttachment[];
+  access_source: CourseContentAccessSource;
+  media_expires_at: string;
+}
+
+export class CourseContentAccessError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string,
+    public readonly status: number,
+    public readonly retryAfterSeconds?: number,
+  ) {
+    super(message);
+    this.name = 'CourseContentAccessError';
+  }
+}
+
+/**
+ * 从受控 Edge Function 获取完整课程内容。会员身份和单课密码都在服务端校验，
+ * 浏览器只能从公开快照读取课程元数据，无法直接查询正文和永久媒体地址。
+ */
+export async function getCourseProtectedContent(
+  courseId: string,
+  password?: string,
+): Promise<ProtectedCourseContent> {
+  const { data, error } = await supabase.functions.invoke('course-content', {
+    body: {
+      courseId,
+      ...(password?.trim() ? { password: password.trim() } : {}),
+    },
+  });
+
+  if (error) {
+    let message = error.message || '课程内容加载失败';
+    let code = 'COURSE_CONTENT_ERROR';
+    let status = 500;
+    let retryAfterSeconds: number | undefined;
+    const context = 'context' in error ? error.context : undefined;
+    if (context instanceof Response) {
+      status = context.status;
+      const payload = await context.clone().json().catch(() => null) as {
+        error?: string;
+        code?: string;
+        retry_after_seconds?: number;
+      } | null;
+      if (payload?.error) message = payload.error;
+      if (payload?.code) code = payload.code;
+      if (typeof payload?.retry_after_seconds === 'number') retryAfterSeconds = payload.retry_after_seconds;
+    }
+    throw new CourseContentAccessError(message, code, status, retryAfterSeconds);
+  }
+
+  const payload = data as Partial<ProtectedCourseContent> | null;
+  if (!payload?.course || !Array.isArray(payload.attachments) || !payload.access_source || !payload.media_expires_at) {
+    throw new CourseContentAccessError('课程内容响应不完整', 'INVALID_COURSE_CONTENT_RESPONSE', 502);
+  }
+
+  return payload as ProtectedCourseContent;
 }
 
 /**
@@ -740,7 +778,7 @@ async function _fetchLearningData(userId: string): Promise<LearningData> {
         credits: parseFloat(course.credits || '0'),
         status,
         progress,
-        imageUrl: course.image_url,
+        imageUrl: getCourseCoverUrl(course.id, course.image_url),
         membershipType: course.membership_type,
         sortOrder: course.sort_order,
         duration: course.duration,
@@ -770,7 +808,7 @@ async function _fetchLearningData(userId: string): Promise<LearningData> {
         return {
           courseId: r.course_id,
           title: course?.title || '未知课程',
-          imageUrl: course?.image_url || null,
+          imageUrl: course ? getCourseCoverUrl(course.id, course.image_url) : null,
           category: course?.category || null,
           status: r.status,
           progress: r.progress,
@@ -924,7 +962,7 @@ async function fetchHomePageSnapshotRestFallback(): Promise<HomePageSnapshot> {
       .order('sort_order', { ascending: true }),
     supabase
       .from('courses')
-      .select(COURSE_SUMMARY_COLUMNS)
+      .select(COURSE_PUBLIC_COLUMNS)
       .eq('status', 'published')
       .order('sort_order', { ascending: true }),
     supabase
@@ -997,7 +1035,7 @@ async function fetchHomePageSnapshotRestFallback(): Promise<HomePageSnapshot> {
 }
 
 const homePageSnapshotCache = createAsyncCache<HomePageSnapshot>({
-  key: 'club.homePageSnapshot.v1',
+  key: 'club.homePageSnapshot.v2',
   ttlMs: HOME_PAGE_SNAPSHOT_TTL_MS,
   storage: 'session',
   fetcher: async () => {
@@ -1092,13 +1130,17 @@ function normalizeCourseCatalogSnapshot(
   source: CourseCatalogSnapshot['source'],
 ): CourseCatalogSnapshot {
   const raw = (value ?? {}) as RawCourseCatalogSnapshot;
-  const plusCourses = Array.isArray(raw.plus_courses) ? raw.plus_courses : [];
+  const plusCourses = Array.isArray(raw.plus_courses)
+    ? raw.plus_courses.map((course) => withProtectedCourseCover(course))
+    : [];
   const plusTracks = normalizePlusCourseStructure(
     Array.isArray(raw.plus_track_rows) ? raw.plus_track_rows : [],
     Array.isArray(raw.plus_module_rows) ? raw.plus_module_rows : [],
     Array.isArray(raw.plus_category_rows) ? raw.plus_category_rows : [],
   );
-  const proCourses = Array.isArray(raw.pro_courses) ? raw.pro_courses : [];
+  const proCourses = Array.isArray(raw.pro_courses)
+    ? raw.pro_courses.map((course) => withProtectedCourseCover(course))
+    : [];
   const proCategoryRows = Array.isArray(raw.pro_category_rows) ? raw.pro_category_rows : [];
 
   return {
@@ -1149,7 +1191,7 @@ async function fetchCourseCatalogSnapshotRestFallback(): Promise<CourseCatalogSn
   ] = await Promise.allSettled([
     supabase
       .from('courses')
-      .select(COURSE_SUMMARY_COLUMNS)
+      .select(COURSE_PUBLIC_COLUMNS)
       .eq('status', 'published')
       .eq('membership_type', 'plus')
       .order('sort_order', { ascending: true }),
@@ -1176,7 +1218,7 @@ async function fetchCourseCatalogSnapshotRestFallback(): Promise<CourseCatalogSn
       .order('name', { ascending: true }),
     supabase
       .from('courses')
-      .select(COURSE_SUMMARY_COLUMNS)
+      .select(COURSE_PUBLIC_COLUMNS)
       .eq('status', 'published')
       .eq('membership_type', 'pro')
       .order('sort_order', { ascending: true }),
@@ -1202,7 +1244,7 @@ async function fetchCourseCatalogSnapshotRestFallback(): Promise<CourseCatalogSn
 }
 
 const courseCatalogSnapshotCache = createAsyncCache<CourseCatalogSnapshot>({
-  key: 'club.courseCatalogSnapshot.v1',
+  key: 'club.courseCatalogSnapshot.v3',
   ttlMs: 10 * 60 * 1000,
   storage: 'session',
   fetcher: async () => {
@@ -1228,7 +1270,7 @@ function normalizeCourseDetailSnapshot(
   source: CourseDetailSnapshot['source'],
 ): CourseDetailSnapshot {
   const raw = (value ?? {}) as RawCourseDetailSnapshot;
-  const course = raw.course ?? null;
+  const course = raw.course ? withProtectedCourseCover(raw.course) : null;
   const rawCatalog = normalizeCourseCatalogSnapshot(raw, source);
   const hasCatalog =
     rawCatalog.plus_courses.length > 0 ||
@@ -1239,7 +1281,9 @@ function normalizeCourseDetailSnapshot(
   return {
     course,
     catalog: hasCatalog ? rehydrateCourseCatalogSnapshot(rawCatalog) : null,
-    sibling_courses: Array.isArray(raw.sibling_courses) ? raw.sibling_courses : [],
+    sibling_courses: Array.isArray(raw.sibling_courses)
+      ? raw.sibling_courses.map((item) => withProtectedCourseCover(item))
+      : [],
     generated_at: typeof raw.generated_at === 'string' ? raw.generated_at : null,
     source_updated_at: typeof raw.source_updated_at === 'string' ? raw.source_updated_at : null,
     source,
@@ -1257,7 +1301,7 @@ async function fetchCourseDetailSnapshotRpc(courseId: string): Promise<CourseDet
 async function fetchCourseDetailSnapshotRestFallback(courseId: string): Promise<CourseDetailSnapshot> {
   const { data: course, error } = await supabase
     .from('courses')
-    .select('*')
+    .select(COURSE_PUBLIC_COLUMNS)
     .eq('id', courseId)
     .eq('status', 'published')
     .maybeSingle();
@@ -1299,7 +1343,7 @@ function getCourseDetailCache(courseId: string) {
   const existing = courseDetailSnapshotCaches.get(courseId);
   if (existing) return existing;
   const cache = createAsyncCache<CourseDetailSnapshot>({
-    key: `club.courseDetailSnapshot.v1.${courseId}`,
+    key: `club.courseDetailSnapshot.v3.${courseId}`,
     ttlMs: 5 * 60 * 1000,
     storage: 'session',
     fetcher: async () => {
@@ -1453,7 +1497,7 @@ export async function getLatestCourses(
       console.error('getLatestCourses 失败:', error);
       return [];
     }
-    return (data as Course[]) ?? [];
+    return ((data as Course[]) ?? []).map((course) => withProtectedCourseCover(course));
   } catch (error) {
     console.error('getLatestCourses 异常:', error);
     return [];

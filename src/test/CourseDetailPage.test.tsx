@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BookOpen } from 'lucide-react';
@@ -20,12 +20,22 @@ vi.mock('@/contexts/AuthContext', () => ({
 }));
 
 vi.mock('@/db/api', () => ({
+  CourseContentAccessError: class CourseContentAccessError extends Error {
+    constructor(
+      message: string,
+      public readonly code: string,
+      public readonly status: number,
+      public readonly retryAfterSeconds?: number,
+    ) {
+      super(message);
+    }
+  },
   getCourseById: vi.fn(),
   getCourseByIdAdmin: vi.fn(),
   incrementCourseViewCount: vi.fn(),
   getCourseCatalogSnapshot: vi.fn(),
   getCourseDetailSnapshot: vi.fn(),
-  getCourseAttachments: vi.fn(),
+  getCourseProtectedContent: vi.fn(),
   getCoursesByMembershipAndCategory: vi.fn(),
   getCoursesByMembershipType: vi.fn(),
   getCategoriesByMembershipType: vi.fn(),
@@ -57,16 +67,17 @@ vi.mock('@/components/common/PageMeta', () => ({ default: () => null }));
 
 import {
   getCourseById,
+  CourseContentAccessError,
   getCourseCatalogSnapshot,
   getCourseDetailSnapshot,
-  getCourseAttachments,
+  getCourseProtectedContent,
   getCoursesByMembershipAndCategory,
   getCoursesByMembershipType,
   getCategoriesByMembershipType,
   getPlusCourseStructure,
 } from '@/db/api';
 import { getCourseQuestions, getCourseQuestionTags } from '@/db/course-questions';
-import { getUserLearningRecords } from '@/lib/access-control';
+import { canAccessCourse, getUserLearningRecords } from '@/lib/access-control';
 import type { PlusTrackConfig } from '@/lib/plusCourseStructure';
 
 const makeCourse = (overrides: Record<string, unknown> = {}): import('@/types/types').Course => ({
@@ -155,6 +166,18 @@ function makeDetailSnapshot(
   };
 }
 
+function makeProtectedContent(
+  course: import('@/types/types').Course,
+  attachments: import('@/types/types').CourseAttachment[] = [],
+) {
+  return {
+    course,
+    attachments,
+    access_source: 'membership' as const,
+    media_expires_at: '2026-07-21T12:00:00Z',
+  };
+}
+
 // --- Helpers ---
 
 function renderCourseDetail(courseId = 'c1') {
@@ -167,10 +190,14 @@ function renderCourseDetail(courseId = 'c1') {
   );
 }
 
-async function renderAndWait(courseId = 'c1') {
+async function renderAndWait(
+  courseId = 'c1',
+  attachments: import('@/types/types').CourseAttachment[] = [],
+) {
   vi.mocked(getCourseDetailSnapshot).mockResolvedValue(
     makeDetailSnapshot(makeCourse({ id: courseId }), siblingCourses, makeCatalog(siblingCourses)),
   );
+  vi.mocked(getCourseProtectedContent).mockResolvedValue(makeProtectedContent(makeCourse({ id: courseId }), attachments));
   vi.mocked(getCourseCatalogSnapshot).mockResolvedValue(makeCatalog(siblingCourses));
   vi.mocked(getCourseById).mockResolvedValue(makeCourse({ id: courseId }));
   vi.mocked(getCoursesByMembershipAndCategory).mockResolvedValue(siblingCourses);
@@ -183,6 +210,10 @@ async function renderAndWait(courseId = 'c1') {
   return result;
 }
 
+afterEach(() => {
+  vi.mocked(canAccessCourse).mockReturnValue(true);
+});
+
 // --- Tests ---
 
 describe('CourseDetailPage — 课程导航功能', () => {
@@ -190,7 +221,7 @@ describe('CourseDetailPage — 课程导航功能', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.HTMLElement.prototype.scrollIntoView = vi.fn();
-    vi.mocked(getCourseAttachments).mockResolvedValue([]);
+    vi.mocked(getCourseProtectedContent).mockImplementation(async (courseId) => makeProtectedContent(makeCourse({ id: courseId })));
     vi.mocked(getCourseQuestions).mockResolvedValue([]);
     vi.mocked(getCourseQuestionTags).mockResolvedValue([]);
   });
@@ -208,7 +239,7 @@ describe('CourseDetailPage — 课程导航功能', () => {
   });
 
   it('显示课程下载文件列表', async () => {
-    vi.mocked(getCourseAttachments).mockResolvedValue([
+    const attachments: import('@/types/types').CourseAttachment[] = [
       {
         id: 'att-1',
         course_id: 'c1',
@@ -224,9 +255,9 @@ describe('CourseDetailPage — 课程导航功能', () => {
         created_at: '2026-07-12T00:00:00Z',
         updated_at: '2026-07-12T00:00:00Z',
       },
-    ]);
+    ];
 
-    await renderAndWait('c1');
+    await renderAndWait('c1', attachments);
 
     expect(await screen.findByText('下载文件')).toBeInTheDocument();
     const fileLink = screen.getByRole('link', { name: /课堂任务单\.docx/ });
@@ -374,6 +405,7 @@ describe('CourseDetailPage — 课程导航功能', () => {
       makeDetailSnapshot(singleCourse, [], makeCatalog([singleCourse])),
     );
     vi.mocked(getCourseCatalogSnapshot).mockResolvedValue(makeCatalog([singleCourse]));
+    vi.mocked(getCourseProtectedContent).mockResolvedValue(makeProtectedContent(singleCourse));
     vi.mocked(getCourseById).mockResolvedValue(singleCourse);
     vi.mocked(getCoursesByMembershipType).mockResolvedValue([singleCourse]);
     vi.mocked(getCategoriesByMembershipType).mockResolvedValue(['教学设计']);
@@ -393,6 +425,7 @@ describe('CourseDetailPage — 课程导航功能', () => {
     vi.mocked(getCourseDetailSnapshot).mockResolvedValue(
       makeDetailSnapshot(freeCourses[0], freeCourses, null),
     );
+    vi.mocked(getCourseProtectedContent).mockResolvedValue(makeProtectedContent(freeCourses[0]));
     vi.mocked(getCourseById).mockResolvedValue(freeCourses[0]);
     vi.mocked(getCoursesByMembershipAndCategory).mockResolvedValue(freeCourses);
     vi.mocked(getUserLearningRecords).mockResolvedValue([]);
@@ -431,6 +464,7 @@ describe('CourseDetailPage — 课程导航功能', () => {
     vi.mocked(getCourseDetailSnapshot).mockResolvedValue(
       makeDetailSnapshot(plusCourses[0], [], plusCatalog),
     );
+    vi.mocked(getCourseProtectedContent).mockResolvedValue(makeProtectedContent(plusCourses[0]));
     vi.mocked(getCourseCatalogSnapshot).mockResolvedValue(plusCatalog);
     vi.mocked(getCourseById).mockResolvedValue(plusCourses[0]);
     vi.mocked(getCoursesByMembershipType).mockResolvedValue(plusCourses);
@@ -510,13 +544,15 @@ describe('CourseDetailPage — 正文板块精简与课程精华', () => {
   // 课程精华：有内容时渲染
   // ============================
   it('essence 有内容时显示「课程精华」', async () => {
+    const essenceCourse = makeCourse({ id: 'c1', essence: '## 测试思维导图\n![](https://example.com/mindmap.png)' });
     vi.mocked(getCourseDetailSnapshot).mockResolvedValue(
       makeDetailSnapshot(
-        makeCourse({ id: 'c1', essence: '## 测试思维导图\n![](https://example.com/mindmap.png)' }),
+        essenceCourse,
         siblingCourses,
         makeCatalog(siblingCourses),
       )
     );
+    vi.mocked(getCourseProtectedContent).mockResolvedValue(makeProtectedContent(essenceCourse));
     vi.mocked(getCourseCatalogSnapshot).mockResolvedValue(makeCatalog(siblingCourses));
     vi.mocked(getCoursesByMembershipAndCategory).mockResolvedValue(siblingCourses);
     vi.mocked(getUserLearningRecords).mockResolvedValue([]);
@@ -525,5 +561,75 @@ describe('CourseDetailPage — 正文板块精简与课程精华', () => {
     await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
 
     expect(screen.getByText('课程精华')).toBeInTheDocument();
+  });
+});
+
+describe('CourseDetailPage — 单课密码试看', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(canAccessCourse).mockReturnValue(false);
+    vi.mocked(getUserLearningRecords).mockResolvedValue([]);
+  });
+
+  it('无会员权限时先显示密码门控，密码正确后只解锁当前课程内容', async () => {
+    const user = userEvent.setup();
+    const protectedCourse = makeCourse({ password_access_enabled: true });
+    vi.mocked(getCourseDetailSnapshot).mockResolvedValue(
+      makeDetailSnapshot(protectedCourse, siblingCourses, makeCatalog(siblingCourses)),
+    );
+    vi.mocked(getCourseProtectedContent).mockResolvedValue({
+      ...makeProtectedContent(protectedCourse),
+      access_source: 'password',
+    });
+
+    renderCourseDetail('c1');
+    await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
+
+    expect(screen.getByRole('heading', { name: '输入单课访问密码' })).toBeInTheDocument();
+    expect(screen.queryByText('课程简介')).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('试看密码'), 'lesson-2026');
+    await user.click(screen.getByRole('button', { name: '验证并试看' }));
+
+    await waitFor(() => expect(screen.getByText('课程简介')).toBeInTheDocument());
+    expect(getCourseProtectedContent).toHaveBeenCalledWith('c1', 'lesson-2026');
+    expect(getUserLearningRecords).not.toHaveBeenCalled();
+  });
+
+  it('密码错误时保留门控并显示明确反馈', async () => {
+    const user = userEvent.setup();
+    const protectedCourse = makeCourse({ password_access_enabled: true });
+    vi.mocked(getCourseDetailSnapshot).mockResolvedValue(
+      makeDetailSnapshot(protectedCourse, siblingCourses, makeCatalog(siblingCourses)),
+    );
+    vi.mocked(getCourseProtectedContent).mockRejectedValue(
+      new CourseContentAccessError('密码不正确', 'INVALID_PASSWORD', 403),
+    );
+
+    renderCourseDetail('c1');
+    await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
+    await user.type(screen.getByLabelText('试看密码'), 'wrong-password');
+    await user.click(screen.getByRole('button', { name: '验证并试看' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('密码不正确');
+    expect(screen.queryByText('课程简介')).not.toBeInTheDocument();
+  });
+
+  it('密码尝试过多时显示服务端返回的等待时间', async () => {
+    const user = userEvent.setup();
+    const protectedCourse = makeCourse({ password_access_enabled: true });
+    vi.mocked(getCourseDetailSnapshot).mockResolvedValue(
+      makeDetailSnapshot(protectedCourse, siblingCourses, makeCatalog(siblingCourses)),
+    );
+    vi.mocked(getCourseProtectedContent).mockRejectedValue(
+      new CourseContentAccessError('尝试次数过多', 'PASSWORD_RATE_LIMITED', 429, 121),
+    );
+
+    renderCourseDetail('c1');
+    await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
+    await user.type(screen.getByLabelText('试看密码'), 'wrong-password');
+    await user.click(screen.getByRole('button', { name: '验证并试看' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('约 3 分钟后再试');
   });
 });

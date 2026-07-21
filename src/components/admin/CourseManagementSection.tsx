@@ -16,6 +16,8 @@ import {
   FileImage,
   FileAudio,
   File,
+  EyeOff,
+  KeyRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
@@ -37,6 +39,7 @@ import {
   adminUpdateCourse,
   adminArchiveCourse,
   adminDeleteCourseAttachment,
+  adminSetCourseAccessPassword,
   getAdminCourseCategories,
   getAdminCourseAttachments,
   type AdminCourseCategory,
@@ -169,6 +172,9 @@ export default function CourseManagementSection() {
   const [attachments, setAttachments] = useState<CourseAttachment[]>([]);
   const [attachmentsLoading, setAttachmentsLoading] = useState(false);
   const [fileUploading, setFileUploading] = useState(false);
+  const [accessPassword, setAccessPassword] = useState("");
+  const [removeAccessPassword, setRemoveAccessPassword] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   // Category list for dropdown
   const [categories, setCategories] = useState<AdminCourseCategory[]>([]);
@@ -369,6 +375,9 @@ export default function CourseManagementSection() {
     setCategoryMode("existing");
     setNewCategoryName("");
     setCategoryTrackId(null);
+    setAccessPassword("");
+    setRemoveAccessPassword(false);
+    setPasswordVisible(false);
     setDialogOpen(true);
   };
 
@@ -401,6 +410,9 @@ export default function CourseManagementSection() {
     setCategoryMode("existing");
     setNewCategoryName("");
     setCategoryTrackId(course.category ? categoryByName.get(course.category)?.plus_track_id ?? null : null);
+    setAccessPassword("");
+    setRemoveAccessPassword(false);
+    setPasswordVisible(false);
     setDialogOpen(true);
   };
 
@@ -408,6 +420,15 @@ export default function CourseManagementSection() {
   const handleSave = async () => {
     if (!form.title.trim()) {
       toast.error("课程名称不能为空");
+      return;
+    }
+    const normalizedAccessPassword = accessPassword.trim();
+    if (normalizedAccessPassword && normalizedAccessPassword.length < 4) {
+      toast.error("试看密码至少需要 4 个字符");
+      return;
+    }
+    if (normalizedAccessPassword && new TextEncoder().encode(normalizedAccessPassword).length > 72) {
+      toast.error("试看密码过长，请控制在 72 个字节以内");
       return;
     }
     try {
@@ -479,13 +500,26 @@ export default function CourseManagementSection() {
         };
       }
       if (editingCourse) {
-        const updatedCourse = await adminUpdateCourse(editingCourse.id, payload);
+        let updatedCourse = await adminUpdateCourse(editingCourse.id, payload);
+        if (payload.membership_type === "free" || removeAccessPassword) {
+          if (editingCourse.password_access_enabled) {
+            await adminSetCourseAccessPassword(editingCourse.id, null);
+          }
+          updatedCourse = { ...updatedCourse, password_access_enabled: false };
+        } else if (normalizedAccessPassword) {
+          const passwordEnabled = await adminSetCourseAccessPassword(editingCourse.id, normalizedAccessPassword);
+          updatedCourse = { ...updatedCourse, password_access_enabled: passwordEnabled };
+        }
         setCourses((prev) =>
           prev.map((course) => (course.id === updatedCourse.id ? updatedCourse : course))
         );
         toast.success("课程更新成功");
       } else {
-        const createdCourse = await adminCreateCourse(payload);
+        let createdCourse = await adminCreateCourse(payload);
+        if (payload.membership_type !== "free" && normalizedAccessPassword) {
+          const passwordEnabled = await adminSetCourseAccessPassword(createdCourse.id, normalizedAccessPassword);
+          createdCourse = { ...createdCourse, password_access_enabled: passwordEnabled };
+        }
         setCourses((prev) => [createdCourse, ...prev]);
         toast.success("课程创建成功");
       }
@@ -532,6 +566,10 @@ export default function CourseManagementSection() {
     }));
     if (value !== "plus") {
       setCategoryTrackId(null);
+    }
+    if (value === "free") {
+      setAccessPassword("");
+      setRemoveAccessPassword(Boolean(editingCourse?.password_access_enabled));
     }
   };
 
@@ -741,8 +779,13 @@ export default function CourseManagementSection() {
                   key={course.id}
                   className="border-b border-bdl hover:bg-bgs/50 transition-colors"
                 >
-                  <td className="px-4 py-3 font-ds-medium text-tx max-w-[200px] truncate">
-                    {course.title}
+                  <td className="px-4 py-3 font-ds-medium text-tx max-w-[200px]">
+                    <span className="inline-flex max-w-full items-center gap-1.5">
+                      <span className="truncate">{course.title}</span>
+                      {course.password_access_enabled && (
+                        <KeyRound className="h-3.5 w-3.5 flex-shrink-0 text-ac" aria-label="已设置试看密码" />
+                      )}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-txs">
                     {course.instructor || "—"}
@@ -1026,6 +1069,71 @@ export default function CourseManagementSection() {
                 </div>
               </div>
             </div>
+
+            {/* 单课密码试看 */}
+            {(form.membership_type === "plus" || form.membership_type === "pro") && (
+              <div className="space-y-3 rounded-ds-lg border border-ac/20 bg-acl/20 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-ac/10 text-ac">
+                    <KeyRound className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-ds-sm font-ds-semibold text-tx">单课密码试看</h4>
+                    <p className="mt-1 text-ds-xs leading-5 text-txs">
+                      设置后，没有对应会员权限的人也能凭密码试看当前这一节课，不会获得其他课程权限。
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="course-access-password" className="mb-1 block text-ds-xs text-txs">
+                    {editingCourse?.password_access_enabled ? "更换试看密码" : "设置试看密码"}
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="course-access-password"
+                      type={passwordVisible ? "text" : "password"}
+                      value={accessPassword}
+                      onChange={(event) => {
+                        setAccessPassword(event.target.value);
+                        if (event.target.value) setRemoveAccessPassword(false);
+                      }}
+                      disabled={removeAccessPassword}
+                      autoComplete="new-password"
+                      placeholder={editingCourse?.password_access_enabled ? "留空则保持原密码不变" : "至少 4 个字符（选填）"}
+                      className="h-11 w-full rounded-ds-lg border border-bd bg-bg px-4 pr-11 text-ds-sm text-tx placeholder:text-txt focus:border-ac focus:outline-none focus:ring-2 focus:ring-ac/20 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setPasswordVisible((value) => !value)}
+                      disabled={removeAccessPassword}
+                      className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md text-txt transition hover:bg-bgs hover:text-tx disabled:opacity-40"
+                      aria-label={passwordVisible ? "隐藏试看密码" : "显示试看密码"}
+                    >
+                      {passwordVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <p className="mt-1.5 text-[12px] text-txt">
+                    密码不会在后台回显；需要修改时直接输入新密码并保存。
+                  </p>
+                </div>
+
+                {editingCourse?.password_access_enabled && (
+                  <label className="flex cursor-pointer items-center gap-2 text-ds-sm text-tx">
+                    <input
+                      type="checkbox"
+                      checked={removeAccessPassword}
+                      onChange={(event) => {
+                        setRemoveAccessPassword(event.target.checked);
+                        if (event.target.checked) setAccessPassword("");
+                      }}
+                      className="h-4 w-4 rounded border-bd text-ac focus:ring-ac"
+                    />
+                    清除当前试看密码
+                  </label>
+                )}
+              </div>
+            )}
 
             {/* Plus 结构：由分类所属篇章决定，课程本身不再维护旧逐课结构字段 */}
             {form.membership_type === "plus" && (

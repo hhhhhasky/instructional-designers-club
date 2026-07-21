@@ -17,6 +17,7 @@ import {
   clearCourseDetailCache,
   clearHomePageSnapshotCache,
   clearResourcesCache,
+  getCourseProtectedContent,
 } from "./api";
 import { supabase } from "./supabase";
 
@@ -116,9 +117,6 @@ export interface LeaderboardStudentItem {
 }
 
 // ==================== API 函数 ====================
-
-const COURSE_ATTACHMENT_COLUMNS =
-  "id, course_id, file_name, file_url, storage_key, mime_type, file_size, file_type, sort_order, is_active, uploaded_by, created_at, updated_at";
 
 /**
  * 获取会员总览数据：总数、等级分布、月度增长趋势
@@ -520,15 +518,16 @@ export async function adminCreateCourse(
   const { data, error } = await supabase
     .from("courses")
     .insert(payload)
-    .select()
+    .select("id")
     .single();
   if (error) {
     console.error("adminCreateCourse error:", error);
     throw error;
   }
+  const created = await getAdminCourseDetail(data.id);
   clearPublicCourseCaches(data.id);
   clearAllLearningDataCaches();
-  return data;
+  return created;
 }
 
 /**
@@ -543,15 +542,48 @@ export async function adminUpdateCourse(
     .from("courses")
     .update(payload)
     .eq("id", courseId)
-    .select()
+    .select("id")
     .single();
   if (error) {
     console.error("adminUpdateCourse error:", error);
     throw error;
   }
+  const updated = await getAdminCourseDetail(data.id);
   clearPublicCourseCaches(courseId);
   clearAllLearningDataCaches();
-  return data;
+  return updated;
+}
+
+async function getAdminCourseDetail(courseId: string): Promise<Course> {
+  const { data, error } = await supabase.rpc("admin_course_detail", {
+    p_course_id: courseId,
+  });
+  if (error) {
+    console.error("getAdminCourseDetail error:", error);
+    throw error;
+  }
+  if (!data) throw new Error("课程不存在或无权读取");
+  return data as Course;
+}
+
+/**
+ * 管理员设置或清除单课试看密码。传入 null/空字符串表示清除。
+ * RPC 只返回启用状态，密码本身不会被回读。
+ */
+export async function adminSetCourseAccessPassword(
+  courseId: string,
+  password: string | null,
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc("admin_set_course_access_password", {
+    p_course_id: courseId,
+    p_password: password?.trim() || null,
+  });
+  if (error) {
+    console.error("adminSetCourseAccessPassword error:", error);
+    throw error;
+  }
+  clearPublicCourseCaches(courseId);
+  return data === true;
 }
 
 /**
@@ -571,17 +603,8 @@ export async function adminArchiveCourse(courseId: string): Promise<void> {
 }
 
 export async function getAdminCourseAttachments(courseId: string): Promise<CourseAttachment[]> {
-  const { data, error } = await supabase
-    .from("course_attachments")
-    .select(COURSE_ATTACHMENT_COLUMNS)
-    .eq("course_id", courseId)
-    .order("sort_order", { ascending: true })
-    .order("created_at", { ascending: true });
-  if (error) {
-    console.error("getAdminCourseAttachments error:", error);
-    throw error;
-  }
-  return (data as CourseAttachment[]) ?? [];
+  const content = await getCourseProtectedContent(courseId);
+  return content.attachments;
 }
 
 export async function adminDeleteCourseAttachment(attachmentId: string): Promise<void> {

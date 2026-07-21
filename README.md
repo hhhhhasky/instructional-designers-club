@@ -133,6 +133,14 @@ R2_PUBLIC_URL
 
 `scripts/upload-*.mjs` 用于批量媒体迁移，还需要 `SUPABASE_SERVICE_ROLE_KEY`。这些密钥只应存在本地 `.env.upload` 或部署平台的服务端密钥中。
 
+Plus / Pro 课程正文与附件由 `course-content` Edge Function 在服务端复核会员或单课密码后返回；R2 文件地址使用短时签名 URL。生产环境必须同时满足：
+
+- 受保护的视频、音频、正文图片和附件不能再通过 `r2.dev` 或公开自定义域名直接访问；应放入私有 R2 存储桶，或在公开入口拒绝这些对象前缀。
+- 课程封面等确需公开的资源可放在独立公开存储桶/CDN；当前同桶封面由公开的 `course-cover` Function 仅按已发布课程签发短时读取地址，不恢复桶级公开访问。
+- 私有 R2 存储桶需配置 CORS，允许正式站点对签名 URL 发起 `GET` / `HEAD` 和视频 `Range` 请求，并暴露 `Content-Length`、`Content-Range`、`Accept-Ranges` 与 `ETag` 响应头。
+
+只部署前端和数据库、但继续保留受保护 R2 对象的公开直链，会关闭 Supabase API 的越权读取，却仍无法阻止已知媒体直链被永久转发。
+
 ## 构建与部署
 
 ```bash

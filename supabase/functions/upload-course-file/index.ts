@@ -1,4 +1,5 @@
-import { DeleteObjectCommand, PutObjectCommand, S3Client } from "npm:@aws-sdk/client-s3@3.1048.0";
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "npm:@aws-sdk/client-s3";
+import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner";
 import { createClient } from "npm:@supabase/supabase-js@2.103.1";
 
 const corsHeaders = {
@@ -87,20 +88,24 @@ async function requireAdmin(request: Request) {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
-  if (!supabaseUrl || !supabaseAnonKey) {
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey) {
     throw new Error("Supabase environment is not configured");
   }
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  const viewer = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: authorization } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { data: isAdmin, error: adminError } = await supabase.rpc("is_admin");
+  const { data: isAdmin, error: adminError } = await viewer.rpc("is_admin");
   if (adminError || !isAdmin) {
     return { error: jsonResponse({ error: "仅管理员可以管理课程文件" }, 403) };
   }
 
-  return { supabase };
+  const service = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  return { supabase: service };
 }
 
 Deno.serve(async (request) => {
@@ -189,9 +194,7 @@ Deno.serve(async (request) => {
       Body: new Uint8Array(await file.arrayBuffer()),
       ContentType: fileInfo.mimeType,
       ContentDisposition: encodeContentDisposition(fileInfo.safeName),
-      CacheControl: fileInfo.fileType === "image"
-        ? "public, max-age=31536000, immutable"
-        : "private, max-age=0, must-revalidate",
+      CacheControl: "private, max-age=0, must-revalidate",
     }));
 
     const { data: latest, error: latestError } = await supabase
@@ -220,7 +223,13 @@ Deno.serve(async (request) => {
       .single();
     if (insertError) throw insertError;
 
-    return jsonResponse({ attachment }, 200);
+    const signedFileUrl = await getSignedUrl(
+      client,
+      new GetObjectCommand({ Bucket: bucket, Key: key }),
+      { expiresIn: 2 * 60 * 60 },
+    );
+
+    return jsonResponse({ attachment: { ...attachment, file_url: signedFileUrl } }, 200);
   } catch (error) {
     console.error("upload-course-file failed", error);
     return jsonResponse({ error: "课程文件操作失败，请稍后重试" }, 500);

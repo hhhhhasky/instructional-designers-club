@@ -9,11 +9,13 @@ vi.mock('@/db/api', () => ({
   clearCourseDetailCache: vi.fn(),
   clearHomePageSnapshotCache: vi.fn(),
   clearResourcesCache: vi.fn(),
+  getCourseProtectedContent: vi.fn(),
 }));
 
 vi.mock('@/db/supabase', () => ({
   supabase: {
     from: vi.fn(),
+    rpc: vi.fn(),
   },
 }));
 
@@ -66,6 +68,7 @@ describe('admin course write payload', () => {
         };
       }),
     } as never);
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: createdCourse, error: null } as never);
 
     const longBody = `# 《解一元一次方程》日常课教学设计\n\n${'把隐性的专家思考说出来。\n\n'.repeat(1200)}`;
 

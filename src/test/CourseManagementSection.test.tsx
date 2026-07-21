@@ -7,6 +7,7 @@ import {
   adminCreateCourse,
   adminCreateCourseCategory,
   adminDeleteCourseAttachment,
+  adminSetCourseAccessPassword,
   adminUpdateCourse,
   adminUpdateCourseCategory,
   getAdminCourseAttachments,
@@ -41,6 +42,7 @@ vi.mock('@/db/admin-api', () => ({
   adminCreateCourse: vi.fn(),
   adminCreateCourseCategory: vi.fn(),
   adminDeleteCourseAttachment: vi.fn(),
+  adminSetCourseAccessPassword: vi.fn(),
   adminUpdateCourse: vi.fn(),
   adminUpdateCourseCategory: vi.fn(),
   getAdminCourseAttachments: vi.fn(),
@@ -150,6 +152,7 @@ describe('CourseManagementSection', () => {
     ]);
     vi.mocked(getAdminCourseAttachments).mockResolvedValue([]);
     vi.mocked(adminDeleteCourseAttachment).mockResolvedValue();
+    vi.mocked(adminSetCourseAccessPassword).mockResolvedValue(true);
     vi.mocked(uploadCourseFile).mockResolvedValue({
       id: 'att-1',
       course_id: 'course-1',
@@ -228,6 +231,40 @@ describe('CourseManagementSection', () => {
       expect(uploadCourseFile).toHaveBeenCalledWith('course-1', file);
     });
     expect(await screen.findByText('任务单.docx')).toBeInTheDocument();
+  });
+
+  it('sets a custom preview password for the selected Plus course', async () => {
+    const user = userEvent.setup();
+
+    render(<CourseManagementSection />);
+
+    await screen.findByText('Plus 示例课程');
+    await user.click(screen.getByTitle('编辑'));
+    await user.type(screen.getByLabelText('设置试看密码'), 'plus-demo-2026');
+    await user.click(screen.getByRole('button', { name: '保存修改' }));
+
+    await waitFor(() => {
+      expect(adminSetCourseAccessPassword).toHaveBeenCalledWith('course-1', 'plus-demo-2026');
+    });
+  });
+
+  it('clears an existing course preview password without exposing the old password', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getAdminCourseList).mockResolvedValue([
+      makeCourse({ password_access_enabled: true }),
+    ]);
+
+    render(<CourseManagementSection />);
+
+    await screen.findByText('Plus 示例课程');
+    await user.click(screen.getByTitle('编辑'));
+    expect(screen.getByLabelText('更换试看密码')).toHaveValue('');
+    await user.click(screen.getByLabelText('清除当前试看密码'));
+    await user.click(screen.getByRole('button', { name: '保存修改' }));
+
+    await waitFor(() => {
+      expect(adminSetCourseAccessPassword).toHaveBeenCalledWith('course-1', null);
+    });
   });
 
   it('filters the admin list by Plus track derived from course category', async () => {

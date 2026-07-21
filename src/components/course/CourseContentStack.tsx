@@ -31,11 +31,11 @@ const FORMAT_ORDER: CourseContentFormat[] = ['video', 'article', 'audio', 'essen
  */
 export function getCourseContentFormats(course: Course): CourseContentFormat[] {
   const present: CourseContentFormat[] = [];
-  if (course.video_url) present.push('video');
-  if (course.body?.trim()) present.push('article');
-  if (course.audio_url) present.push('audio');
-  if (course.essence?.trim()) present.push('essence');
-  if ((course.images ?? []).filter(Boolean).length > 0) present.push('images');
+  if (course.video_url || course.has_video) present.push('video');
+  if (course.body?.trim() || course.has_body) present.push('article');
+  if (course.audio_url || course.has_audio) present.push('audio');
+  if (course.essence?.trim() || course.has_essence) present.push('essence');
+  if ((course.images ?? []).filter(Boolean).length > 0 || course.has_images) present.push('images');
   return FORMAT_ORDER.filter((f) => present.includes(f));
 }
 

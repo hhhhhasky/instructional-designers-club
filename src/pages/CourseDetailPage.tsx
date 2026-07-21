@@ -37,8 +37,16 @@ import CourseCompletionDialog from '@/components/course/CourseCompletionDialog';
 import TeacherAiCatalogToc from '@/components/course/TeacherAiCatalogToc';
 import PlusCatalogToc from '@/components/course/PlusCatalogToc';
 import CourseQuestionsPanel from '@/components/course/CourseQuestionsPanel';
+import CoursePasswordGate from '@/components/course/CoursePasswordGate';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { getCourseByIdAdmin, incrementCourseViewCount, getCourseCatalogSnapshot, getCourseDetailSnapshot, getLearningData, getCourseAttachments } from '@/db/api';
+import {
+  CourseContentAccessError,
+  getCourseProtectedContent,
+  incrementCourseViewCount,
+  getCourseCatalogSnapshot,
+  getCourseDetailSnapshot,
+  getLearningData,
+} from '@/db/api';
 import { canAccessCourse, recordCourseVisit, updateLearningProgress, getUserLearningRecords } from '@/lib/access-control';
 import {
   buildGamificationSnapshot,
@@ -81,7 +89,7 @@ function shouldRunDetailWrite(key: string): boolean {
 export default function CourseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, profile, accessLevel } = useAuth();
+  const { user, profile, accessLevel, loading: authLoading } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -110,10 +118,19 @@ export default function CourseDetailPage() {
   const [plusAllCourses, setPlusAllCourses] = useState<Course[]>([]);
   const [tocOpen, setTocOpen] = useState(true);
   const [mobileTocOpen, setMobileTocOpen] = useState(false);
+  const [passwordUnlockedCourseId, setPasswordUnlockedCourseId] = useState<string | null>(null);
+  const [passwordChecking, setPasswordChecking] = useState(false);
+  const [passwordGateError, setPasswordGateError] = useState<string | null>(null);
+  const [protectedContentCourseId, setProtectedContentCourseId] = useState<string | null>(null);
+  const [protectedContentLoading, setProtectedContentLoading] = useState(false);
 
+  const hasStandardCourseAccess = Boolean(
+    profile?.role === 'admin' || course?.is_trial || (course && canAccessCourse(accessLevel, course.membership_type)),
+  );
+  const hasPasswordPreviewAccess = Boolean(course && passwordUnlockedCourseId === course.id);
   const syncProgress = useCallback(() => {
     const video = videoRef.current;
-    if (!video || !video.duration || !user || !course) return;
+    if (!video || !video.duration || !user || !course || !hasStandardCourseAccess) return;
 
     const progress = Math.round((video.currentTime / video.duration) * 100);
     if (progress <= lastSyncedProgress.current) return;
@@ -121,10 +138,10 @@ export default function CourseDetailPage() {
     lastSyncedProgress.current = progress;
     const status = progress >= 95 ? 'completed' : 'in_progress';
     updateLearningProgress(user.id, course.id, progress, status);
-  }, [user, course]);
+  }, [user, course, hasStandardCourseAccess]);
 
   const showCompletionFeedback = useCallback(async () => {
-    if (!user || !course || !profile) return;
+    if (!user || !course || !profile || !hasStandardCourseAccess) return;
     const data = await getLearningData(user.id);
     const snapshot = buildGamificationSnapshot({
       overview: data.overview,
@@ -135,10 +152,10 @@ export default function CourseDetailPage() {
     setCompletionSnapshot(snapshot);
     setCompletionAchievement(findAchievementForCourse(course, snapshot.achievements));
     setCompletionOpen(true);
-  }, [user, course, profile]);
+  }, [user, course, profile, hasStandardCourseAccess]);
 
   const completeCurrentCourse = useCallback(async () => {
-    if (!user || !course) return;
+    if (!user || !course || !hasStandardCourseAccess) return;
     lastSyncedProgress.current = 100;
     lastSyncedAudioProgress.current = 100;
     await updateLearningProgress(user.id, course.id, 100, 'completed');
@@ -153,7 +170,7 @@ export default function CourseDetailPage() {
       );
     });
     await showCompletionFeedback();
-  }, [user, course, showCompletionFeedback]);
+  }, [user, course, showCompletionFeedback, hasStandardCourseAccess]);
 
   const handleTimeUpdate = useCallback(() => {
     const video = videoRef.current;
@@ -171,14 +188,14 @@ export default function CourseDetailPage() {
 
   // 音频进度：每 10% 或到 95% 同步一次（与视频逻辑一致，独立计数器）
   const handleAudioProgress = useCallback((percent: number) => {
-    if (!user || !course) return;
+    if (!user || !course || !hasStandardCourseAccess) return;
     if (percent <= lastSyncedAudioProgress.current) return;
     if (percent - lastSyncedAudioProgress.current >= 10 || percent >= 95) {
       lastSyncedAudioProgress.current = percent;
       const status = percent >= 95 ? 'completed' : 'in_progress';
       updateLearningProgress(user.id, course.id, percent, status);
     }
-  }, [user, course]);
+  }, [user, course, hasStandardCourseAccess]);
 
   const handleAudioEnded = useCallback(() => {
     void completeCurrentCourse();
@@ -196,7 +213,13 @@ export default function CourseDetailPage() {
       try {
         setIsLoading(true);
         setError(null);
+        setCourse(null);
         setShowUpgrade(false);
+        setPasswordUnlockedCourseId(null);
+        setPasswordGateError(null);
+        setPasswordChecking(false);
+        setProtectedContentCourseId(null);
+        setProtectedContentLoading(false);
         setManuallyMarked(false);
         setAttachments([]);
         setSiblingCourses([]);
@@ -208,9 +231,12 @@ export default function CourseDetailPage() {
         let catalog = detailSnapshot.catalog;
         let siblingCoursesFromSnapshot = detailSnapshot.sibling_courses;
 
-        // 管理员预览：常规 API 找不到时查所有状态
+        // 管理员预览：公开快照不会返回草稿，改由受控内容接口读取。
         if (!courseData && profile?.role === 'admin') {
-          courseData = await getCourseByIdAdmin(id);
+          const protectedContent = await getCourseProtectedContent(id);
+          courseData = protectedContent.course;
+          setAttachments(protectedContent.attachments);
+          setProtectedContentCourseId(id);
           catalog = await getCourseCatalogSnapshot();
           siblingCoursesFromSnapshot = [];
         }
@@ -274,18 +300,56 @@ export default function CourseDetailPage() {
     loadCourse();
   }, [id, profile?.role]);
 
+  // 标准会员、免费/试看课程和管理员都必须经过服务端授权后才能取得正文和媒体地址。
+  useEffect(() => {
+    if (!course || isLoading || authLoading || !hasStandardCourseAccess) return;
+    if (protectedContentCourseId === course.id) return;
+
+    let cancelled = false;
+    setProtectedContentLoading(true);
+    getCourseProtectedContent(course.id)
+      .then((content) => {
+        if (cancelled) return;
+        setCourse(content.course);
+        setAttachments(content.attachments);
+        setProtectedContentCourseId(content.course.id);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error('服务端课程授权失败:', err);
+        if (err instanceof CourseContentAccessError && err.status === 403) {
+          setUpgradeLevel(course.membership_type === 'pro' ? 'pro' : 'plus');
+          setShowUpgrade(true);
+        } else {
+          setError('课程权限验证失败，请刷新页面重试');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setProtectedContentLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [course, isLoading, authLoading, hasStandardCourseAccess, protectedContentCourseId]);
+
   // 访问控制检查独立于课程加载
   useEffect(() => {
-    if (!course || isLoading) return;
+    if (!course || isLoading || authLoading) return;
 
-    if (!canAccessCourse(accessLevel, course.membership_type)) {
+    if (!hasStandardCourseAccess && !hasPasswordPreviewAccess) {
+      if (course.password_access_enabled && (course.membership_type === 'plus' || course.membership_type === 'pro')) {
+        setShowUpgrade(false);
+        setLearningRecords([]);
+        return;
+      }
       if (!user) {
         navigate('/login', { state: { from: `/courses/${course.id}` }, replace: true });
       } else {
         setUpgradeLevel(course.membership_type as 'plus' | 'pro');
         setShowUpgrade(true);
       }
-    } else {
+    } else if (hasStandardCourseAccess && protectedContentCourseId === course.id) {
       setShowUpgrade(false);
       if (user) {
         if (shouldRunDetailWrite(`visit:${user.id}:${course.id}`)) {
@@ -302,30 +366,11 @@ export default function CourseDetailPage() {
           }
         });
       }
+    } else {
+      setShowUpgrade(false);
+      setLearningRecords([]);
     }
-  }, [course, user, accessLevel, isLoading, navigate]);
-
-  useEffect(() => {
-    if (!course || isLoading) return;
-    if (profile?.role !== 'admin' && !canAccessCourse(accessLevel, course.membership_type)) {
-      setAttachments([]);
-      return;
-    }
-
-    let cancelled = false;
-    getCourseAttachments(course.id)
-      .then((items) => {
-        if (!cancelled) setAttachments(items);
-      })
-      .catch((err) => {
-        console.error('加载课程附件失败:', err);
-        if (!cancelled) setAttachments([]);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [course, accessLevel, profile?.role, isLoading]);
+  }, [course, user, hasStandardCourseAccess, hasPasswordPreviewAccess, protectedContentCourseId, isLoading, authLoading, navigate]);
 
   // 页面离开时同步最终进度
   useEffect(() => {
@@ -371,7 +416,32 @@ export default function CourseDetailPage() {
     navigate(`/courses/${courseId}`);
   };
 
-  if (isLoading) {
+  const handleVerifyPassword = async (password: string) => {
+    if (!course || passwordChecking) return;
+
+    try {
+      setPasswordChecking(true);
+      setPasswordGateError(null);
+      const content = await getCourseProtectedContent(course.id, password);
+      setCourse(content.course);
+      setAttachments(content.attachments);
+      setProtectedContentCourseId(content.course.id);
+      setPasswordUnlockedCourseId(content.course.id);
+    } catch (err) {
+      if (err instanceof CourseContentAccessError && err.code === 'INVALID_PASSWORD') {
+        setPasswordGateError('密码不正确，请确认后重新输入。');
+      } else if (err instanceof CourseContentAccessError && err.code === 'PASSWORD_RATE_LIMITED') {
+        const minutes = Math.max(1, Math.ceil((err.retryAfterSeconds ?? 60) / 60));
+        setPasswordGateError(`尝试次数过多，请约 ${minutes} 分钟后再试。`);
+      } else {
+        setPasswordGateError('暂时无法验证密码，请稍后重试。');
+      }
+    } finally {
+      setPasswordChecking(false);
+    }
+  };
+
+  if (isLoading || authLoading) {
     return (
       <div className="min-h-screen bg-cream flex flex-col">
         <Header />
@@ -403,6 +473,30 @@ export default function CourseDetailPage() {
     );
   }
 
+  if (
+    course &&
+    !hasStandardCourseAccess &&
+    !hasPasswordPreviewAccess &&
+    course.password_access_enabled &&
+    (course.membership_type === 'plus' || course.membership_type === 'pro')
+  ) {
+    return (
+      <div className="min-h-screen bg-cream flex flex-col">
+        <Header />
+        <CoursePasswordGate
+          courseTitle={course.title}
+          membershipLabel={course.membership_type === 'pro' ? 'Pro 专家版' : 'Plus 会员版'}
+          checking={passwordChecking}
+          error={passwordGateError}
+          onVerify={handleVerifyPassword}
+          onBack={() => navigate(getCourseListPath(course.membership_type))}
+          onLogin={() => navigate('/login', { state: { from: `/courses/${course.id}` } })}
+        />
+        <Footer />
+      </div>
+    );
+  }
+
   if (showUpgrade) {
     return (
       <div className="min-h-screen bg-cream flex flex-col">
@@ -426,6 +520,15 @@ export default function CourseDetailPage() {
           </div>
         </main>
         <Footer />
+      </div>
+    );
+  }
+
+  if (course && hasStandardCourseAccess && protectedContentCourseId !== course.id) {
+    return (
+      <div className="min-h-screen bg-cream flex flex-col">
+        <Header />
+        <LoadingOverlay message={protectedContentLoading ? '正在验证课程权限并加载内容...' : '正在准备课程内容...'} />
       </div>
     );
   }
@@ -837,7 +940,7 @@ export default function CourseDetailPage() {
                     course={course}
                     onAudioProgress={handleAudioProgress}
                     onAudioEnded={handleAudioEnded}
-                    onMarkComplete={handleMarkComplete}
+                    onMarkComplete={hasStandardCourseAccess ? handleMarkComplete : undefined}
                     isCompleted={isCurrentCompleted}
                   />
 
@@ -887,7 +990,7 @@ export default function CourseDetailPage() {
                     </section>
                   )}
 
-                  <CourseQuestionsPanel course={course} />
+                  {!hasPasswordPreviewAccess && <CourseQuestionsPanel course={course} />}
 
                   {/* CTA */}
                   <section className="pt-7">

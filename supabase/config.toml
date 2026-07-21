@@ -19,3 +19,9 @@ additional_redirect_urls = ["https://idclub.hasky.top"]
 enable_signup = true
 double_confirm_changes = true
 enable_confirmations = true
+
+[functions.course-content]
+verify_jwt = false
+
+[functions.course-cover]
+verify_jwt = false

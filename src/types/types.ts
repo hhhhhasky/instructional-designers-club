@@ -36,15 +36,22 @@ export interface Course {
   status: 'draft' | 'published' | 'archived';
   membership_type: MembershipType; // 会员类型
   is_trial: boolean; // 是否试看课程
+  password_access_enabled?: boolean; // 是否允许使用单课密码试看（密码摘要不在公开课程数据中）
+  has_video?: boolean; // 公开目录只暴露内容形态，不暴露受保护 URL
+  has_audio?: boolean;
+  has_body?: boolean;
+  has_essence?: boolean;
+  has_images?: boolean;
+  has_meeting?: boolean;
   image_url: string | null;
-  video_url: string | null;
-  audio_url: string | null; // 音频讲解文件 URL（多载体）
-  body: string | null; // 长文正文（Markdown）
-  essence: string | null; // 课程精华（可选 Markdown：思维导图等看课参考材料，为空不显示）
-  images: string[] | null; // 图片集 URL 数组
+  video_url?: string | null;
+  audio_url?: string | null; // 音频讲解文件 URL（多载体）
+  body?: string | null; // 长文正文（Markdown）
+  essence?: string | null; // 课程精华（可选 Markdown：思维导图等看课参考材料，为空不显示）
+  images?: string[] | null; // 图片集 URL 数组
   plus_lesson_order: number | null; // Plus 系列内单课排序
   plus_representative: boolean | null; // 是否作为 Plus 首页代表课程
-  meeting_url: string | null;
+  meeting_url?: string | null;
   sort_order: number | null;
   view_count: number | null;
   created_at: string | null;
