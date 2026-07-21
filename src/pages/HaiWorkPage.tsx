@@ -29,16 +29,17 @@ import {
   type HaiWorkTask,
   type HaiWorkToolSlug,
 } from "@/db/hai-api";
-import { cn } from "@/lib/utils";
 
-export const HAI_WORK_TOOL_CONFIG: Record<HaiWorkToolSlug, {
+export type HaiWorkToolVisualConfig = {
   name: string;
   eyebrow: string;
   description: string;
   promise: string;
   icon: React.ElementType;
   accent: string;
-}> = {
+};
+
+export const HAI_WORK_TOOL_CONFIG: Record<HaiWorkToolSlug, HaiWorkToolVisualConfig> = {
   "lesson-diagnosis": {
     name: "教案诊断",
     eyebrow: "阅读 · 诊断",
@@ -56,17 +57,16 @@ export const HAI_WORK_TOOL_CONFIG: Record<HaiWorkToolSlug, {
     accent: "#2f6255",
   },
   "subject-lesson-design": {
-    name: "学科定制设计",
-    eyebrow: "设计 · 交付",
-    description: "依据你提供的教材正文与课型要求，匹配学科 Skill，生成一份完整教案。",
-    promise: "交付完整、可追改的教学设计",
+    name: "思政公开课设计",
+    eyebrow: "议题 · 价值 · 证据",
+    description: "依据教材正文和真实学情，匹配已发布的思政 Skill，让价值议题、学习任务、课堂活动与评价证据形成完整闭环。",
+    promise: "交付可追改的思政公开课完整教案",
     icon: NotebookPen,
     accent: "#4d567a",
   },
 };
 
 const stages = ["小学", "初中", "高中", "中职", "高职", "高校", "其他"];
-const lessonTypes = ["日常新授课", "公开课", "赛课", "复习课", "讲评课", "说课", "其他"];
 const segmentTypes = ["课程导入", "问题链", "任务活动", "教师讲解", "合作探究", "练习迁移", "评价反馈", "课堂总结", "其他"];
 const acceptedFileTypes = ".txt,.md,.markdown,.html,.htm,.json,.csv,.docx,.pdf";
 const maxFileBytes = 20 * 1024 * 1024;
@@ -112,15 +112,17 @@ export default function HaiWorkPage() {
   }, [user]);
 
   const enabledToolSlugs = useMemo(() => new Set(tools.map((item) => item.slug)), [tools]);
-  const sidebar = <WorkSidebar tasks={tasks} />;
+  const activeModule = toolSlug ? tools.find((item) => item.slug === toolSlug) : undefined;
+  const activeConfig = toolSlug ? resolveWorkToolConfig(toolSlug, activeModule) : null;
+  const sidebar = <WorkSidebar tasks={tasks} tools={tools} />;
 
   return (
     <>
-      <PageMeta title={toolSlug ? `${HAI_WORK_TOOL_CONFIG[toolSlug].name} - HAI` : "帮你干活 - HAI"} description="HAI 教研工作台" canonicalPath={toolSlug ? `/hai/work/${toolSlug}` : "/hai/work"} />
+      <PageMeta title={activeConfig ? `${activeConfig.name} - HAI` : "帮你干活 - HAI"} description="HAI 教研工作台" canonicalPath={toolSlug ? `/hai/work/${toolSlug}` : "/hai/work"} />
       <HaiWorkShell
         sidebar={sidebar}
-        title={toolSlug ? HAI_WORK_TOOL_CONFIG[toolSlug].name : "帮你干活"}
-        subtitle={toolSlug ? HAI_WORK_TOOL_CONFIG[toolSlug].promise : "诊断、优化与生成，沉淀为可追改的工作产物"}
+        title={activeConfig?.name ?? "帮你干活"}
+        subtitle={activeConfig?.promise ?? "诊断、优化与生成，沉淀为可追改的工作产物"}
       >
         {loading ? (
           <WorkLoading />
@@ -130,7 +132,7 @@ export default function HaiWorkPage() {
           <WorkLocked reason={access?.reason} />
         ) : toolSlug ? (
           enabledToolSlugs.has(toolSlug) ? (
-            <WorkToolForm toolSlug={toolSlug} />
+            <WorkToolForm toolSlug={toolSlug} config={activeConfig ?? HAI_WORK_TOOL_CONFIG[toolSlug]} />
           ) : (
             <WorkError message="这项工作功能尚未在后台启用。" />
           )
@@ -143,7 +145,7 @@ export default function HaiWorkPage() {
 }
 
 function WorkLanding({ tools, tasks }: { tools: HaiFeatureModule[]; tasks: HaiWorkTask[] }) {
-  const enabled = new Set(tools.map((item) => item.slug));
+  const visibleTools = getSupportedWorkTools(tools);
   return (
     <div className="mx-auto max-w-6xl px-4 py-5 pb-24 md:px-8 md:py-8">
       <section className="relative overflow-hidden rounded-[30px] border border-[#d9d0c1] bg-[#253831] px-5 py-7 text-[#fffaf0] shadow-[0_24px_60px_rgba(37,56,49,0.18)] md:px-9 md:py-10">
@@ -164,8 +166,8 @@ function WorkLanding({ tools, tasks }: { tools: HaiFeatureModule[]; tasks: HaiWo
       </section>
 
       <section className="mt-7 grid gap-4 lg:grid-cols-3">
-        {(Object.entries(HAI_WORK_TOOL_CONFIG) as Array<[HaiWorkToolSlug, typeof HAI_WORK_TOOL_CONFIG[HaiWorkToolSlug]]>).map(([slug, config], index) => (
-          <WorkToolCard key={slug} slug={slug} config={config} index={index} enabled={enabled.has(slug)} />
+        {visibleTools.map(({ slug, config }, index) => (
+          <WorkToolCard key={slug} slug={slug} config={config} index={index} />
         ))}
       </section>
 
@@ -179,7 +181,7 @@ function WorkLanding({ tools, tasks }: { tools: HaiFeatureModule[]; tasks: HaiWo
         </div>
         {tasks.length > 0 ? (
           <div className="grid gap-3 md:grid-cols-2">
-            {tasks.slice(0, 6).map((task) => <RecentTaskCard key={task.id} task={task} />)}
+            {tasks.slice(0, 6).map((task) => <RecentTaskCard key={task.id} task={task} tools={tools} />)}
           </div>
         ) : (
           <div className="rounded-[24px] border border-dashed border-[#d7cdbd] bg-[#faf6ee] px-6 py-10 text-center">
@@ -193,21 +195,16 @@ function WorkLanding({ tools, tasks }: { tools: HaiFeatureModule[]; tasks: HaiWo
   );
 }
 
-function WorkToolCard({ slug, config, index, enabled }: {
+function WorkToolCard({ slug, config, index }: {
   slug: HaiWorkToolSlug;
-  config: typeof HAI_WORK_TOOL_CONFIG[HaiWorkToolSlug];
+  config: HaiWorkToolVisualConfig;
   index: number;
-  enabled: boolean;
 }) {
   const Icon = config.icon;
   return (
     <Link
-      to={enabled ? `/hai/work/${slug}` : "#"}
-      aria-disabled={!enabled}
-      className={cn(
-        "group relative min-h-[260px] overflow-hidden rounded-[26px] border border-[#d9d0c1] bg-[#fffaf1] p-5 transition duration-300",
-        enabled ? "hover:-translate-y-1 hover:shadow-[0_18px_42px_rgba(76,57,33,0.13)]" : "cursor-not-allowed opacity-55",
-      )}
+      to={`/hai/work/${slug}`}
+      className="group relative min-h-[260px] overflow-hidden rounded-[26px] border border-[#d9d0c1] bg-[#fffaf1] p-5 transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_42px_rgba(76,57,33,0.13)]"
     >
       <span className="absolute right-4 top-3 font-serif text-6xl font-black text-[#e7dfd1]">0{index + 1}</span>
       <div className="relative">
@@ -218,7 +215,7 @@ function WorkToolCard({ slug, config, index, enabled }: {
         <h3 className="mt-2 text-xl font-black text-[#2f312d]">{config.name}</h3>
         <p className="mt-3 text-sm leading-6 text-[#756d63]">{config.description}</p>
         <div className="mt-5 flex items-center justify-between border-t border-[#e5ded3] pt-4 text-xs font-bold text-[#4e514b]">
-          <span>{enabled ? config.promise : "后台尚未启用"}</span>
+          <span>{config.promise}</span>
           <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
         </div>
       </div>
@@ -226,10 +223,9 @@ function WorkToolCard({ slug, config, index, enabled }: {
   );
 }
 
-function WorkToolForm({ toolSlug }: { toolSlug: HaiWorkToolSlug }) {
+function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config: HaiWorkToolVisualConfig }) {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const config = HAI_WORK_TOOL_CONFIG[toolSlug];
   const [form, setForm] = useState<Record<string, string>>(() => initialForm(toolSlug));
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
@@ -307,14 +303,18 @@ function WorkToolForm({ toolSlug }: { toolSlug: HaiWorkToolSlug }) {
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           <SelectField label="学段" value={form.stage} options={stages} onChange={(value) => update("stage", value)} />
-          <TextField label="学科" value={form.subject} placeholder="例如：语文、数学、思想政治" onChange={(value) => update("subject", value)} />
+          {toolSlug === "subject-lesson-design" ? (
+            <div className="rounded-[15px] border border-[#d9d0c4] bg-[#f5efe5] px-3 py-2.5" aria-label="学科与课型">
+              <p className="text-[10px] font-bold tracking-[0.12em] text-[#8f684e]">固定设计范围</p>
+              <p className="mt-1 text-sm font-black text-[#363934]">思想政治 · 公开课</p>
+            </div>
+          ) : (
+            <TextField label="学科" value={form.subject} placeholder="例如：语文、数学、思想政治" onChange={(value) => update("subject", value)} />
+          )}
           {toolSlug === "subject-lesson-design" && (
             <TextField label="单元" value={form.unit} placeholder="例如：必修一 第一单元" onChange={(value) => update("unit", value)} />
           )}
           <TextField label="课题" value={form.topic} placeholder="输入本节课题" onChange={(value) => update("topic", value)} />
-          {toolSlug === "subject-lesson-design" && (
-            <SelectField label="课型" value={form.lesson_type} options={lessonTypes} onChange={(value) => update("lesson_type", value)} />
-          )}
           {toolSlug === "segment-optimization" && (
             <SelectField label="要优化的环节" value={form.segment_type} options={segmentTypes} onChange={(value) => update("segment_type", value)} />
           )}
@@ -325,7 +325,7 @@ function WorkToolForm({ toolSlug }: { toolSlug: HaiWorkToolSlug }) {
       <div className="mt-4 rounded-[28px] border border-[#ddd3c4] bg-white p-5 md:p-7">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[10px] font-black tracking-[0.24em] text-[#8c654d]">SOURCE MATERIAL</p>
+            <p className="text-[10px] font-black tracking-[0.24em] text-[#8c654d]">原始材料</p>
             <h2 className="mt-2 text-xl font-black text-[#2d302b]">{materialTitle(toolSlug)}</h2>
           </div>
           <FileText className="h-6 w-6 text-[#a19382]" />
@@ -376,12 +376,13 @@ function WorkToolForm({ toolSlug }: { toolSlug: HaiWorkToolSlug }) {
   );
 }
 
-export function WorkSidebar({ tasks }: { tasks: HaiWorkTask[] }) {
+export function WorkSidebar({ tasks, tools }: { tasks: HaiWorkTask[]; tools: HaiFeatureModule[] }) {
+  const visibleTools = getSupportedWorkTools(tools);
   return (
     <div>
       <p className="px-1 text-[11px] font-black tracking-[0.16em] text-[#8f684e]">工作工具</p>
       <div className="mt-3 space-y-1.5">
-        {(Object.entries(HAI_WORK_TOOL_CONFIG) as Array<[HaiWorkToolSlug, typeof HAI_WORK_TOOL_CONFIG[HaiWorkToolSlug]]>).map(([slug, config]) => {
+        {visibleTools.map(({ slug, config }) => {
           const Icon = config.icon;
           return (
             <Link key={slug} to={`/hai/work/${slug}`} className="flex items-center gap-3 rounded-[16px] px-3 py-2.5 text-sm font-bold text-[#5d5b55] transition hover:bg-white hover:text-[#283b34]">
@@ -408,8 +409,8 @@ export function WorkSidebar({ tasks }: { tasks: HaiWorkTask[] }) {
   );
 }
 
-function RecentTaskCard({ task }: { task: HaiWorkTask }) {
-  const config = HAI_WORK_TOOL_CONFIG[task.module_slug] ?? HAI_WORK_TOOL_CONFIG["lesson-diagnosis"];
+function RecentTaskCard({ task, tools }: { task: HaiWorkTask; tools: HaiFeatureModule[] }) {
+  const config = resolveWorkToolConfig(task.module_slug, tools.find((item) => item.slug === task.module_slug));
   const Icon = config.icon;
   return (
     <Link to={`/hai/work/tasks/${task.id}`} className="group flex items-center gap-4 rounded-[22px] border border-[#ddd4c6] bg-white p-4 transition hover:border-[#b9aa96] hover:shadow-[0_10px_24px_rgba(74,56,33,0.08)]">
@@ -477,10 +478,10 @@ function WorkLocked({ reason }: { reason?: string }) {
 function initialForm(toolSlug: HaiWorkToolSlug) {
   return {
     stage: "",
-    subject: "",
+    subject: toolSlug === "subject-lesson-design" ? "思想政治" : "",
     unit: "",
     topic: "",
-    lesson_type: "",
+    lesson_type: toolSlug === "subject-lesson-design" ? "公开课" : "",
     segment_type: "",
     current_design: "",
     desired_outcome: "",
@@ -503,7 +504,6 @@ function validateForm(toolSlug: HaiWorkToolSlug, form: Record<string, string>, f
   }
   if (toolSlug === "subject-lesson-design") {
     if (!form.unit.trim()) return "请填写单元。";
-    if (!form.lesson_type) return "请选择课型。";
     if (!form.textbook_content.trim() && fileCount === 0) return "请粘贴教材正文或上传教材文件，HAI 不会猜测教材内容。";
   }
   return "";
@@ -517,6 +517,22 @@ function materialTitle(toolSlug: HaiWorkToolSlug) {
 
 function isWorkToolSlug(value: string | undefined): value is HaiWorkToolSlug {
   return value === "lesson-diagnosis" || value === "segment-optimization" || value === "subject-lesson-design";
+}
+
+export function resolveWorkToolConfig(slug: HaiWorkToolSlug, module?: HaiFeatureModule): HaiWorkToolVisualConfig {
+  const fallback = HAI_WORK_TOOL_CONFIG[slug];
+  return {
+    ...fallback,
+    name: module?.name?.trim() || fallback.name,
+    description: module?.description?.trim() || fallback.description,
+  };
+}
+
+function getSupportedWorkTools(tools: HaiFeatureModule[]) {
+  return tools.flatMap((module) => {
+    if (!isWorkToolSlug(module.slug)) return [];
+    return [{ slug: module.slug, config: resolveWorkToolConfig(module.slug, module) }];
+  });
 }
 
 function formatDate(value: string) {
