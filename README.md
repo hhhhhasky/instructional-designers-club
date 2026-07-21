@@ -49,10 +49,10 @@ cp .env.example .env
 ```dotenv
 VITE_SITE_URL=http://localhost:5173
 VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-supabase-publishable-key
+VITE_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
 ```
 
-`VITE_SUPABASE_ANON_KEY` 是为兼容现有前端代码保留的变量名，值应填写 `sb_publishable_...`。不要将 `sb_secret_...` 或旧 Service Role Key 写入任何 `VITE_*` 变量或提交到仓库。
+`VITE_SUPABASE_PUBLISHABLE_KEY` 会发送到浏览器，值应填写 `sb_publishable_...`。代码仍兼容旧变量名 `VITE_SUPABASE_ANON_KEY`，但新部署应改用前者。不要将 `sb_secret_...` 或旧 Service Role Key 写入任何 `VITE_*` 变量或提交到仓库。
 
 ### 4. 启动开发服务器
 
@@ -152,7 +152,7 @@ npm run build
 部署平台需要：
 
 - 将发布目录设为 `dist`。
-- 配置 `VITE_SITE_URL`、`VITE_SUPABASE_URL` 和 `VITE_SUPABASE_ANON_KEY`。
+- 配置 `VITE_SITE_URL`、`VITE_SUPABASE_URL` 和 `VITE_SUPABASE_PUBLISHABLE_KEY`。
 - 对静态文件不存在的路径回退到 `/index.html`，以支持 SPA 路由。仓库已提供 `public/_redirects` 和 `public/_headers` 作为兼容规则。
 
 ## 相关文档
