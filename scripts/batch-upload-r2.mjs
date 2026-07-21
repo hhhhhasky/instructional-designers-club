@@ -23,7 +23,7 @@ const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || 'course-videos';
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL?.replace(/\/$/, '');
 const SUPABASE_URL = 'https://isjflmyhbvdlmcsaewbq.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY;
 
 const r2 = new S3Client({
   region: 'auto',
@@ -50,7 +50,7 @@ async function getExistingR2Keys() {
 async function getCourses() {
   const res = await fetch(
     `${SUPABASE_URL}/rest/v1/courses?select=id,title,video_url,membership_type&status=eq.published&order=sort_order.asc`,
-    { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+    { headers: { apikey: SUPABASE_KEY } }
   );
   if (!res.ok) throw new Error(`获取课程失败: ${res.status}`);
   return res.json();
@@ -196,7 +196,6 @@ async function uploadAndUpdate(filePath, r2Key, course) {
     method: 'PATCH',
     headers: {
       apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
       'Content-Type': 'application/json',
       Prefer: 'return=minimal',
     },

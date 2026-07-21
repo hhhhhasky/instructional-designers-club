@@ -1,6 +1,7 @@
 import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "npm:@aws-sdk/client-s3";
 import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner";
 import { createClient } from "npm:@supabase/supabase-js@2.103.1";
+import { getSupabasePublishableKey, getSupabaseSecretKey } from "../_shared/supabase-keys.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -87,13 +88,13 @@ async function requireAdmin(request: Request) {
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey) {
+  if (!supabaseUrl) {
     throw new Error("Supabase environment is not configured");
   }
+  const supabasePublishableKey = getSupabasePublishableKey();
+  const supabaseSecretKey = getSupabaseSecretKey();
 
-  const viewer = createClient(supabaseUrl, supabaseAnonKey, {
+  const viewer = createClient(supabaseUrl, supabasePublishableKey, {
     global: { headers: { Authorization: authorization } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
@@ -102,7 +103,7 @@ async function requireAdmin(request: Request) {
     return { error: jsonResponse({ error: "仅管理员可以管理课程文件" }, 403) };
   }
 
-  const service = createClient(supabaseUrl, serviceRoleKey, {
+  const service = createClient(supabaseUrl, supabaseSecretKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   return { supabase: service };

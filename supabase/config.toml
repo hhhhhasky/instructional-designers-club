@@ -25,3 +25,33 @@ verify_jwt = false
 
 [functions.course-cover]
 verify_jwt = false
+
+[functions.admin-reset-password]
+verify_jwt = false
+
+[functions.hai-access-status]
+verify_jwt = false
+
+[functions.hai-chat]
+verify_jwt = false
+
+[functions.hai-daily-review]
+verify_jwt = false
+
+[functions.hai-ingest-material]
+verify_jwt = false
+
+[functions.hai-method-cards-admin]
+verify_jwt = false
+
+[functions.hai-redeem-invite]
+verify_jwt = false
+
+[functions.hai-roundtable-chat]
+verify_jwt = false
+
+[functions.upload-course-file]
+verify_jwt = false
+
+[functions.upload-course-image]
+verify_jwt = false

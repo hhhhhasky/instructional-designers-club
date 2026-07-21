@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient, type User } from "npm:@supabase/supabase-js@2";
+import { getSupabasePublishableKey, getSupabaseSecretKey } from "./supabase-keys.ts";
 
 export class HttpError extends Error {
   status: number;
@@ -132,13 +133,13 @@ function requiredEnv(name: string) {
 }
 
 export function createAdminClient() {
-  return createClient(requiredEnv("SUPABASE_URL"), requiredEnv("SUPABASE_SERVICE_ROLE_KEY"), {
+  return createClient(requiredEnv("SUPABASE_URL"), getSupabaseSecretKey(), {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
 
 export function createUserClient(request: Request) {
-  return createClient(requiredEnv("SUPABASE_URL"), requiredEnv("SUPABASE_ANON_KEY"), {
+  return createClient(requiredEnv("SUPABASE_URL"), getSupabasePublishableKey(), {
     auth: { persistSession: false, autoRefreshToken: false },
     global: {
       headers: {

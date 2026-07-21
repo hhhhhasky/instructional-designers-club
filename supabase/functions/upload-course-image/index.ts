@@ -1,5 +1,6 @@
 import { PutObjectCommand, S3Client } from "npm:@aws-sdk/client-s3@3.1048.0";
 import { createClient } from "npm:@supabase/supabase-js@2.103.1";
+import { getSupabasePublishableKey } from "../_shared/supabase-keys.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,12 +37,11 @@ Deno.serve(async (request) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!supabaseUrl) {
       throw new Error("Supabase environment is not configured");
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    const supabase = createClient(supabaseUrl, getSupabasePublishableKey(), {
       global: { headers: { Authorization: authorization } },
       auth: { persistSession: false, autoRefreshToken: false },
     });

@@ -20,7 +20,7 @@ const r2 = new S3Client({
 
 const R2_BASE = 'https://pub-9a448aa9778a401c912a9e3ac046e252.r2.dev';
 const SUPABASE_URL = 'https://isjflmyhbvdlmcsaewbq.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY;
 
 async function main() {
   // 1. 获取 R2 所有文件
@@ -35,7 +35,7 @@ async function main() {
   // 2. 获取所有课程
   const res = await fetch(
     `${SUPABASE_URL}/rest/v1/courses?select=id,title,video_url,membership_type&status=eq.published&order=sort_order.asc`,
-    { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+    { headers: { apikey: SUPABASE_KEY } }
   );
   const courses = await res.json();
 

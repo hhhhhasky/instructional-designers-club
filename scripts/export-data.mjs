@@ -1,7 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://backend.appmiaoda.com/projects/supabase248069794908123136';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoyMDc4NTcxNjQ4LCJpc3MiOiJzdXBhYmFzZSIsInJvbGUiOiJhbm9uIiwic3ViIjoiYW5vbiJ9.pFgXvnN1ofqaDqBw79B1zoxJiPxiN-EtRdSh02vG6mk';
+const supabaseUrl = process.env.MIGRATION_SOURCE_SUPABASE_URL;
+const supabaseAnonKey = process.env.MIGRATION_SOURCE_SUPABASE_ANON_KEY;
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing MIGRATION_SOURCE_SUPABASE_URL or MIGRATION_SOURCE_SUPABASE_ANON_KEY');
+}
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 

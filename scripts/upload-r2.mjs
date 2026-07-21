@@ -10,7 +10,7 @@
  *   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY
  *   R2_BUCKET_NAME (默认 course-videos)
  *   R2_PUBLIC_URL
- *   SUPABASE_URL, SUPABASE_ANON_KEY
+ *   SUPABASE_URL, SUPABASE_SECRET_KEY
  */
 
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
@@ -38,15 +38,16 @@ const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || 'course-videos';
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL?.replace(/\/$/, '');
 
-const SUPABASE_URL = 'https://isjflmyhbvdlmcsaewbq.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlzamZsbXloYnZkbG1jc2Fld2JxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5ODk2NDcsImV4cCI6MjA5NDU2NTY0N30.LqAxPxpP4qwrtBu4yPxDosFHZC4QkF1volyfWnrg3o0';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
 
 const missing = [];
 if (!R2_ACCOUNT_ID) missing.push('R2_ACCOUNT_ID');
 if (!R2_ACCESS_KEY_ID) missing.push('R2_ACCESS_KEY_ID');
 if (!R2_SECRET_ACCESS_KEY) missing.push('R2_SECRET_ACCESS_KEY');
 if (!R2_PUBLIC_URL) missing.push('R2_PUBLIC_URL');
+if (!SUPABASE_URL) missing.push('SUPABASE_URL');
+if (!SUPABASE_SECRET_KEY) missing.push('SUPABASE_SECRET_KEY');
 if (missing.length > 0) {
   console.error('❌ 缺少环境变量:', missing.join(', '));
   process.exit(1);
@@ -66,7 +67,7 @@ async function getCourses(membershipType) {
   const filter = membershipType ? `&membership_type=eq.${membershipType}` : '';
   const res = await fetch(
     `${SUPABASE_URL}/rest/v1/courses?select=id,title,video_url&status=eq.published${filter}&order=sort_order.asc`,
-    { headers: { apikey: SUPABASE_SERVICE_KEY, Authorization: `Bearer ${SUPABASE_SERVICE_KEY}` } }
+    { headers: { apikey: SUPABASE_SECRET_KEY } }
   );
   if (!res.ok) throw new Error(`获取课程失败: ${res.status}`);
   return res.json();
@@ -194,8 +195,7 @@ async function updateVideoUrl(courseId, url) {
     {
       method: 'PATCH',
       headers: {
-        apikey: SUPABASE_SERVICE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+        apikey: SUPABASE_SECRET_KEY,
         'Content-Type': 'application/json',
         Prefer: 'return=minimal',
       },
@@ -211,8 +211,7 @@ async function updateAudioUrl(courseId, url) {
     {
       method: 'PATCH',
       headers: {
-        apikey: SUPABASE_SERVICE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+        apikey: SUPABASE_SECRET_KEY,
         'Content-Type': 'application/json',
         Prefer: 'return=minimal',
       },

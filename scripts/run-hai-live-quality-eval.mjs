@@ -13,14 +13,14 @@ loadEnv(".env.upload");
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com";
 const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || "deepseek-v4-flash";
 const EVAL_EMAIL = process.env.HAI_LIVE_EVAL_EMAIL || "hai-eval+club-site@hasky.top";
 const EVAL_PASSWORD = process.env.HAI_LIVE_EVAL_PASSWORD || `HaiEval-${crypto.randomUUID()}-2026`;
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Missing Supabase env.");
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SECRET_KEY) throw new Error("Missing Supabase env.");
 if (!DEEPSEEK_API_KEY) throw new Error("Missing DEEPSEEK_API_KEY.");
 
 const SCORE_WEIGHTS = {
@@ -89,7 +89,7 @@ const TEST_CASES = [
   },
 ];
 
-const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+const admin = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 const anon = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {

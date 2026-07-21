@@ -9,7 +9,7 @@ const OUTPUT_DIR = join(ROOT, "docs/hai-quality-runs");
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const configuredAccessToken = process.env.HAI_EVAL_ACCESS_TOKEN;
 const moduleSlug = process.env.HAI_EVAL_MODULE_SLUG || "ask-han";
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const serviceRoleKey = process.env.SUPABASE_SECRET_KEY;
 const caseLimit = Math.max(0, Number.parseInt(process.env.HAI_EVAL_CASE_LIMIT || "0", 10) || 0);
 
 if (!supabaseUrl) throw new Error("Missing VITE_SUPABASE_URL or SUPABASE_URL.");

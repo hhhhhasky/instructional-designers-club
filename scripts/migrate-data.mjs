@@ -1,13 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 
+function requiredEnv(name) {
+  const value = process.env[name];
+  if (!value) throw new Error(`Missing required environment variable: ${name}`);
+  return value;
+}
+
 const oldClient = createClient(
-  'https://backend.appmiaoda.com/projects/supabase248069794908123136',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoyMDc4NTcxNjQ4LCJpc3MiOiJzdXBhYmFzZSIsInJvbGUiOiJhbm9uIiwic3ViIjoiYW5vbiJ9.pFgXvnN1ofqaDqBw79B1zoxJiPxiN-EtRdSh02vG6mk'
+  requiredEnv('MIGRATION_SOURCE_SUPABASE_URL'),
+  requiredEnv('MIGRATION_SOURCE_SUPABASE_ANON_KEY'),
 );
 
 const newClient = createClient(
-  'https://isjflmyhbvdlmcsaewbq.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlzamZsbXloYnZkbG1jc2Fld2JxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3ODk4OTY0NywiZXhwIjoyMDk0NTY1NjQ3fQ.c2neo8xpa4B1A4FJ_sLcEg1jQRLvW1mtijSW36H42UY'
+  requiredEnv('SUPABASE_URL'),
+  requiredEnv('SUPABASE_SECRET_KEY'),
 );
 
 async function migrate() {

@@ -49,10 +49,10 @@ cp .env.example .env
 ```dotenv
 VITE_SITE_URL=http://localhost:5173
 VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+VITE_SUPABASE_ANON_KEY=your-supabase-publishable-key
 ```
 
-`VITE_SUPABASE_ANON_KEY` 会在浏览器中使用，只能填写 Supabase Anon Key。不要将 Service Role Key 写入任何 `VITE_*` 变量或提交到仓库。
+`VITE_SUPABASE_ANON_KEY` 是为兼容现有前端代码保留的变量名，值应填写 `sb_publishable_...`。不要将 `sb_secret_...` 或旧 Service Role Key 写入任何 `VITE_*` 变量或提交到仓库。
 
 ### 4. 启动开发服务器
 
@@ -131,7 +131,7 @@ R2_BUCKET_NAME
 R2_PUBLIC_URL
 ```
 
-`scripts/upload-*.mjs` 用于批量媒体迁移，还需要 `SUPABASE_SERVICE_ROLE_KEY`。这些密钥只应存在本地 `.env.upload` 或部署平台的服务端密钥中。
+`scripts/upload-*.mjs` 用于批量媒体迁移，还需要 `SUPABASE_SECRET_KEY`（`sb_secret_...`）。这些密钥只应存在本地 `.env.upload` 或部署平台的服务端密钥中。
 
 Plus / Pro 课程正文与附件由 `course-content` Edge Function 在服务端复核会员或单课密码后返回；R2 文件地址使用短时签名 URL。生产环境必须同时满足：
 

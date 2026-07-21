@@ -13,10 +13,10 @@ loadEnv(".env");
 loadEnv(".env.upload");
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const serviceRoleKey = process.env.SUPABASE_SECRET_KEY;
 const secret = process.env.HAI_DAILY_REVIEW_SECRET || randomBytes(32).toString("hex");
 if (!supabaseUrl || !serviceRoleKey) {
-  throw new Error("缺少 VITE_SUPABASE_URL/SUPABASE_URL 或 SUPABASE_SERVICE_ROLE_KEY。");
+  throw new Error("缺少 VITE_SUPABASE_URL/SUPABASE_URL 或 SUPABASE_SECRET_KEY。");
 }
 
 const cli = spawnSync("supabase", ["secrets", "set", `HAI_DAILY_REVIEW_SECRET=${secret}`], {

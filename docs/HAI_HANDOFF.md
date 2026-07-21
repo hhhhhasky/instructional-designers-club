@@ -443,7 +443,7 @@ R06 版本：`ask-han-consultant-standard-2026-07-04`
 - 圆桌旧链路检查：`deno check supabase/functions/hai-roundtable-chat/index.ts`
 - eval runner 语法检查：`node --check scripts/run-hai-context-eval.mjs`
 - 线上批测：提供 `VITE_SUPABASE_URL` / `HAI_EVAL_ACCESS_TOKEN` 后运行 `node scripts/run-hai-context-eval.mjs`
-- 若同时提供 `SUPABASE_SERVICE_ROLE_KEY`，eval 报告会从 `hai_messages.metadata.hai_context_trace` 读取 intent、retrieval plan、质检分数和 context ids。
+- 若同时提供 `SUPABASE_SECRET_KEY`，eval 报告会从 `hai_messages.metadata.hai_context_trace` 读取 intent、retrieval plan、质检分数和 context ids。
 
 注意：
 - 这是 MVP，不新增数据库迁移；trace 先存在消息 metadata。

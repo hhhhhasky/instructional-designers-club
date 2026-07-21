@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.103.1";
+import { getSupabasePublishableKey, getSupabaseSecretKey } from "../_shared/supabase-keys.ts";
 
 // ============================================================
 // admin-reset-password
@@ -48,14 +49,14 @@ Deno.serve(async (request: Request) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
-    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!supabaseUrl) {
       throw new Error("Supabase environment is not configured");
     }
+    const supabasePublishableKey = getSupabasePublishableKey();
+    const supabaseSecretKey = getSupabaseSecretKey();
 
     // 用用户 token 建 client 做鉴权
-    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+    const userClient = createClient(supabaseUrl, supabasePublishableKey, {
       global: { headers: { Authorization: authorization } },
       auth: { persistSession: false, autoRefreshToken: false },
     });
@@ -79,10 +80,7 @@ Deno.serve(async (request: Request) => {
     }
 
     // 用 service role client 操作（绕过 RLS、调用 auth.admin）
-    if (!serviceRoleKey) {
-      return jsonResponse({ error: "服务端未配置 SUPABASE_SERVICE_ROLE_KEY" }, 500);
-    }
-    const admin = createClient(supabaseUrl, serviceRoleKey, {
+    const admin = createClient(supabaseUrl, supabaseSecretKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
@@ -111,7 +109,7 @@ Deno.serve(async (request: Request) => {
         })
         .eq("id", requestId);
       if (updError) throw updError;
-      return jsonResponse({ ok: true, status: "rejected" });
+      return jsonResponse({ ok: true, status: "rejected" }, 200);
     }
 
     // ---- 通过 ----
@@ -139,6 +137,9 @@ Deno.serve(async (request: Request) => {
       }
       userId = profile.id;
     }
+    if (!userId) {
+      return jsonResponse({ error: "无法确定待重置用户" }, 404);
+    }
 
     const tempPassword = generateTempPassword();
 
@@ -162,7 +163,7 @@ Deno.serve(async (request: Request) => {
       .eq("status", "pending"); // 并发保护：仅当仍为 pending 时更新
     if (updError) throw updError;
 
-    return jsonResponse({ ok: true, status: "approved", temp_password: tempPassword });
+    return jsonResponse({ ok: true, status: "approved", temp_password: tempPassword }, 200);
   } catch (err) {
     const message = err instanceof Error ? err.message : "未知错误";
     return jsonResponse({ error: `处理失败：${message}` }, 500);

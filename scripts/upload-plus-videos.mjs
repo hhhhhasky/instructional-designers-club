@@ -21,7 +21,7 @@ const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || 'course-videos';
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL?.replace(/\/$/, '');
 const SUPABASE_URL = 'https://isjflmyhbvdlmcsaewbq.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY;
 
 const r2 = new S3Client({
   region: 'auto',
@@ -106,7 +106,6 @@ async function updateSupabase(courseId, url) {
     method: 'PATCH',
     headers: {
       apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
       'Content-Type': 'application/json',
       Prefer: 'return=minimal',
     },

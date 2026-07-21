@@ -1,6 +1,7 @@
 import { GetObjectCommand, S3Client } from "npm:@aws-sdk/client-s3";
 import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner";
 import { createClient } from "npm:@supabase/supabase-js@2.103.1";
+import { getSupabasePublishableKey, getSupabaseSecretKey } from "../_shared/supabase-keys.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -157,9 +158,9 @@ Deno.serve(async (request) => {
     }
 
     const supabaseUrl = getRequiredEnv("SUPABASE_URL");
-    const serviceRoleKey = getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
-    const anonKey = getRequiredEnv("SUPABASE_ANON_KEY");
-    const service = createClient(supabaseUrl, serviceRoleKey, {
+    const secretKey = getSupabaseSecretKey();
+    const publishableKey = getSupabasePublishableKey();
+    const service = createClient(supabaseUrl, secretKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
@@ -181,7 +182,7 @@ Deno.serve(async (request) => {
       userId = userData.user?.id ?? null;
     }
     if (userId && token) {
-      const viewer = createClient(supabaseUrl, anonKey, {
+      const viewer = createClient(supabaseUrl, publishableKey, {
         global: { headers: { Authorization: `Bearer ${token}` } },
         auth: { persistSession: false, autoRefreshToken: false },
       });

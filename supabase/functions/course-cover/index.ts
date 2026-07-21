@@ -1,6 +1,7 @@
 import { GetObjectCommand, S3Client } from "npm:@aws-sdk/client-s3@3.1048.0";
 import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner@3.1048.0";
 import { createClient } from "npm:@supabase/supabase-js@2.103.1";
+import { getSupabaseSecretKey } from "../_shared/supabase-keys.ts";
 
 const signedUrlTtlSeconds = 6 * 60 * 60;
 
@@ -57,7 +58,7 @@ Deno.serve(async (request) => {
 
     const supabase = createClient(
       getRequiredEnv("SUPABASE_URL"),
-      getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY"),
+      getSupabaseSecretKey(),
       { auth: { persistSession: false, autoRefreshToken: false } },
     );
     const { data: course, error } = await supabase

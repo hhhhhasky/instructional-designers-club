@@ -14,7 +14,7 @@
  *   R2_SECRET_ACCESS_KEY — R2 API Token Secret
  *   R2_BUCKET_NAME       — R2 存储桶名称（如 course-videos）
  *   R2_PUBLIC_URL        — R2 公开访问域名（如 https://pub-xxx.r2.dev 或自定义域名）
- *   SUPABASE_SERVICE_ROLE_KEY — Supabase Service Role Key（更新数据库用）
+ *   SUPABASE_SECRET_KEY — Supabase Secret Key（更新数据库用）
  *
  * R2 API Token 创建方式：
  *   Cloudflare Dashboard → R2 → Manage R2 API Tokens → Create API Token
@@ -43,7 +43,7 @@ const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || 'course-videos';
 const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL; // e.g. https://pub-xxx.r2.dev
 const SUPABASE_URL = 'https://backend.appmiaoda.com/projects/supabase248069794908123136';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
 const VIDEO_EXTENSIONS = new Set(['.mp4', '.webm', '.mov', '.avi', '.mkv']);
 
 // 检查必需环境变量
@@ -52,7 +52,7 @@ if (!R2_ACCOUNT_ID) missing.push('R2_ACCOUNT_ID');
 if (!R2_ACCESS_KEY_ID) missing.push('R2_ACCESS_KEY_ID');
 if (!R2_SECRET_ACCESS_KEY) missing.push('R2_SECRET_ACCESS_KEY');
 if (!R2_PUBLIC_URL) missing.push('R2_PUBLIC_URL');
-if (!SUPABASE_SERVICE_ROLE_KEY) missing.push('SUPABASE_SERVICE_ROLE_KEY');
+if (!SUPABASE_SECRET_KEY) missing.push('SUPABASE_SECRET_KEY');
 
 if (missing.length > 0) {
   console.error('❌ 缺少以下环境变量:\n');
@@ -63,7 +63,7 @@ if (missing.length > 0) {
   console.error('   export R2_SECRET_ACCESS_KEY="R2 API Secret"');
   console.error('   export R2_BUCKET_NAME="course-videos"');
   console.error('   export R2_PUBLIC_URL="https://pub-xxx.r2.dev"');
-  console.error('   export SUPABASE_SERVICE_ROLE_KEY="Supabase Service Role Key"');
+  console.error('   export SUPABASE_SECRET_KEY="Supabase Secret Key"');
   console.error('\n   然后运行: node scripts/upload-videos.mjs <视频文件夹>');
   process.exit(1);
 }
@@ -79,7 +79,7 @@ const r2 = new S3Client({
   },
 });
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+const supabase = createClient(SUPABASE_URL, SUPABASE_SECRET_KEY, {
   auth: { autoRefreshToken: false, persistSession: false }
 });
 
