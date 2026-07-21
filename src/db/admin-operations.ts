@@ -1,9 +1,9 @@
 import {
+  type CourseRankingItem,
   getAdminCourseRankings,
   getAdminInactiveStudents,
   getAdminMemberOverview,
   getAdminStudentLeaderboard,
-  type CourseRankingItem,
   type InactiveStudentsData,
   type LeaderboardStudentItem,
   type MemberOverviewData,
@@ -106,7 +106,7 @@ export async function getAdminMaintenanceSnapshot(): Promise<MaintenanceSnapshot
 async function countRows(table: string, filter: { column: string; value: string | boolean }) {
   const { count, error } = await supabase
     .from(table)
-    .select("*", { count: "exact", head: true })
+    .select("id", { count: "exact", head: true })
     .eq(filter.column, filter.value);
   if (error) throw error;
   return count ?? 0;

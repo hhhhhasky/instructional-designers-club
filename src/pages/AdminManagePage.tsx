@@ -1,5 +1,3 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   BarChart3,
   BookOpenCheck,
@@ -7,17 +5,19 @@ import {
   CircleHelp,
   FileKey2,
   LayoutTemplate,
+  type LucideIcon,
   RefreshCw,
   UserCog,
-  type LucideIcon,
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import AdminPageShell from "@/components/admin/AdminPageShell";
 import CourseManagementSection from "@/components/admin/CourseManagementSection";
 import CourseQuestionsManagementSection from "@/components/admin/CourseQuestionsManagementSection";
-import HaiManagementSection from "@/components/admin/HaiManagementSection";
-import StudentListSection from "@/components/admin/StudentListSection";
 import ContentManagementSection from "@/components/admin/content/ContentManagementSection";
+import HaiManagementSection from "@/components/admin/HaiManagementSection";
 import PasswordResetSection from "@/components/admin/PasswordResetSection";
+import StudentListSection from "@/components/admin/StudentListSection";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getAdminMaintenanceSnapshot, type MaintenanceSnapshot } from "@/db/admin-operations";
@@ -67,7 +67,10 @@ export default function AdminManagePage() {
       description="所有会写入后端、影响会员体验的管理工作区"
       currentPath="/admin/manage"
       actions={
-        <Button variant="outline" className="bg-white/70" onClick={() => navigate("/admin")}>
+        <Button
+          className="bg-[#de7856] text-white hover:bg-[#c96546] hover:text-white"
+          onClick={() => navigate("/admin")}
+        >
           <BarChart3 className="mr-1 h-4 w-4" />
           返回数据看板
         </Button>
