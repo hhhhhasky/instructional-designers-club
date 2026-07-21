@@ -2,7 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { streamHaiWork } from "@/db/hai-api";
+import { type HaiFeatureModule, getHaiWorkTools, streamHaiWork } from "@/db/hai-api";
 import HaiWorkPage from "@/pages/HaiWorkPage";
 
 vi.mock("@/components/layout/Header", () => ({ default: () => <div data-testid="global-header" /> }));
@@ -12,8 +12,14 @@ const { stableUser, tools } = vi.hoisted(() => ({
   tools: [
     { slug: "lesson-diagnosis", name: "教案诊断", is_enabled: true, surface_mode: "work" },
     { slug: "segment-optimization", name: "环节优化", is_enabled: true, surface_mode: "work" },
-    { slug: "subject-lesson-design", name: "学科定制设计", is_enabled: true, surface_mode: "work" },
-  ],
+    {
+      slug: "subject-lesson-design",
+      name: "思政公开课设计",
+      description: "后台维护的思政公开课入口说明",
+      is_enabled: true,
+      surface_mode: "work",
+    },
+  ] as HaiFeatureModule[],
 }));
 vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => ({ user: stableUser, loading: false }),
@@ -50,7 +56,16 @@ describe("HAI Work workbench", () => {
 
     expect((await screen.findAllByRole("link", { name: /教案诊断/ })).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /环节优化/ }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("link", { name: /学科定制设计/ }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /思政公开课设计/ }).length).toBeGreaterThan(0);
+    expect(screen.getByText("后台维护的思政公开课入口说明")).toBeInTheDocument();
+  });
+
+  it("removes a tool entry when the backend module is disabled", async () => {
+    vi.mocked(getHaiWorkTools).mockResolvedValueOnce(tools.filter((item) => item.slug !== "segment-optimization"));
+    renderAt("/hai/work");
+
+    expect((await screen.findAllByRole("link", { name: /教案诊断/ })).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("link", { name: /环节优化/ })).not.toBeInTheDocument();
   });
 
   it("blocks subject lesson generation without textbook content or a file", async () => {
@@ -59,11 +74,10 @@ describe("HAI Work workbench", () => {
 
     await screen.findByText("先把真实情况交给 HAI");
     await user.selectOptions(screen.getByRole("combobox", { name: /学段/ }), "高中");
-    await user.type(screen.getByRole("textbox", { name: /学科/ }), "思想政治");
+    expect(screen.getByLabelText("学科与课型")).toHaveTextContent("思想政治 · 公开课");
     await user.type(screen.getByRole("textbox", { name: /单元/ }), "第一单元");
     await user.type(screen.getByRole("textbox", { name: /课题/ }), "实现人生价值");
-    await user.selectOptions(screen.getByRole("combobox", { name: /课型/ }), "公开课");
-    await user.click(screen.getByRole("button", { name: "开始学科定制设计" }));
+    await user.click(screen.getByRole("button", { name: "开始思政公开课设计" }));
 
     expect(screen.getByText("请粘贴教材正文或上传教材文件，HAI 不会猜测教材内容。")).toBeInTheDocument();
     expect(streamHaiWork).not.toHaveBeenCalled();
