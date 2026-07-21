@@ -43,7 +43,75 @@ export interface HaiFeatureModule {
   knowledge_match_count: number;
   sort_order: number;
   is_enabled: boolean;
+  surface_mode?: "chat" | "work";
 }
+
+export type HaiMode = "chat" | "work";
+export type HaiWorkToolSlug = "lesson-diagnosis" | "segment-optimization" | "subject-lesson-design";
+export type HaiWorkRunStatus = "queued" | "running" | "completed" | "failed";
+
+export interface HaiWorkTask {
+  id: string;
+  user_id: string;
+  module_slug: HaiWorkToolSlug;
+  title: string;
+  status: "active" | "archived";
+  latest_artifact_id: string | null;
+  created_at: string;
+  updated_at: string;
+  archived_at: string | null;
+  latest_artifact?: Pick<HaiWorkArtifact, "id" | "version_number" | "created_at"> | null;
+}
+
+export interface HaiWorkRun {
+  id: string;
+  task_id: string;
+  user_id: string;
+  parent_artifact_id: string | null;
+  client_request_id: string;
+  status: HaiWorkRunStatus;
+  input_snapshot: Record<string, unknown>;
+  skill_snapshot: {
+    slug?: string;
+    name?: string;
+    version?: string;
+    fallback?: boolean;
+  };
+  revision_instruction: string | null;
+  error_message: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  duration_ms: number | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HaiWorkArtifact {
+  id: string;
+  task_id: string;
+  run_id: string;
+  user_id: string;
+  parent_artifact_id: string | null;
+  version_number: number;
+  title: string;
+  content_json: Record<string, unknown>;
+  content_markdown: string;
+  created_at: string;
+}
+
+export interface HaiWorkTaskDetail {
+  task: HaiWorkTask;
+  runs: HaiWorkRun[];
+  artifacts: HaiWorkArtifact[];
+}
+
+export type HaiWorkStreamEvent =
+  | { type: "ready"; taskId: string; runId: string; skill?: string; skillVersion?: string; fallback?: boolean; replayed?: boolean }
+  | { type: "progress"; stage: string; message: string }
+  | { type: "done"; taskId: string; runId: string; artifactId: string; versionNumber: number; usage?: { inputTokens: number; outputTokens: number; totalTokens: number }; replayed?: boolean }
+  | { type: "error"; message: string; taskId?: string; runId?: string; replayed?: boolean };
 
 export interface HaiConversation {
   id: string;
@@ -157,10 +225,106 @@ export async function getHaiModules(): Promise<HaiFeatureModule[]> {
   const { data, error } = await supabase
     .from("hai_feature_modules")
     .select("*")
+    .eq("surface_mode", "chat")
     .eq("is_enabled", true)
     .order("sort_order", { ascending: true });
   if (error) throw error;
   return (data as HaiFeatureModule[]) ?? [];
+}
+
+export async function getHaiWorkTools(): Promise<HaiFeatureModule[]> {
+  const { data, error } = await supabase
+    .from("hai_feature_modules")
+    .select("*")
+    .eq("surface_mode", "work")
+    .eq("is_enabled", true)
+    .order("sort_order", { ascending: true });
+  if (error) throw error;
+  return (data as HaiFeatureModule[]) ?? [];
+}
+
+export async function getHaiWorkTasks(): Promise<HaiWorkTask[]> {
+  const { data, error } = await supabase
+    .from("hai_work_tasks")
+    .select("*, latest_artifact:hai_work_artifacts!hai_work_tasks_latest_artifact_id_fkey(id, version_number, created_at)")
+    .eq("status", "active")
+    .order("updated_at", { ascending: false })
+    .limit(50);
+  if (error) throw error;
+  return (data as unknown as HaiWorkTask[]) ?? [];
+}
+
+export async function getHaiWorkTaskDetail(taskId: string): Promise<HaiWorkTaskDetail> {
+  const { error: staleRunError } = await supabase.rpc("hai_mark_stale_work_runs", { p_task_id: taskId });
+  if (staleRunError) throw staleRunError;
+  const [taskResult, runsResult, artifactsResult] = await Promise.all([
+    supabase.from("hai_work_tasks").select("*").eq("id", taskId).single(),
+    supabase.from("hai_work_runs").select("*").eq("task_id", taskId).order("created_at", { ascending: false }),
+    supabase.from("hai_work_artifacts").select("*").eq("task_id", taskId).order("version_number", { ascending: false }),
+  ]);
+  if (taskResult.error) throw taskResult.error;
+  if (runsResult.error) throw runsResult.error;
+  if (artifactsResult.error) throw artifactsResult.error;
+  return {
+    task: taskResult.data as HaiWorkTask,
+    runs: (runsResult.data as HaiWorkRun[]) ?? [],
+    artifacts: (artifactsResult.data as HaiWorkArtifact[]) ?? [],
+  };
+}
+
+export async function archiveHaiWorkTask(taskId: string): Promise<void> {
+  const { error } = await supabase.from("hai_work_tasks").update({
+    status: "archived",
+    archived_at: new Date().toISOString(),
+  }).eq("id", taskId);
+  if (error) throw error;
+}
+
+export async function streamHaiWork(
+  payload: {
+    toolSlug: HaiWorkToolSlug;
+    input: Record<string, unknown>;
+    materialIds?: string[];
+    taskId?: string;
+    parentArtifactId?: string;
+    revisionInstruction?: string;
+    clientRequestId?: string;
+  },
+  handlers: { onEvent: (event: HaiWorkStreamEvent) => void },
+): Promise<void> {
+  const { data } = await supabase.auth.getSession();
+  const accessToken = data.session?.access_token;
+  if (!accessToken) throw new Error("请先登录。");
+  const response = await fetch(`${getFunctionsBaseUrl()}/hai-work`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      ...payload,
+      clientRequestId: payload.clientRequestId || crypto.randomUUID(),
+    }),
+  });
+  if (!response.ok || !response.body) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(String(body.message || "HAI Work 请求失败。"));
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const events = buffer.split("\n\n");
+    buffer = events.pop() ?? "";
+    for (const event of events) {
+      const line = event.split("\n").find((part) => part.startsWith("data: "));
+      if (line) handlers.onEvent(JSON.parse(line.slice(6)) as HaiWorkStreamEvent);
+    }
+  }
 }
 
 export async function getHaiConversations(): Promise<HaiConversation[]> {

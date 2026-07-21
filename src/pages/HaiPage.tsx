@@ -1,4 +1,5 @@
 import {
+  ArrowLeft,
   Archive,
   Bot,
   Brain,
@@ -25,6 +26,7 @@ import PageMeta from "@/components/common/PageMeta";
 import HaiProfileOnboardingDialog, {
   type HaiProfileOnboardingMemory,
 } from "@/components/hai/HaiProfileOnboardingDialog";
+import HaiDesktopModeSwitch from "@/components/hai/HaiDesktopModeSwitch";
 import Header from "@/components/layout/Header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -62,6 +64,7 @@ import {
   streamHaiChat,
 } from "@/db/hai-api";
 import { copyHaiAnswer, createHaiShareImage } from "@/lib/hai-share";
+import { useHaiExit } from "@/lib/hai-navigation";
 
 type DraftMessage = Pick<HaiMessage, "id" | "role" | "content" | "created_at"> & {
   pending?: boolean;
@@ -75,6 +78,7 @@ export const HAI_STARTER_QUESTIONS = [
 
 export default function HaiPage() {
   const navigate = useNavigate();
+  const exitHai = useHaiExit();
   const { user, loading } = useAuth();
   const [access, setAccess] = useState<HaiAccessStatus | null>(null);
   const [usage, setUsage] = useState<HaiUsageSummary | null>(null);
@@ -107,7 +111,7 @@ export default function HaiPage() {
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate("/login", { state: { from: "/hai" } });
+      navigate("/login", { state: { from: "/hai/chat" } });
     }
   }, [loading, navigate, user]);
 
@@ -404,7 +408,7 @@ export default function HaiPage() {
       <PageMeta
         title="HAI"
         description="HAI 教研助手"
-        canonicalPath="/hai"
+        canonicalPath="/hai/chat"
         keywords="HAI,AI教研,问问哈老师"
       />
       <div className="hai-page flex min-h-0 w-full max-w-full flex-col overflow-hidden bg-cream md:min-h-screen">
@@ -412,82 +416,81 @@ export default function HaiPage() {
           <Header />
         </div>
         <main className="flex min-h-0 flex-1 overflow-hidden p-0 md:px-5 md:pb-6 md:pt-20">
-          <div className="mx-auto flex h-full min-h-0 w-full max-w-[1440px] flex-col overflow-hidden border-bd bg-white md:h-[calc(100dvh-7rem)] md:rounded-ds-lg md:border md:shadow-ds-md xl:grid xl:grid-cols-[280px_minmax(0,1fr)_300px]">
-            <aside className="hidden min-h-0 border-r border-bd bg-bgs/70 xl:block">
-              {history}
-            </aside>
-
-            <section className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
-              <div className="flex shrink-0 items-center justify-between gap-2 border-b border-bd bg-white px-2.5 py-2 md:gap-3 md:px-4 md:py-3">
-                <div className="flex min-w-0 items-center gap-2">
-                  <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
+          <div className="mx-auto flex h-full min-h-0 w-full max-w-[1500px] flex-col overflow-hidden border-[#d9d0c1] bg-[#fffdf8] md:h-[calc(100dvh-7rem)] md:rounded-[28px] md:border md:shadow-[0_24px_70px_rgba(72,55,31,0.12)]">
+            <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[#ded7ca] bg-[#fffdf8]/95 px-3 py-2.5 backdrop-blur md:px-5 md:py-3">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 shrink-0"
+                  onClick={exitHai}
+                  aria-label="返回网站"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 lg:hidden" aria-label="打开对话记录">
+                      <Menu className="h-5 w-5" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-[300px] overflow-hidden bg-[#f4efe5] p-0" hideCloseButton>
+                    <HistoryPanel
+                      conversations={conversations}
+                      activeConversationId={activeConversationId}
+                      onSelect={(id) => {
+                        setActiveConversationId(id);
+                        setHistoryOpen(false);
+                      }}
+                      onArchive={handleArchiveConversation}
+                      onNew={() => startNewConversation()}
+                      showClose
+                    />
+                  </SheetContent>
+                </Sheet>
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-[#e8dfd1] text-[#a45d3d] shadow-[0_6px_16px_rgba(72,55,31,0.10)]">
+                  <Bot className="h-4.5 w-4.5" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="truncate text-base font-black tracking-tight text-[#2d302b] md:text-lg">聊聊问题</h1>
+                  <p className="hidden truncate text-xs text-[#7c7469] sm:block">
+                    {activeModule ? activeModule.name : "和 HAI 一起想清楚教学问题"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <HaiDesktopModeSwitch />
+                {access?.allowed && (
+                  <Sheet>
                     <SheetTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-9 w-9 xl:hidden">
-                        <Menu className="w-5 h-5" />
+                      <Button size="sm" variant="outline" className="h-9 w-9 px-0 xl:hidden" aria-label="打开上下文">
+                        <Pin className="h-4 w-4" />
                       </Button>
                     </SheetTrigger>
-                    <SheetContent side="left" className="w-[300px] overflow-hidden bg-[#fbfaf8] p-0" hideCloseButton>
-                      <div className="h-full min-h-full bg-[#fbfaf8]">
-                        <HistoryPanel
-                          conversations={conversations}
-                          activeConversationId={activeConversationId}
-                          onSelect={(id) => {
-                            setActiveConversationId(id);
-                            setHistoryOpen(false);
-                          }}
-                          onArchive={handleArchiveConversation}
-                          onNew={() => startNewConversation()}
-                          showClose
-                        />
+                    <SheetContent side="right" className="w-[320px] overflow-y-auto bg-[#fbfaf8] p-0" hideCloseButton>
+                      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-bd bg-white px-4 py-3">
+                        <span className="text-ds-sm font-ds-bold text-tx">上下文</span>
+                        <SheetClose asChild>
+                          <Button size="icon-sm" variant="ghost" aria-label="关闭上下文">
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </SheetClose>
+                      </div>
+                      <div className="min-h-full bg-[#fbfaf8] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+                        {contextPanel}
                       </div>
                     </SheetContent>
                   </Sheet>
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-ds-full bg-acl md:h-9 md:w-9">
-                    <Bot className="h-4.5 w-4.5 text-ac md:h-5 md:w-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <h1 className="truncate text-ds-base font-ds-black leading-tight text-tx md:text-ds-lg">HAI</h1>
-                    <p className="hidden truncate text-ds-xs text-txs sm:block">
-                      {activeModule ? activeModule.name : "AI 教研助手"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  {access?.allowed && (
-                    <Sheet>
-                      <SheetTrigger asChild>
-                        <Button size="sm" variant="outline" className="h-9 w-9 px-0 xl:hidden xl:w-auto xl:px-3" aria-label="打开上下文">
-                          <Pin className="h-4 w-4" />
-                          <span className="hidden xl:inline">上下文</span>
-                        </Button>
-                      </SheetTrigger>
-                      <SheetContent side="right" className="w-[320px] overflow-y-auto bg-[#fbfaf8] p-0" hideCloseButton>
-                        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-bd bg-white px-4 py-3">
-                          <span className="text-ds-sm font-ds-bold text-tx">上下文</span>
-                          <SheetClose asChild>
-                            <Button size="icon-sm" variant="ghost" aria-label="关闭上下文">
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </SheetClose>
-                        </div>
-                        <div className="min-h-full bg-[#fbfaf8] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-                          {contextPanel}
-                        </div>
-                      </SheetContent>
-                    </Sheet>
-                  )}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-9 w-9 px-0 sm:w-auto sm:px-3"
-                    onClick={() => startNewConversation(activeModuleSlug)}
-                    aria-label="新建 Session"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span className="hidden sm:inline">新 Session</span>
-                  </Button>
-                </div>
+                )}
               </div>
+            </header>
+
+            <div className="grid min-h-0 flex-1 lg:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)_280px]">
+              <aside className="hidden min-h-0 overflow-hidden border-r border-[#ded7ca] bg-[#f4efe5] lg:block">
+                {history}
+              </aside>
+
+              <section className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-[#fffdf8]">
 
               {booting ? (
                 <div className="flex flex-1 items-center justify-center text-txs">
@@ -566,11 +569,12 @@ export default function HaiPage() {
                   </div>
                 </>
               )}
-            </section>
+              </section>
 
-            <aside className="hidden min-h-0 overflow-y-auto border-l border-bd bg-bgs/70 p-4 xl:block">
-              {contextPanel}
-            </aside>
+              <aside className="hidden min-h-0 overflow-y-auto border-l border-[#ded7ca] bg-[#f8f4ec] p-4 xl:block">
+                {contextPanel}
+              </aside>
+            </div>
           </div>
         </main>
         <div className="hidden md:block">
@@ -609,33 +613,33 @@ function HistoryPanel({
   showClose?: boolean;
 }) {
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[#fbfaf8]">
-      <div className="flex items-center justify-between border-b border-bd bg-white p-4">
-        <div className="flex items-center gap-2 font-ds-bold text-tx">
-          <History className="h-4 w-4 text-ac" />
-          Session
+    <div className="flex h-full min-h-0 flex-col bg-[#f4efe5] p-4">
+      <div className="flex items-center justify-between px-1">
+        <div className="flex items-center gap-2 text-[11px] font-black tracking-[0.16em] text-[#8f684e]">
+          <History className="h-4 w-4" />
+          对话记录
         </div>
         <div className="flex items-center gap-1">
-          <Button size="icon-sm" variant="ghost" onClick={onNew} aria-label="新 Session">
+          <Button size="icon-sm" variant="ghost" onClick={onNew} aria-label="新建对话">
             <Plus className="h-4 w-4" />
           </Button>
           {showClose && (
             <SheetClose asChild>
-              <Button size="icon-sm" variant="ghost" aria-label="关闭 Session 列表">
+              <Button size="icon-sm" variant="ghost" aria-label="关闭对话记录">
                 <X className="h-4 w-4" />
               </Button>
             </SheetClose>
           )}
         </div>
       </div>
-      <div className="flex-1 space-y-2 overflow-y-auto p-3">
+      <div className="mt-3 flex-1 space-y-1.5 overflow-y-auto">
         {conversations.length === 0 ? (
-          <p className="px-2 py-6 text-center text-ds-sm text-txs">暂无历史 Session</p>
+          <p className="px-2 py-6 text-center text-ds-sm text-txs">还没有历史对话</p>
         ) : conversations.map((conversation) => (
           <div
             key={conversation.id}
-            className={`group flex items-start gap-2 rounded-ds-md border p-3 transition ${
-              activeConversationId === conversation.id ? "border-ac bg-acl/70" : "border-transparent bg-white hover:border-bd"
+            className={`group flex items-start gap-2 rounded-[14px] border p-3 transition ${
+              activeConversationId === conversation.id ? "border-[#c9a88f] bg-white" : "border-transparent hover:bg-white/75"
             }`}
           >
             <button
@@ -648,7 +652,7 @@ function HistoryPanel({
             <button
               className="rounded-ds-sm p-1 text-txt opacity-0 transition hover:bg-bgs hover:text-ac group-hover:opacity-100"
               onClick={() => onArchive(conversation.id)}
-              aria-label="归档 Session"
+              aria-label="归档对话"
             >
               <Archive className="h-4 w-4" />
             </button>

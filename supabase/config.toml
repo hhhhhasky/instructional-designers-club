@@ -50,6 +50,9 @@ verify_jwt = false
 [functions.hai-roundtable-chat]
 verify_jwt = false
 
+[functions.hai-work]
+verify_jwt = true
+
 [functions.upload-course-file]
 verify_jwt = false
 

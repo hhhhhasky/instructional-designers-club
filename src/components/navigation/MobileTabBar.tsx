@@ -1,6 +1,7 @@
 import { BookOpen, Bot, GraduationCap, Home, Sparkles } from 'lucide-react';
 import { Link, useLocation, useMatch } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import HaiModeNavigation from '@/components/hai/HaiModeNavigation';
 
 interface TabItem {
   name: string;
@@ -11,6 +12,7 @@ interface TabItem {
 export default function MobileTabBar() {
   const location = useLocation();
   const isCourseDetail = useMatch({ path: '/courses/:id', end: true });
+  const isHai = location.pathname === '/hai' || location.pathname.startsWith('/hai/');
 
   const tabs: TabItem[] = [
     { name: '首页', path: '/', icon: Home },
@@ -31,6 +33,7 @@ export default function MobileTabBar() {
   // 课程详情页使用自己的目录 / 上一节 / 下一节控制栏。
   // 精确匹配避免误伤 /courses 列表页和 /courses/plus/:trackId 篇章页。
   if (isCourseDetail) return null;
+  if (isHai) return <HaiModeNavigation />;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 pb-safe md:hidden">
@@ -46,7 +49,8 @@ export default function MobileTabBar() {
           return (
             <Link
               key={tab.path}
-              to={tab.path}
+              to={tab.path === '/hai' ? '/hai/chat' : tab.path}
+              state={tab.path === '/hai' ? { fromSite: location.pathname } : undefined}
               className={cn(
                 'relative flex flex-col items-center justify-center flex-1 h-full gap-1',
                 'touch-manipulation transition-all duration-300 ease-out',

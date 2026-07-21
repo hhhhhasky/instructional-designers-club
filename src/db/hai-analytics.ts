@@ -20,6 +20,7 @@ export interface HaiUsageEventRow {
   input_tokens: number | null;
   output_tokens: number | null;
   duration_ms: number | null;
+  metadata?: Record<string, unknown>;
   created_at: string;
   profiles?: HaiProfileRelation;
 }
@@ -116,6 +117,9 @@ export interface HaiDashboardData {
     quality_average: number | null;
     quality_pass_rate: number | null;
     open_alerts: number;
+    work_request_count?: number;
+    work_success_rate?: number;
+    work_revision_count?: number;
   };
   daily_usage: HaiDailyUsage[];
   user_rankings: HaiUserRanking[];
@@ -190,7 +194,7 @@ async function fetchUsageEvents(since: string): Promise<HaiUsageEventRow[]> {
     const from = page * PAGE_SIZE;
     const { data, error } = await supabase
       .from("hai_usage_events")
-      .select("id, user_id, event_type, route, status, total_tokens, input_tokens, output_tokens, duration_ms, created_at, profiles!user_id(nickname, phone, access_level)")
+      .select("id, user_id, event_type, route, status, total_tokens, input_tokens, output_tokens, duration_ms, metadata, created_at, profiles!user_id(nickname, phone, access_level)")
       .like("event_type", "hai.request.%")
       .in("status", ["completed", "cached", "failed"])
       .gte("created_at", since)
@@ -284,6 +288,9 @@ export function buildHaiDashboardData(
     .filter((item): item is HaiRecentTrace => item !== null);
   const scoredTraces = traces.filter((item): item is HaiRecentTrace & { score: number } => typeof item.score === "number");
   const passedScoredTraces = scoredTraces.filter((item) => item.passed === true);
+  const workEvents = events.filter((event) => event.route === "hai-work");
+  const workCompleted = workEvents.filter((event) => event.status === "completed" || event.status === "cached");
+  const workRevisions = workCompleted.filter((event) => event.metadata?.revision === true);
 
   return {
     range_days: rangeDays,
@@ -302,6 +309,9 @@ export function buildHaiDashboardData(
         : null,
       quality_pass_rate: scoredTraces.length > 0 ? roundPercent(passedScoredTraces.length / scoredTraces.length) : null,
       open_alerts: alerts.length,
+      work_request_count: workEvents.length,
+      work_success_rate: workEvents.length > 0 ? roundPercent(workCompleted.length / workEvents.length) : 0,
+      work_revision_count: workRevisions.length,
     },
     daily_usage: Array.from(dailyMap.values()).map(({ user_ids, ...day }) => ({
       ...day,

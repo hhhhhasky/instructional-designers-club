@@ -167,7 +167,8 @@ export default function Header() {
             {visibleRoutes.map((route) => (
               <Link
                 key={route.path}
-                to={route.path}
+                to={route.path === '/hai' ? '/hai/chat' : route.path}
+                state={route.path === '/hai' ? { fromSite: location.pathname } : undefined}
                 onMouseEnter={() => prefetchRoute(route.path)}
                 onFocus={() => prefetchRoute(route.path)}
                 onTouchStart={() => prefetchRoute(route.path)}
@@ -353,7 +354,8 @@ export default function Header() {
                     {visibleRoutes.map((route) => (
                       <Link
                         key={route.path}
-                        to={route.path}
+                        to={route.path === '/hai' ? '/hai/chat' : route.path}
+                        state={route.path === '/hai' ? { fromSite: location.pathname } : undefined}
                         onMouseEnter={() => prefetchRoute(route.path)}
                         onFocus={() => prefetchRoute(route.path)}
                         onTouchStart={() => prefetchRoute(route.path)}

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/db/supabase";
 import { getAdminStudentList, type StudentItem } from "@/db/admin-api";
 import type { HaiFeatureModule } from "@/db/hai-api";
+import HaiWorkSkillManagement from "@/components/admin/HaiWorkSkillManagement";
 
 interface HaiUserAccessRow {
   user_id: string;
@@ -1121,6 +1122,8 @@ export default function HaiManagementSection() {
         </div>
       )}
 
+      <HaiWorkSkillManagement />
+
       <section className="rounded-ds-lg border border-bd bg-white p-4">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
@@ -1963,7 +1966,7 @@ export default function HaiManagementSection() {
               <div className="mb-2 flex items-center justify-between gap-2">
                 <strong className="text-tx">{module.name}</strong>
                 <Button size="sm" variant="outline" onClick={() => updateModule(module, { is_enabled: !module.is_enabled })}>
-                  {module.is_enabled ? "启用" : "停用"}
+                  {module.is_enabled ? "停用" : "启用"}
                 </Button>
               </div>
               <p className="mb-3 min-h-10 text-ds-xs text-txs">{module.description}</p>

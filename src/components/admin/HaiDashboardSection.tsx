@@ -243,9 +243,11 @@ export default function HaiDashboardSection() {
         </div>
       )}
 
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
         <SignalCard icon={ShieldCheck} label="调用成功率" value={`${formatDecimal(summary.success_rate)}%`} note={`${summary.request_count} 次最终状态`} tone="teal" />
         <SignalCard icon={Clock3} label="平均响应时间" value={formatDuration(summary.average_duration_ms)} note="仅统计有耗时记录的调用" tone="amber" />
+        <SignalCard icon={Sparkles} label="Work 任务" value={`${summary.work_request_count ?? 0} 次`} note={`成功率 ${formatDecimal(summary.work_success_rate ?? 0)}%`} tone="teal" />
+        <SignalCard icon={RefreshCw} label="Work 追改" value={`${summary.work_revision_count ?? 0} 次`} note="已完成的版本迭代" tone="amber" />
         <SignalCard icon={BarChart3} label="平均质检分" value={summary.quality_average === null ? "暂无" : `${summary.quality_average} 分`} note={summary.quality_pass_rate === null ? "尚无 trace 评分" : `通过率 ${formatDecimal(summary.quality_pass_rate)}%`} tone="clay" />
         <SignalCard icon={AlertTriangle} label="未处理告警" value={`${summary.open_alerts} 条`} note={summary.open_alerts > 0 ? "建议优先检查额度与异常调用" : "当前运行平稳"} tone="red" />
       </section>

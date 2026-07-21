@@ -13,6 +13,8 @@ import SettingsPage from './pages/SettingsPage';
 import LearningPage from './pages/LearningPage';
 import LearningMapPage from './pages/LearningMapPage';
 import HaiPage from './pages/HaiPage';
+import HaiWorkPage from './pages/HaiWorkPage';
+import HaiWorkTaskPage from './pages/HaiWorkTaskPage';
 import AdminPage from './pages/AdminPage';
 import AdminManagePage from './pages/AdminManagePage';
 import type { ReactNode } from 'react';
@@ -76,8 +78,32 @@ const routes: RouteConfig[] = [
   {
     name: 'HAI',
     path: '/hai',
-    element: <HaiPage />,
+    element: <Navigate to="/hai/chat" replace />,
     visible: true
+  },
+  {
+    name: 'HAI Chat',
+    path: '/hai/chat',
+    element: <HaiPage />,
+    visible: false
+  },
+  {
+    name: 'HAI Work',
+    path: '/hai/work',
+    element: <HaiWorkPage />,
+    visible: false
+  },
+  {
+    name: 'HAI Work 功能',
+    path: '/hai/work/:toolSlug',
+    element: <HaiWorkPage />,
+    visible: false
+  },
+  {
+    name: 'HAI Work 任务',
+    path: '/hai/work/tasks/:taskId',
+    element: <HaiWorkTaskPage />,
+    visible: false
   },
   {
     name: '登录',

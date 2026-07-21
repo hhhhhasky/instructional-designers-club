@@ -125,6 +125,42 @@
   }
 }
 
+/* HAI Work：编辑部式产物阅读区。Chat 与 Work 共享移动端固定外壳，
+   但 Work 的纸张层次、校样版本和打印输出保持独立。 */
+.hai-work-scroll {
+  scrollbar-gutter: stable;
+  background-image:
+    linear-gradient(rgba(255, 253, 248, 0.96), rgba(255, 253, 248, 0.96)),
+    repeating-linear-gradient(0deg, transparent 0 31px, rgba(111, 91, 63, 0.035) 31px 32px);
+}
+
+.hai-work-artifact .markdown-body,
+.hai-work-artifact [data-markdown-content] {
+  color: #343630;
+}
+
+@media print {
+  body {
+    background: #fff !important;
+  }
+
+  body > * {
+    visibility: hidden;
+  }
+
+  .hai-work-artifact,
+  .hai-work-artifact * {
+    visibility: visible;
+  }
+
+  .hai-work-artifact {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    background: #fff;
+  }
+}
+
 /* =============================================
    工具类
    ============================================= */
