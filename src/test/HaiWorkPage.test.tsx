@@ -103,6 +103,7 @@ describe("HAI Work workbench", () => {
     await user.selectOptions(screen.getByRole("combobox", { name: "册次" }), "上册");
     await user.selectOptions(screen.getByRole("combobox", { name: "单元" }), "第一单元 少年有梦");
     await user.selectOptions(screen.getByRole("combobox", { name: "课题" }), "第一课 开启初中生活");
+    await user.click(screen.getByRole("radio", { name: /案例式/ }));
     await user.click(screen.getByRole("button", { name: "开始思政公开课设计" }));
 
     expect(streamHaiWork).toHaveBeenCalledWith(
@@ -114,6 +115,7 @@ describe("HAI Work workbench", () => {
           volume: "上册",
           unit: "第一单元 少年有梦",
           topic: "第一课 开启初中生活",
+          teaching_mode: "案例式",
         }),
       }),
       expect.any(Object),

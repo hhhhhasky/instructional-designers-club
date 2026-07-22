@@ -17,7 +17,24 @@ export type WorkSkillCandidate = {
     prompt_template: string;
     input_contract: Record<string, unknown>;
     output_contract: Record<string, unknown>;
+    snapshot_hash?: string;
+    source_metadata?: Record<string, unknown>;
+    references?: WorkSkillReference[];
   };
+};
+
+export type WorkSkillReference = {
+  id: string;
+  path: string;
+  name: string;
+  description: string;
+  media_type: string;
+  content: string;
+  content_hash: string;
+  load_mode: "always" | "case" | "issue" | "task" | "evaluation_only";
+  max_chars: number;
+  sort_order: number;
+  metadata: Record<string, unknown>;
 };
 
 const toolSlugs = new Set<HaiWorkToolSlug>([
@@ -52,6 +69,7 @@ export function validateWorkInput(
       "volume",
       "unit",
       "topic",
+      "teaching_mode",
       "lesson_type",
     ],
   };
@@ -202,6 +220,10 @@ export function buildWorkPrompt(params: {
   previousMarkdown?: string;
   revisionInstruction?: string;
 }) {
+  const selectedReferences = selectWorkSkillReferences(params.skill, params.input);
+  const referenceContext = selectedReferences.map((reference) =>
+    `### ${reference.path}\n${reference.content.slice(0, reference.max_chars)}`
+  ).join("\n\n");
   const fallbackNotice = params.skill.is_fallback
     ? "当前使用通用 Skill。不得把一般知识伪装成教材中的具体事实。"
     : "当前已匹配专属 Skill。仍须遵守教材事实边界。";
@@ -209,8 +231,11 @@ export function buildWorkPrompt(params: {
     params.skill.version.prompt_template,
     fallbackNotice,
     params.textbookContext
-      ? "内置教材内容是教师整理的知识点梳理，不是教材逐字原文。必须按版本、单元、课题和框题使用；若标注待复核，须在产物中显式提醒。用户补充的教材原文与内置梳理冲突时，以用户补充内容为准。"
+      ? "精确命中的内置教材知识点梳理可作为本次设计的教材事实依据，无需再要求用户上传教材；它不是教材逐字原文。必须按版本、单元、课题和框题使用；若标注待复核，须在产物中显式提醒。用户补充的教材原文与内置梳理冲突时，以用户补充内容为准。"
       : "没有命中的内置教材内容时，不得依据课名猜测教材事实。",
+    selectedReferences.length > 0
+      ? `用户已选择“${String(params.input.teaching_mode ?? "")}”作为唯一主导模式。只执行对应 V3 模板，不得混用另外两套主流程。`
+      : "当前 Skill 没有加载模式 reference，不得声称使用了对应 V3 模板。",
     `输出契约：${JSON.stringify(params.skill.version.output_contract)}`,
     "只输出一个合法 JSON 对象，不要输出代码围栏或额外说明。",
   ].join("\n\n");
@@ -218,6 +243,7 @@ export function buildWorkPrompt(params: {
   const user = [
     "## 任务输入",
     JSON.stringify(params.input, null, 2),
+    referenceContext ? `## Skill 版本化参考资料\n${referenceContext}` : "",
     params.textbookContext ? `## 内置教材知识库（精确命中）\n${params.textbookContext}` : "",
     params.materialContext ? `## 用户指定材料\n${params.materialContext}` : "",
     params.previousMarkdown ? `## 上一版产物\n${params.previousMarkdown}` : "",
@@ -226,11 +252,28 @@ export function buildWorkPrompt(params: {
   return { system, user };
 }
 
+export function selectWorkSkillReferences(
+  skill: WorkSkillCandidate,
+  input: Record<string, unknown>,
+) {
+  const mode = ({
+    "案例式": "case",
+    "议题式": "issue",
+    "任务式": "task",
+  } as Record<string, WorkSkillReference["load_mode"]>)[String(input.teaching_mode ?? "").trim()];
+  return [...(skill.version.references ?? [])]
+    .filter((reference) =>
+      reference.load_mode === "always" || (mode && reference.load_mode === mode)
+    )
+    .sort((a, b) => a.sort_order - b.sort_order);
+}
+
 function matchesCriteria(criteria: Record<string, unknown>, input: Record<string, unknown>) {
   const mappings: Array<[string, string]> = [
     ["stages", "stage"],
     ["subjects", "subject"],
     ["lesson_types", "lesson_type"],
+    ["teaching_modes", "teaching_mode"],
   ];
   return mappings.every(([criteriaKey, inputKey]) => {
     const allowed = Array.isArray(criteria[criteriaKey])
@@ -243,7 +286,7 @@ function matchesCriteria(criteria: Record<string, unknown>, input: Record<string
 }
 
 function criteriaSpecificity(criteria: Record<string, unknown>) {
-  return ["stages", "subjects", "lesson_types"]
+  return ["stages", "subjects", "lesson_types", "teaching_modes"]
     .filter((key) => Array.isArray(criteria[key]) && (criteria[key] as unknown[]).length > 0)
     .length;
 }
@@ -261,6 +304,7 @@ function fieldLabel(key: string) {
     unit: "单元",
     topic: "课题",
     frame: "框题",
+    teaching_mode: "教学模式",
     lesson_type: "课型",
     segment_type: "环节类型",
     current_design: "当前设计",

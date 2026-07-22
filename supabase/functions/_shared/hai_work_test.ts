@@ -2,6 +2,7 @@ import {
   buildWorkPrompt,
   parseWorkJson,
   renderWorkMarkdown,
+  selectWorkSkillReferences,
   selectWorkSkill,
   validateWorkInput,
   validateWorkOutput,
@@ -51,9 +52,9 @@ Deno.test("selectWorkSkill prefers the most specific published skill", () => {
       slug: "politics",
       is_fallback: false,
       priority: 100,
-      match_criteria: { subjects: ["思想政治"], lesson_types: ["公开课"] },
+      match_criteria: { subjects: ["思想政治"], lesson_types: ["公开课"], teaching_modes: ["案例式"] },
     }),
-  ], { subject: "高中思想政治", lesson_type: "公开课" });
+  ], { subject: "高中思想政治", lesson_type: "公开课", teaching_mode: "案例式" });
   assertEquals(selected?.slug, "politics");
 });
 
@@ -86,8 +87,36 @@ Deno.test("subject lesson design requires structured textbook routing fields", (
     volume: "上册",
     unit: "第一单元 少年有梦",
     topic: "第一课 开启初中生活",
+    teaching_mode: "案例式",
     lesson_type: "公开课",
   }, 0);
+});
+
+Deno.test("work skill loads common references plus only the selected mode template", () => {
+  const reference = (path: string, loadMode: "always" | "case" | "issue" | "task") => ({
+    id: path,
+    path,
+    name: path,
+    description: "",
+    media_type: "text/markdown",
+    content: path,
+    content_hash: path,
+    load_mode: loadMode,
+    max_chars: 1000,
+    sort_order: loadMode === "always" ? 1 : 2,
+    metadata: {},
+  });
+  const skill = candidate({});
+  skill.version.references = [
+    reference("common.md", "always"),
+    reference("case.md", "case"),
+    reference("issue.md", "issue"),
+    reference("task.md", "task"),
+  ];
+  assertEquals(
+    selectWorkSkillReferences(skill, { teaching_mode: "任务式" }).map((item) => item.path),
+    ["common.md", "task.md"],
+  );
 });
 
 Deno.test("work prompt separates built-in textbook knowledge from user materials", () => {

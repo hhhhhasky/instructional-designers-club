@@ -70,6 +70,11 @@ export const HAI_WORK_TOOL_CONFIG: Record<HaiWorkToolSlug, HaiWorkToolVisualConf
 
 const stages = ["小学", "初中", "高中", "中职", "高职", "高校", "其他"];
 const segmentTypes = ["课程导入", "问题链", "任务活动", "教师讲解", "合作探究", "练习迁移", "评价反馈", "课堂总结", "其他"];
+const teachingModes = [
+  { value: "案例式", description: "围绕一个核心案例，引导学生分析、解释并归纳教材知识。" },
+  { value: "任务式", description: "让学生为特定对象解决问题，形成可展示、可评价的成果。" },
+  { value: "议题式", description: "围绕真实判断空间，用证据回应异议并形成有边界的结论。" },
+];
 const acceptedFileTypes = ".txt,.md,.markdown,.html,.htm,.json,.csv,.docx,.pdf";
 const maxFileBytes = 20 * 1024 * 1024;
 
@@ -380,6 +385,7 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
               <SelectField label="单元" value={form.unit} options={unitOptions} onChange={(value) => updateTextbookField("unit", value)} />
               <SelectField label="课题" value={form.topic} options={topicOptions} onChange={(value) => updateTextbookField("topic", value)} />
               <SelectField label="框题（可选；不选则读取全课）" value={form.frame} options={frameOptions} onChange={(value) => updateTextbookField("frame", value)} />
+              <TeachingModeField value={form.teaching_mode} onChange={(value) => update("teaching_mode", value)} />
             </>
           ) : (
             <TextField label="课题" value={form.topic} placeholder="输入本节课题" onChange={(value) => update("topic", value)} />
@@ -532,6 +538,25 @@ function FixedField({ label, value }: { label: string; value: string }) {
   );
 }
 
+function TeachingModeField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  return (
+    <fieldset className="sm:col-span-2">
+      <legend className="text-xs font-bold text-[#625d55]">教学模式</legend>
+      <div className="mt-2 grid gap-2 md:grid-cols-3">
+        {teachingModes.map((mode) => (
+          <label key={mode.value} className={`cursor-pointer rounded-[16px] border p-3 transition ${value === mode.value ? "border-[#4d567a] bg-[#f0f1f8] ring-2 ring-[#4d567a]/10" : "border-[#d9d0c4] bg-white hover:border-[#aaa0bf]"}`}>
+            <span className="flex items-center gap-2 text-sm font-black text-[#363934]">
+              <input type="radio" name="teaching-mode" value={mode.value} checked={value === mode.value} onChange={() => onChange(mode.value)} />
+              {mode.value}
+            </span>
+            <span className="mt-2 block text-xs leading-5 text-[#756d63]">{mode.description}</span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
 function TextAreaField({ label, value, placeholder, minRows, onChange }: FieldProps & { minRows: number }) {
   return (
     <label className="mt-5 block text-xs font-bold text-[#625d55]">
@@ -571,6 +596,7 @@ function initialForm(toolSlug: HaiWorkToolSlug) {
     unit: "",
     topic: "",
     frame: "",
+    teaching_mode: "",
     lesson_type: toolSlug === "subject-lesson-design" ? "公开课" : "",
     segment_type: "",
     current_design: "",
@@ -596,6 +622,7 @@ function validateForm(toolSlug: HaiWorkToolSlug, form: Record<string, string>, f
     if (!form.grade) return "请选择年级。";
     if (!form.volume) return "请选择册次。";
     if (!form.unit) return "请选择单元。";
+    if (!form.teaching_mode) return "请选择案例式、任务式或议题式教学模式。";
   }
   return "";
 }

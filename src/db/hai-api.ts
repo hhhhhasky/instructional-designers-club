@@ -99,6 +99,10 @@ export interface HaiWorkRun {
     name?: string;
     version?: string;
     fallback?: boolean;
+    snapshot_hash?: string;
+    source_metadata?: Record<string, unknown>;
+    reference_paths?: string[];
+    reference_hashes?: string[];
     textbook_sources?: Array<Record<string, unknown>>;
   };
   revision_instruction: string | null;

@@ -19,6 +19,7 @@ import {
   isHaiWorkToolSlug,
   parseWorkJson,
   renderWorkMarkdown,
+  selectWorkSkillReferences,
   selectWorkSkill,
   validateWorkInput,
   validateWorkOutput,
@@ -165,6 +166,8 @@ Deno.serve(async (request) => {
           run_id: run.id,
           skill_slug: skill.slug,
           skill_version: skill.version.version_label,
+          skill_snapshot_hash: skill.version.snapshot_hash || "",
+          teaching_mode: String(input.teaching_mode ?? ""),
           fallback_skill: skill.is_fallback,
         },
       });
@@ -281,6 +284,8 @@ Deno.serve(async (request) => {
               artifact_version: artifact.version_number,
               skill_slug: skill.slug,
               skill_version: skill.version.version_label,
+              skill_snapshot_hash: skill.version.snapshot_hash || "",
+              teaching_mode: String(input.teaching_mode ?? ""),
               fallback_skill: skill.is_fallback,
               revision: Boolean(parentArtifact),
             },
@@ -340,7 +345,7 @@ async function loadSelectedSkill(admin: any, moduleSlug: string, input: Record<s
   const skillIds = (skills ?? []).map((item: any) => item.id);
   const { data: versions, error: versionError } = skillIds.length > 0
     ? await admin.from("hai_work_skill_versions").select(
-      "id, skill_id, version_label, prompt_template, input_contract, output_contract",
+      "id, skill_id, version_label, prompt_template, input_contract, output_contract, snapshot_hash, source_metadata",
     ).in("skill_id", skillIds).eq("status", "published")
     : { data: [], error: null };
   if (versionError) throw new HttpError(500, versionError.message);
@@ -351,7 +356,16 @@ async function loadSelectedSkill(admin: any, moduleSlug: string, input: Record<s
   });
   const selected = selectWorkSkill(candidates, input);
   if (!selected) throw new HttpError(503, "该功能还没有已发布的 Work Skill。");
-  return selected;
+  const { data: references, error: referencesError } = await admin
+    .from("hai_work_skill_references")
+    .select("id, path, name, description, media_type, content, content_hash, load_mode, max_chars, sort_order, metadata")
+    .eq("skill_version_id", selected.version.id)
+    .order("sort_order", { ascending: true });
+  if (referencesError) throw new HttpError(500, `Work Skill references 加载失败：${referencesError.message}`);
+  return {
+    ...selected,
+    version: { ...selected.version, references: references ?? [] },
+  } as WorkSkillCandidate;
 }
 
 async function loadMaterials(admin: any, userId: string, materialIds: string[]) {
@@ -518,6 +532,10 @@ async function createRun(admin: any, params: {
       name: params.skill.name,
       version: params.skill.version.version_label,
       fallback: params.skill.is_fallback,
+      snapshot_hash: params.skill.version.snapshot_hash || "",
+      source_metadata: params.skill.version.source_metadata || {},
+      reference_paths: selectWorkSkillReferences(params.skill, params.input).map((item) => item.path),
+      reference_hashes: selectWorkSkillReferences(params.skill, params.input).map((item) => item.content_hash),
       textbook_sources: params.textbookSources.map(textbookSourceSnapshot),
     },
     revision_instruction: params.revisionInstruction || null,
@@ -618,7 +636,7 @@ function taskTitle(moduleName: string, input: Record<string, unknown>) {
 }
 
 function buildMaterialQuery(input: Record<string, unknown>) {
-  return [input.stage, input.subject, input.unit, input.topic, input.lesson_type, input.segment_type]
+  return [input.stage, input.subject, input.unit, input.topic, input.teaching_mode, input.lesson_type, input.segment_type]
     .map((item) => String(item ?? "").trim()).filter(Boolean).join(" ") || "教学设计";
 }
 
