@@ -572,14 +572,14 @@ async function collectModelOutput(params: {
 
 async function loadIdempotentRun(admin: any, userId: string, requestId: string) {
   const { data, error } = await admin.from("hai_work_runs").select(
-    "id, task_id, status, error_message, input_tokens, output_tokens, hai_work_artifacts(id, version_number)",
+    "id, task_id, status, error_message, input_tokens, output_tokens, artifact:hai_work_artifacts!hai_work_artifacts_run_id_fkey(id, version_number)",
   ).eq("user_id", userId).eq("client_request_id", requestId).maybeSingle();
   if (error) throw new HttpError(500, error.message);
   return data;
 }
 
 function replayExistingRun(run: any) {
-  const artifact = Array.isArray(run.hai_work_artifacts) ? run.hai_work_artifacts[0] : run.hai_work_artifacts;
+  const artifact = Array.isArray(run.artifact) ? run.artifact[0] : run.artifact;
   const events = run.status === "completed" && artifact
     ? [
       { type: "ready", taskId: run.task_id, runId: run.id, replayed: true },
