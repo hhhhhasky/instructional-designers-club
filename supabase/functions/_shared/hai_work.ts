@@ -48,6 +48,8 @@ export function validateWorkInput(
     "subject-lesson-design": [
       "stage",
       "subject",
+      "grade",
+      "volume",
       "unit",
       "topic",
       "lesson_type",
@@ -68,13 +70,6 @@ export function validateWorkInput(
     throw new Error("请粘贴教案正文或上传教案文件。");
   }
 
-  if (
-    toolSlug === "subject-lesson-design" &&
-    !String(input.textbook_content ?? "").trim() &&
-    materialCount === 0
-  ) {
-    throw new Error("学科定制必须粘贴教材正文或上传教材文件，HAI 不会猜测教材内容。");
-  }
 }
 
 export function selectWorkSkill(
@@ -203,15 +198,19 @@ export function buildWorkPrompt(params: {
   input: Record<string, unknown>;
   skill: WorkSkillCandidate;
   materialContext: string;
+  textbookContext?: string;
   previousMarkdown?: string;
   revisionInstruction?: string;
 }) {
   const fallbackNotice = params.skill.is_fallback
-    ? "当前使用通用 Skill。不得把一般知识伪装成用户教材中的具体事实。"
-    : "当前已匹配专属 Skill。仍须以用户提供材料为事实边界。";
+    ? "当前使用通用 Skill。不得把一般知识伪装成教材中的具体事实。"
+    : "当前已匹配专属 Skill。仍须遵守教材事实边界。";
   const system = [
     params.skill.version.prompt_template,
     fallbackNotice,
+    params.textbookContext
+      ? "内置教材内容是教师整理的知识点梳理，不是教材逐字原文。必须按版本、单元、课题和框题使用；若标注待复核，须在产物中显式提醒。用户补充的教材原文与内置梳理冲突时，以用户补充内容为准。"
+      : "没有命中的内置教材内容时，不得依据课名猜测教材事实。",
     `输出契约：${JSON.stringify(params.skill.version.output_contract)}`,
     "只输出一个合法 JSON 对象，不要输出代码围栏或额外说明。",
   ].join("\n\n");
@@ -219,6 +218,7 @@ export function buildWorkPrompt(params: {
   const user = [
     "## 任务输入",
     JSON.stringify(params.input, null, 2),
+    params.textbookContext ? `## 内置教材知识库（精确命中）\n${params.textbookContext}` : "",
     params.materialContext ? `## 用户指定材料\n${params.materialContext}` : "",
     params.previousMarkdown ? `## 上一版产物\n${params.previousMarkdown}` : "",
     params.revisionInstruction ? `## 本轮追改要求\n${params.revisionInstruction}` : "",
@@ -256,8 +256,11 @@ function fieldLabel(key: string) {
   return ({
     stage: "学段",
     subject: "学科",
+    grade: "年级",
+    volume: "册次",
     unit: "单元",
     topic: "课题",
+    frame: "框题",
     lesson_type: "课型",
     segment_type: "环节类型",
     current_design: "当前设计",
@@ -343,7 +346,7 @@ function renderSegment(value: Record<string, unknown>) {
 
 function renderLessonDesign(value: Record<string, unknown>) {
   const lines = [
-    `# ${stringValue(value.title, "学科定制教案")}`,
+    `# ${stringValue(value.title, "思政公开课教案")}`,
     "",
     "## 设计理念",
     stringValue(value.design_rationale),

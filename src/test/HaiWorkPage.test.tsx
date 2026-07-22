@@ -29,6 +29,30 @@ vi.mock("@/db/hai-api", () => ({
   getHaiAccessStatus: vi.fn().mockResolvedValue({ access: { authenticated: true, allowed: true }, usage: null }),
   getHaiWorkTools: vi.fn().mockResolvedValue(tools),
   getHaiWorkTasks: vi.fn().mockResolvedValue([]),
+  getHaiTextbookCatalog: vi.fn().mockResolvedValue([
+    {
+      collection_slug: "junior-politics-grade-7-volume-1-2024",
+      collection_title: "七年级上册",
+      stage: "初中",
+      subject: "道德与法治",
+      grade_level: 7,
+      grade_label: "7年级",
+      volume: "上册",
+      edition_label: "2024年秋统编新版",
+      publication_status: "current",
+      verification_status: "source_declared_current",
+      requires_confirmation: false,
+      unit_number: 1,
+      unit_label: "第一单元",
+      unit_title: "少年有梦",
+      lesson_number: 1,
+      lesson_label: "第一课",
+      lesson_title: "开启初中生活",
+      frame_number: 1,
+      frame_label: "第一框",
+      frame_title: "奏响中学序曲",
+    },
+  ]),
   uploadHaiMaterial: vi.fn(),
   streamHaiWork: vi.fn(),
 }));
@@ -68,19 +92,32 @@ describe("HAI Work workbench", () => {
     expect(screen.queryByRole("link", { name: /环节优化/ })).not.toBeInTheDocument();
   });
 
-  it("blocks subject lesson generation without textbook content or a file", async () => {
+  it("submits subject lesson generation from the built-in textbook catalog without an upload", async () => {
     const user = userEvent.setup();
     renderAt("/hai/work/subject-lesson-design");
 
     await screen.findByText("先把真实情况交给 HAI");
-    await user.selectOptions(screen.getByRole("combobox", { name: /学段/ }), "高中");
-    expect(screen.getByLabelText("学科与课型")).toHaveTextContent("思想政治 · 公开课");
-    await user.type(screen.getByRole("textbox", { name: /单元/ }), "第一单元");
-    await user.type(screen.getByRole("textbox", { name: /课题/ }), "实现人生价值");
+    expect(screen.getByLabelText("学段")).toHaveTextContent("初中");
+    expect(screen.getByLabelText("学科与课型")).toHaveTextContent("道德与法治 · 公开课");
+    await user.selectOptions(await screen.findByRole("combobox", { name: "年级" }), "7年级");
+    await user.selectOptions(screen.getByRole("combobox", { name: "册次" }), "上册");
+    await user.selectOptions(screen.getByRole("combobox", { name: "单元" }), "第一单元 少年有梦");
+    await user.selectOptions(screen.getByRole("combobox", { name: "课题" }), "第一课 开启初中生活");
     await user.click(screen.getByRole("button", { name: "开始思政公开课设计" }));
 
-    expect(screen.getByText("请粘贴教材正文或上传教材文件，HAI 不会猜测教材内容。")).toBeInTheDocument();
-    expect(streamHaiWork).not.toHaveBeenCalled();
+    expect(streamHaiWork).toHaveBeenCalledWith(
+      expect.objectContaining({
+        toolSlug: "subject-lesson-design",
+        materialIds: [],
+        input: expect.objectContaining({
+          grade: "7年级",
+          volume: "上册",
+          unit: "第一单元 少年有梦",
+          topic: "第一课 开启初中生活",
+        }),
+      }),
+      expect.any(Object),
+    );
   });
 
   it("submits a pasted lesson plan and opens the durable task", async () => {

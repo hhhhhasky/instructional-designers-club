@@ -50,6 +50,29 @@ export type HaiMode = "chat" | "work";
 export type HaiWorkToolSlug = "lesson-diagnosis" | "segment-optimization" | "subject-lesson-design";
 export type HaiWorkRunStatus = "queued" | "running" | "completed" | "failed";
 
+export interface HaiTextbookCatalogEntry {
+  collection_slug: string;
+  collection_title: string;
+  stage: string;
+  subject: string;
+  grade_level: number;
+  grade_label: string;
+  volume: string;
+  edition_label: string;
+  publication_status: string;
+  verification_status: string;
+  requires_confirmation: boolean;
+  unit_number: number;
+  unit_label: string;
+  unit_title: string;
+  lesson_number: number;
+  lesson_label: string;
+  lesson_title: string;
+  frame_number: number;
+  frame_label: string;
+  frame_title: string;
+}
+
 export interface HaiWorkTask {
   id: string;
   user_id: string;
@@ -76,6 +99,7 @@ export interface HaiWorkRun {
     name?: string;
     version?: string;
     fallback?: boolean;
+    textbook_sources?: Array<Record<string, unknown>>;
   };
   revision_instruction: string | null;
   error_message: string | null;
@@ -241,6 +265,18 @@ export async function getHaiWorkTools(): Promise<HaiFeatureModule[]> {
     .order("sort_order", { ascending: true });
   if (error) throw error;
   return (data as HaiFeatureModule[]) ?? [];
+}
+
+export async function getHaiTextbookCatalog(
+  stage = "初中",
+  subject = "道德与法治",
+): Promise<HaiTextbookCatalogEntry[]> {
+  const { data, error } = await supabase.rpc("hai_list_textbook_catalog", {
+    p_stage: stage,
+    p_subject: subject,
+  });
+  if (error) throw error;
+  return (data as HaiTextbookCatalogEntry[]) ?? [];
 }
 
 export async function getHaiWorkTasks(): Promise<HaiWorkTask[]> {

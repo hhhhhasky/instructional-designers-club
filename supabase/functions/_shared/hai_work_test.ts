@@ -1,4 +1,5 @@
 import {
+  buildWorkPrompt,
   parseWorkJson,
   renderWorkMarkdown,
   selectWorkSkill,
@@ -68,16 +69,38 @@ Deno.test("selectWorkSkill falls back when no specialist matches", () => {
   assertEquals(selected?.slug, "fallback");
 });
 
-Deno.test("subject lesson design requires textbook text or a material", () => {
+Deno.test("subject lesson design requires structured textbook routing fields", () => {
   assertThrows(() => validateWorkInput("subject-lesson-design", {
-      stage: "高中",
-      subject: "思想政治",
+      stage: "初中",
+      subject: "道德与法治",
       unit: "第一单元",
       topic: "课题",
       lesson_type: "公开课",
     }, 0),
-    "学科定制必须",
+    "年级",
   );
+  validateWorkInput("subject-lesson-design", {
+    stage: "初中",
+    subject: "道德与法治",
+    grade: "7年级",
+    volume: "上册",
+    unit: "第一单元 少年有梦",
+    topic: "第一课 开启初中生活",
+    lesson_type: "公开课",
+  }, 0);
+});
+
+Deno.test("work prompt separates built-in textbook knowledge from user materials", () => {
+  const prompt = buildWorkPrompt({
+    toolSlug: "subject-lesson-design",
+    input: { topic: "开启初中生活" },
+    skill: candidate({}),
+    textbookContext: "第一框 奏响中学序曲",
+    materialContext: "教师补充教材原文",
+  });
+  assertEquals(prompt.user.includes("## 内置教材知识库（精确命中）"), true);
+  assertEquals(prompt.user.includes("## 用户指定材料"), true);
+  assertEquals(prompt.system.includes("不是教材逐字原文"), true);
 });
 
 Deno.test("parseWorkJson extracts a fenced object", () => {

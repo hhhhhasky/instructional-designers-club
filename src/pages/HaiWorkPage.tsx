@@ -20,12 +20,14 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   getHaiAccessStatus,
+  getHaiTextbookCatalog,
   getHaiWorkTasks,
   getHaiWorkTools,
   streamHaiWork,
   uploadHaiMaterial,
   type HaiAccessStatus,
   type HaiFeatureModule,
+  type HaiTextbookCatalogEntry,
   type HaiWorkTask,
   type HaiWorkToolSlug,
 } from "@/db/hai-api";
@@ -59,7 +61,7 @@ export const HAI_WORK_TOOL_CONFIG: Record<HaiWorkToolSlug, HaiWorkToolVisualConf
   "subject-lesson-design": {
     name: "思政公开课设计",
     eyebrow: "议题 · 价值 · 证据",
-    description: "依据教材正文和真实学情，匹配已发布的思政 Skill，让价值议题、学习任务、课堂活动与评价证据形成完整闭环。",
+    description: "按年级、册次、单元、课题和框题精确读取内置教材知识，再匹配思政 Skill，形成价值议题、学习任务、课堂活动与评价证据的完整闭环。",
     promise: "交付可追改的思政公开课完整教案",
     icon: NotebookPen,
     accent: "#4d567a",
@@ -231,9 +233,68 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
+  const [catalog, setCatalog] = useState<HaiTextbookCatalogEntry[]>([]);
+
+  useEffect(() => {
+    if (toolSlug !== "subject-lesson-design") return;
+    let cancelled = false;
+    getHaiTextbookCatalog().then((items) => {
+      if (!cancelled) setCatalog(items);
+    }).catch((nextError) => {
+      if (!cancelled) setError(nextError instanceof Error ? nextError.message : "教材目录加载失败。");
+    });
+    return () => { cancelled = true; };
+  }, [toolSlug]);
+
+  const gradeOptions = useMemo(() => unique(catalog.map((item) => item.grade_label)), [catalog]);
+  const gradeCatalog = useMemo(
+    () => catalog.filter((item) => item.grade_label === form.grade),
+    [catalog, form.grade],
+  );
+  const volumeOptions = useMemo(() => unique(gradeCatalog.map((item) => item.volume)), [gradeCatalog]);
+  const volumeCatalog = useMemo(
+    () => gradeCatalog.filter((item) => item.volume === form.volume),
+    [gradeCatalog, form.volume],
+  );
+  const unitOptions = useMemo(
+    () => unique(volumeCatalog.map((item) => `${item.unit_label} ${item.unit_title}`)),
+    [volumeCatalog],
+  );
+  const unitCatalog = useMemo(
+    () => volumeCatalog.filter((item) => `${item.unit_label} ${item.unit_title}` === form.unit),
+    [form.unit, volumeCatalog],
+  );
+  const topicOptions = useMemo(
+    () => unique(unitCatalog.map((item) => `${item.lesson_label} ${item.lesson_title}`)),
+    [unitCatalog],
+  );
+  const topicCatalog = useMemo(
+    () => unitCatalog.filter((item) => `${item.lesson_label} ${item.lesson_title}` === form.topic),
+    [form.topic, unitCatalog],
+  );
+  const frameOptions = useMemo(
+    () => unique(topicCatalog.map((item) => `${item.frame_label} ${item.frame_title}`)),
+    [topicCatalog],
+  );
+  const selectedEdition = topicCatalog[0] ?? volumeCatalog[0];
 
   function update(key: string, value: string) {
     setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function updateTextbookField(key: "grade" | "volume" | "unit" | "topic" | "frame", value: string) {
+    const resetAfter: Record<typeof key, string[]> = {
+      grade: ["volume", "unit", "topic", "frame"],
+      volume: ["unit", "topic", "frame"],
+      unit: ["topic", "frame"],
+      topic: ["frame"],
+      frame: [],
+    };
+    setForm((current) => ({
+      ...current,
+      [key]: value,
+      ...Object.fromEntries(resetAfter[key].map((field) => [field, ""])),
+    }));
   }
 
   function selectFiles(fileList: FileList | null) {
@@ -299,27 +360,44 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
       <div className="mt-5 rounded-[28px] border border-[#ddd3c4] bg-[#fffaf2] p-5 shadow-[0_12px_35px_rgba(68,50,28,0.07)] md:p-7">
         <p className="text-[10px] font-black tracking-[0.24em]" style={{ color: config.accent }}>{config.eyebrow}</p>
         <h2 className="mt-2 text-2xl font-black text-[#2d302b]">先把真实情况交给 HAI</h2>
-        <p className="mt-2 text-sm leading-6 text-[#766e64]">信息越具体，产物越能进入你的课堂。未提供的教材事实，HAI 不会自行补写。</p>
+        <p className="mt-2 text-sm leading-6 text-[#766e64]">信息越具体，产物越能进入你的课堂。思政公开课可直接选择内置教材目录，无需手动上传教材。</p>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <SelectField label="学段" value={form.stage} options={stages} onChange={(value) => update("stage", value)} />
           {toolSlug === "subject-lesson-design" ? (
-            <div className="rounded-[15px] border border-[#d9d0c4] bg-[#f5efe5] px-3 py-2.5" aria-label="学科与课型">
-              <p className="text-[10px] font-bold tracking-[0.12em] text-[#8f684e]">固定设计范围</p>
-              <p className="mt-1 text-sm font-black text-[#363934]">思想政治 · 公开课</p>
-            </div>
+            <FixedField label="学段" value="初中" />
+          ) : (
+            <SelectField label="学段" value={form.stage} options={stages} onChange={(value) => update("stage", value)} />
+          )}
+          {toolSlug === "subject-lesson-design" ? (
+            <FixedField label="学科与课型" value="道德与法治 · 公开课" />
           ) : (
             <TextField label="学科" value={form.subject} placeholder="例如：语文、数学、思想政治" onChange={(value) => update("subject", value)} />
           )}
-          {toolSlug === "subject-lesson-design" && (
-            <TextField label="单元" value={form.unit} placeholder="例如：必修一 第一单元" onChange={(value) => update("unit", value)} />
+          {toolSlug === "subject-lesson-design" ? (
+            <>
+              <SelectField label="年级" value={form.grade} options={gradeOptions} onChange={(value) => updateTextbookField("grade", value)} />
+              <SelectField label="册次" value={form.volume} options={volumeOptions} onChange={(value) => updateTextbookField("volume", value)} />
+              <SelectField label="单元" value={form.unit} options={unitOptions} onChange={(value) => updateTextbookField("unit", value)} />
+              <SelectField label="课题" value={form.topic} options={topicOptions} onChange={(value) => updateTextbookField("topic", value)} />
+              <SelectField label="框题（可选；不选则读取全课）" value={form.frame} options={frameOptions} onChange={(value) => updateTextbookField("frame", value)} />
+            </>
+          ) : (
+            <TextField label="课题" value={form.topic} placeholder="输入本节课题" onChange={(value) => update("topic", value)} />
           )}
-          <TextField label="课题" value={form.topic} placeholder="输入本节课题" onChange={(value) => update("topic", value)} />
           {toolSlug === "segment-optimization" && (
             <SelectField label="要优化的环节" value={form.segment_type} options={segmentTypes} onChange={(value) => update("segment_type", value)} />
           )}
           <TextField label="课时与班级约束（可选）" value={form.constraints} placeholder="例如：40 分钟、48 人、不能使用平板" onChange={(value) => update("constraints", value)} />
         </div>
+        {toolSlug === "subject-lesson-design" && catalog.length === 0 && !error && (
+          <p className="mt-4 text-xs text-[#81786e]">正在读取教材目录…</p>
+        )}
+        {toolSlug === "subject-lesson-design" && selectedEdition && (
+          <div className={`mt-4 rounded-[16px] border px-4 py-3 text-xs leading-5 ${selectedEdition.requires_confirmation ? "border-amber-300 bg-amber-50 text-amber-900" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}>
+            当前版本：{selectedEdition.edition_label}。内置内容为知识点梳理，不是教材逐字原文。
+            {selectedEdition.requires_confirmation ? " 该册标记为待纸质教材复核，生成结果会同步提醒核对。" : ""}
+          </div>
+        )}
       </div>
 
       <div className="mt-4 rounded-[28px] border border-[#ddd3c4] bg-white p-5 md:p-7">
@@ -341,7 +419,7 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
           </>
         )}
         {toolSlug === "subject-lesson-design" && (
-          <TextAreaField label="教材正文" value={form.textbook_content} placeholder="请粘贴与本课有关的教材正文；如果内容较长，可上传文字型 PDF 或 DOCX。" minRows={10} onChange={(value) => update("textbook_content", value)} />
+          <TextAreaField label="补充教材内容（可选）" value={form.textbook_content} placeholder="如教材版本与内置知识点不同，可粘贴本课原文；用户补充内容优先。" minRows={6} onChange={(value) => update("textbook_content", value)} />
         )}
 
         <label className="mt-4 flex cursor-pointer items-center justify-between gap-4 rounded-[20px] border border-dashed border-[#cfc3b2] bg-[#faf6ee] p-4 transition hover:border-[#a56a47] hover:bg-[#f7efe3]">
@@ -445,6 +523,15 @@ function SelectField({ label, value, options, onChange }: { label: string; value
   );
 }
 
+function FixedField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[15px] border border-[#d9d0c4] bg-[#f5efe5] px-3 py-2.5" aria-label={label}>
+      <p className="text-[10px] font-bold tracking-[0.12em] text-[#8f684e]">{label}</p>
+      <p className="mt-1 text-sm font-black text-[#363934]">{value}</p>
+    </div>
+  );
+}
+
 function TextAreaField({ label, value, placeholder, minRows, onChange }: FieldProps & { minRows: number }) {
   return (
     <label className="mt-5 block text-xs font-bold text-[#625d55]">
@@ -477,10 +564,13 @@ function WorkLocked({ reason }: { reason?: string }) {
 
 function initialForm(toolSlug: HaiWorkToolSlug) {
   return {
-    stage: "",
-    subject: toolSlug === "subject-lesson-design" ? "思想政治" : "",
+    stage: toolSlug === "subject-lesson-design" ? "初中" : "",
+    subject: toolSlug === "subject-lesson-design" ? "道德与法治" : "",
+    grade: "",
+    volume: "",
     unit: "",
     topic: "",
+    frame: "",
     lesson_type: toolSlug === "subject-lesson-design" ? "公开课" : "",
     segment_type: "",
     current_design: "",
@@ -503,8 +593,9 @@ function validateForm(toolSlug: HaiWorkToolSlug, form: Record<string, string>, f
     if (!form.desired_outcome.trim()) return "请说明希望优化后达成的效果。";
   }
   if (toolSlug === "subject-lesson-design") {
-    if (!form.unit.trim()) return "请填写单元。";
-    if (!form.textbook_content.trim() && fileCount === 0) return "请粘贴教材正文或上传教材文件，HAI 不会猜测教材内容。";
+    if (!form.grade) return "请选择年级。";
+    if (!form.volume) return "请选择册次。";
+    if (!form.unit) return "请选择单元。";
   }
   return "";
 }
@@ -512,7 +603,11 @@ function validateForm(toolSlug: HaiWorkToolSlug, form: Record<string, string>, f
 function materialTitle(toolSlug: HaiWorkToolSlug) {
   if (toolSlug === "lesson-diagnosis") return "提交需要诊断的教案";
   if (toolSlug === "segment-optimization") return "保留你的原始环节";
-  return "提供教材事实依据";
+  return "补充你的版本差异或本班学情（可选）";
+}
+
+function unique(values: string[]) {
+  return [...new Set(values.filter(Boolean))];
 }
 
 function isWorkToolSlug(value: string | undefined): value is HaiWorkToolSlug {

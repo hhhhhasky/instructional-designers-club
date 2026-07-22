@@ -48,6 +48,21 @@ type WorkRequestBody = {
   clientRequestId?: unknown;
 };
 
+type TextbookSource = {
+  section_id: string;
+  collection_slug: string;
+  collection_title: string;
+  edition_label: string;
+  publication_status: string;
+  verification_status: string;
+  requires_confirmation: boolean;
+  section_path: string;
+  content_type: string;
+  content_markdown: string;
+  source_hash: string;
+  content_hash: string;
+};
+
 const maxMaterialCount = 5;
 const maxMaterialContextChars = 48_000;
 const maxInputTextChars = 120_000;
@@ -82,19 +97,6 @@ Deno.serve(async (request) => {
     const module = await loadModule(auth.admin, toolSlug);
     const materials = await loadMaterials(auth.admin, auth.user.id, materialIds);
     const skill = await loadSelectedSkill(auth.admin, toolSlug, input);
-    const taskId = body.taskId
-      ? await validateTask(auth.admin, auth.user.id, String(body.taskId), toolSlug)
-      : await createTask(auth.admin, auth.user.id, toolSlug, taskTitle(module.name, input));
-    await attachMaterials(auth.admin, auth.user.id, taskId, materialIds);
-
-    const parentArtifact = body.parentArtifactId
-      ? await loadArtifact(auth.admin, auth.user.id, taskId, String(body.parentArtifactId))
-      : null;
-    const revisionInstruction = String(body.revisionInstruction ?? "").trim();
-    if (parentArtifact && !revisionInstruction) {
-      throw new HttpError(400, "继续追改时请填写本轮修改要求。");
-    }
-
     const runtime = await loadHaiRuntimeConfig(auth.admin);
     const completionOptions = buildChatCompletionOptions({ module, runtime });
     const materialContext = await loadMaterialContext(
@@ -103,11 +105,36 @@ Deno.serve(async (request) => {
       materialIds,
       buildMaterialQuery(input),
     );
+    const textbook = toolSlug === "subject-lesson-design"
+      ? await loadTextbookContext(auth.admin, input)
+      : { context: "", sources: [] as TextbookSource[] };
+    if (
+      toolSlug === "subject-lesson-design" &&
+      !textbook.context &&
+      !materialContext &&
+      !String(input.textbook_content ?? "").trim()
+    ) {
+      throw new HttpError(422, "内置教材库没有命中这节课，请检查年级、册次、单元和课题，或上传教材内容。");
+    }
+
+    const taskId = body.taskId
+      ? await validateTask(auth.admin, auth.user.id, String(body.taskId), toolSlug)
+      : await createTask(auth.admin, auth.user.id, toolSlug, taskTitle(module.name, input));
+    await attachMaterials(auth.admin, auth.user.id, taskId, materialIds);
+    const parentArtifact = body.parentArtifactId
+      ? await loadArtifact(auth.admin, auth.user.id, taskId, String(body.parentArtifactId))
+      : null;
+    const revisionInstruction = String(body.revisionInstruction ?? "").trim();
+    if (parentArtifact && !revisionInstruction) {
+      throw new HttpError(400, "继续追改时请填写本轮修改要求。");
+    }
+
     const prompt = buildWorkPrompt({
       toolSlug,
       input,
       skill,
       materialContext,
+      textbookContext: textbook.context,
       previousMarkdown: parentArtifact?.content_markdown,
       revisionInstruction,
     });
@@ -121,6 +148,7 @@ Deno.serve(async (request) => {
       clientRequestId,
       input,
       materialIds,
+      textbookSources: textbook.sources,
       revisionInstruction,
     });
 
@@ -163,7 +191,11 @@ Deno.serve(async (request) => {
             skillVersion: skill.version.version_label,
             fallback: skill.is_fallback,
           });
-          sendSse(controller, encoder, { type: "progress", stage: "material", message: materialStatus(materials, materialContext) });
+          sendSse(controller, encoder, {
+            type: "progress",
+            stage: "material",
+            message: evidenceStatus(materials, materialContext, textbook.sources),
+          });
           sendSse(controller, encoder, { type: "progress", stage: "generating", message: "HAI 正在形成第一版工作产物" });
 
           rawOutput = await collectModelOutput({
@@ -359,6 +391,68 @@ async function loadMaterialContext(
   return sections.join("\n\n");
 }
 
+async function loadTextbookContext(admin: any, input: Record<string, unknown>) {
+  const gradeLevel = parseGradeLevel(input.grade);
+  const { data, error } = await admin.rpc("hai_match_textbook_sections", {
+    p_stage: String(input.stage ?? "").trim(),
+    p_subject: normalizeTextbookSubject(input.subject),
+    p_grade_level: gradeLevel,
+    p_volume: String(input.volume ?? "").trim(),
+    p_unit_query: String(input.unit ?? "").trim(),
+    p_lesson_query: String(input.topic ?? "").trim(),
+    p_frame_query: String(input.frame ?? "").trim() || null,
+    p_match_count: 16,
+  });
+  if (error) throw new HttpError(500, `读取教材知识库失败：${error.message}`);
+  const sources = (data ?? []) as TextbookSource[];
+  const collectionSlugs = new Set(sources.map((item) => item.collection_slug));
+  if (collectionSlugs.size > 1) {
+    throw new HttpError(409, "教材版本命中不唯一，请重新选择年级、册次、单元和课题。");
+  }
+  let length = 0;
+  const sections: string[] = [];
+  for (const item of sources) {
+    const warning = item.requires_confirmation
+      ? "\n> 版本边界：该册内容尚待纸质教材复核，生成时必须提醒教师核对。"
+      : "";
+    const section = [
+      `### ${item.section_path}`,
+      `教材版本：${item.edition_label}；内容类型：知识点梳理（非逐字原文）；核验状态：${item.verification_status}${warning}`,
+      item.content_markdown,
+    ].join("\n");
+    if (length + section.length > maxMaterialContextChars) break;
+    sections.push(section);
+    length += section.length;
+  }
+  return { context: sections.join("\n\n"), sources };
+}
+
+function parseGradeLevel(value: unknown) {
+  const match = String(value ?? "").match(/([7-9])/);
+  return match ? Number(match[1]) : null;
+}
+
+function normalizeTextbookSubject(value: unknown) {
+  const subject = String(value ?? "").trim();
+  return subject === "思想政治" || subject === "思政" ? "道德与法治" : subject;
+}
+
+function textbookSourceSnapshot(item: TextbookSource) {
+  return {
+    section_id: item.section_id,
+    collection_slug: item.collection_slug,
+    collection_title: item.collection_title,
+    edition_label: item.edition_label,
+    publication_status: item.publication_status,
+    verification_status: item.verification_status,
+    requires_confirmation: item.requires_confirmation,
+    section_path: item.section_path,
+    content_type: item.content_type,
+    source_hash: item.source_hash,
+    content_hash: item.content_hash,
+  };
+}
+
 async function createTask(admin: any, userId: string, moduleSlug: string, title: string) {
   const { data, error } = await admin.from("hai_work_tasks").insert({
     user_id: userId,
@@ -404,6 +498,7 @@ async function createRun(admin: any, params: {
   clientRequestId: string;
   input: Record<string, unknown>;
   materialIds: string[];
+  textbookSources: TextbookSource[];
   revisionInstruction: string;
 }) {
   const { data, error } = await admin.from("hai_work_runs").insert({
@@ -413,12 +508,17 @@ async function createRun(admin: any, params: {
     parent_artifact_id: params.parentArtifactId,
     client_request_id: params.clientRequestId,
     status: "queued",
-    input_snapshot: { ...params.input, material_ids: params.materialIds },
+    input_snapshot: {
+      ...params.input,
+      material_ids: params.materialIds,
+      textbook_sources: params.textbookSources.map(textbookSourceSnapshot),
+    },
     skill_snapshot: {
       slug: params.skill.slug,
       name: params.skill.name,
       version: params.skill.version.version_label,
       fallback: params.skill.is_fallback,
+      textbook_sources: params.textbookSources.map(textbookSourceSnapshot),
     },
     revision_instruction: params.revisionInstruction || null,
   }).select("id").single();
@@ -522,8 +622,10 @@ function buildMaterialQuery(input: Record<string, unknown>) {
     .map((item) => String(item ?? "").trim()).filter(Boolean).join(" ") || "教学设计";
 }
 
-function materialStatus(materials: any[], context: string) {
-  if (materials.length === 0) return "已读取粘贴内容";
-  if (!context) return `已校验 ${materials.length} 份材料，但未提取到可用文本`;
-  return `已读取 ${materials.length} 份用户指定材料`;
+function evidenceStatus(materials: any[], context: string, textbookSources: TextbookSource[]) {
+  const parts: string[] = [];
+  if (textbookSources.length > 0) parts.push(`已精确读取 ${textbookSources.length} 个教材框题`);
+  if (materials.length > 0 && context) parts.push(`已读取 ${materials.length} 份用户补充材料`);
+  if (materials.length > 0 && !context) parts.push(`已校验 ${materials.length} 份材料，但未提取到可用文本`);
+  return parts.join("；") || "已读取粘贴内容";
 }
