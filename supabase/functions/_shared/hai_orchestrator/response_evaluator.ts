@@ -45,7 +45,7 @@ const SAFETY_PATTERNS: Array<{ re: RegExp; label: string }> = [
 
 export function evaluateResponse(
   answer: string,
-  _context: HAIContextPackage,
+  _context?: HAIContextPackage,
   _options: { passScore?: number } = {},
 ): ResponseEvaluation {
   const violations: string[] = [];

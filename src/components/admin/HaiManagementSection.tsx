@@ -1,6 +1,7 @@
 import { BookOpen, Bot, CheckCircle2, GitBranch, KeyRound, Layers3, Loader2, Pencil, Plus, RefreshCw, Route, Save, Settings2, SlidersHorizontal, Ticket, Trash2, UserPlus, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import HaiChatSkillManagement from "@/components/admin/HaiChatSkillManagement";
 import HaiWorkSkillManagement from "@/components/admin/HaiWorkSkillManagement";
 import ModuleParamFields, { NumberInput } from "@/components/admin/hai/ModuleParamFields";
 import { Badge } from "@/components/ui/badge";
@@ -1125,6 +1126,8 @@ export default function HaiManagementSection() {
         </div>
       )}
 
+      <HaiChatSkillManagement />
+
       <HaiWorkSkillManagement />
 
       <section className="rounded-ds-lg border border-bd bg-white p-4">
@@ -1132,8 +1135,8 @@ export default function HaiManagementSection() {
           <div className="flex min-w-0 items-center gap-2">
             <GitBranch className="h-5 w-5 shrink-0 text-ac" />
             <div className="min-w-0">
-              <h2 className="text-ds-lg font-ds-bold text-tx">上下文编排</h2>
-              <p className="mt-1 text-ds-xs text-txs">单聊链路：场景与用户目的识别、按需记忆、问题重构、诊断框架、检索规划、回答质检与 trace。</p>
+              <h2 className="text-ds-lg font-ds-bold text-tx">上下文编排（回退链路）</h2>
+              <p className="mt-1 text-ds-xs text-txs">当 Chat 模块没有可用 Skill 绑定时，才使用这套场景识别、按需记忆、问题重构、诊断框架、回答质检与 trace。</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -1147,7 +1150,7 @@ export default function HaiManagementSection() {
         </div>
 
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-          <MetricCard icon={<Route className="h-4 w-4" />} label="核心链路" value={orchestratorEnabled ? "Context Orchestrator" : "Legacy Prompt"} />
+          <MetricCard icon={<Route className="h-4 w-4" />} label="回退链路" value={orchestratorEnabled ? "Context Orchestrator" : "Legacy Prompt"} />
           <MetricCard icon={<Layers3 className="h-4 w-4" />} label="可编辑层" value={`${enabledPromptConfigCount}/${orchestratorPromptConfigs.length || 0}`} />
           <MetricCard icon={<BookOpen className="h-4 w-4" />} label="课程方法卡" value={`${methodCardItems.filter((card) => card.enabled).length}/${methodCardItems.length || 0}`} />
           <MetricCard icon={<Settings2 className="h-4 w-4" />} label="启用参数" value={`${runtimeSettings.filter((setting) => setting.enabled).length}/${runtimeSettings.length || 0}`} />

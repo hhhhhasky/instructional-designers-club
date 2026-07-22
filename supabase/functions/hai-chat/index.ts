@@ -20,6 +20,14 @@ import {
   sseHeaders,
   streamDeepSeek,
 } from "../_shared/hai.ts";
+import {
+  buildHaiChatSkillSystemPrompt,
+  buildHaiChatSkillTrace,
+  type HaiChatSkillReference,
+  type HaiChatSkillRuntime,
+  type HaiChatSkillTrace,
+  normalizeHaiChatSkillReferenceConfig,
+} from "../_shared/hai_chat_skill.ts";
 import { HAIContextOrchestrator } from "../_shared/hai_orchestrator/context_orchestrator.ts";
 import { classifyIntent } from "../_shared/hai_orchestrator/intent_classifier.ts";
 import {
@@ -28,7 +36,10 @@ import {
   type HanMethodCardConfigRow,
   mergeHanMethodCards,
 } from "../_shared/hai_orchestrator/knowledge/method_bank/han_course_method_cards.ts";
-import { memoryCategoryMatchesTypes } from "../_shared/hai_orchestrator/memory_selector.ts";
+import {
+  memoryCategoryMatchesTypes,
+  selectMemory,
+} from "../_shared/hai_orchestrator/memory_selector.ts";
 import {
   buildComposedSystemPrompt,
   normalizeHaiVoiceFormatting,
@@ -152,18 +163,22 @@ Deno.serve(async (request) => {
 
     const runtime = await loadHaiRuntimeConfig(auth.admin);
     const module = await loadModule(auth.admin, moduleSlug);
-    const prompt = runtime.contextOrchestratorEnabled
+    const chatSkill = await loadChatSkill(auth.admin, module.id);
+    const skillMode = Boolean(chatSkill);
+    const orchestratorMode = !skillMode && runtime.contextOrchestratorEnabled;
+    const prompt = orchestratorMode || skillMode
       ? null
       : await loadPrompt(auth.admin, module.id);
     const completionOptions = buildChatCompletionOptions({ module, runtime });
     const configSnapshot = runtimeConfigSnapshot(runtime, completionOptions);
-    const orchestratorPromptConfig = runtime.contextOrchestratorEnabled
+    const orchestratorPromptConfig = orchestratorMode
       ? await loadOrchestratorPromptConfigs(auth.admin)
       : {};
-    const methodCards = runtime.contextOrchestratorEnabled
+    const methodCards = skillMode || orchestratorMode
       ? await loadMethodCards(auth.admin)
       : hanCourseMethodCards;
-    const semanticRoute = runtime.contextOrchestratorEnabled
+    const skillIntent = skillMode ? classifyIntent(text) : null;
+    const semanticRoute = orchestratorMode
       ? await routeSemanticallyWithLlm({
         text,
         runtime,
@@ -176,7 +191,7 @@ Deno.serve(async (request) => {
           : undefined,
       })
       : null;
-    const contextPackage = runtime.contextOrchestratorEnabled
+    const contextPackage = orchestratorMode
       ? orchestrator.buildInitialPackage(
         text,
         {
@@ -190,6 +205,16 @@ Deno.serve(async (request) => {
         methodCards,
       )
       : null;
+    const estimatedSkillPrompt = chatSkill && skillIntent
+      ? buildHaiChatSkillSystemPrompt({
+        moduleName: module.name,
+        question: text,
+        skill: chatSkill,
+        intent: skillIntent,
+        methodCards,
+        memories: [],
+      })
+      : "";
     // Compact orchestration intentionally leaves material and generic knowledge
     // retrieval available in code/config, but does not load or inject them.
     const materialContext: RetrievedContext = { text: "", citations: [] };
@@ -199,6 +224,7 @@ Deno.serve(async (request) => {
       estimateTokens(prompt?.system_prompt ?? "") +
       estimateTokens(prompt?.developer_prompt ?? "") +
       estimateTokens(prompt?.response_contract ?? "") +
+      estimateTokens(estimatedSkillPrompt) +
       estimateTokens(contextPackage?.core_identity ?? "") +
       estimateTokens(contextPackage?.safety_boundaries ?? "") +
       estimateTokens(JSON.stringify(contextPackage?.retrieved_methods ?? [])) +
@@ -214,7 +240,7 @@ Deno.serve(async (request) => {
       estimatedOutputTokens: maxOutputTokens,
       metadata: buildUsageMetadata(
         runtime,
-        { module_slug: module.slug },
+        buildExecutionMetadata(module.slug, chatSkill, orchestratorMode),
         configSnapshot,
       ),
     });
@@ -269,7 +295,11 @@ Deno.serve(async (request) => {
       String(userMessage.id),
     );
     const memorySelection = contextPackage?.memory_selection ??
-      legacyMemorySelection();
+      (chatSkill && skillIntent
+        ? chatSkill.reference_config.memory_enabled
+          ? selectMemory(text, skillIntent)
+          : disabledSkillMemorySelection()
+        : legacyMemorySelection());
     const memories = await loadMemories(
       auth.admin,
       auth.user.id,
@@ -278,7 +308,16 @@ Deno.serve(async (request) => {
       memorySelection,
     );
     if (contextPackage) contextPackage.selected_memory = memories;
-    const systemPrompt = contextPackage
+    const systemPrompt = chatSkill && skillIntent
+      ? buildHaiChatSkillSystemPrompt({
+        moduleName: module.name,
+        question: text,
+        skill: chatSkill,
+        intent: skillIntent,
+        methodCards,
+        memories,
+      })
+      : contextPackage
       ? buildComposedSystemPrompt({
         module,
         context: contextPackage,
@@ -326,8 +365,9 @@ Deno.serve(async (request) => {
             output += token;
           }
 
-          const evaluation = contextPackage && runtime.evaluatorEnabled
-            ? evaluateResponse(output, contextPackage, {
+          const evaluation = (chatSkill || contextPackage) &&
+              runtime.evaluatorEnabled
+            ? evaluateResponse(output, contextPackage ?? undefined, {
               passScore: runtime.evaluatorPassScore,
             })
             : null;
@@ -336,19 +376,30 @@ Deno.serve(async (request) => {
           let finalMessages = draftMessages;
 
           if (
-            contextPackage && evaluation && !evaluation.pass &&
+            (chatSkill || contextPackage) && evaluation && !evaluation.pass &&
             runtime.evaluatorMaxRewrites > 0
           ) {
             finalAnswer = "";
-            const rewriteSystemPrompt = buildComposedSystemPrompt({
-              module,
-              context: contextPackage,
-              memories,
-              materialContext,
-              knowledgeContext,
-              evaluation,
-              draftAnswer,
-            });
+            const rewriteSystemPrompt = chatSkill && skillIntent
+              ? buildHaiChatSkillSystemPrompt({
+                moduleName: module.name,
+                question: text,
+                skill: chatSkill,
+                intent: skillIntent,
+                methodCards,
+                memories,
+                evaluation,
+                draftAnswer,
+              })
+              : buildComposedSystemPrompt({
+                module,
+                context: contextPackage!,
+                memories,
+                materialContext,
+                knowledgeContext,
+                evaluation,
+                draftAnswer,
+              });
             finalMessages = [
               { role: "system", content: rewriteSystemPrompt },
               ...recentMessages,
@@ -406,6 +457,15 @@ Deno.serve(async (request) => {
               final_answer: finalAnswer,
             }
             : undefined;
+          const skillTrace = chatSkill && skillIntent
+            ? buildHaiChatSkillTrace({
+              skill: chatSkill,
+              question: text,
+              intent: skillIntent,
+              methodCards,
+              memoryLoaded: memories.length > 0,
+            })
+            : undefined;
 
           output = finalAnswer;
           const inputTokens = estimateTokens(
@@ -429,6 +489,8 @@ Deno.serve(async (request) => {
                 runtime,
                 configSnapshot,
                 trace,
+                skillTrace,
+                orchestratorMode,
               ),
               token_estimate: outputTokens,
               input_tokens: inputTokens,
@@ -459,7 +521,11 @@ Deno.serve(async (request) => {
             entityId: conversationId,
             durationMs: Date.now() - startedAt,
             metadata: buildUsageMetadata(runtime, {
-              module_slug: module.slug,
+              ...buildExecutionMetadata(
+                module.slug,
+                chatSkill,
+                orchestratorMode,
+              ),
               message_id: assistantMessageId,
             }, configSnapshot),
           });
@@ -498,7 +564,11 @@ Deno.serve(async (request) => {
             entityId: conversationId,
             durationMs: Date.now() - startedAt,
             metadata: buildUsageMetadata(runtime, {
-              module_slug: module.slug,
+              ...buildExecutionMetadata(
+                module.slug,
+                chatSkill,
+                orchestratorMode,
+              ),
               error: message,
             }, configSnapshot),
           });
@@ -532,6 +602,149 @@ async function loadModule(
   if (error) throw new HttpError(500, error.message);
   if (!data) throw new HttpError(404, "该 HAI 功能暂未启用。");
   return data as ModuleRow;
+}
+
+async function loadChatSkill(
+  admin: { from: (table: string) => any },
+  moduleId: string,
+): Promise<HaiChatSkillRuntime | null> {
+  const { data: binding, error: bindingError } = await admin
+    .from("hai_chat_skill_bindings")
+    .select("skill_id")
+    .eq("module_id", moduleId)
+    .eq("is_enabled", true)
+    .maybeSingle();
+  if (bindingError) {
+    if (isMissingChatSkillSchemaError(bindingError)) {
+      console.warn(
+        "hai chat skill schema is not available",
+        bindingError.message,
+      );
+      return null;
+    }
+    throw new HttpError(
+      500,
+      `Chat Skill 绑定加载失败：${bindingError.message}`,
+    );
+  }
+  if (!binding?.skill_id) return null;
+
+  const { data: skill, error: skillError } = await admin
+    .from("hai_chat_skills")
+    .select("id, slug, name, description, source_path")
+    .eq("id", binding.skill_id)
+    .eq("is_enabled", true)
+    .maybeSingle();
+  if (skillError) {
+    throw new HttpError(500, `Chat Skill 加载失败：${skillError.message}`);
+  }
+  if (!skill) return null;
+
+  let { data: version, error: versionError } = await admin
+    .from("hai_chat_skill_versions")
+    .select(
+      "id, version_label, snapshot_hash, instructions, reference_config",
+    )
+    .eq("skill_id", skill.id)
+    .eq("status", "published")
+    .maybeSingle();
+  if (versionError && isMissingChatSkillSnapshotColumnError(versionError)) {
+    const fallback = await admin
+      .from("hai_chat_skill_versions")
+      .select("id, version_label, instructions, reference_config")
+      .eq("skill_id", skill.id)
+      .eq("status", "published")
+      .maybeSingle();
+    version = fallback.data;
+    versionError = fallback.error;
+  }
+  if (versionError) {
+    throw new HttpError(
+      500,
+      `Chat Skill 版本加载失败：${versionError.message}`,
+    );
+  }
+  if (!version?.instructions?.trim()) return null;
+
+  const { data: references, error: referencesError } = await admin
+    .from("hai_chat_skill_references")
+    .select(
+      "id, path, name, description, media_type, content, content_hash, load_mode, max_chars, sort_order",
+    )
+    .eq("skill_version_id", version.id)
+    .order("sort_order")
+    .order("path");
+  if (
+    referencesError && !isMissingChatSkillReferenceSchemaError(
+      referencesError,
+    )
+  ) {
+    throw new HttpError(
+      500,
+      `Chat Skill references 加载失败：${referencesError.message}`,
+    );
+  }
+
+  return {
+    skill_id: String(skill.id),
+    skill_slug: String(skill.slug),
+    skill_name: String(skill.name),
+    skill_description: String(skill.description || ""),
+    source_path: String(skill.source_path || ""),
+    version_id: String(version.id),
+    version_label: String(version.version_label),
+    snapshot_hash: String(version.snapshot_hash || ""),
+    instructions: String(version.instructions),
+    reference_config: normalizeHaiChatSkillReferenceConfig(
+      version.reference_config,
+    ),
+    references: referencesError
+      ? []
+      : (references ?? []).map((reference: Record<string, unknown>) => ({
+        id: String(reference.id),
+        path: String(reference.path),
+        name: String(reference.name || reference.path),
+        description: String(reference.description || ""),
+        media_type: String(reference.media_type || "text/plain"),
+        content: String(reference.content || ""),
+        content_hash: String(reference.content_hash || ""),
+        load_mode: String(
+          reference.load_mode || "on_demand",
+        ) as HaiChatSkillReference["load_mode"],
+        max_chars: Number(reference.max_chars || 12000),
+        sort_order: Number(reference.sort_order || 0),
+      })),
+  };
+}
+
+function isMissingChatSkillReferenceSchemaError(error: unknown) {
+  const record = normalizeRecord(error);
+  const code = String(record.code || "");
+  const message = String(record.message || "");
+  return code === "42P01" || code === "PGRST205" ||
+    /hai_chat_skill_references.*(does not exist|schema cache|could not find)/i
+      .test(message);
+}
+
+function isMissingChatSkillSnapshotColumnError(error: unknown) {
+  const record = normalizeRecord(error);
+  const code = String(record.code || "");
+  const message = String(record.message || "");
+  return code === "42703" || code === "PGRST204" ||
+    /snapshot_hash.*(does not exist|schema cache|could not find)/i.test(
+      message,
+    );
+}
+
+function isMissingChatSkillSchemaError(error: unknown) {
+  const record = normalizeRecord(error);
+  const code = String(record.code || "");
+  const message = String(record.message || "");
+  return code === "42P01" || code === "PGRST205" ||
+    /hai_chat_skill_bindings.*(does not exist|schema cache|could not find)/i
+      .test(
+        message,
+      );
 }
 
 async function loadPrompt(
@@ -1085,14 +1298,50 @@ function buildMessageMetadata(
   runtime: HaiRuntimeConfig,
   configSnapshot: Record<string, unknown>,
   trace?: HAITrace,
+  skillTrace?: HaiChatSkillTrace,
+  orchestratorMode = false,
 ) {
   const metadata: Record<string, unknown> = {
     module_slug: moduleSlug,
     model: options.model,
+    chat_mode: skillTrace
+      ? "skill"
+      : orchestratorMode
+      ? "context_orchestrator"
+      : "legacy_prompt",
   };
+  if (skillTrace) {
+    metadata.skill_slug = skillTrace.skill_slug;
+    metadata.skill_version = skillTrace.version_label;
+    metadata.skill_version_id = skillTrace.version_id;
+    metadata.skill_snapshot_hash = skillTrace.snapshot_hash;
+  }
   if (runtime.logConfigSnapshot) metadata.config = configSnapshot;
   if (runtime.logConfigSnapshot && trace) metadata.hai_context_trace = trace;
+  if (runtime.logConfigSnapshot && skillTrace) {
+    metadata.hai_skill_trace = skillTrace;
+  }
   return metadata;
+}
+
+function buildExecutionMetadata(
+  moduleSlug: string,
+  skill: HaiChatSkillRuntime | null,
+  orchestratorMode: boolean,
+) {
+  return skill
+    ? {
+      module_slug: moduleSlug,
+      chat_mode: "skill",
+      skill_slug: skill.skill_slug,
+      skill_version: skill.version_label,
+      skill_version_id: skill.version_id,
+      skill_snapshot_hash: skill.snapshot_hash,
+    }
+    : {
+      module_slug: moduleSlug,
+      chat_mode: orchestratorMode ? "context_orchestrator" : "legacy_prompt",
+    };
 }
 
 function buildUsageMetadata(
@@ -1118,6 +1367,14 @@ function legacyMemorySelection(): MemorySelection {
     ],
     reason:
       "Context Orchestrator 已关闭，沿用旧链路加载模块记忆上限内的用户记忆。",
+  };
+}
+
+function disabledSkillMemorySelection(): MemorySelection {
+  return {
+    should_load_memory: false,
+    memory_types: [],
+    reason: "当前 Chat Skill 版本已关闭用户记忆加载。",
   };
 }
 
