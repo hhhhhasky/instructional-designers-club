@@ -71,7 +71,7 @@ Deno.serve(async (request) => {
     if (!text) throw new HttpError(400, "消息不能为空。");
 
     const module = await loadModule(auth.admin, moduleSlug);
-    const prompt = await loadPrompt(auth.admin, module.id);
+    const prompt = await loadChatSkillPrompt(auth.admin, module.id);
     const runtime = await loadHaiRuntimeConfig(auth.admin);
     const completionOptions = buildChatCompletionOptions({
       module,
@@ -347,19 +347,36 @@ async function loadModule(
   };
 }
 
-async function loadPrompt(
+async function loadChatSkillPrompt(
   admin: { from: (table: string) => any },
   moduleId: string,
 ) {
-  const { data, error } = await admin
-    .from("hai_prompt_versions")
-    .select("system_prompt, developer_prompt, response_contract")
+  const { data: binding, error: bindingError } = await admin
+    .from("hai_chat_skill_bindings")
+    .select("skill_id")
     .eq("module_id", moduleId)
+    .eq("is_enabled", true)
+    .maybeSingle();
+  if (bindingError) throw new HttpError(500, bindingError.message);
+  if (!binding?.skill_id) {
+    throw new HttpError(503, "该模块没有可用 Chat Skill。");
+  }
+
+  const { data: version, error: versionError } = await admin
+    .from("hai_chat_skill_versions")
+    .select("instructions")
+    .eq("skill_id", binding.skill_id)
     .eq("status", "published")
     .maybeSingle();
-  if (error) throw new HttpError(500, error.message);
-  if (!data) throw new HttpError(500, "该 HAI 功能缺少已发布 Prompt。");
-  return data as {
+  if (versionError) throw new HttpError(500, versionError.message);
+  if (!version?.instructions?.trim()) {
+    throw new HttpError(503, "该模块的 Chat Skill 尚未发布。");
+  }
+  return {
+    system_prompt: String(version.instructions),
+    developer_prompt: "",
+    response_contract: "",
+  } as {
     system_prompt: string;
     developer_prompt: string;
     response_contract: string;

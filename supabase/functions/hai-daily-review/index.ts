@@ -139,41 +139,10 @@ Deno.serve(async (request) => {
 });
 
 async function rollbackDailyReview(
-  admin: ReturnType<typeof createAdminClient>,
-  runDate: string,
-) {
-  const run = await loadExistingRun(admin, explicitDateWindow(runDate).runDate);
-  if (!run) throw new Error("没有找到该日期的复盘记录。");
-  if (run.publish_mode !== "gated_auto" && run.publish_mode !== "manual") {
-    throw new Error("该复盘没有可回滚的已发布改动。");
-  }
-  const before = normalizeRecord(run.config_snapshot_before);
-  const appliedRows = Array.isArray(run.changes_applied)
-    ? run.changes_applied
-    : [];
-  const restored: string[] = [];
-  for (const raw of appliedRows) {
-    const key = String(normalizeRecord(raw).key || "");
-    const previous = normalizeRecord(before[key]);
-    if (!key || typeof previous.content !== "string") continue;
-    const { error } = await admin
-      .from("hai_orchestrator_prompt_configs")
-      .update({
-        content: previous.content,
-        enabled: previous.enabled !== false,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("key", key);
-    if (error) throw error;
-    restored.push(key);
-  }
-  if (restored.length === 0) throw new Error("发布前快照不完整，未执行回滚。");
-  const { error } = await admin.from("hai_optimization_log").update({
-    publish_mode: "rolled_back",
-    note: `管理员已回滚自动发布配置：${restored.join(", ")}。`,
-  }).eq("run_date", runDate);
-  if (error) throw error;
-  return { runDate, restored };
+  _admin: ReturnType<typeof createAdminClient>,
+  _runDate: string,
+): Promise<Record<string, unknown>> {
+  throw new Error("Prompt 自动发布链路已退役，历史复盘不再支持配置回滚。");
 }
 
 async function runDailyReview(
@@ -206,87 +175,24 @@ async function runDailyReview(
   const evaluations = await evaluateTurns(turns, settings.passScore);
   const evaluationSummary = summarizeEvaluations(evaluations);
   const lowEvaluations = evaluations.filter((item) => !item.passed);
-  const promptConfigs = await loadPromptConfigs(admin);
-  const configMap = new Map(
-    promptConfigs.map((config) => [config.key, config]),
-  );
-  const snapshotBefore = snapshot(promptConfigs);
-
+  // Prompt 发布与上下文编排已退役；每日复盘只保留质量审计和人工建议，
+  // 不再读取或自动改写运行时 Prompt 配置。
+  const promptConfigs: PromptConfigRow[] = [];
+  const snapshotBefore: Record<string, unknown> = {};
   const candidates = lowEvaluations.length >= settings.minLowScoreTurns
     ? await proposeCandidates(turns, lowEvaluations, promptConfigs)
     : [];
-
-  const candidateResults = [];
+  const candidateResults = candidates.map((candidate) => ({
+    ...candidate,
+    validation: validateCandidate(candidate, ""),
+  }));
   const changesApplied: Array<Record<string, unknown>> = [];
-  const changesPending: Array<Record<string, unknown>> = [];
-  let appliedOne = false;
+  const changesPending = candidates.map((candidate) => ({
+    ...candidate,
+    gate_reasons: ["Prompt 自动发布链路已退役，仅保留人工复盘建议。"],
+  }));
+  const promptConfigsAfter = promptConfigs;
 
-  for (const candidate of candidates) {
-    const current = configMap.get(candidate.key);
-    if (!current) {
-      changesPending.push({ ...candidate, gate_reasons: ["目标配置不存在。"] });
-      continue;
-    }
-
-    const validation = validateCandidate(candidate, current.content);
-    const result: Record<string, unknown> = { ...candidate, validation };
-    const eligibleBySample = turns.length >= settings.minTurnsForPublish &&
-      lowEvaluations.length >= settings.minLowScoreTurns;
-
-    if (
-      validation.autoPublishable && eligibleBySample &&
-      settings.autoPublishMode === "gated" && !appliedOne
-    ) {
-      const ab = await runCounterfactualAb(
-        turns,
-        evaluations,
-        candidate,
-        promptConfigs,
-        settings,
-      );
-      result.ab = ab;
-      if (ab.passed) {
-        const { error } = await admin
-          .from("hai_orchestrator_prompt_configs")
-          .update({
-            content: candidate.proposed_content,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("key", candidate.key);
-        if (error) throw error;
-        changesApplied.push({
-          key: candidate.key,
-          reason: candidate.reason,
-          applied_at: new Date().toISOString(),
-          ab_improvement: ab.improvement,
-          evidence_message_ids: candidate.evidence_message_ids,
-        });
-        appliedOne = true;
-      } else {
-        changesPending.push({
-          ...candidate,
-          gate_reasons: ["反事实 A/B 未通过。"],
-          ab,
-        });
-      }
-    } else {
-      const gateReasons = [...validation.reasons];
-      if (!validation.autoPublishable) {
-        gateReasons.push("不属于低风险自动发布层。 ");
-      }
-      if (!eligibleBySample) gateReasons.push("日样本量或低分样本量不足。 ");
-      if (settings.autoPublishMode !== "gated") {
-        gateReasons.push("当前为 review_only 模式。 ");
-      }
-      if (appliedOne) gateReasons.push("单次复盘最多自动发布一处改动。 ");
-      changesPending.push({ ...candidate, gate_reasons: gateReasons });
-    }
-    candidateResults.push(result);
-  }
-
-  const promptConfigsAfter = changesApplied.length > 0
-    ? await loadPromptConfigs(admin)
-    : promptConfigs;
   const issueRows = lowEvaluations.map((item) => ({
     dimension: weakestDimension(item),
     severity: item.total_score < 60
@@ -633,17 +539,6 @@ async function loadSettings(
     ),
     maxTurns: numberSetting(values, "daily_review.max_turns", 200, 10, 500),
   };
-}
-
-async function loadPromptConfigs(
-  admin: ReturnType<typeof createAdminClient>,
-): Promise<PromptConfigRow[]> {
-  const { data, error } = await admin
-    .from("hai_orchestrator_prompt_configs")
-    .select("key, label, content, enabled, updated_at")
-    .order("layer_order");
-  if (error) throw error;
-  return (data ?? []) as PromptConfigRow[];
 }
 
 async function loadExistingRun(

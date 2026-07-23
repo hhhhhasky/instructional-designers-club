@@ -1,6 +1,6 @@
-import { BookOpen, Bot, CheckCircle2, GitBranch, KeyRound, Layers3, Loader2, Pencil, Plus, RefreshCw, Route, Save, Settings2, SlidersHorizontal, Ticket, Trash2, UserPlus, X } from "lucide-react";
+import { BookOpen, Bot, ChevronDown, KeyRound, Loader2, Pencil, Plus, RefreshCw, Save, SlidersHorizontal, Ticket, Trash2, UserPlus, X } from "lucide-react";
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import HaiChatSkillManagement from "@/components/admin/HaiChatSkillManagement";
 import HaiWorkSkillManagement from "@/components/admin/HaiWorkSkillManagement";
 import ModuleParamFields, { NumberInput } from "@/components/admin/hai/ModuleParamFields";
@@ -51,17 +51,6 @@ interface HaiQuotaPolicy {
   enabled: boolean;
 }
 
-interface HaiPromptVersion {
-  id: string;
-  module_id: string;
-  version_label: string;
-  status: "draft" | "published" | "archived";
-  system_prompt: string;
-  developer_prompt: string;
-  response_contract: string;
-  created_at: string;
-}
-
 interface HaiKnowledgeSource {
   id: string;
   title: string;
@@ -88,18 +77,6 @@ interface HaiRuntimeSetting {
   options: Array<{ label?: string; value: string | number | boolean }>;
   unit: string | null;
   enabled: boolean;
-}
-
-interface HaiOrchestratorPromptConfig {
-  key: string;
-  layer_order: number;
-  layer_key: string;
-  label: string;
-  description: string;
-  content: string;
-  default_content: string;
-  enabled: boolean;
-  updated_at: string;
 }
 
 type HanMethodCardKind =
@@ -179,51 +156,22 @@ type MethodCardAdminItem = HanMethodCard & {
   updatedAt: string | null;
 };
 
-type PromptConfigKind = "custom_context" | "diagnostic_module";
-
-const BASE_PROMPT_CONFIG_KEYS = new Set([
-  "core_identity",
-  "safety_boundaries",
-  "semantic_router_prompt",
-  "style_pack",
-  "diagnostic_module.showcase_lesson_diagnosis",
-  "diagnostic_module.showcase_lesson_design",
-  "diagnostic_module.daily_improvement_diagnosis",
-  "diagnostic_module.daily_improvement_design",
-  "diagnostic_module.teaching_concept_qa",
-]);
-
 export default function HaiManagementSection() {
   const [students, setStudents] = useState<StudentItem[]>([]);
   const [accessRows, setAccessRows] = useState<HaiUserAccessRow[]>([]);
   const [invites, setInvites] = useState<HaiInviteCode[]>([]);
   const [modules, setModules] = useState<HaiFeatureModule[]>([]);
   const [quotas, setQuotas] = useState<HaiQuotaPolicy[]>([]);
-  const [prompts, setPrompts] = useState<HaiPromptVersion[]>([]);
   const [knowledgeSources, setKnowledgeSources] = useState<HaiKnowledgeSource[]>([]);
   const [runtimeSettings, setRuntimeSettings] = useState<HaiRuntimeSetting[]>([]);
-  const [orchestratorPromptConfigs, setOrchestratorPromptConfigs] = useState<HaiOrchestratorPromptConfig[]>([]);
   const [defaultMethodCards, setDefaultMethodCards] = useState<HanMethodCard[]>([]);
   const [methodCardConfigRows, setMethodCardConfigRows] = useState<HaiMethodCardConfigRow[]>([]);
   const [selectedMethodCardId, setSelectedMethodCardId] = useState("");
   const [methodCardDraft, setMethodCardDraft] = useState<MethodCardAdminItem | null>(null);
   const [methodCardSearch, setMethodCardSearch] = useState("");
   const [creatingMethodCard, setCreatingMethodCard] = useState(false);
-  const [selectedPromptConfigKey, setSelectedPromptConfigKey] = useState("");
-  const [promptConfigDraft, setPromptConfigDraft] = useState("");
-  const [showPromptConfigCreator, setShowPromptConfigCreator] = useState(false);
-  const [promptConfigCreateDraft, setPromptConfigCreateDraft] = useState({
-    kind: "custom_context" as PromptConfigKind,
-    slug: "",
-    label: "",
-    description: "",
-    content: "",
-  });
-  const promptConfigDraftKeyRef = useRef("");
   const [selectedUserId, setSelectedUserId] = useState("");
   const [studentSearch, setStudentSearch] = useState("");
-  const [selectedModuleId, setSelectedModuleId] = useState("");
-  const [promptDraft, setPromptDraft] = useState({ versionLabel: "v-next", systemPrompt: "", developerPrompt: "", responseContract: "" });
   const [inviteDraft, setInviteDraft] = useState({ code: "", label: "HAI 内测邀请", quotaPolicyKey: "beta", maxUses: 1 });
   const [knowledgeDraft, setKnowledgeDraft] = useState({ title: "", topic: "教学设计理论", content: "" });
   const [knowledgeEdit, setKnowledgeEdit] = useState<{ id: string; title: string; topic: string; content: string } | null>(null);
@@ -233,8 +181,6 @@ export default function HaiManagementSection() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
 
-  const selectedModule = modules.find((item) => item.id === selectedModuleId) ?? modules[0] ?? null;
-
   const filteredStudents = useMemo(() => {
     if (!studentSearch.trim()) return students;
     const keyword = studentSearch.trim().toLowerCase();
@@ -242,30 +188,6 @@ export default function HaiManagementSection() {
       (s) => s.nickname.toLowerCase().includes(keyword) || s.phone.includes(keyword),
     );
   }, [students, studentSearch]);
-  const currentPrompt = useMemo(
-    () => prompts.find((item) => item.module_id === selectedModule?.id && item.status === "published") ?? null,
-    [prompts, selectedModule?.id],
-  );
-  const askHanModule = useMemo(
-    () => modules.find((item) => item.slug === "ask-han") ?? selectedModule,
-    [modules, selectedModule],
-  );
-  const orchestratorSettings = useMemo(
-    () => runtimeSettings.filter((setting) => setting.category === "上下文编排"),
-    [runtimeSettings],
-  );
-  const evaluatorSettings = useMemo(
-    () => runtimeSettings.filter((setting) => setting.category === "质检"),
-    [runtimeSettings],
-  );
-  const routerSettings = useMemo(
-    () => runtimeSettings.filter((setting) => setting.category === "路由"),
-    [runtimeSettings],
-  );
-  const selectedPromptConfig = useMemo(
-    () => orchestratorPromptConfigs.find((item) => item.key === selectedPromptConfigKey) ?? orchestratorPromptConfigs[0] ?? null,
-    [orchestratorPromptConfigs, selectedPromptConfigKey],
-  );
   const methodCardItems = useMemo(
     () => buildMethodCardAdminItems(defaultMethodCards, methodCardConfigRows),
     [defaultMethodCards, methodCardConfigRows],
@@ -288,49 +210,9 @@ export default function HaiManagementSection() {
     () => methodCardItems.find((card) => card.id === selectedMethodCardId) ?? null,
     [methodCardItems, selectedMethodCardId],
   );
-  const promptConfigDirty = selectedPromptConfig ? promptConfigDraft !== selectedPromptConfig.content : false;
-  const promptConfigMatchesDefault = selectedPromptConfig ? promptConfigDraft.trim() === selectedPromptConfig.default_content.trim() : false;
-  const enabledPromptConfigCount = orchestratorPromptConfigs.filter((item) => item.enabled).length;
-  const promptConfigGroups = useMemo(() => {
-    const groups = new Map<string, HaiOrchestratorPromptConfig[]>();
-    for (const config of orchestratorPromptConfigs) {
-      const statusLabel = config.enabled ? "当前生效" : "已停用 / 归档";
-      const label = `${statusLabel} · ${config.layer_order}｜${config.layer_key}`;
-      groups.set(label, [...(groups.get(label) ?? []), config]);
-    }
-    return Array.from(groups.entries());
-  }, [orchestratorPromptConfigs]);
-  const orchestratorEnabled = Boolean(runtimeSettings.find((item) => item.key === "context.orchestrator_enabled")?.value ?? true);
-  const evaluatorEnabled = Boolean(runtimeSettings.find((item) => item.key === "evaluator.enabled")?.value ?? true);
-  const passScore = Number(runtimeSettings.find((item) => item.key === "evaluator.pass_score")?.value ?? 78);
-
   useEffect(() => {
     void loadAll();
   }, []);
-
-  useEffect(() => {
-    if (!selectedModule) return;
-    const prompt = prompts.find((item) => item.module_id === selectedModule.id && item.status === "published");
-    setPromptDraft({
-      versionLabel: prompt?.version_label ? `${prompt.version_label}-next` : "v-next",
-      systemPrompt: prompt?.system_prompt ?? "",
-      developerPrompt: prompt?.developer_prompt ?? "",
-      responseContract: prompt?.response_contract ?? "",
-    });
-  }, [selectedModule, prompts]);
-
-  useEffect(() => {
-    if (!selectedPromptConfig) {
-      promptConfigDraftKeyRef.current = "";
-      setPromptConfigDraft("");
-      return;
-    }
-    const keyChanged = promptConfigDraftKeyRef.current !== selectedPromptConfig.key;
-    if (keyChanged || !promptConfigDirty) {
-      promptConfigDraftKeyRef.current = selectedPromptConfig.key;
-      setPromptConfigDraft(selectedPromptConfig.content);
-    }
-  }, [selectedPromptConfig, promptConfigDirty]);
 
   useEffect(() => {
     if (creatingMethodCard) return;
@@ -352,11 +234,9 @@ export default function HaiManagementSection() {
         inviteResult,
         moduleResult,
         quotaResult,
-        promptResult,
         knowledgeResult,
         knowledgeChunkResult,
         runtimeResult,
-        orchestratorPromptResult,
         methodCardResult,
       ] = await Promise.all([
         getAdminStudentList(),
@@ -377,10 +257,6 @@ export default function HaiManagementSection() {
           .select("*")
           .order("key", { ascending: true }),
         supabase
-          .from("hai_prompt_versions")
-          .select("*")
-          .order("created_at", { ascending: false }),
-        supabase
           .from("hai_knowledge_sources")
           .select("id, title, topic, source_type, visibility, is_active, metadata, updated_at")
           .order("updated_at", { ascending: false })
@@ -393,11 +269,6 @@ export default function HaiManagementSection() {
           .select("*")
           .order("category", { ascending: true })
           .order("key", { ascending: true }),
-        supabase
-          .from("hai_orchestrator_prompt_configs")
-          .select("*")
-          .order("layer_order", { ascending: true })
-          .order("key", { ascending: true }),
         supabase.functions.invoke("hai-method-cards-admin", { body: {} }),
       ]);
 
@@ -405,11 +276,9 @@ export default function HaiManagementSection() {
       if (inviteResult.error) throw inviteResult.error;
       if (moduleResult.error) throw moduleResult.error;
       if (quotaResult.error) throw quotaResult.error;
-      if (promptResult.error) throw promptResult.error;
       if (knowledgeResult.error) throw knowledgeResult.error;
       if (knowledgeChunkResult.error) throw knowledgeChunkResult.error;
       if (runtimeResult.error) throw runtimeResult.error;
-      if (orchestratorPromptResult.error) throw orchestratorPromptResult.error;
       if (methodCardResult.error) throw methodCardResult.error;
 
       setStudents(studentRows);
@@ -419,9 +288,7 @@ export default function HaiManagementSection() {
       // work 模块统一由「Work 工具中心」集中管理；这里只承载 chat 模块，避免职责重叠。
       const chatModules = moduleRows.filter((module) => module.surface_mode !== "work");
       setModules(chatModules);
-      setSelectedModuleId((current) => current || chatModules[0]?.id || "");
       setQuotas((quotaResult.data as HaiQuotaPolicy[]) ?? []);
-      setPrompts((promptResult.data as HaiPromptVersion[]) ?? []);
       const chunkCounts = new Map<string, number>();
       for (const chunk of (knowledgeChunkResult.data ?? []) as Array<{ source_id: string }>) {
         chunkCounts.set(chunk.source_id, (chunkCounts.get(chunk.source_id) ?? 0) + 1);
@@ -431,9 +298,6 @@ export default function HaiManagementSection() {
         chunk_count: chunkCounts.get(source.id) ?? 0,
       })));
       setRuntimeSettings((runtimeResult.data as HaiRuntimeSetting[]) ?? []);
-      const promptConfigRows = (orchestratorPromptResult.data as HaiOrchestratorPromptConfig[]) ?? [];
-      setOrchestratorPromptConfigs(promptConfigRows);
-      setSelectedPromptConfigKey((current) => current || promptConfigRows[0]?.key || "");
       const methodCardPayload = (methodCardResult.data ?? {}) as {
         default_cards?: HanMethodCard[];
         override_rows?: HaiMethodCardConfigRow[];
@@ -539,135 +403,6 @@ export default function HaiManagementSection() {
       item.key === setting.key ? { ...item, value: normalized, enabled } : item
     )));
     setStatus("运行时设置已保存。");
-  }
-
-  async function updateOrchestratorPromptConfig(config: HaiOrchestratorPromptConfig, updates: Partial<HaiOrchestratorPromptConfig>) {
-    if (saving) return;
-    setSaving(true);
-    setStatus("");
-    try {
-      const updatedAt = new Date().toISOString();
-      const { error } = await supabase
-        .from("hai_orchestrator_prompt_configs")
-        .update({
-          ...updates,
-          updated_at: updatedAt,
-        })
-        .eq("key", config.key);
-      if (error) throw error;
-      setOrchestratorPromptConfigs((current) => current.map((item) => (
-        item.key === config.key ? { ...item, ...updates, updated_at: updatedAt } : item
-      )));
-      setStatus("上下文编排 Prompt 已保存。");
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : "未知错误";
-      setStatus(`编排配置保存失败：${msg}`);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function saveSelectedPromptConfig() {
-    const content = promptConfigDraft.trim();
-    if (!selectedPromptConfig || saving || !content || !promptConfigDirty) return;
-    await updateOrchestratorPromptConfig(selectedPromptConfig, { content });
-  }
-
-  async function resetSelectedPromptConfig() {
-    if (!selectedPromptConfig || saving) return;
-    setPromptConfigDraft(selectedPromptConfig.default_content);
-    await updateOrchestratorPromptConfig(selectedPromptConfig, { content: selectedPromptConfig.default_content });
-  }
-
-  async function createOrchestratorPromptConfig() {
-    if (saving) return;
-    const slug = normalizePromptConfigSlug(promptConfigCreateDraft.slug);
-    const content = promptConfigCreateDraft.content.trim();
-    const label = promptConfigCreateDraft.label.trim();
-    if (!slug || !content || !label) {
-      setStatus("新增失败：请填写名称、英文标识和提示词内容。");
-      return;
-    }
-    const prefix = promptConfigCreateDraft.kind === "diagnostic_module"
-      ? "diagnostic_module"
-      : "custom_context";
-    const key = `${prefix}.${slug}`;
-    if (orchestratorPromptConfigs.some((item) => item.key === key)) {
-      setStatus(`新增失败：${key} 已存在。`);
-      return;
-    }
-    setSaving(true);
-    setStatus("");
-    try {
-      const now = new Date().toISOString();
-      const row: HaiOrchestratorPromptConfig = {
-        key,
-        layer_order: promptConfigCreateDraft.kind === "diagnostic_module" ? 4 : 6,
-        layer_key: prefix,
-        label,
-        description: promptConfigCreateDraft.description.trim() ||
-          (promptConfigCreateDraft.kind === "diagnostic_module"
-            ? "管理员新增的动态诊断模块。保存后自动进入语义路由候选。"
-            : "管理员新增的通用上下文层。启用后自动注入回答编排。"),
-        content,
-        default_content: content,
-        enabled: true,
-        updated_at: now,
-      };
-      const { error } = await supabase
-        .from("hai_orchestrator_prompt_configs")
-        .insert(row);
-      if (error) throw error;
-      setOrchestratorPromptConfigs((current) =>
-        sortPromptConfigs([...current, row])
-      );
-      setSelectedPromptConfigKey(key);
-      setPromptConfigCreateDraft({
-        kind: "custom_context",
-        slug: "",
-        label: "",
-        description: "",
-        content: "",
-      });
-      setShowPromptConfigCreator(false);
-      setStatus(promptConfigCreateDraft.kind === "diagnostic_module"
-        ? "新的诊断模块已创建，并已同步到语义路由和后端数据库。"
-        : "新的上下文层已创建，并已同步到回答编排和后端数据库。");
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : "未知错误";
-      setStatus(`新增失败：${msg}`);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function deleteOrchestratorPromptConfig(
-    config: HaiOrchestratorPromptConfig,
-  ) {
-    if (saving || BASE_PROMPT_CONFIG_KEYS.has(config.key)) return;
-    if (!window.confirm(`确定删除“${config.label}”吗？删除后会立即停止注入 HAI。`)) {
-      return;
-    }
-    setSaving(true);
-    setStatus("");
-    try {
-      const { error } = await supabase
-        .from("hai_orchestrator_prompt_configs")
-        .delete()
-        .eq("key", config.key);
-      if (error) throw error;
-      const remaining = orchestratorPromptConfigs.filter((item) =>
-        item.key !== config.key
-      );
-      setOrchestratorPromptConfigs(remaining);
-      setSelectedPromptConfigKey(remaining[0]?.key ?? "");
-      setStatus("上下文层已删除，并已从后端数据库和运行时编排中移除。");
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : "未知错误";
-      setStatus(`删除上下文失败：${msg}`);
-    } finally {
-      setSaving(false);
-    }
   }
 
   function startCreateMethodCard() {
@@ -853,38 +588,6 @@ export default function HaiManagementSection() {
       return;
     }
     await loadAll();
-  }
-
-  async function publishPrompt() {
-    if (!selectedModule || !promptDraft.systemPrompt.trim() || saving) return;
-    setSaving(true);
-    setStatus("");
-    try {
-      const { error: archiveError } = await supabase
-        .from("hai_prompt_versions")
-        .update({ status: "archived" })
-        .eq("module_id", selectedModule.id)
-        .eq("status", "published");
-      if (archiveError) throw archiveError;
-
-      const { error } = await supabase.from("hai_prompt_versions").insert({
-        module_id: selectedModule.id,
-        version_label: promptDraft.versionLabel.trim() || "v-next",
-        status: "published",
-        system_prompt: promptDraft.systemPrompt,
-        developer_prompt: promptDraft.developerPrompt,
-        response_contract: promptDraft.responseContract,
-        published_at: new Date().toISOString(),
-      });
-      if (error) throw error;
-      await loadAll();
-      setStatus("Prompt 新版本已发布。");
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : "未知错误";
-      setStatus(`发布失败：${msg}`);
-    } finally {
-      setSaving(false);
-    }
   }
 
   async function createKnowledgeSource() {
@@ -1115,9 +818,8 @@ export default function HaiManagementSection() {
     <div className="space-y-6">
       {status && (
         <div className={`rounded-ds-md border px-4 py-3 text-ds-sm ${
-          status.startsWith("创建失败") || status.startsWith("新增失败") || status.startsWith("授权失败") || status.startsWith("发布失败") || status.startsWith("入库失败")
+          status.startsWith("创建失败") || status.startsWith("新增失败") || status.startsWith("授权失败") || status.startsWith("入库失败")
             || status.startsWith("删除失败") || status.startsWith("重新分块失败") || status.startsWith("加载原文失败") || status.startsWith("修改失败")
-            || status.startsWith("编排配置保存失败") || status.startsWith("删除上下文失败")
             || status.startsWith("方法卡保存失败") || status.startsWith("方法卡删除失败") || status.startsWith("方法卡恢复失败")
             ? "border-red-200 bg-red-50 text-red-700"
             : "border-bd bg-white text-tx"
@@ -1126,289 +828,41 @@ export default function HaiManagementSection() {
         </div>
       )}
 
-      <HaiChatSkillManagement />
+      <CollapsiblePanel
+        title="Chat Skill"
+        description="管理 HAI 对话 Skill、绑定关系和发布版本。"
+        icon={<Bot className="h-5 w-5" />}
+        summary="点击展开"
+      >
+        <HaiChatSkillManagement />
+      </CollapsiblePanel>
 
-      <HaiWorkSkillManagement />
+      <CollapsiblePanel
+        title="Work Skill"
+        description="管理帮你干活工具的 Skill、参考文档和发布版本。"
+        icon={<SlidersHorizontal className="h-5 w-5" />}
+        summary="点击展开"
+      >
+        <HaiWorkSkillManagement />
+      </CollapsiblePanel>
 
-      <section className="rounded-ds-lg border border-bd bg-white p-4">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2">
-            <GitBranch className="h-5 w-5 shrink-0 text-ac" />
-            <div className="min-w-0">
-              <h2 className="text-ds-lg font-ds-bold text-tx">上下文编排（回退链路）</h2>
-              <p className="mt-1 text-ds-xs text-txs">当 Chat 模块没有可用 Skill 绑定时，才使用这套场景识别、按需记忆、问题重构、诊断框架、回答质检与 trace。</p>
-            </div>
+      <CollapsiblePanel
+        title="课程方法卡"
+        description="保留 35 张课程方法卡及新增、编辑、删减和启停能力。"
+        icon={<BookOpen className="h-5 w-5" />}
+        summary={`${methodCardItems.filter((card) => card.enabled).length}/${methodCardItems.length} 启用`}
+      >
+        <div>
+          <div className="mb-3 flex justify-end">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={creatingMethodCard ? cancelCreateMethodCard : startCreateMethodCard}
+            >
+              {creatingMethodCard ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+              {creatingMethodCard ? "取消新增" : "新增方法卡"}
+            </Button>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className={orchestratorEnabled ? "border-ac/30 text-ac" : "border-red-200 text-red-600"}>
-              {orchestratorEnabled ? "编排开启" : "旧链路回退"}
-            </Badge>
-            <Badge variant="outline" className={evaluatorEnabled ? "border-ac/30 text-ac" : "text-txs"}>
-              {evaluatorEnabled ? `质检 ${passScore} 分` : "质检关闭"}
-            </Badge>
-          </div>
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-          <MetricCard icon={<Route className="h-4 w-4" />} label="回退链路" value={orchestratorEnabled ? "Context Orchestrator" : "Legacy Prompt"} />
-          <MetricCard icon={<Layers3 className="h-4 w-4" />} label="可编辑层" value={`${enabledPromptConfigCount}/${orchestratorPromptConfigs.length || 0}`} />
-          <MetricCard icon={<BookOpen className="h-4 w-4" />} label="课程方法卡" value={`${methodCardItems.filter((card) => card.enabled).length}/${methodCardItems.length || 0}`} />
-          <MetricCard icon={<Settings2 className="h-4 w-4" />} label="启用参数" value={`${runtimeSettings.filter((setting) => setting.enabled).length}/${runtimeSettings.length || 0}`} />
-          <MetricCard icon={<CheckCircle2 className="h-4 w-4" />} label="当前版本" value={currentPrompt?.version_label ?? "未发布"} />
-        </div>
-
-        <div className="mt-4">
-          <div className="space-y-4">
-            <div>
-              <div className="mb-2 flex items-center gap-2">
-                <SlidersHorizontal className="h-4 w-4 text-ac" />
-                <h3 className="text-ds-base font-ds-bold text-tx">编排参数</h3>
-              </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                {[...orchestratorSettings, ...routerSettings, ...evaluatorSettings].map((setting) => (
-                  <RuntimeSettingCard
-                    key={setting.key}
-                    setting={setting}
-                    onToggle={(enabled) => updateRuntimeSetting(setting, setting.value, enabled)}
-                    onSave={(value) => updateRuntimeSetting(setting, value)}
-                  />
-                ))}
-                {orchestratorSettings.length + routerSettings.length + evaluatorSettings.length === 0 && (
-                  <p className="rounded-ds-md bg-bg px-3 py-6 text-center text-ds-sm text-txs md:col-span-2">尚未写入上下文编排运行时配置。</p>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <div className="mb-2 flex items-center gap-2">
-                <Route className="h-4 w-4 text-ac" />
-                <h3 className="text-ds-base font-ds-bold text-tx">语义路由策略</h3>
-              </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="rounded-ds-md border border-bd bg-bg p-3">
-                  <p className="text-ds-sm font-ds-bold text-tx">LLM 主路由</p>
-                  <p className="mt-2 text-ds-xs leading-relaxed text-txs">每轮先由 LLM 识别公开课、说课、赛课或日常提分场景，再判断用户要诊断已有方案、获得设计思路，还是进行教学概念答疑。局部示范只提供结构样例和局部改法，不生成完整教案或完整说课稿。</p>
-                </div>
-                <div className="rounded-ds-md border border-bd bg-bg p-3">
-                  <p className="text-ds-sm font-ds-bold text-tx">代码降级</p>
-                  <p className="mt-2 text-ds-xs leading-relaxed text-txs">只有在 LLM 路由关闭、调用失败或 JSON 不可用时，才回退到本地确定性规则，保证服务不中断。</p>
-                </div>
-              </div>
-            </div>
-
-            {askHanModule && (
-              <div>
-                <div className="mb-2 flex items-center gap-2">
-                  <Bot className="h-4 w-4 text-ac" />
-                  <h3 className="text-ds-base font-ds-bold text-tx">问问哈老师模块上限</h3>
-                </div>
-                <div className="grid gap-3 md:grid-cols-4">
-                  <NumberInput label="历史条数" value={askHanModule.history_message_limit ?? 20} onChange={(value) => updateModule(askHanModule, { history_message_limit: value })} />
-                  <NumberInput label="记忆候选" value={askHanModule.memory_limit ?? 20} onChange={(value) => updateModule(askHanModule, { memory_limit: value })} />
-                  <NumberInput label="素材召回" value={askHanModule.material_match_count ?? 8} onChange={(value) => updateModule(askHanModule, { material_match_count: value })} />
-                  <NumberInput label="知识召回" value={askHanModule.knowledge_match_count ?? 6} onChange={(value) => updateModule(askHanModule, { knowledge_match_count: value })} />
-                </div>
-              </div>
-            )}
-
-            <div>
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Layers3 className="h-4 w-4 text-ac" />
-                  <div>
-                    <h3 className="text-ds-base font-ds-bold text-tx">分层上下文</h3>
-                    <p className="mt-1 text-[11px] text-txs">基础层保持精简；新增普通上下文会注入回答，新增诊断模块会自动进入语义路由候选。</p>
-                  </div>
-                </div>
-                <Button size="sm" variant="outline" onClick={() => setShowPromptConfigCreator((current) => !current)}>
-                  {showPromptConfigCreator ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-                  {showPromptConfigCreator ? "取消新增" : "新增可编辑层"}
-                </Button>
-              </div>
-              {showPromptConfigCreator && (
-                <div className="mb-3 rounded-ds-md border border-ac/20 bg-ac/5 p-3">
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <label className="text-ds-xs text-txs">
-                      层类型
-                      <select
-                        value={promptConfigCreateDraft.kind}
-                        onChange={(event) => setPromptConfigCreateDraft((current) => ({
-                          ...current,
-                          kind: event.target.value as PromptConfigKind,
-                        }))}
-                        className="mt-1 h-10 w-full rounded-ds-md border border-bd bg-white px-3 text-ds-sm text-tx"
-                      >
-                        <option value="custom_context">普通上下文层</option>
-                        <option value="diagnostic_module">诊断模块</option>
-                      </select>
-                    </label>
-                    <label className="text-ds-xs text-txs">
-                      显示名称
-                      <input
-                        value={promptConfigCreateDraft.label}
-                        onChange={(event) => setPromptConfigCreateDraft((current) => ({ ...current, label: event.target.value }))}
-                        placeholder={promptConfigCreateDraft.kind === "diagnostic_module" ? "例如：诊断模块：课堂管理" : "例如：回答案例边界"}
-                        className="mt-1 h-10 w-full rounded-ds-md border border-bd bg-white px-3 text-ds-sm text-tx"
-                      />
-                    </label>
-                    <label className="text-ds-xs text-txs">
-                      英文标识
-                      <input
-                        value={promptConfigCreateDraft.slug}
-                        onChange={(event) => setPromptConfigCreateDraft((current) => ({ ...current, slug: event.target.value }))}
-                        placeholder="例如 classroom_management"
-                        className="mt-1 h-10 w-full rounded-ds-md border border-bd bg-white px-3 text-ds-sm text-tx"
-                      />
-                      <span className="mt-1 block">数据库键：{promptConfigCreateDraft.kind}.{normalizePromptConfigSlug(promptConfigCreateDraft.slug) || "your_key"}</span>
-                    </label>
-                    <label className="text-ds-xs text-txs">
-                      用途说明
-                      <input
-                        value={promptConfigCreateDraft.description}
-                        onChange={(event) => setPromptConfigCreateDraft((current) => ({ ...current, description: event.target.value }))}
-                        placeholder="说明何时使用这一层"
-                        className="mt-1 h-10 w-full rounded-ds-md border border-bd bg-white px-3 text-ds-sm text-tx"
-                      />
-                    </label>
-                  </div>
-                  <label className="mt-3 block text-ds-xs text-txs">
-                    提示词内容
-                    <textarea
-                      value={promptConfigCreateDraft.content}
-                      onChange={(event) => setPromptConfigCreateDraft((current) => ({ ...current, content: event.target.value }))}
-                      placeholder={promptConfigCreateDraft.kind === "diagnostic_module" ? "写明适用场景、诊断重点、常见误区和回答要求。" : "写明希望 HAI 每次回答都遵循的补充上下文。"}
-                      className="mt-1 min-h-36 w-full rounded-ds-md border border-bd bg-white px-3 py-2 text-ds-sm leading-relaxed text-tx"
-                    />
-                  </label>
-                  <div className="mt-3 flex justify-end">
-                    <Button
-                      size="sm"
-                      className="bg-ac text-white hover:bg-acd"
-                      disabled={saving || !promptConfigCreateDraft.label.trim() || !normalizePromptConfigSlug(promptConfigCreateDraft.slug) || !promptConfigCreateDraft.content.trim()}
-                      onClick={createOrchestratorPromptConfig}
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      创建并同步
-                    </Button>
-                  </div>
-                </div>
-              )}
-              <div className="grid gap-3 lg:grid-cols-[minmax(220px,0.8fr)_minmax(0,1.2fr)]">
-                <div className="max-h-[520px] overflow-auto rounded-ds-md border border-bd bg-bg p-2">
-                  {promptConfigGroups.length === 0 ? (
-                    <p className="px-3 py-8 text-center text-ds-sm text-txs">尚未写入编排 Prompt 配置。</p>
-                  ) : promptConfigGroups.map(([group, configs]) => (
-                    <div key={group} className="mb-3 last:mb-0">
-                      <p className="px-2 pb-1 text-[11px] font-ds-bold text-txs">{group}</p>
-                      <div className="space-y-1">
-                        {configs.map((config) => (
-                          <button
-                            key={config.key}
-                            type="button"
-                            onClick={() => setSelectedPromptConfigKey(config.key)}
-                            className={`w-full rounded-ds-sm border px-2 py-2 text-left transition ${
-                              selectedPromptConfig?.key === config.key ? "border-ac/40 bg-white" : "border-transparent hover:bg-white"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="min-w-0 truncate text-ds-sm font-ds-bold text-tx">{config.label}</span>
-                              <Badge variant="outline" className={config.enabled ? "shrink-0 border-ac/30 text-ac" : "shrink-0 border-bd text-txs"}>
-                                {config.enabled ? "启用" : "停用"}
-                              </Badge>
-                            </div>
-                            <p className="mt-1 truncate text-[11px] text-txs">{config.key}</p>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="rounded-ds-md border border-bd bg-bg p-3">
-                  {selectedPromptConfig ? (
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-ds-sm font-ds-bold text-tx">{selectedPromptConfig.label}</p>
-                            {selectedPromptConfig.key === "semantic_router_prompt" && selectedPromptConfig.enabled && (
-                              <Badge variant="outline" className="border-ac/30 text-ac">运行时路由策略</Badge>
-                            )}
-                            {promptConfigDirty && <Badge variant="outline" className="border-amber-200 text-amber-700">未保存</Badge>}
-                            {promptConfigMatchesDefault && <Badge variant="outline" className="border-bd text-txs">默认内容</Badge>}
-                          </div>
-                          <p className="mt-1 text-[11px] text-txs">{selectedPromptConfig.description}</p>
-                        </div>
-                        <div className="flex shrink-0 flex-wrap items-center gap-2">
-                          <label className="flex items-center gap-1 text-ds-xs text-txs">
-                            <input
-                              type="checkbox"
-                              checked={selectedPromptConfig.enabled}
-                              disabled={BASE_PROMPT_CONFIG_KEYS.has(selectedPromptConfig.key)}
-                              onChange={(event) => updateOrchestratorPromptConfig(selectedPromptConfig, { enabled: event.target.checked })}
-                            />
-                            {BASE_PROMPT_CONFIG_KEYS.has(selectedPromptConfig.key) ? "基础层" : "启用"}
-                          </label>
-                          <Button size="sm" variant="outline" disabled={saving} onClick={resetSelectedPromptConfig}>
-                            <RefreshCw className="h-3.5 w-3.5" />
-                            默认
-                          </Button>
-                          <Button size="sm" className="bg-ac text-white hover:bg-acd" disabled={saving || !promptConfigDraft.trim() || !promptConfigDirty} onClick={saveSelectedPromptConfig}>
-                            <Save className="h-3.5 w-3.5" />
-                            保存
-                          </Button>
-                          {!BASE_PROMPT_CONFIG_KEYS.has(selectedPromptConfig.key) && (
-                            <Button size="sm" variant="outline" className="border-red-200 text-red-600 hover:bg-red-50" disabled={saving} onClick={() => deleteOrchestratorPromptConfig(selectedPromptConfig)}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                              删除
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                      <textarea
-                        value={promptConfigDraft}
-                        onChange={(event) => setPromptConfigDraft(event.target.value)}
-                        className="min-h-[360px] w-full rounded-ds-md border border-bd bg-white px-3 py-2 text-ds-sm leading-relaxed"
-                        placeholder="编辑该层 Prompt / 诊断框架"
-                      />
-                      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-txs">
-                        <span>{selectedPromptConfig.key}</span>
-                        <span>{promptConfigDraft.length} 字 · 约 {estimateTokenCount(promptConfigDraft)} tokens · 更新于 {formatDateTime(selectedPromptConfig.updated_at)}</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="px-3 py-12 text-center text-ds-sm text-txs">选择一个编排层后编辑。</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <BookOpen className="h-4 w-4 text-ac" />
-                  <div>
-                    <h3 className="text-ds-base font-ds-bold text-tx">课程方法卡</h3>
-                    <p className="mt-1 text-[11px] text-txs">
-                      默认方法卡可由数据库覆盖；新增、修改、启停和删除会同步影响语义路由与最终回答。
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" className="border-ac/30 text-ac">
-                    {methodCardItems.filter((card) => card.enabled).length}/{methodCardItems.length} 启用
-                  </Badge>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={creatingMethodCard ? cancelCreateMethodCard : startCreateMethodCard}
-                  >
-                    {creatingMethodCard ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-                    {creatingMethodCard ? "取消新增" : "新增方法卡"}
-                  </Button>
-                </div>
-              </div>
-
               <div className="grid gap-3 lg:grid-cols-[minmax(240px,0.72fr)_minmax(0,1.28fr)]">
                 <div className="rounded-ds-md border border-bd bg-bg p-2">
                   <input
@@ -1709,17 +1163,15 @@ export default function HaiManagementSection() {
                   )}
                 </div>
               </div>
-            </div>
-          </div>
-
         </div>
-      </section>
+      </CollapsiblePanel>
 
-      <section className="rounded-ds-lg border border-bd bg-white p-4">
-        <div className="mb-4 flex items-center gap-2">
-          <UserPlus className="h-5 w-5 text-ac" />
-          <h2 className="text-ds-lg font-ds-bold text-tx">内测用户</h2>
-        </div>
+      <CollapsiblePanel
+        title="内测用户"
+        description="管理 HAI 内测资格、状态和用户额度。"
+        icon={<UserPlus className="h-5 w-5" />}
+        summary={`${accessRows.length} 人`}
+      >
         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
           <input
             type="text"
@@ -1784,14 +1236,15 @@ export default function HaiManagementSection() {
             </tbody>
           </table>
         </div>
-      </section>
+      </CollapsiblePanel>
 
       <section className="grid gap-6 xl:grid-cols-2">
-        <div className="rounded-ds-lg border border-bd bg-white p-4">
-          <div className="mb-4 flex items-center gap-2">
-            <Ticket className="h-5 w-5 text-ac" />
-            <h2 className="text-ds-lg font-ds-bold text-tx">邀请码</h2>
-          </div>
+        <CollapsiblePanel
+          title="邀请码"
+          description="创建并查看 HAI 内测邀请码。"
+          icon={<Ticket className="h-5 w-5" />}
+          summary={`${invites.length} 个`}
+        >
           <div className="grid gap-2 md:grid-cols-[1fr_1fr_120px_auto]">
             <input className="h-10 rounded-ds-md border border-bd bg-bg px-3 text-ds-sm" placeholder="邀请码" value={inviteDraft.code} onChange={(event) => setInviteDraft((current) => ({ ...current, code: event.target.value }))} />
             <input className="h-10 rounded-ds-md border border-bd bg-bg px-3 text-ds-sm" placeholder="标签" value={inviteDraft.label} onChange={(event) => setInviteDraft((current) => ({ ...current, label: event.target.value }))} />
@@ -1808,13 +1261,14 @@ export default function HaiManagementSection() {
               </div>
             ))}
           </div>
-        </div>
+        </CollapsiblePanel>
 
-        <div className="rounded-ds-lg border border-bd bg-white p-4">
-          <div className="mb-4 flex items-center gap-2">
-            <KeyRound className="h-5 w-5 text-ac" />
-            <h2 className="text-ds-lg font-ds-bold text-tx">额度策略</h2>
-          </div>
+        <CollapsiblePanel
+          title="额度策略"
+          description="配置不同用户组的 Token 与并发上限。"
+          icon={<KeyRound className="h-5 w-5" />}
+          summary={`${quotas.length} 套`}
+        >
           <div className="space-y-3">
             {quotas.map((quota) => (
               <div key={quota.key} className="rounded-ds-md border border-bd bg-bg p-3">
@@ -1833,14 +1287,15 @@ export default function HaiManagementSection() {
               </div>
             ))}
           </div>
-        </div>
+        </CollapsiblePanel>
       </section>
 
-      <section className="rounded-ds-lg border border-bd bg-white p-4">
-        <div className="mb-4 flex items-center gap-2">
-          <BookOpen className="h-5 w-5 text-ac" />
-          <h2 className="text-ds-lg font-ds-bold text-tx">知识库</h2>
-        </div>
+      <CollapsiblePanel
+        title="知识库"
+        description="管理共享知识条目、原文和检索分块。"
+        icon={<BookOpen className="h-5 w-5" />}
+        summary={`${knowledgeSources.length} 条`}
+      >
         <div className="grid gap-3 lg:grid-cols-[220px_220px_minmax(0,1fr)_auto]">
           <input
             value={knowledgeDraft.title}
@@ -1959,13 +1414,14 @@ export default function HaiManagementSection() {
             </div>
           ))}
         </div>
-      </section>
+      </CollapsiblePanel>
 
-      <section className="rounded-ds-lg border border-bd bg-white p-4">
-        <div className="mb-4 flex items-center gap-2">
-          <Bot className="h-5 w-5 text-ac" />
-          <h2 className="text-ds-lg font-ds-bold text-tx">功能模块与生成参数</h2>
-        </div>
+      <CollapsiblePanel
+        title="功能模块与生成参数"
+        description="管理 HAI 功能模块及各模块的生成上限。"
+        icon={<Bot className="h-5 w-5" />}
+        summary={`${modules.filter((module) => module.is_enabled).length}/${modules.length} 启用`}
+      >
         <div className="grid gap-3 xl:grid-cols-3">
           {modules.map((module) => (
             <div key={module.id} className="rounded-ds-md border border-bd bg-bg p-3">
@@ -1980,13 +1436,14 @@ export default function HaiManagementSection() {
             </div>
           ))}
         </div>
-      </section>
+      </CollapsiblePanel>
 
-      <section className="rounded-ds-lg border border-bd bg-white p-4">
-        <div className="mb-4 flex items-center gap-2">
-          <SlidersHorizontal className="h-5 w-5 text-ac" />
-          <h2 className="text-ds-lg font-ds-bold text-tx">运行时设置</h2>
-        </div>
+      <CollapsiblePanel
+        title="运行时设置"
+        description="管理仍在使用的检索、记忆和质检参数。"
+        icon={<SlidersHorizontal className="h-5 w-5" />}
+        summary={`${runtimeSettings.filter((setting) => setting.enabled).length}/${runtimeSettings.length} 启用`}
+      >
         <div className="grid gap-3 xl:grid-cols-3">
           {runtimeSettings.map((setting) => (
             <div key={setting.key} className="rounded-ds-md border border-bd bg-bg p-3">
@@ -2012,110 +1469,58 @@ export default function HaiManagementSection() {
             <p className="rounded-ds-md bg-bg px-3 py-8 text-center text-ds-sm text-txs xl:col-span-3">暂无运行时设置</p>
           )}
         </div>
-      </section>
+      </CollapsiblePanel>
 
-      <section className="rounded-ds-lg border border-bd bg-white p-4">
-        <div className="mb-4 flex items-center gap-2">
-          <Settings2 className="h-5 w-5 text-ac" />
-          <h2 className="text-ds-lg font-ds-bold text-tx">Prompt 发布</h2>
-        </div>
-        <div className="mb-3 grid gap-2 md:grid-cols-[240px_1fr]">
-          <select
-            value={selectedModuleId}
-            onChange={(event) => setSelectedModuleId(event.target.value)}
-            className="h-10 rounded-ds-md border border-bd bg-bg px-3 text-ds-sm"
-          >
-            {modules.map((module) => <option key={module.id} value={module.id}>{module.name}</option>)}
-          </select>
-          <input
-            value={promptDraft.versionLabel}
-            onChange={(event) => setPromptDraft((current) => ({ ...current, versionLabel: event.target.value }))}
-            className="h-10 rounded-ds-md border border-bd bg-bg px-3 text-ds-sm"
-            placeholder="版本名"
-          />
-        </div>
-        <div className="grid gap-3 lg:grid-cols-3">
-          <textarea
-            value={promptDraft.systemPrompt}
-            onChange={(event) => setPromptDraft((current) => ({ ...current, systemPrompt: event.target.value }))}
-            className="min-h-[240px] rounded-ds-md border border-bd bg-bg px-3 py-2 text-ds-sm leading-relaxed"
-            placeholder="System Prompt"
-          />
-          <textarea
-            value={promptDraft.developerPrompt}
-            onChange={(event) => setPromptDraft((current) => ({ ...current, developerPrompt: event.target.value }))}
-            className="min-h-[240px] rounded-ds-md border border-bd bg-bg px-3 py-2 text-ds-sm leading-relaxed"
-            placeholder="补充指令"
-          />
-          <textarea
-            value={promptDraft.responseContract}
-            onChange={(event) => setPromptDraft((current) => ({ ...current, responseContract: event.target.value }))}
-            className="min-h-[240px] rounded-ds-md border border-bd bg-bg px-3 py-2 text-ds-sm leading-relaxed"
-            placeholder="输出契约 / 格式要求"
-          />
-        </div>
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <p className="text-ds-xs text-txs">
-            当前发布版本：{currentPrompt?.version_label ?? "无"}
-          </p>
-          <Button className="bg-ac text-white hover:bg-acd" disabled={!promptDraft.systemPrompt.trim() || saving} onClick={publishPrompt}>
-            <Save className="h-4 w-4" />
-            发布新版本
-          </Button>
-        </div>
-      </section>
     </div>
   );
 }
 
-function MetricCard({
+export function CollapsiblePanel({
+  title,
+  description,
   icon,
-  label,
-  value,
+  summary,
+  defaultOpen = false,
+  children,
 }: {
+  title: string;
+  description: string;
   icon: ReactNode;
-  label: string;
-  value: string;
+  summary?: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
 }) {
-  return (
-    <div className="rounded-ds-md border border-bd bg-bg px-3 py-3">
-      <div className="mb-2 flex items-center gap-2 text-ac">
-        {icon}
-        <span className="text-ds-xs text-txs">{label}</span>
-      </div>
-      <p className="truncate text-ds-base font-ds-bold text-tx">{value}</p>
-    </div>
-  );
-}
+  const [open, setOpen] = useState(defaultOpen);
 
-function RuntimeSettingCard({
-  setting,
-  onToggle,
-  onSave,
-}: {
-  setting: HaiRuntimeSetting;
-  onToggle: (enabled: boolean) => void;
-  onSave: (value: string | number | boolean) => void;
-}) {
   return (
-    <div className="rounded-ds-md border border-bd bg-bg p-3">
-      <div className="mb-2 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-ds-sm font-ds-bold text-tx">{setting.label}</p>
-          <p className="mt-1 truncate text-[11px] text-txs">{setting.key}</p>
+    <section className="overflow-hidden rounded-ds-lg border border-bd bg-white">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-bg/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/40"
+      >
+        <span className="shrink-0 text-ac">{icon}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-ds-base font-ds-bold text-tx">{title}</span>
+          <span className="mt-0.5 block truncate text-ds-xs text-txs">{description}</span>
+        </span>
+        {summary && (
+          <span className="hidden shrink-0 rounded-full border border-bd bg-bg px-2.5 py-1 text-[11px] text-txs sm:inline">
+            {summary}
+          </span>
+        )}
+        <ChevronDown
+          aria-hidden="true"
+          className={`h-4 w-4 shrink-0 text-txs transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && (
+        <div className="border-t border-bd bg-bg/30 p-4">
+          {children}
         </div>
-        <label className="flex shrink-0 items-center gap-1 text-ds-xs text-txs">
-          <input
-            type="checkbox"
-            checked={setting.enabled}
-            onChange={(event) => onToggle(event.target.checked)}
-          />
-          启用
-        </label>
-      </div>
-      <p className="mb-3 min-h-10 text-ds-xs leading-relaxed text-txs">{setting.description}</p>
-      <RuntimeSettingInput setting={setting} onSave={onSave} />
-    </div>
+      )}
+    </section>
   );
 }
 
@@ -2472,10 +1877,4 @@ function normalizePromptConfigSlug(value: string) {
     .replace(/[^a-z0-9_]/g, "")
     .replace(/_+/g, "_")
     .replace(/^_+|_+$/g, "");
-}
-
-function sortPromptConfigs(configs: HaiOrchestratorPromptConfig[]) {
-  return [...configs].sort((a, b) =>
-    a.layer_order - b.layer_order || a.key.localeCompare(b.key)
-  );
 }
