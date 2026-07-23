@@ -15,6 +15,8 @@ import {
   streamDeepSeek,
 } from "../_shared/hai.ts";
 import {
+  applyWorkOutputRuntimeTrace,
+  assertWorkSkillRuntimeReady,
   buildWorkPrompt,
   isHaiWorkToolSlug,
   parseWorkJson,
@@ -98,6 +100,11 @@ Deno.serve(async (request) => {
     const module = await loadModule(auth.admin, toolSlug);
     const materials = await loadMaterials(auth.admin, auth.user.id, materialIds);
     const skill = await loadSelectedSkill(auth.admin, toolSlug, input);
+    try {
+      assertWorkSkillRuntimeReady(skill, input);
+    } catch (error) {
+      throw new HttpError(503, error instanceof Error ? error.message : "思政公开课 Skill 运行资料不完整。");
+    }
     const runtime = await loadHaiRuntimeConfig(auth.admin);
     const completionOptions = buildChatCompletionOptions({ module, runtime });
     const materialContext = await loadMaterialContext(
@@ -139,6 +146,11 @@ Deno.serve(async (request) => {
       previousMarkdown: parentArtifact?.content_markdown,
       revisionInstruction,
     });
+    const textbookSourcePaths = textbook.sources.length > 0
+      ? textbook.sources.map((source) => source.section_path)
+      : materialContext
+      ? ["用户指定材料"]
+      : ["用户填写的教材内容"];
     const estimatedInputTokens = estimateTokens(prompt.system) + estimateTokens(prompt.user);
 
     const run = await createRun(auth.admin, {
@@ -209,6 +221,7 @@ Deno.serve(async (request) => {
             userId: auth.user.id,
           });
           let parsed = parseWorkJson(rawOutput);
+          if (parsed) parsed = applyWorkOutputRuntimeTrace(parsed, skill, input, textbookSourcePaths);
           let validationIssue = "返回内容不是合法 JSON 对象";
           if (parsed) {
             try {
@@ -222,12 +235,13 @@ Deno.serve(async (request) => {
             sendSse(controller, encoder, { type: "progress", stage: "repairing", message: "正在校正产物格式" });
             rawOutput = await collectModelOutput({
               system: "你是结构化产物修复器。只修复 JSON 格式和缺失结构，不改变已有教学判断，不编造用户未提供的事实。只返回一个合法 JSON 对象。",
-              user: `校验问题：${validationIssue}\n\n输出契约：${JSON.stringify(skill.version.output_contract)}\n\n完整 Skill 要求：${skill.version.prompt_template}\n\n待修复内容：\n${rawOutput}`,
+              user: `校验问题：${validationIssue}\n\n原始系统要求：\n${prompt.system}\n\n原始任务上下文（包括教材知识与已加载 reference）：\n${prompt.user}\n\n待修复内容：\n${rawOutput}`,
               module,
               completionOptions,
               userId: auth.user.id,
             });
             parsed = parseWorkJson(rawOutput);
+            if (parsed) parsed = applyWorkOutputRuntimeTrace(parsed, skill, input, textbookSourcePaths);
           }
           if (!parsed) throw new Error("AI 返回内容无法解析为结构化产物，请重试。");
           validateWorkOutput(parsed, skill.version.output_contract);

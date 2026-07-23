@@ -1,9 +1,9 @@
 {
   "skill_slug": "politics-public-lesson",
   "source_skill_name": "sizheng-public-lesson-design",
-  "version_label": "v1.0.0",
-  "snapshot_hash": "6e50cb1490e2608de6416928c0a9b2d98e5dcd8eb96bfa83baf19d70f8551f8b",
-  "instructions": "---\nname: sizheng-public-lesson-design\ndescription: Design a complete 40-minute Chinese ideological-political public lesson from user-provided textbook content, choosing one dominant mode from 案例式、议题式、任务式 and following its V3 template. Use when a user asks for 思政课、道德与法治课、思想政治课的公开课、赛课、优质课、展示课 or a mode-specific lesson plan, including requests to select or distinguish the three modes.\n---\n\n# 思政公开课设计\n\n把用户提供的教材内容转化为一份可实施、可展示、可评价的 40 分钟思政公开课设计。只确定一个主导模式；可以借用其他模式的局部活动，但不得混淆主要学习产出。\n\n## 工作原则\n\n1. 先读教材，后定载体；不要先找一个宏大案例再强行套知识点。\n2. 以学生的主要学习产出判断模式，不以“任务一”“议题一”等环节名称判断。\n3. 一节课只保留一个贯穿载体、中心议题或总任务，避免材料拼盘和活动堆砌。\n4. 每个主体环节都写清：材料、问题或任务、学生行动、预设产出、教师追问、知识落点、反馈评价、过渡语和时间。\n5. 价值升华必须由前面的事实、证据和学生认识自然推出，不突然喊口号。\n6. 不编造人物经历、政策条文、领导人论述、数据、奖项、新闻细节或教材原文。涉及近期事实时，优先核验政府、权威媒体、法律法规库、博物馆或非遗保护机构等一手来源；不能核验就标注“待核实”。\n\n## 第一步：完成教材信息采集\n\n首次调用时，先向用户集中询问以下内容。用户已经提供的不要重复追问。\n\n> 请把教材内容发给我，并尽量说明：\n> 1. 学科与学段/年级；\n> 2. 教材版本；\n> 3. 单元名称、单课名称及框题；\n> 4. 本次要设计的具体教材正文、图片或清晰截图；\n> 5. 想采用案例式、议题式还是任务式；如果不确定，我可以根据学习产出推荐；\n> 6. 课时长度及使用场景（公开课、赛课、校内展示等，未说明则按 40 分钟公开课）。\n\n教材正文或清晰截图是生成正式设计的最低输入。只有课题名而无教材内容时，先给出“模式与载体候选”，不要假装掌握具体教材表述。\n\n以下资料有则接收，无则不阻塞：课程标准要求、教学目标、学情、已选素材、当地资源、学校/比赛要求、评价量表、禁用内容、技术条件、期望输出格式。\n\n## 第二步：建立教材约束卡\n\n阅读教材后，在内部先整理：\n\n- 必须学会的 2—4 个核心知识点；\n- 知识点之间的关系：并列、递进、因果、条件、价值权衡或行动链；\n- 学生的生活经验与可能误解；\n- 必须依靠材料、规则或任务才能突破的认知难点；\n- 适合在一节课中形成的可观察学习产出；\n- 教材不能支持、不得擅自扩写的内容。\n\n若输入缺少会改变模式或知识落点的关键信息，只补问 1—3 个最关键问题；其余用明确假设继续推进。\n\n## 第三步：确定唯一主导模式\n\n先完整阅读 [mode-selection.md](references/mode-selection.md)，再作判断。\n\n- 用户明确指定模式时，优先遵从；若教材与该模式明显不匹配，指出风险并给出一个更合适的建议，等待用户选择后再生成正式教案。\n- 用户未指定时，根据最终学习产出推荐：\n  - 理解、分析、解释案例与教材知识 → 案例式；\n  - 形成有主张、有证据、能回应异议且说明条件边界的判断 → 议题式；\n  - 为特定对象解决问题并交付可评价成果 → 任务式。\n- 用一句话说明选择理由，并说明为什么另外两种不是主导模式。\n- 可标注“主导模式＋辅助活动”，但只加载并执行一个主模板。\n\n## 第四步：选择中国特色载体\n\n阅读 [carrier-selection.md](references/carrier-selection.md)，让载体与教材知识建立一一对应关系。\n\n优先从以下方向选择，但不要机械追热点：\n\n- 中国式现代化、新质生产力、科技创新、生态文明；\n- 乡村振兴、共同富裕、基层治理、法治政府、全过程人民民主；\n- 感动中国人物、时代楷模、普通劳动者、青年榜样；\n- 文化自信、制度自信、中华优秀传统文化、革命文化、社会主义先进文化；\n- 非遗、文物、传统技艺、地域文化、国货与中国制造；\n- 中国工程、中国技术、公共服务、政策实践及国家发展成就。\n\n载体可以是人物、物品、文化、技术、制度、政策或真实公共问题。优先选择“小切口、可持续释放、能承载全部核心知识点”的材料，而不是知名度最高的材料。\n\n## 第五步：加载对应 V3 模板\n\n只加载选定模式的参考文件，并严格保持其外部结构和 40 分钟时间闭环：\n\n- 案例式：读 [case-mode-v3.md](references/case-mode-v3.md)。\n- 议题式：读 [issue-mode-v3.md](references/issue-mode-v3.md)。\n- 任务式：读 [task-mode-v3.md](references/task-mode-v3.md)。\n\n主体环节优先设置 3 个；只有教材确有四个不可合并的知识点、判断侧面或成果部件时才设置 4 个。所有环节时间合计必须等于用户指定时长，默认 40 分钟。\n\n## 第六步：生成完整教学设计\n\n输出成品，不输出留有下划线的填空模板。默认包含以下部分：\n\n### 1. 课程定位\n\n- 学科、学段/年级、教材版本、单元、课题/框题、课时、场景；\n- 主导模式与选择理由；\n- 课程主题一句话；\n- 核心知识点、关键难点和学生最终学习产出。\n\n### 2. 贯穿设计\n\n根据模式写清：\n\n- 案例式：核心案例/案例主题、材料释放顺序、并列式或递进式逻辑；\n- 议题式：中心议题、可理解的立场分歧、争议焦点、证据与条件变化；\n- 任务式：学生身份、服务对象、真实/仿真需求、总任务、最终成果和成功标准。\n\n同时列出“教材知识点—载体材料—学生认知动作—学习证据”的对应关系，检查载体不是装饰。\n\n### 3. 40 分钟教学流程\n\n使用表格或分环节详写，每个环节必须包括：\n\n1. 环节名称与时间；\n2. 目标/在全课中的功能；\n3. 材料与呈现方式；\n4. 教师问题、任务指令与必要话术；\n5. 学生活动与具体操作；\n6. 预设回答、观点或阶段成果；\n7. 教师追问、点拨和知识归纳；\n8. 形成性评价或成果标准；\n9. 过渡语。\n\n所有提问都要有认知功能。每次小组讨论都要说明“为什么必须合作、讨论后交付什么、怎样评价”。\n\n### 4. 关键教学资源\n\n- 列出需准备的图片、视频、数据、政策/法律、人物或实物；\n- 给出每项资源的用途和建议时长；\n- 区分“用户已提供”“已核实可用”“待用户补充/待核实”；\n- 若引用外部事实，附来源名称或链接；无法确认时不要给出虚构出处。\n\n### 5. 评价、板书与课后延伸\n\n- 给出与学习产出一致的评价标准；\n- 给出简洁的板书结构；\n- 仅在能延续课堂真实问题时安排课后实践，不为完整性硬加作业。\n\n### 6. 设计自检\n\n按所选 V3 模板逐项检查，并明确报告：\n\n- 模式是否由学习产出决定；\n- 载体是否贯穿且服务全部核心知识；\n- 每个主体环节是否产生新的认识或阶段成果；\n- 学生活动是否有真实功能；\n- 时间是否精确闭环；\n- 事实、政策、数据和引语是否已核实；\n- 总结升华是否有前文证据支撑。\n\n## 质量边界\n\n- 不因一节课出现案例就判为案例式，出现问题或辩论就判为议题式，出现“任务一”就判为任务式。\n- 不把普通材料问答包装成“议题”，不把回答问题包装成“成果”，不把角色扮演做成换身份念材料。\n- 不在不了解教材正文时直接生成看似完整的教案。\n- 不要求每个环节都用视频、小组合作或技术工具。\n- 不追求活动数量；公开课先保证知识正确、逻辑完整和学生真实学习，再追求亮点。",
+  "version_label": "v1.1.0",
+  "snapshot_hash": "d92112b3bc2f5b19e9d85e481ef0847f34fbd70ac73788e0b4be3c5ccc070548",
+  "instructions": "---\nname: sizheng-public-lesson-design\ndescription: Design a complete Chinese ideological-political public lesson from precisely matched textbook knowledge or user-provided textbook content, loading exactly one V3 mode template from 案例式、议题式、任务式 and following a fixed auditable lesson-plan output contract. Use when a user asks for 思政课、道德与法治课、思想政治课的公开课、赛课、优质课、展示课 or a mode-specific lesson plan, including requests to select or distinguish the three modes.\n---\n\n# 思政公开课设计\n\n把用户提供的教材内容转化为一份可实施、可展示、可评价的 40 分钟思政公开课设计。只确定一个主导模式；可以借用其他模式的局部活动，但不得混淆主要学习产出。\n\n## 工作原则\n\n1. 先读教材，后定载体；不要先找一个宏大案例再强行套知识点。\n2. 以学生的主要学习产出判断模式，不以“任务一”“议题一”等环节名称判断。\n3. 一节课只保留一个贯穿载体、中心议题或总任务，避免材料拼盘和活动堆砌。\n4. 每个主体环节都写清：材料、问题或任务、学生行动、预设产出、教师追问、知识落点、反馈评价、过渡语和时间。\n5. 价值升华必须由前面的事实、证据和学生认识自然推出，不突然喊口号。\n6. 不编造人物经历、政策条文、领导人论述、数据、奖项、新闻细节或教材原文。涉及近期事实时，优先核验政府、权威媒体、法律法规库、博物馆或非遗保护机构等一手来源；不能核验就标注“待核实”。\n7. 正式生成前必须同时确认两项运行依据：已读取本次课题/框题的教材内容；已加载用户所选模式对应的唯一 V3 reference。任一缺失都停止生成，不得用通用常识补位。\n\n## 第一步：完成教材信息采集\n\n首次调用时，先向用户集中询问以下内容。用户已经提供的不要重复追问。\n\n> 请把教材内容发给我，并尽量说明：\n> 1. 学科与学段/年级；\n> 2. 教材版本；\n> 3. 单元名称、单课名称及框题；\n> 4. 本次要设计的具体教材正文、图片或清晰截图；\n> 5. 想采用案例式、议题式还是任务式；如果不确定，我可以根据学习产出推荐；\n> 6. 课时长度及使用场景（公开课、赛课、校内展示等，未说明则按 40 分钟公开课）。\n\nHAI 已精确命中教材知识库中的年级、册次、单元、课题和框题时，该条知识点梳理可作为最低教材输入；否则教材正文或清晰截图是生成正式设计的最低输入。只有课题名而无教材内容时，先给出“模式与载体候选”，不要假装掌握具体教材表述。\n\n以下资料有则接收，无则不阻塞：课程标准要求、教学目标、学情、已选素材、当地资源、学校/比赛要求、评价量表、禁用内容、技术条件、期望输出格式。\n\n## 第二步：建立教材约束卡\n\n先确认提示词中存在“内置教材知识库（精确命中）”或用户提供的教材正文，并核对其年级、册次、单元、课题、框题与当前选择一致。阅读教材后，在内部先整理：\n\n- 必须学会的 2—4 个核心知识点；\n- 知识点之间的关系：并列、递进、因果、条件、价值权衡或行动链；\n- 学生的生活经验与可能误解；\n- 必须依靠材料、规则或任务才能突破的认知难点；\n- 适合在一节课中形成的可观察学习产出；\n- 教材不能支持、不得擅自扩写的内容。\n\n同时记录本次实际教材依据：教材版本、`section_path` 或用户材料名称、内容类型与核验状态。输出中的 `textbook_source_path` 必须来自实际读取内容，不得根据表单字段自行拼接。\n\n若输入缺少会改变模式或知识落点的关键信息，只补问 1—3 个最关键问题；其余用明确假设继续推进。\n\n## 第三步：确定唯一主导模式\n\n先完整阅读 [mode-selection.md](references/mode-selection.md)，再作判断。\n\n- 用户明确指定模式时，优先遵从；若教材与该模式明显不匹配，指出风险并给出一个更合适的建议，等待用户选择后再生成正式教案。\n- 用户未指定时，根据最终学习产出推荐：\n  - 理解、分析、解释案例与教材知识 → 案例式；\n  - 形成有主张、有证据、能回应异议且说明条件边界的判断 → 议题式；\n  - 为特定对象解决问题并交付可评价成果 → 任务式。\n- 用一句话说明选择理由，并说明为什么另外两种不是主导模式。\n- 可标注“主导模式＋辅助活动”，但只加载并执行一个主模板。\n\n## 第四步：选择中国特色载体\n\n阅读 [carrier-selection.md](references/carrier-selection.md)，让载体与教材知识建立一一对应关系。\n\n优先从以下方向选择，但不要机械追热点：\n\n- 中国式现代化、新质生产力、科技创新、生态文明；\n- 乡村振兴、共同富裕、基层治理、法治政府、全过程人民民主；\n- 感动中国人物、时代楷模、普通劳动者、青年榜样；\n- 文化自信、制度自信、中华优秀传统文化、革命文化、社会主义先进文化；\n- 非遗、文物、传统技艺、地域文化、国货与中国制造；\n- 中国工程、中国技术、公共服务、政策实践及国家发展成就。\n\n载体可以是人物、物品、文化、技术、制度、政策或真实公共问题。优先选择“小切口、可持续释放、能承载全部核心知识点”的材料，而不是知名度最高的材料。\n\n## 第五步：加载对应 V3 模板\n\n只加载选定模式的参考文件，并严格保持其外部结构和 40 分钟时间闭环：\n\n- 案例式：读 [case-mode-v3.md](references/case-mode-v3.md)。\n- 议题式：读 [issue-mode-v3.md](references/issue-mode-v3.md)。\n- 任务式：读 [task-mode-v3.md](references/task-mode-v3.md)。\n\n主体环节优先设置 3 个；只有教材确有四个不可合并的知识点、判断侧面或成果部件时才设置 4 个。所有环节时间合计必须等于用户指定时长，默认 40 分钟。\n\n加载后执行运行门禁：\n\n1. 案例式必须能读取 `references/case-mode-v3.md`，议题式必须能读取 `references/issue-mode-v3.md`，任务式必须能读取 `references/task-mode-v3.md`；\n2. 只允许一个模式 reference 进入上下文；\n3. 输出中的 `mode_template_path` 必须写实际加载路径；\n4. 若对应 reference 缺失、内容为空或路径不匹配，停止生成并报告“所选教学模式模板未加载”。\n\n## 第六步：生成完整教学设计\n\n先完整阅读 [output-template.md](references/output-template.md)，严格按其中 JSON 字段生成成品，不输出留有下划线的填空模板。最终 Markdown 固定按以下顺序呈现，不得在“课程基本信息”前增加长篇设计理念：\n\n1. 课程基本信息：学科、学段/年级、教材版本、单元、单课、框题、人数、课时、课型、教学模式、课题，并显示实际教材来源路径与模式模板路径；\n2. 教材分析：单元分析、单课/框题分析、课标分析；\n3. 学情分析：已有基础、可能误解、学习需要及判断依据；\n4. 教学目标：每项目标同时对应可观察学习证据；\n5. 教学重难点：分别说明重点理由与难点突破方式；\n6. 教学流程：导入＋3 个主体环节＋总结/迁移。主体环节按唯一主导模式命名为案例1—3、议题1—3或任务1—3；\n7. 板书设计：给出可直接照写的文字布局和逻辑说明；\n8. 教学反思：写课后观察重点、可能风险和调整方案。\n\n每个教学环节必须包含材料、核心问题/任务、具体步骤、教师行为、学生行为、预期产出、形成性评价、知识落点和过渡语。每个步骤同时出现教师行为与学生行为，不能只写“教师引导、学生讨论”。\n\n课程标准原文或班级人数未提供时，分别标注“待依据课程标准原文复核”和“未提供（请教师补充）”，不得编造精确条款或人数。\n\n## 质量边界\n\n- 不因一节课出现案例就判为案例式，出现问题或辩论就判为议题式，出现“任务一”就判为任务式。\n- 不把普通材料问答包装成“议题”，不把回答问题包装成“成果”，不把角色扮演做成换身份念材料。\n- 不在不了解教材正文时直接生成看似完整的教案。\n- 不要求每个环节都用视频、小组合作或技术工具。\n- 不追求活动数量；公开课先保证知识正确、逻辑完整和学生真实学习，再追求亮点。",
   "input_contract": {
     "format": "sizheng_public_lesson_input_v1",
     "required": [
@@ -23,31 +23,67 @@
     ]
   },
   "output_contract": {
-    "format": "subject_lesson_design_v1",
+    "format": "sizheng_public_lesson_v2",
     "required": [
       "title",
-      "design_rationale",
+      "basic_info",
       "textbook_analysis",
       "learner_analysis",
       "objectives",
       "key_points",
       "difficult_points",
-      "learning_evidence",
       "lesson_flow",
-      "assessment",
-      "differentiation",
-      "resources",
-      "homework",
-      "reflection_prompts",
-      "limitations"
-    ]
+      "board_design",
+      "teaching_reflection"
+    ],
+    "basic_info_required": [
+      "subject",
+      "stage",
+      "grade",
+      "textbook_edition",
+      "unit",
+      "lesson",
+      "frame",
+      "class_size",
+      "duration",
+      "lesson_type",
+      "teaching_mode",
+      "topic",
+      "textbook_source_path",
+      "mode_template_path"
+    ],
+    "textbook_analysis_required": [
+      "unit_analysis",
+      "lesson_analysis",
+      "curriculum_standard_analysis"
+    ],
+    "lesson_flow_required": [
+      "phase",
+      "title",
+      "minutes",
+      "purpose",
+      "materials",
+      "key_question_or_task",
+      "steps",
+      "knowledge_landing",
+      "transition"
+    ],
+    "lesson_step_required": [
+      "step",
+      "teacher_behavior",
+      "student_behavior",
+      "expected_output",
+      "evaluation"
+    ],
+    "minimum_flow_items": 5,
+    "minimum_steps_per_flow": 2
   },
   "source_metadata": {
     "source_package": "sizheng-public-lesson-design",
     "source_kind": "local_shared_skill",
-    "source_file_count": 7,
-    "runtime_reference_count": 5,
-    "source_skill_hash": "313b599de42f173c79c65b5cb4f23181d83d5768a438c2ccc74f06fc6c8792cd"
+    "source_file_count": 8,
+    "runtime_reference_count": 6,
+    "source_skill_hash": "da66707ae010cafc571ce6742250e8ec5df706d52d2d00443155803f45bad933"
   },
   "references": [
     {
@@ -75,6 +111,21 @@
       "load_mode": "always",
       "max_chars": 6517,
       "sort_order": 20,
+      "metadata": {
+        "source_package": "sizheng-public-lesson-design",
+        "runtime_role": "common"
+      }
+    },
+    {
+      "path": "references/output-template.md",
+      "name": "思政公开课教案输出模板",
+      "description": "固定输出顺序、JSON 结构与教学流程字段",
+      "media_type": "text/markdown",
+      "content": "# 思政公开课教案输出模板\n\n本文件规定最终教案的固定信息顺序和 JSON 结构。生成前必须已经读取教材依据与唯一教学模式模板；不得用输出模板替代教材分析或模式工作流。\n\n## 输出顺序\n\n最终 Markdown 严格按以下顺序呈现：\n\n1. 课程基本信息；\n2. 教材分析；\n3. 学情分析；\n4. 教学目标；\n5. 教学重难点；\n6. 教学流程；\n7. 板书设计；\n8. 教学反思。\n\n不要在课程基本信息之前输出设计理念、模式说明或长篇导语。模式依据、教材来源和必要假设纳入课程基本信息或相应分析，不另起前置章节。\n\n## JSON 结构\n\n只返回一个合法 JSON 对象，字段名与层级保持如下：\n\n```json\n{\n  \"title\": \"教案标题\",\n  \"basic_info\": {\n    \"subject\": \"学科\",\n    \"stage\": \"学段\",\n    \"grade\": \"年级\",\n    \"textbook_edition\": \"教材版本\",\n    \"unit\": \"单元\",\n    \"lesson\": \"单课\",\n    \"frame\": \"框题\",\n    \"class_size\": \"班级人数；未提供则写未提供（请教师补充）\",\n    \"duration\": \"40分钟\",\n    \"lesson_type\": \"公开课/赛课/展示课\",\n    \"teaching_mode\": \"案例式/议题式/任务式\",\n    \"topic\": \"本课教学主题\",\n    \"textbook_source_path\": \"实际读取的教材库 section_path 或用户材料名称\",\n    \"mode_template_path\": \"实际加载的 reference 路径\"\n  },\n  \"textbook_analysis\": {\n    \"unit_analysis\": \"本单元主题、结构位置、前后联系及本课价值\",\n    \"lesson_analysis\": \"本课/框题核心知识、知识关系、教材活动与认知难点\",\n    \"curriculum_standard_analysis\": \"课标依据及本课落实方式；没有可靠课标原文时明确标注待复核，不编造条款\"\n  },\n  \"learner_analysis\": {\n    \"known\": \"已有经验与知识基础\",\n    \"misconceptions\": [\"可能误解或真实困难\"],\n    \"learning_needs\": \"本课需要提供的认知支架\",\n    \"evidence_basis\": \"判断依据；没有具体班情时说明为一般性预判\"\n  },\n  \"objectives\": [\n    {\n      \"objective\": \"可观察的学习目标\",\n      \"learning_evidence\": \"证明目标达成的课堂表现或成果\"\n    }\n  ],\n  \"key_points\": [\"教学重点及理由\"],\n  \"difficult_points\": [\"教学难点及突破方式\"],\n  \"lesson_flow\": [\n    {\n      \"phase\": \"导入/案例1/议题1/任务1/环节1/总结\",\n      \"title\": \"环节名称\",\n      \"minutes\": 5,\n      \"purpose\": \"本环节在全课中的功能\",\n      \"materials\": [\"材料及呈现方式\"],\n      \"key_question_or_task\": \"核心问题或任务指令\",\n      \"steps\": [\n        {\n          \"step\": 1,\n          \"teacher_behavior\": \"教师具体行为、问题、追问、点拨或必要话术\",\n          \"student_behavior\": \"学生具体操作、合作方式与表达要求\",\n          \"expected_output\": \"预设回答、观点、图示或阶段成果\",\n          \"evaluation\": \"即时反馈、形成性评价或成果标准\"\n        }\n      ],\n      \"knowledge_landing\": \"本环节归纳的教材知识及其与材料的关系\",\n      \"transition\": \"自然过渡语\"\n    }\n  ],\n  \"board_design\": {\n    \"layout_text\": \"可直接照写的板书文字结构\",\n    \"logic_explanation\": \"板书如何呈现知识与模式主线\"\n  },\n  \"teaching_reflection\": {\n    \"observation_focus\": [\"课后重点观察什么学习证据\"],\n    \"possible_risks\": [\"可能出现的课堂风险\"],\n    \"adjustment_plan\": [\"依据学生表现如何调整\"]\n  }\n}\n```\n\n## 教学流程硬约束\n\n- 第一项必须是导入，最后一项必须承担总结、整合或迁移功能；中间优先设置 3 个主体环节。\n- 案例式主体环节命名为“案例1/案例2/案例3”，议题式命名为“议题1/议题2/议题3”，任务式命名为“任务1/任务2/任务3”；可在标题中补充有意义的小标题。\n- 每个环节至少有 2 个具体步骤。每一步同时写出教师行为、学生行为、预期产出与评价，不得只写概括性活动名称。\n- 教师行为必须包含可执行的问题、指令、追问或点拨；学生行为必须包含学生实际阅读、提取、比较、论证、制作、表达或修改的动作。\n- 每个主体环节都要写明材料、核心问题/任务、知识落点和过渡语。\n- 所有环节分钟数合计必须等于课程时长；默认 40 分钟。\n- 不确定的班级人数、课标条款、教材原文或外部事实必须明确标注“未提供”或“待复核”，不得补写成确定事实。",
+      "content_hash": "61848395896d35d152ad89fce71ea2336118fb4b63d608205f442cb7d8550e76",
+      "load_mode": "always",
+      "max_chars": 2512,
+      "sort_order": 25,
       "metadata": {
         "source_package": "sizheng-public-lesson-design",
         "runtime_role": "common"
@@ -130,10 +181,10 @@
       "name": "OpenAI Skill 界面配置",
       "description": "源包界面元数据，不进入生成上下文",
       "media_type": "application/yaml",
-      "content": "interface:\n  display_name: \"思政公开课设计\"\n  short_description: \"依据三种V3模板生成并校验完整的思政公开课教学设计方案\"\n  default_prompt: \"使用 $sizheng-public-lesson-design，根据我提供的教材内容设计一节40分钟思政公开课。\"",
-      "content_hash": "b22ed2da84e0c16d3922bb1c17298c90049cb058c27829eb8dc73c20fc5d6c2c",
+      "content": "interface:\n  display_name: \"思政公开课设计\"\n  short_description: \"精确读取教材与指定模式模板，生成固定结构的完整思政公开课教案\"\n  default_prompt: \"使用 $sizheng-public-lesson-design，读取我指定的教材内容和教学模式模板，按固定结构生成完整公开课教案。\"",
+      "content_hash": "9504648ad159202287963aead9237a1f64d79d66f8abb36e042d87bfa4c463f6",
       "load_mode": "evaluation_only",
-      "max_chars": 165,
+      "max_chars": 177,
       "sort_order": 60,
       "metadata": {
         "source_package": "sizheng-public-lesson-design",

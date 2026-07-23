@@ -14,6 +14,7 @@ const outputPath = join(
 const referenceConfigs = [
   ["references/mode-selection.md", "三种模式判断表", "共同模式判断规则", "always", 10],
   ["references/carrier-selection.md", "中国特色教学载体选择", "共同载体选择与事实核验规则", "always", 20],
+  ["references/output-template.md", "思政公开课教案输出模板", "固定输出顺序、JSON 结构与教学流程字段", "always", 25],
   ["references/case-mode-v3.md", "案例式教学 V3", "案例式唯一主模板", "case", 30],
   ["references/task-mode-v3.md", "任务式教学 V3", "任务式唯一主模板", "task", 40],
   ["references/issue-mode-v3.md", "议题式教学 V3", "议题式唯一主模板", "issue", 50],
@@ -58,7 +59,7 @@ const snapshotMaterial = JSON.stringify({
 const payload = {
   skill_slug: "politics-public-lesson",
   source_skill_name: "sizheng-public-lesson-design",
-  version_label: "v1.0.0",
+  version_label: "v1.1.0",
   snapshot_hash: sha256(snapshotMaterial),
   instructions,
   input_contract: {
@@ -70,19 +71,35 @@ const payload = {
     teaching_modes: ["案例式", "任务式", "议题式"],
   },
   output_contract: {
-    format: "subject_lesson_design_v1",
+    format: "sizheng_public_lesson_v2",
     required: [
-      "title", "design_rationale", "textbook_analysis", "learner_analysis",
-      "objectives", "key_points", "difficult_points", "learning_evidence",
-      "lesson_flow", "assessment", "differentiation", "resources",
-      "homework", "reflection_prompts", "limitations",
+      "title", "basic_info", "textbook_analysis", "learner_analysis",
+      "objectives", "key_points", "difficult_points", "lesson_flow",
+      "board_design", "teaching_reflection",
     ],
+    basic_info_required: [
+      "subject", "stage", "grade", "textbook_edition", "unit", "lesson",
+      "frame", "class_size", "duration", "lesson_type", "teaching_mode",
+      "topic", "textbook_source_path", "mode_template_path",
+    ],
+    textbook_analysis_required: [
+      "unit_analysis", "lesson_analysis", "curriculum_standard_analysis",
+    ],
+    lesson_flow_required: [
+      "phase", "title", "minutes", "purpose", "materials",
+      "key_question_or_task", "steps", "knowledge_landing", "transition",
+    ],
+    lesson_step_required: [
+      "step", "teacher_behavior", "student_behavior", "expected_output", "evaluation",
+    ],
+    minimum_flow_items: 5,
+    minimum_steps_per_flow: 2,
   },
   source_metadata: {
     source_package: "sizheng-public-lesson-design",
     source_kind: "local_shared_skill",
-    source_file_count: 7,
-    runtime_reference_count: 5,
+    source_file_count: 1 + references.length,
+    runtime_reference_count: references.filter((item) => item.load_mode !== "evaluation_only").length,
     source_skill_hash: sha256(instructions),
   },
   references,

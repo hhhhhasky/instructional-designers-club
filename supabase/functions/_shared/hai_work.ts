@@ -95,10 +95,11 @@ export function selectWorkSkill(
   input: Record<string, unknown>,
 ): WorkSkillCandidate | null {
   const matching = candidates
-    .filter((candidate) => !candidate.is_fallback && matchesCriteria(candidate.match_criteria, input))
+    .filter((candidate) => matchesCriteria(candidate.match_criteria, input))
     .sort((a, b) => {
       const specificity = criteriaSpecificity(b.match_criteria) - criteriaSpecificity(a.match_criteria);
       if (specificity !== 0) return specificity;
+      if (a.is_fallback !== b.is_fallback) return a.is_fallback ? 1 : -1;
       return b.priority - a.priority;
     });
   return matching[0] ?? candidates
@@ -192,6 +193,10 @@ export function validateWorkOutput(
       throw new Error("教案诊断必须返回 3-6 条优先修改建议。");
     }
   }
+
+  if (outputContract.format === "sizheng_public_lesson_v2") {
+    validatePoliticsLessonOutput(value, outputContract);
+  }
 }
 
 function normalizeElementName(value: unknown) {
@@ -268,6 +273,60 @@ export function selectWorkSkillReferences(
     .sort((a, b) => a.sort_order - b.sort_order);
 }
 
+export function assertWorkSkillRuntimeReady(
+  skill: WorkSkillCandidate,
+  input: Record<string, unknown>,
+) {
+  if (skill.version.output_contract.format !== "sizheng_public_lesson_v2") return;
+  const selected = selectWorkSkillReferences(skill, input);
+  const selectedPaths = new Set(selected.map((item) => item.path));
+  const commonPaths = [
+    "references/mode-selection.md",
+    "references/carrier-selection.md",
+    "references/output-template.md",
+  ];
+  const missingCommon = commonPaths.filter((path) => !selectedPaths.has(path));
+  if (missingCommon.length > 0) {
+    throw new Error(`思政公开课 Skill 缺少必需 reference：${missingCommon.join("、")}。`);
+  }
+  const modePath = ({
+    "案例式": "references/case-mode-v3.md",
+    "议题式": "references/issue-mode-v3.md",
+    "任务式": "references/task-mode-v3.md",
+  } as Record<string, string>)[String(input.teaching_mode ?? "").trim()];
+  if (!modePath || !selectedPaths.has(modePath)) {
+    throw new Error("所选教学模式模板未加载，已停止生成。");
+  }
+  const loadedModeReferences = selected.filter((item) =>
+    item.load_mode === "case" || item.load_mode === "issue" || item.load_mode === "task"
+  );
+  if (loadedModeReferences.length !== 1 || loadedModeReferences[0].path !== modePath) {
+    throw new Error("教学模式 reference 加载不唯一，已停止生成。");
+  }
+}
+
+export function applyWorkOutputRuntimeTrace(
+  value: Record<string, unknown>,
+  skill: WorkSkillCandidate,
+  input: Record<string, unknown>,
+  textbookSourcePaths: string[],
+) {
+  if (skill.version.output_contract.format !== "sizheng_public_lesson_v2") return value;
+  const basicInfo = isRecord(value.basic_info) ? value.basic_info : {};
+  const modeReference = selectWorkSkillReferences(skill, input).find((reference) =>
+    reference.load_mode === "case" || reference.load_mode === "issue" || reference.load_mode === "task"
+  );
+  return {
+    ...value,
+    basic_info: {
+      ...basicInfo,
+      teaching_mode: String(input.teaching_mode ?? "").trim(),
+      textbook_source_path: textbookSourcePaths.filter(Boolean).join("；"),
+      mode_template_path: modeReference?.path ?? "",
+    },
+  };
+}
+
 function matchesCriteria(criteria: Record<string, unknown>, input: Record<string, unknown>) {
   const mappings: Array<[string, string]> = [
     ["stages", "stage"],
@@ -281,6 +340,7 @@ function matchesCriteria(criteria: Record<string, unknown>, input: Record<string
       : [];
     if (allowed.length === 0) return true;
     const actual = normalizeMatchText(input[inputKey]);
+    if (!actual) return false;
     return allowed.some((item) => actual.includes(item) || item.includes(actual));
   });
 }
@@ -389,6 +449,7 @@ function renderSegment(value: Record<string, unknown>) {
 }
 
 function renderLessonDesign(value: Record<string, unknown>) {
+  if (isRecord(value.basic_info)) return renderPoliticsLessonV2(value);
   const lines = [
     `# ${stringValue(value.title, "思政公开课教案")}`,
     "",
@@ -447,6 +508,180 @@ function renderLessonDesign(value: Record<string, unknown>) {
   return lines.join("\n").trim();
 }
 
+function renderPoliticsLessonV2(value: Record<string, unknown>) {
+  const basic = isRecord(value.basic_info) ? value.basic_info : {};
+  const textbook = isRecord(value.textbook_analysis) ? value.textbook_analysis : {};
+  const learner = isRecord(value.learner_analysis) ? value.learner_analysis : {};
+  const board = isRecord(value.board_design) ? value.board_design : {};
+  const reflection = isRecord(value.teaching_reflection) ? value.teaching_reflection : {};
+  const basicRows: Array<[string, unknown]> = [
+    ["学科", basic.subject], ["学段", basic.stage], ["年级", basic.grade],
+    ["教材版本", basic.textbook_edition], ["单元", basic.unit], ["单课", basic.lesson],
+    ["框题", basic.frame], ["人数", basic.class_size], ["课时", basic.duration],
+    ["课型", basic.lesson_type], ["教学模式", basic.teaching_mode], ["课题", basic.topic],
+    ["教材依据", basic.textbook_source_path], ["模式模板", basic.mode_template_path],
+  ];
+  const lines = [
+    `# ${stringValue(value.title, "思政公开课教案")}`,
+    "",
+    "## 1. 课程基本信息",
+    "",
+    "| 项目 | 内容 | 项目 | 内容 |",
+    "|---|---|---|---|",
+  ];
+  for (let index = 0; index < basicRows.length; index += 2) {
+    const left = basicRows[index];
+    const right = basicRows[index + 1] ?? ["", ""];
+    lines.push(`| ${left[0]} | ${tableCell(left[1])} | ${right[0]} | ${tableCell(right[1])} |`);
+  }
+  lines.push(
+    "",
+    "## 2. 教材分析",
+    "",
+    "### 2.1 单元分析",
+    stringValue(textbook.unit_analysis, "待补充"),
+    "",
+    "### 2.2 单课与框题分析",
+    stringValue(textbook.lesson_analysis, "待补充"),
+    "",
+    "### 2.3 课标分析",
+    stringValue(textbook.curriculum_standard_analysis, "待依据课程标准原文复核"),
+    "",
+    "## 3. 学情分析",
+    "",
+    `**已有基础：** ${stringValue(learner.known, "待补充")}`,
+    "",
+    "**可能误解：**",
+    bulletList(learner.misconceptions),
+    "",
+    `**学习需要：** ${stringValue(learner.learning_needs, "待补充")}`,
+    "",
+    `**判断依据：** ${stringValue(learner.evidence_basis, "一般性预判，需教师结合本班情况复核")}`,
+    "",
+    "## 4. 教学目标",
+    "",
+    "| 教学目标 | 达标证据 |",
+    "|---|---|",
+  );
+  for (const objective of arrayRecords(value.objectives)) {
+    lines.push(`| ${tableCell(objective.objective)} | ${tableCell(objective.learning_evidence)} |`);
+  }
+  lines.push(
+    "",
+    "## 5. 教学重难点",
+    "",
+    "### 5.1 教学重点",
+    bulletList(value.key_points),
+    "",
+    "### 5.2 教学难点",
+    bulletList(value.difficult_points),
+    "",
+    "## 6. 教学流程",
+  );
+  arrayRecords(value.lesson_flow).forEach((flow, flowIndex) => {
+    lines.push(
+      "",
+      `### 6.${flowIndex + 1} ${stringValue(flow.phase)}：${stringValue(flow.title)}（${stringValue(flow.minutes)} 分钟）`,
+      "",
+      `**环节功能：** ${stringValue(flow.purpose)}`,
+      "",
+      `**材料与呈现：** ${listInline(flow.materials)}`,
+      "",
+      `**核心问题/任务：** ${stringValue(flow.key_question_or_task)}`,
+      "",
+      "| 步骤 | 教师行为 | 学生行为 | 预期产出 | 评价与反馈 |",
+      "|---:|---|---|---|---|",
+    );
+    for (const step of arrayRecords(flow.steps)) {
+      lines.push(`| ${tableCell(step.step)} | ${tableCell(step.teacher_behavior)} | ${tableCell(step.student_behavior)} | ${tableCell(step.expected_output)} | ${tableCell(step.evaluation)} |`);
+    }
+    lines.push(
+      "",
+      `**知识落点：** ${stringValue(flow.knowledge_landing)}`,
+      "",
+      `**过渡语：** ${stringValue(flow.transition)}`,
+    );
+  });
+  lines.push(
+    "",
+    "## 7. 板书设计",
+    "",
+    "```text",
+    stringValue(board.layout_text, "待补充"),
+    "```",
+    "",
+    `**设计逻辑：** ${stringValue(board.logic_explanation, "待补充")}`,
+    "",
+    "## 8. 教学反思",
+    "",
+    "### 8.1 观察重点",
+    bulletList(reflection.observation_focus),
+    "",
+    "### 8.2 可能风险",
+    bulletList(reflection.possible_risks),
+    "",
+    "### 8.3 调整方案",
+    bulletList(reflection.adjustment_plan),
+  );
+  return lines.join("\n").trim();
+}
+
+function validatePoliticsLessonOutput(
+  value: Record<string, unknown>,
+  outputContract: Record<string, unknown>,
+) {
+  const basic = requireRecord(value.basic_info, "课程基本信息");
+  requireFields(basic, contractFields(outputContract.basic_info_required), "课程基本信息");
+  const textbook = requireRecord(value.textbook_analysis, "教材分析");
+  requireFields(textbook, contractFields(outputContract.textbook_analysis_required), "教材分析");
+  const learner = requireRecord(value.learner_analysis, "学情分析");
+  requireFields(learner, ["known", "misconceptions", "learning_needs", "evidence_basis"], "学情分析");
+
+  const objectives = arrayRecords(value.objectives);
+  if (objectives.length < 3) throw new Error("教学目标至少需要 3 项，并逐项对应达标证据。");
+  objectives.forEach((item, index) => requireFields(item, ["objective", "learning_evidence"], `教学目标 ${index + 1}`));
+  if (!Array.isArray(value.key_points) || value.key_points.length === 0) throw new Error("教学重点不能为空。");
+  if (!Array.isArray(value.difficult_points) || value.difficult_points.length === 0) throw new Error("教学难点不能为空。");
+
+  const flows = arrayRecords(value.lesson_flow);
+  const minimumFlowItems = Number(outputContract.minimum_flow_items ?? 5);
+  if (flows.length < minimumFlowItems) throw new Error(`教学流程至少需要 ${minimumFlowItems} 个环节。`);
+  const flowFields = contractFields(outputContract.lesson_flow_required);
+  const stepFields = contractFields(outputContract.lesson_step_required);
+  const minimumSteps = Number(outputContract.minimum_steps_per_flow ?? 2);
+  let totalMinutes = 0;
+  flows.forEach((flow, flowIndex) => {
+    requireFields(flow, flowFields, `教学流程 ${flowIndex + 1}`);
+    const minutes = Number(flow.minutes);
+    if (!Number.isFinite(minutes) || minutes <= 0) throw new Error(`教学流程 ${flowIndex + 1} 的时间无效。`);
+    totalMinutes += minutes;
+    const steps = arrayRecords(flow.steps);
+    if (steps.length < minimumSteps) throw new Error(`教学流程 ${flowIndex + 1} 至少需要 ${minimumSteps} 个具体步骤。`);
+    steps.forEach((step, stepIndex) => requireFields(step, stepFields, `教学流程 ${flowIndex + 1} 步骤 ${stepIndex + 1}`));
+  });
+  if (!String(flows[0]?.phase ?? "").includes("导入")) throw new Error("教学流程第一项必须是导入。");
+  const lastPhase = String(flows[flows.length - 1]?.phase ?? "");
+  if (!["总结", "整合", "迁移"].some((label) => lastPhase.includes(label))) {
+    throw new Error("教学流程最后一项必须承担总结、整合或迁移功能。");
+  }
+  const duration = Number(String(basic.duration ?? "").match(/\d+(?:\.\d+)?/)?.[0]);
+  if (Number.isFinite(duration) && Math.abs(totalMinutes - duration) > 0.01) {
+    throw new Error(`教学流程共 ${totalMinutes} 分钟，与课程时长 ${duration} 分钟不一致。`);
+  }
+  const expectedModePath = ({
+    "案例式": "references/case-mode-v3.md",
+    "议题式": "references/issue-mode-v3.md",
+    "任务式": "references/task-mode-v3.md",
+  } as Record<string, string>)[String(basic.teaching_mode ?? "")];
+  if (!expectedModePath || basic.mode_template_path !== expectedModePath) {
+    throw new Error("课程基本信息中的教学模式模板路径与实际模式不一致。");
+  }
+  const board = requireRecord(value.board_design, "板书设计");
+  requireFields(board, ["layout_text", "logic_explanation"], "板书设计");
+  const reflection = requireRecord(value.teaching_reflection, "教学反思");
+  requireFields(reflection, ["observation_focus", "possible_risks", "adjustment_plan"], "教学反思");
+}
+
 function bulletList(value: unknown) {
   const items = Array.isArray(value) ? value : value === undefined || value === null ? [] : [value];
   return items.map((item) => `- ${valueToText(item)}`).join("\n") || "- 暂无";
@@ -455,6 +690,27 @@ function bulletList(value: unknown) {
 function listInline(value: unknown) {
   const items = Array.isArray(value) ? value : [value];
   return items.map(valueToText).filter(Boolean).join("；");
+}
+
+function tableCell(value: unknown) {
+  return stringValue(value, "未提供").replace(/\|/g, "\\|").replace(/\r?\n/g, "<br />");
+}
+
+function contractFields(value: unknown) {
+  return Array.isArray(value) ? value.map(String) : [];
+}
+
+function requireRecord(value: unknown, label: string) {
+  if (!isRecord(value)) throw new Error(`${label}必须是 JSON 对象。`);
+  return value;
+}
+
+function requireFields(value: Record<string, unknown>, fields: string[], label: string) {
+  const missing = fields.filter((field) => {
+    const item = value[field];
+    return item === undefined || item === null || (typeof item === "string" && !item.trim());
+  });
+  if (missing.length > 0) throw new Error(`${label}缺少必要字段：${missing.join("、")}。`);
 }
 
 function valueToText(value: unknown): string {
