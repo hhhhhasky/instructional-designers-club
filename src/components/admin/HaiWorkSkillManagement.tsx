@@ -1,4 +1,4 @@
-import { AlertTriangle, Braces, BriefcaseBusiness, CheckCircle2, Plus, RotateCcw, Save, SlidersHorizontal, Trash2, Upload, X } from "lucide-react";
+import { AlertTriangle, Braces, BriefcaseBusiness, CheckCircle2, FileText, Plus, RotateCcw, Save, SlidersHorizontal, Trash2, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import ModuleParamFields from "@/components/admin/hai/ModuleParamFields";
 import { Badge } from "@/components/ui/badge";
@@ -28,18 +28,37 @@ type WorkSkillVersion = {
   default_prompt_template: string;
   input_contract: Record<string, unknown>;
   output_contract: Record<string, unknown>;
+  snapshot_hash: string;
+  source_metadata: Record<string, unknown>;
   published_at: string | null;
   updated_at: string;
+};
+
+export type WorkSkillReferenceDraft = {
+  id: string;
+  skill_version_id: string;
+  path: string;
+  name: string;
+  description: string;
+  media_type: string;
+  content: string;
+  content_hash: string;
+  load_mode: "always" | "case" | "issue" | "task" | "evaluation_only";
+  max_chars: number;
+  sort_order: number;
+  metadata: Record<string, unknown>;
 };
 
 export default function HaiWorkSkillManagement() {
   const [skills, setSkills] = useState<WorkSkill[]>([]);
   const [versions, setVersions] = useState<WorkSkillVersion[]>([]);
+  const [references, setReferences] = useState<WorkSkillReferenceDraft[]>([]);
   const [modules, setModules] = useState<HaiFeatureModule[]>([]);
   const [selectedSkillId, setSelectedSkillId] = useState("");
   const [selectedVersionId, setSelectedVersionId] = useState("");
   const [skillDraft, setSkillDraft] = useState<WorkSkill | null>(null);
   const [versionDraft, setVersionDraft] = useState<WorkSkillVersion | null>(null);
+  const [referenceDrafts, setReferenceDrafts] = useState<WorkSkillReferenceDraft[]>([]);
   const [criteriaText, setCriteriaText] = useState("{}");
   const [outputText, setOutputText] = useState("{}");
   const [showCreator, setShowCreator] = useState(false);
@@ -73,13 +92,14 @@ export default function HaiWorkSkillManagement() {
 
   async function loadAll(preferredSkillId?: string, preferredVersionId?: string) {
     setLoading(true);
-    const [skillResult, versionResult, moduleResult] = await Promise.all([
+    const [skillResult, versionResult, moduleResult, referenceResult] = await Promise.all([
       supabase.from("hai_work_skills").select("*").order("module_slug").order("priority", { ascending: false }),
       supabase.from("hai_work_skill_versions").select("*").order("created_at", { ascending: false }),
       supabase.from("hai_feature_modules").select("*").eq("surface_mode", "work").order("sort_order", { ascending: true }),
+      supabase.from("hai_work_skill_references").select("*").order("sort_order").order("path"),
     ]);
-    if (skillResult.error || versionResult.error || moduleResult.error) {
-      setStatus(skillResult.error?.message || versionResult.error?.message || moduleResult.error?.message || "Work 工具加载失败。");
+    if (skillResult.error || versionResult.error || moduleResult.error || referenceResult.error) {
+      setStatus(skillResult.error?.message || versionResult.error?.message || moduleResult.error?.message || referenceResult.error?.message || "Work 工具加载失败。");
       setLoading(false);
       return;
     }
@@ -87,6 +107,7 @@ export default function HaiWorkSkillManagement() {
     const nextVersions = (versionResult.data as WorkSkillVersion[]) ?? [];
     setSkills(nextSkills);
     setVersions(nextVersions);
+    setReferences((referenceResult.data as WorkSkillReferenceDraft[]) ?? []);
     setModules((moduleResult.data as HaiFeatureModule[]) ?? []);
     const nextSkillId = preferredSkillId || selectedSkillId || nextSkills[0]?.id || "";
     const nextSkillVersions = nextVersions.filter((item) => item.skill_id === nextSkillId);
@@ -114,7 +135,11 @@ export default function HaiWorkSkillManagement() {
     const selected = versions.find((item) => item.id === selectedVersionId) ?? null;
     setVersionDraft(selected ? { ...selected } : null);
     setOutputText(JSON.stringify(selected?.output_contract ?? {}, null, 2));
-  }, [selectedVersionId, versions]);
+    setReferenceDrafts(
+      references.filter((item) => item.skill_version_id === selectedVersionId)
+        .map((item) => ({ ...item, metadata: { ...item.metadata } })),
+    );
+  }, [selectedVersionId, versions, references]);
 
   async function updateModule(module: HaiFeatureModule, updates: Partial<HaiFeatureModule>) {
     if (saving) return;
@@ -164,6 +189,11 @@ export default function HaiWorkSkillManagement() {
 
   async function saveVersion(): Promise<boolean> {
     if (!versionDraft || saving) return false;
+    const blockedReason = workReferenceEditBlockReason(versionDraft.status);
+    if (blockedReason) {
+      setStatus(blockedReason);
+      return false;
+    }
     const outputContract = parseJson(outputText, "输出契约");
     if (!outputContract) return false;
     if (!versionDraft.prompt_template.trim()) {
@@ -171,17 +201,20 @@ export default function HaiWorkSkillManagement() {
       return false;
     }
     setSaving(true);
-    const { error } = await supabase.from("hai_work_skill_versions").update({
-      version_label: versionDraft.version_label.trim(),
-      prompt_template: versionDraft.prompt_template,
-      output_contract: outputContract,
-    }).eq("id", versionDraft.id);
+    const { error } = await supabase.rpc("hai_save_work_skill_draft_snapshot", {
+      p_version_id: versionDraft.id,
+      p_version_label: versionDraft.version_label.trim(),
+      p_instructions: versionDraft.prompt_template,
+      p_input_contract: versionDraft.input_contract ?? {},
+      p_output_contract: outputContract,
+      p_references: serializeWorkReferences(referenceDrafts),
+    });
     setSaving(false);
     if (error) {
       setStatus(error.message);
       return false;
     }
-    setStatus("Skill 版本已保存。");
+    setStatus(`Skill 主文档与 ${referenceDrafts.length} 个 reference 已作为同一草稿快照保存。`);
     await loadAll(selectedSkillId, versionDraft.id);
     return true;
   }
@@ -246,22 +279,16 @@ export default function HaiWorkSkillManagement() {
 
   async function addVersion() {
     if (!selectedSkill || saving) return;
-    const base = skillVersions.find((item) => item.status === "published") ?? skillVersions[0];
-    const versionLabel = `v${skillVersions.length + 1}`;
+    const versionLabel = nextWorkVersionLabel(skillVersions);
     setSaving(true);
-    const { data, error } = await supabase.from("hai_work_skill_versions").insert({
-      skill_id: selectedSkill.id,
-      version_label: versionLabel,
-      status: "draft",
-      prompt_template: base?.prompt_template || "请补充 Work Skill 提示词。",
-      default_prompt_template: base?.default_prompt_template || base?.prompt_template || "请补充 Work Skill 提示词。",
-      input_contract: base?.input_contract || {},
-      output_contract: base?.output_contract || {},
-    }).select("id").single();
+    const { data, error } = await supabase.rpc("hai_clone_work_skill_version", {
+      p_skill_id: selectedSkill.id,
+      p_version_label: versionLabel,
+    });
     setSaving(false);
     if (error) return setStatus(error.message);
-    setStatus(`已创建草稿 ${versionLabel}。`);
-    await loadAll(selectedSkill.id, data.id);
+    setStatus(`已将当前版本及其 references 完整复制为草稿 ${versionLabel}。`);
+    await loadAll(selectedSkill.id, String(data));
   }
 
   async function createSkill() {
@@ -424,22 +451,32 @@ export default function HaiWorkSkillManagement() {
 
                     <div className="border-t border-bd pt-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex min-w-0 items-center gap-2"><Braces className="h-4 w-4 text-ac" /><h3 className="text-ds-sm font-ds-bold text-tx">提示词版本</h3></div>
-                        <Button size="sm" variant="outline" onClick={() => void addVersion()}><Plus className="h-4 w-4" />新建草稿版本</Button>
+                        <div className="flex min-w-0 items-center gap-2"><Braces className="h-4 w-4 text-ac" /><h3 className="text-ds-sm font-ds-bold text-tx">Skill 版本与 reference</h3></div>
+                        <Button size="sm" variant="outline" onClick={() => void addVersion()}><Plus className="h-4 w-4" />复制为草稿版本</Button>
                       </div>
                       <div className="mt-3 flex flex-wrap gap-2">{skillVersions.map((version) => <button key={version.id} type="button" onClick={() => setSelectedVersionId(version.id)} className={`rounded-full border px-3 py-1 text-xs ${version.id === selectedVersionId ? "border-ac bg-ac text-white" : "border-bd bg-white text-tx"}`}>{version.version_label} · {version.status}</button>)}</div>
                     </div>
 
                     {versionDraft && (
                       <div className="space-y-3 rounded-ds-md border border-bd bg-bg p-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2"><AdminInput label="版本标签" value={versionDraft.version_label} placeholder="v1" onChange={(value) => setVersionDraft({ ...versionDraft, version_label: value })} /><Badge variant="outline" className={versionDraft.status === "published" ? "text-green-700" : "text-amber-700"}>{versionDraft.status}</Badge></div>
-                        <label className="block text-ds-xs text-txs">Skill 提示词<textarea value={versionDraft.prompt_template} onChange={(event) => setVersionDraft({ ...versionDraft, prompt_template: event.target.value })} rows={14} className="mt-1 w-full rounded-ds-md border border-bd bg-white p-3 font-mono text-xs leading-relaxed text-tx" /></label>
-                        <label className="block text-ds-xs text-txs">输出契约 JSON<textarea value={outputText} onChange={(event) => setOutputText(event.target.value)} rows={6} className="mt-1 w-full rounded-ds-md border border-bd bg-white p-3 font-mono text-xs text-tx" /></label>
+                        <div className="flex flex-wrap items-center justify-between gap-2"><AdminInput label="版本标签" value={versionDraft.version_label} placeholder="v1" disabled={versionDraft.status !== "draft"} onChange={(value) => setVersionDraft({ ...versionDraft, version_label: value })} /><Badge variant="outline" className={versionDraft.status === "published" ? "text-green-700" : "text-amber-700"}>{versionDraft.status}</Badge></div>
+                        <label className="block text-ds-xs text-txs">Skill 主文档<textarea value={versionDraft.prompt_template} readOnly={versionDraft.status !== "draft"} onChange={(event) => setVersionDraft({ ...versionDraft, prompt_template: event.target.value })} rows={14} className="mt-1 w-full rounded-ds-md border border-bd bg-white p-3 font-mono text-xs leading-relaxed text-tx read-only:bg-slate-50" /></label>
+                        <label className="block text-ds-xs text-txs">输出契约 JSON<textarea value={outputText} readOnly={versionDraft.status !== "draft"} onChange={(event) => setOutputText(event.target.value)} rows={6} className="mt-1 w-full rounded-ds-md border border-bd bg-white p-3 font-mono text-xs text-tx read-only:bg-slate-50" /></label>
+                        <WorkReferenceEditor
+                          references={referenceDrafts}
+                          readOnly={versionDraft.status !== "draft"}
+                          onChange={setReferenceDrafts}
+                        />
+                        {versionDraft.status !== "draft" && (
+                          <div className="rounded-ds-md border border-green-200 bg-green-50 px-3 py-2 text-[10px] text-green-800">
+                            已冻结快照：{versionDraft.snapshot_hash || "历史版本尚未生成哈希"}。如需修改，请先复制为草稿版本。
+                          </div>
+                        )}
                         <div className="flex flex-wrap justify-end gap-2">
-                          <Button size="sm" variant="outline" disabled={!versionDraft.default_prompt_template} onClick={() => void restoreDefault()}><RotateCcw className="h-4 w-4" />恢复默认</Button>
+                          {versionDraft.status === "draft" && <Button size="sm" variant="outline" disabled={!versionDraft.default_prompt_template} onClick={() => void restoreDefault()}><RotateCcw className="h-4 w-4" />恢复默认</Button>}
                           {versionDraft.status !== "published" && <Button size="sm" variant="ghost" className="text-red-600 hover:bg-red-50 hover:text-red-700" disabled={saving} onClick={() => void deleteVersion()}><Trash2 className="h-4 w-4" />删除版本</Button>}
-                          <Button size="sm" variant="outline" disabled={saving} onClick={() => void saveVersion()}><Save className="h-4 w-4" />保存版本</Button>
-                          {versionDraft.status !== "published" && <Button size="sm" disabled={saving} onClick={() => void publishVersion()}><Upload className="h-4 w-4" />发布版本</Button>}
+                          {versionDraft.status === "draft" && <Button size="sm" variant="outline" disabled={saving} onClick={() => void saveVersion()}><Save className="h-4 w-4" />保存主文档与 references</Button>}
+                          {versionDraft.status === "draft" && <Button size="sm" disabled={saving} onClick={() => void publishVersion()}><Upload className="h-4 w-4" />发布版本</Button>}
                           {versionDraft.status === "published" && <span className="inline-flex items-center gap-1 text-xs font-bold text-green-700"><CheckCircle2 className="h-4 w-4" />当前生效</span>}
                         </div>
                       </div>
@@ -477,6 +514,200 @@ export function workSkillEnableBlockReason(
   return null;
 }
 
-function AdminInput({ label, value, placeholder, onChange, type = "text" }: { label: string; value: string; placeholder: string; onChange: (value: string) => void; type?: string }) {
-  return <label className="block text-ds-xs text-txs">{label}<input type={type} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} className="mt-1 h-10 w-full rounded-ds-md border border-bd bg-white px-3 text-ds-sm text-tx" /></label>;
+export function workReferenceEditBlockReason(status: WorkSkillVersion["status"]) {
+  return status === "draft"
+    ? null
+    : "已发布或已归档版本只读；请先复制为草稿版本，再修改主文档或 reference。";
+}
+
+export function normalizeWorkReferencePath(value: string) {
+  const normalized = value.trim().replace(/\\/g, "/").replace(/^\.\//, "")
+    .replace(/\/{2,}/g, "/");
+  const referenceIndex = normalized.toLowerCase().indexOf("references/");
+  if (referenceIndex >= 0) return normalized.slice(referenceIndex);
+  const basename = normalized.split("/").filter(Boolean).pop() || "reference.md";
+  return `references/${basename}`;
+}
+
+export function serializeWorkReferences(references: WorkSkillReferenceDraft[]) {
+  return references.map((reference, index) => ({
+    path: normalizeWorkReferencePath(reference.path),
+    name: reference.name.trim() || reference.path.split("/").pop() || reference.path,
+    description: reference.description,
+    media_type: reference.media_type || mediaTypeForReferencePath(reference.path),
+    content: reference.content,
+    load_mode: reference.load_mode,
+    max_chars: Math.max(1, Math.min(reference.max_chars || 24000, 50000)),
+    sort_order: index * 10,
+    metadata: reference.metadata || {},
+  }));
+}
+
+export function nextWorkVersionLabel(versions: Array<Pick<WorkSkillVersion, "version_label">>) {
+  const used = new Set(versions.map((version) => version.version_label));
+  let index = versions.length + 1;
+  while (used.has(`v${index}`)) index += 1;
+  return `v${index}`;
+}
+
+function WorkReferenceEditor({
+  references,
+  readOnly,
+  onChange,
+}: {
+  references: WorkSkillReferenceDraft[];
+  readOnly: boolean;
+  onChange: (references: WorkSkillReferenceDraft[]) => void;
+}) {
+  function updateReference(id: string, patch: Partial<WorkSkillReferenceDraft>) {
+    onChange(references.map((reference) => reference.id === id ? { ...reference, ...patch } : reference));
+  }
+
+  return (
+    <div className="space-y-3 rounded-ds-md border border-bd bg-white p-3">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="flex items-start gap-2">
+          <FileText className="mt-0.5 h-4 w-4 text-ac" />
+          <div>
+            <h4 className="text-ds-xs font-ds-bold text-tx">Reference 文档</h4>
+            <p className="mt-1 text-[10px] leading-relaxed text-txs">
+              共 {references.length} 个文件。always 每次加载；case、issue、task 根据用户选择三选一；evaluation_only 不进入正式生成。
+            </p>
+          </div>
+        </div>
+        {!readOnly && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onChange([
+              ...references,
+              createWorkReferenceDraft(`references/reference-${references.length + 1}.md`, references.length),
+            ])}
+          >
+            <Plus className="h-4 w-4" />添加 reference
+          </Button>
+        )}
+      </div>
+
+      <div className="rounded-ds-md border border-blue-200 bg-blue-50 px-3 py-2 text-[10px] leading-relaxed text-blue-900">
+        三套教学模式模板会同时保存在 Skill 版本中，但每次运行只加载用户所选模式对应的一个模板。
+      </div>
+
+      {references.length === 0 ? (
+        <p className="rounded-ds-md border border-dashed border-bd bg-bg px-3 py-5 text-center text-xs text-txs">
+          当前版本没有 reference 文档。
+        </p>
+      ) : references.map((reference, index) => (
+        <div key={reference.id} className="space-y-2 rounded-ds-md border border-bd bg-bg p-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[10px] font-ds-bold uppercase tracking-wide text-txs">Reference {index + 1}</span>
+            {!readOnly && (
+              <button
+                type="button"
+                className="text-[10px] text-red-600 hover:underline"
+                onClick={() => onChange(references.filter((item) => item.id !== reference.id))}
+              >
+                移除
+              </button>
+            )}
+          </div>
+          <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_180px_120px]">
+            <AdminInput
+              label="相对路径"
+              value={reference.path}
+              placeholder="references/case-mode-v3.md"
+              disabled={readOnly}
+              onChange={(value) => updateReference(reference.id, { path: normalizeWorkReferencePath(value) })}
+            />
+            <label className="block text-ds-xs text-txs">
+              加载策略
+              <select
+                value={reference.load_mode}
+                disabled={readOnly}
+                onChange={(event) => updateReference(reference.id, {
+                  load_mode: event.target.value as WorkSkillReferenceDraft["load_mode"],
+                })}
+                className="mt-1 h-10 w-full rounded-ds-md border border-bd bg-white px-2 text-xs text-tx disabled:bg-slate-50"
+              >
+                <option value="always">公共 · always</option>
+                <option value="case">案例式 · case</option>
+                <option value="issue">议题式 · issue</option>
+                <option value="task">任务式 · task</option>
+                <option value="evaluation_only">仅评估 · evaluation_only</option>
+              </select>
+            </label>
+            <AdminInput
+              label="字符上限"
+              value={String(reference.max_chars)}
+              placeholder="24000"
+              type="number"
+              disabled={readOnly}
+              onChange={(value) => updateReference(reference.id, { max_chars: Number(value) || 24000 })}
+            />
+          </div>
+          <div className="grid gap-2 md:grid-cols-2">
+            <AdminInput
+              label="显示名称"
+              value={reference.name}
+              placeholder="案例式教学模板 V3"
+              disabled={readOnly}
+              onChange={(value) => updateReference(reference.id, { name: value })}
+            />
+            <AdminInput
+              label="说明"
+              value={reference.description}
+              placeholder="该文档解决什么问题"
+              disabled={readOnly}
+              onChange={(value) => updateReference(reference.id, { description: value })}
+            />
+          </div>
+          <label className="block text-ds-xs text-txs">
+            文档内容
+            <textarea
+              value={reference.content}
+              readOnly={readOnly}
+              onChange={(event) => updateReference(reference.id, { content: event.target.value })}
+              rows={10}
+              className="mt-1 w-full rounded-ds-md border border-bd bg-white p-3 font-mono text-xs leading-relaxed text-tx read-only:bg-slate-50"
+            />
+          </label>
+          <div className="flex flex-wrap justify-between gap-2 text-[10px] text-txs">
+            <span>{reference.content.length} 字符 · 保存顺序 {index + 1}</span>
+            {reference.content_hash && <span>当前哈希 {reference.content_hash.slice(0, 12)}…</span>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function createWorkReferenceDraft(path: string, index: number): WorkSkillReferenceDraft {
+  const normalizedPath = normalizeWorkReferencePath(path);
+  return {
+    id: globalThis.crypto?.randomUUID?.() ?? `local-${Date.now()}-${index}`,
+    skill_version_id: "",
+    path: normalizedPath,
+    name: normalizedPath.split("/").pop() || normalizedPath,
+    description: "",
+    media_type: mediaTypeForReferencePath(normalizedPath),
+    content: "",
+    content_hash: "",
+    load_mode: "always",
+    max_chars: 24000,
+    sort_order: index * 10,
+    metadata: {},
+  };
+}
+
+function mediaTypeForReferencePath(path: string) {
+  const extension = path.split(".").pop()?.toLowerCase();
+  if (extension === "json") return "application/json";
+  if (extension === "yaml" || extension === "yml") return "application/yaml";
+  if (extension === "csv") return "text/csv";
+  if (extension === "txt") return "text/plain";
+  return "text/markdown";
+}
+
+function AdminInput({ label, value, placeholder, onChange, type = "text", disabled = false }: { label: string; value: string; placeholder: string; onChange: (value: string) => void; type?: string; disabled?: boolean }) {
+  return <label className="block text-ds-xs text-txs">{label}<input type={type} value={value} placeholder={placeholder} disabled={disabled} onChange={(event) => onChange(event.target.value)} className="mt-1 h-10 w-full rounded-ds-md border border-bd bg-white px-3 text-ds-sm text-tx disabled:bg-slate-50" /></label>;
 }
