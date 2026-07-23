@@ -460,7 +460,7 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
   );
 }
 
-export function WorkSidebar({ tasks, tools }: { tasks: HaiWorkTask[]; tools: HaiFeatureModule[] }) {
+export function WorkSidebar({ tasks, tools = [] }: { tasks: HaiWorkTask[]; tools?: HaiFeatureModule[] }) {
   const visibleTools = getSupportedWorkTools(tools);
   return (
     <div>
@@ -650,7 +650,7 @@ export function resolveWorkToolConfig(slug: HaiWorkToolSlug, module?: HaiFeature
   };
 }
 
-function getSupportedWorkTools(tools: HaiFeatureModule[]) {
+function getSupportedWorkTools(tools: HaiFeatureModule[] = []) {
   return tools.flatMap((module) => {
     if (!isWorkToolSlug(module.slug)) return [];
     return [{ slug: module.slug, config: resolveWorkToolConfig(module.slug, module) }];

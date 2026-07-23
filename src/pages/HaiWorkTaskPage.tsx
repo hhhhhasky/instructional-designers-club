@@ -24,13 +24,15 @@ import {
   archiveHaiWorkTask,
   getHaiWorkTaskDetail,
   getHaiWorkTasks,
+  getHaiWorkTools,
   streamHaiWork,
+  type HaiFeatureModule,
   type HaiWorkArtifact,
   type HaiWorkRun,
   type HaiWorkTask,
   type HaiWorkTaskDetail,
 } from "@/db/hai-api";
-import { HAI_WORK_TOOL_CONFIG, WorkSidebar } from "@/pages/HaiWorkPage";
+import { resolveWorkToolConfig, WorkSidebar } from "@/pages/HaiWorkPage";
 import { cn } from "@/lib/utils";
 
 export default function HaiWorkTaskPage() {
@@ -39,6 +41,7 @@ export default function HaiWorkTaskPage() {
   const { user, loading: authLoading } = useAuth();
   const [detail, setDetail] = useState<HaiWorkTaskDetail | null>(null);
   const [tasks, setTasks] = useState<HaiWorkTask[]>([]);
+  const [tools, setTools] = useState<HaiFeatureModule[]>([]);
   const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -54,9 +57,10 @@ export default function HaiWorkTaskPage() {
   const loadDetail = useCallback(async (preserveSelection = true) => {
     if (!user || !taskId) return;
     try {
-      const [nextDetail, nextTasks] = await Promise.all([getHaiWorkTaskDetail(taskId), getHaiWorkTasks()]);
+      const [nextDetail, nextTasks, nextTools] = await Promise.all([getHaiWorkTaskDetail(taskId), getHaiWorkTasks(), getHaiWorkTools()]);
       setDetail(nextDetail);
       setTasks(nextTasks);
+      setTools(nextTools);
       setSelectedArtifactId((current) => preserveSelection && current
         ? current
         : nextDetail.artifacts[0]?.id ?? null);
@@ -84,7 +88,9 @@ export default function HaiWorkTaskPage() {
   const selectedRun = selectedArtifact
     ? detail?.runs.find((run) => run.id === selectedArtifact.run_id) ?? null
     : detail?.runs[0] ?? null;
-  const config = detail ? HAI_WORK_TOOL_CONFIG[detail.task.module_slug] : null;
+  const config = detail
+    ? resolveWorkToolConfig(detail.task.module_slug, tools.find((item) => item.slug === detail.task.module_slug))
+    : null;
 
   async function revise() {
     if (!detail || !selectedArtifact || !selectedRun || !revision.trim() || busy) return;
@@ -182,7 +188,7 @@ export default function HaiWorkTaskPage() {
     <>
       <PageMeta title={detail?.task.title ?? "HAI 工作任务"} description="HAI 版本化任务产物" canonicalPath={`/hai/work/tasks/${taskId}`} />
       <HaiWorkShell
-        sidebar={<WorkSidebar tasks={tasks} />}
+        sidebar={<WorkSidebar tasks={tasks} tools={tools} />}
         inspector={inspector}
         title={config?.name ?? "工作任务"}
         subtitle={detail?.task.title ?? "正在读取任务"}

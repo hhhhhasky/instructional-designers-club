@@ -2,11 +2,17 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getHaiWorkTaskDetail, streamHaiWork } from "@/db/hai-api";
+import { getHaiWorkTaskDetail, streamHaiWork, type HaiWorkTask } from "@/db/hai-api";
+import { WorkSidebar } from "@/pages/HaiWorkPage";
 import HaiWorkTaskPage from "@/pages/HaiWorkTaskPage";
 
-const { stableUser, detail } = vi.hoisted(() => ({
+const { stableUser, detail, tools } = vi.hoisted(() => ({
   stableUser: { id: "user-1" },
+  tools: [
+    { slug: "lesson-diagnosis", name: "教案诊断", description: "诊断教案", is_enabled: true, surface_mode: "work" },
+    { slug: "segment-optimization", name: "环节优化", description: "优化环节", is_enabled: true, surface_mode: "work" },
+    { slug: "subject-lesson-design", name: "思政公开课设计", description: "设计公开课", is_enabled: true, surface_mode: "work" },
+  ],
   detail: {
     task: {
       id: "task-1",
@@ -53,6 +59,7 @@ vi.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: stableUser, l
 vi.mock("@/db/hai-api", () => ({
   getHaiWorkTaskDetail: vi.fn().mockResolvedValue(detail),
   getHaiWorkTasks: vi.fn().mockResolvedValue([detail.task]),
+  getHaiWorkTools: vi.fn().mockResolvedValue(tools),
   archiveHaiWorkTask: vi.fn(),
   streamHaiWork: vi.fn(),
 }));
@@ -69,6 +76,13 @@ function renderPage() {
 
 describe("HAI Work task page", () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it("keeps the task sidebar renderable before the tool catalog is available", () => {
+    render(<MemoryRouter><WorkSidebar tasks={[detail.task as HaiWorkTask]} /></MemoryRouter>);
+
+    expect(screen.getByText("最近任务")).toBeInTheDocument();
+    expect(screen.getByText(detail.task.title)).toBeInTheDocument();
+  });
 
   it("restores the latest durable artifact and version navigation", async () => {
     renderPage();
