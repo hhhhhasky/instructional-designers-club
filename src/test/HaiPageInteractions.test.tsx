@@ -159,9 +159,9 @@ describe("HAI mobile chat shell", () => {
     expect(document.body).not.toHaveClass("hai-chat-active");
   });
 
-  it(“shows an explicit unavailable state when hai-chat cannot be loaded”, async () => {
+  it("shows an explicit unavailable state when hai-chat cannot be loaded", async () => {
     vi.mocked(getHaiChatModule).mockRejectedValueOnce(
-      new Error(“HAI Chat 当前未启用，请联系管理员检查模块和已发布 Skill。”),
+      new Error("HAI Chat 当前未启用，请联系管理员检查模块和已发布 Skill。"),
     );
 
     render(
@@ -172,7 +172,7 @@ describe("HAI mobile chat shell", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("HAI 暂时不可用");
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "“问问哈老师”当前未启用，请联系管理员检查模块和已发布 Skill。",
+      "HAI Chat 当前未启用，请联系管理员检查模块和已发布 Skill。",
     );
     expect(screen.queryByLabelText("输入教学问题")).not.toBeInTheDocument();
   });

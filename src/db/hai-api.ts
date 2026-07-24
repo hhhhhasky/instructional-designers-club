@@ -293,14 +293,14 @@ export async function getHaiChatModule(): Promise<HaiFeatureModule> {
   if (error) {
     throw new HaiApiError(
       "service_unavailable",
-      “无法读取 HAI Chat 配置，请稍后重试。”,
+      "无法读取 HAI Chat 配置，请稍后重试。",
       error.message,
     );
   }
   if (!data) {
     throw new HaiApiError(
       "chat_module_unavailable",
-      “HAI Chat 当前未启用，请联系管理员检查模块和已发布 Skill。”,
+      "HAI Chat 当前未启用，请联系管理员检查模块和已发布 Skill。",
     );
   }
   return normalizeHaiChatModule(data);
@@ -748,7 +748,7 @@ function normalizeHaiChatModule(
   ) {
     throw new HaiApiError(
       "service_unavailable",
-      "“问问哈老师”配置不完整，请联系管理员检查模块配置。",
+      ""问问哈老师"配置不完整，请联系管理员检查模块配置。",
       `slug=${row.slug}, surface_mode=${row.surface_mode}, reasoning_effort=${reasoningEffort}, response_format=${responseFormat}`,
     );
   }
