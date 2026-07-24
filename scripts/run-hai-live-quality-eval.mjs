@@ -104,7 +104,7 @@ async function main() {
   const historical = JSON.parse(readFileSync(HISTORICAL_PATH, "utf8"));
   const evalUser = await ensureEvalUser();
   const accessToken = await signInEvalUser();
-  const module = await loadAskHanModule();
+  const module = await loadHaiChatModule();
   const runtimeSettings = await loadRuntimeSettings();
   const results = [];
 
@@ -225,11 +225,11 @@ async function signInEvalUser() {
   return data.session.access_token;
 }
 
-async function loadAskHanModule() {
+async function loadHaiChatModule() {
   const { data, error } = await admin
     .from("hai_feature_modules")
     .select("id, slug, name, default_model, default_temperature, default_max_output_tokens, default_top_p")
-    .eq("slug", "ask-han")
+    .eq("slug", "hai-chat")
     .single();
   if (error) throw error;
   return data;
@@ -264,7 +264,7 @@ async function callHai(message, accessToken) {
     },
     body: JSON.stringify({
       conversationId: null,
-      moduleSlug: "ask-han",
+      moduleSlug: "hai-chat",
       message,
       mode: "chat",
       clientRequestId: crypto.randomUUID(),

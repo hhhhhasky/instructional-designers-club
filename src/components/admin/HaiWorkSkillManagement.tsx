@@ -1,6 +1,5 @@
-import { AlertTriangle, Braces, BriefcaseBusiness, CheckCircle2, FileText, Plus, RotateCcw, Save, SlidersHorizontal, Trash2, Upload, X } from "lucide-react";
+import { AlertTriangle, Braces, BriefcaseBusiness, CheckCircle2, FileText, Plus, RotateCcw, Save, Trash2, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import ModuleParamFields from "@/components/admin/hai/ModuleParamFields";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { HaiFeatureModule } from "@/db/hai-api";
@@ -62,7 +61,6 @@ export default function HaiWorkSkillManagement() {
   const [criteriaText, setCriteriaText] = useState("{}");
   const [outputText, setOutputText] = useState("{}");
   const [showCreator, setShowCreator] = useState(false);
-  const [showParams, setShowParams] = useState<Record<string, boolean>>({});
   const [createDraft, setCreateDraft] = useState({
     slug: "",
     module_slug: "subject-lesson-design",
@@ -140,16 +138,6 @@ export default function HaiWorkSkillManagement() {
         .map((item) => ({ ...item, metadata: { ...item.metadata } })),
     );
   }, [selectedVersionId, versions, references]);
-
-  async function updateModule(module: HaiFeatureModule, updates: Partial<HaiFeatureModule>) {
-    if (saving) return;
-    setSaving(true);
-    const { error } = await supabase.from("hai_feature_modules").update(updates).eq("id", module.id);
-    setSaving(false);
-    if (error) return setStatus(error.message);
-    setStatus(`已更新工具“${module.name}”的生成参数。`);
-    await loadAll(selectedSkillId, selectedVersionId);
-  }
 
   async function saveSkill() {
     if (!skillDraft || saving) return;
@@ -339,10 +327,6 @@ export default function HaiWorkSkillManagement() {
     }
   }
 
-  function toggleParams(moduleId: string) {
-    setShowParams((current) => ({ ...current, [moduleId]: !current[moduleId] }));
-  }
-
   return (
     <section className="rounded-ds-lg border border-bd bg-white p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -383,7 +367,6 @@ export default function HaiWorkSkillManagement() {
         <div className="mt-5 space-y-4">
           {modules.map((module) => {
             const moduleSkills = skillsByModule[module.slug] ?? [];
-            const paramsOpen = !!showParams[module.id];
             const hasPublishedSkill = moduleSkills.some((skill) => versions.some((item) => item.skill_id === skill.id && item.status === "published"));
             return (
               <div key={module.id} className="rounded-ds-md border border-bd bg-bg p-4">
@@ -395,17 +378,8 @@ export default function HaiWorkSkillManagement() {
                     </Badge>
                     {hasPublishedSkill && <Badge variant="outline" className="text-green-700">存在已发布版本</Badge>}
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => toggleParams(module.id)}>
-                    <SlidersHorizontal className="h-4 w-4" />{paramsOpen ? "收起生成参数" : "生成参数"}
-                  </Button>
                 </div>
                 <p className="mt-1 text-ds-xs text-txs">{module.description}</p>
-
-                {paramsOpen && (
-                  <div className="mt-3 rounded-ds-md border border-bd bg-white p-3">
-                    <ModuleParamFields module={module} onPatch={(updates) => updateModule(module, updates)} />
-                  </div>
-                )}
 
                 <div className="mt-4">
                   <div className="mb-2 flex items-center gap-2 text-ds-xs text-txs"><span className="font-ds-bold text-tx">Skills</span><span>（{moduleSkills.length}）</span></div>

@@ -598,11 +598,11 @@ async function loadPublishedChatSkill(
   const { data: module, error: moduleError } = await admin
     .from("hai_feature_modules")
     .select("id")
-    .eq("slug", "ask-han")
+    .eq("slug", "hai-chat")
     .eq("is_enabled", true)
     .maybeSingle();
   if (moduleError) throw moduleError;
-  if (!module?.id) throw new Error("ask-han 模块未启用，无法生成复盘草稿。");
+  if (!module?.id) throw new Error("hai-chat 模块未启用，无法生成复盘草稿。");
 
   const { data: binding, error: bindingError } = await admin
     .from("hai_chat_skill_bindings")
@@ -612,7 +612,7 @@ async function loadPublishedChatSkill(
     .maybeSingle();
   if (bindingError) throw bindingError;
   if (!binding?.skill_id) {
-    throw new Error("ask-han 没有启用的 Chat Skill 绑定。");
+    throw new Error("hai-chat 没有启用的 Chat Skill 绑定。");
   }
 
   const { data: skill, error: skillError } = await admin
@@ -622,7 +622,7 @@ async function loadPublishedChatSkill(
     .eq("is_enabled", true)
     .maybeSingle();
   if (skillError) throw skillError;
-  if (!skill) throw new Error("ask-han 绑定的 Chat Skill 不存在或未启用。");
+  if (!skill) throw new Error("hai-chat 绑定的 Chat Skill 不存在或未启用。");
 
   const { data: version, error: versionError } = await admin
     .from("hai_chat_skill_versions")
@@ -634,7 +634,7 @@ async function loadPublishedChatSkill(
     .maybeSingle();
   if (versionError) throw versionError;
   if (!version?.id || !String(version.instructions || "").trim()) {
-    throw new Error("ask-han 没有完整的已发布 Chat Skill 快照。");
+    throw new Error("hai-chat 没有完整的已发布 Chat Skill 快照。");
   }
 
   const { data: references, error: referencesError } = await admin

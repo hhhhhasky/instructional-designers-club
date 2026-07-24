@@ -165,7 +165,7 @@ const TEST_CASES = [
 
 async function main() {
   await mkdir(OUTPUT_DIR, { recursive: true });
-  const { module, prompt } = await loadAskHanPrompt();
+  const { module, prompt } = await loadHaiChatPrompt();
   const baseline = {
     label: prompt.version_label,
     system_prompt: prompt.system_prompt,
@@ -260,11 +260,11 @@ function requireText(path) {
   return readFileSync(path, "utf8");
 }
 
-async function loadAskHanPrompt() {
+async function loadHaiChatPrompt() {
   const { data: module, error: moduleError } = await supabase
     .from("hai_feature_modules")
     .select("id, slug, name, default_model, default_temperature, default_max_output_tokens, default_top_p")
-    .eq("slug", "ask-han")
+    .eq("slug", "hai-chat")
     .single();
   if (moduleError) throw moduleError;
 
@@ -275,7 +275,7 @@ async function loadAskHanPrompt() {
     .eq("status", "published")
     .maybeSingle();
   if (promptError) throw promptError;
-  if (!prompt) throw new Error("No published ask-han prompt.");
+  if (!prompt) throw new Error("No published hai-chat prompt.");
   return { module, prompt };
 }
 

@@ -164,7 +164,7 @@ export default function HaiChatSkillManagement() {
       (referenceResult.data as ChatSkillReferenceDraft[]) ??
         [];
     const nextModuleId = preferredModuleId || selectedModuleId ||
-      nextModules.find((item) => item.slug === "ask-han")?.id ||
+      nextModules.find((item) => item.slug === "hai-chat")?.id ||
       nextModules[0]?.id || "";
     const boundSkillId = nextBindings.find((item) =>
       item.module_id === nextModuleId && item.is_enabled

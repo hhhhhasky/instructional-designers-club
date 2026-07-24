@@ -206,10 +206,10 @@ begin
 
   select id into v_module_id
   from public.hai_feature_modules
-  where slug = 'ask-han';
+  where slug = 'hai-chat';
 
   if v_module_id is null then
-    raise exception 'ask-han 模块不存在。';
+    raise exception 'hai-chat 模块不存在。';
   end if;
 
   update public.hai_chat_skills

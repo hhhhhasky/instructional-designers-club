@@ -47,7 +47,7 @@ Deno.test("compact composer keeps only required answer layers", () => {
     },
   );
   const prompt = buildComposedSystemPrompt({
-    module: { name: "问问哈老师", slug: "ask-han" },
+    module: { name: "HAI Chat", slug: "hai-chat" },
     context,
     memories: [{ category: "constraint", content: "每周只有两节复习课" }],
     materialContext: { text: "SENTINEL_USER_MATERIAL", citations: [] },

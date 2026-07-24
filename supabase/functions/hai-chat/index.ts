@@ -96,7 +96,7 @@ Deno.serve(async (request) => {
 
     const body = await request.json().catch(() => ({}));
     const text = String(body.message || "").trim();
-    const moduleSlug = String(body.moduleSlug || "ask-han").trim();
+    const moduleSlug = String(body.moduleSlug || "hai-chat").trim();
     const requestedConversationId = body.conversationId
       ? String(body.conversationId)
       : null;

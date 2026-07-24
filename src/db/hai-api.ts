@@ -64,7 +64,7 @@ export interface HaiModelProvider {
 export type HaiMode = "chat" | "work";
 export type HaiWorkToolSlug = "lesson-diagnosis" | "segment-optimization" | "subject-lesson-design";
 export type HaiWorkRunStatus = "queued" | "running" | "completed" | "failed";
-export const HAI_CHAT_MODULE_SLUG = "ask-han" as const;
+export const HAI_CHAT_MODULE_SLUG = "hai-chat" as const;
 
 export type HaiApiErrorCode =
   | "chat_module_unavailable"
@@ -282,7 +282,7 @@ export async function redeemHaiInvite(code: string): Promise<{
   return normalizeAccessPayload(data);
 }
 
-export async function getAskHanModule(): Promise<HaiFeatureModule> {
+export async function getHaiChatModule(): Promise<HaiFeatureModule> {
   const { data, error } = await typedSupabase
     .from("hai_feature_modules")
     .select("*")
@@ -293,17 +293,17 @@ export async function getAskHanModule(): Promise<HaiFeatureModule> {
   if (error) {
     throw new HaiApiError(
       "service_unavailable",
-      "无法读取“问问哈老师”配置，请稍后重试。",
+      “无法读取 HAI Chat 配置，请稍后重试。”,
       error.message,
     );
   }
   if (!data) {
     throw new HaiApiError(
       "chat_module_unavailable",
-      "“问问哈老师”当前未启用，请联系管理员检查模块和已发布 Skill。",
+      “HAI Chat 当前未启用，请联系管理员检查模块和已发布 Skill。”,
     );
   }
-  return normalizeAskHanModule(data);
+  return normalizeHaiChatModule(data);
 }
 
 export async function getHaiWorkTools(): Promise<HaiFeatureModule[]> {
@@ -733,7 +733,7 @@ function normalizeAccessPayload(value: unknown) {
   };
 }
 
-function normalizeAskHanModule(
+function normalizeHaiChatModule(
   row: Database["public"]["Tables"]["hai_feature_modules"]["Row"],
 ): HaiFeatureModule {
   const reasoningEffort = row.reasoning_effort;

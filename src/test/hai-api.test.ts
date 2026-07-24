@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  getAskHanModule,
+  getHaiChatModule,
   getHaiWorkTaskDetail,
   HAI_CHAT_MODULE_SLUG,
   HaiApiError,
@@ -27,11 +27,11 @@ vi.mock("@/db/supabase", () => ({
   },
 }));
 
-const askHanModule = {
-  id: "module-ask-han",
-  slug: "ask-han",
-  name: "问问哈老师",
-  short_label: "哈老师",
+const haiChatModule = {
+  id: "module-hai-chat",
+  slug: "hai-chat",
+  name: "HAI Chat",
+  short_label: "HAI Chat",
   description: "教学咨询",
   icon_key: "bot",
   category: "chat",
@@ -53,71 +53,71 @@ const askHanModule = {
   surface_mode: "chat",
 } satisfies HaiFeatureModule;
 
-describe("HAI Chat module boundary", () => {
+describe(“HAI Chat module boundary”, () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getSessionMock.mockResolvedValue({
-      data: { session: { access_token: "access-token" } },
+      data: { session: { access_token: “access-token” } },
     });
   });
 
   afterEach(() => vi.unstubAllGlobals());
 
-  it("queries only the enabled ask-han chat module", async () => {
-    const query = createQuery({ data: askHanModule, error: null });
+  it(“queries only the enabled hai-chat chat module”, async () => {
+    const query = createQuery({ data: haiChatModule, error: null });
     fromMock.mockReturnValue(query);
 
-    await expect(getAskHanModule()).resolves.toEqual(askHanModule);
+    await expect(getHaiChatModule()).resolves.toEqual(haiChatModule);
 
-    expect(fromMock).toHaveBeenCalledWith("hai_feature_modules");
-    expect(query.eq).toHaveBeenCalledWith("surface_mode", "chat");
-    expect(query.eq).toHaveBeenCalledWith("slug", HAI_CHAT_MODULE_SLUG);
-    expect(query.eq).toHaveBeenCalledWith("is_enabled", true);
+    expect(fromMock).toHaveBeenCalledWith(“hai_feature_modules”);
+    expect(query.eq).toHaveBeenCalledWith(“surface_mode”, “chat”);
+    expect(query.eq).toHaveBeenCalledWith(“slug”, HAI_CHAT_MODULE_SLUG);
+    expect(query.eq).toHaveBeenCalledWith(“is_enabled”, true);
     expect(query.order).not.toHaveBeenCalled();
   });
 
-  it("reports an explicit product error instead of returning an empty module list", async () => {
+  it(“reports an explicit product error instead of returning an empty module list”, async () => {
     fromMock.mockReturnValue(createQuery({ data: null, error: null }));
 
-    await expect(getAskHanModule()).rejects.toMatchObject({
-      name: "HaiApiError",
-      code: "chat_module_unavailable",
-      message: "“问问哈老师”当前未启用，请联系管理员检查模块和已发布 Skill。",
+    await expect(getHaiChatModule()).rejects.toMatchObject({
+      name: “HaiApiError”,
+      code: “chat_module_unavailable”,
+      message: “HAI Chat 当前未启用，请联系管理员检查模块和已发布 Skill。”,
     });
   });
 
-  it("distinguishes a module query failure from an unavailable module", async () => {
+  it(“distinguishes a module query failure from an unavailable module”, async () => {
     fromMock.mockReturnValue(createQuery({
       data: null,
-      error: { message: "network unavailable" },
+      error: { message: “network unavailable” },
     }));
 
-    await expect(getAskHanModule()).rejects.toEqual(expect.objectContaining({
-      code: "service_unavailable",
-      detail: "network unavailable",
+    await expect(getHaiChatModule()).rejects.toEqual(expect.objectContaining({
+      code: “service_unavailable”,
+      detail: “network unavailable”,
     }));
   });
 
-  it("always sends Chat to ask-han and surfaces a missing published Skill", async () => {
+  it(“always sends Chat to hai-chat and surfaces a missing published Skill”, async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
-      message: "该 Chat 模块没有可用 Skill，请管理员先发布、启用并绑定 Chat Skill。",
+      message: “该 Chat 模块没有可用 Skill，请管理员先发布、启用并绑定 Chat Skill。”,
     }), {
       status: 503,
-      headers: { "content-type": "application/json" },
+      headers: { “content-type”: “application/json” },
     }));
-    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal(“fetch”, fetchMock);
 
     await expect(streamHaiChat(
-      { conversationId: null, message: "这节课应该先改哪里？" },
+      { conversationId: null, message: “这节课应该先改哪里？” },
       { onEvent: vi.fn() },
-    )).rejects.toThrow("该 Chat 模块没有可用 Skill，请管理员先发布、启用并绑定 Chat Skill。");
+    )).rejects.toThrow(“该 Chat 模块没有可用 Skill，请管理员先发布、启用并绑定 Chat Skill。”);
 
     const [, request] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(JSON.parse(String(request.body))).toMatchObject({
       conversationId: null,
-      message: "这节课应该先改哪里？",
-      moduleSlug: "ask-han",
-      mode: "chat",
+      message: “这节课应该先改哪里？”,
+      moduleSlug: “hai-chat”,
+      mode: “chat”,
     });
   });
 });

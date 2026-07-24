@@ -7,7 +7,7 @@ import { readHaiTrace } from "./lib/hai-trace.mjs";
 const ROOT = process.cwd();
 const CORPUS_DIR = join(ROOT, "docs", "hai-consultation-corpus");
 const CACHE_PATH = join(ROOT, "docs", "hai-optimization-runs", "hai-consultation-live-answer-cache.json");
-const MODULE_SLUG = process.env.HAI_CORPUS_MODULE_SLUG || "ask-han";
+const MODULE_SLUG = process.env.HAI_CORPUS_MODULE_SLUG || "hai-chat";
 const EVAL_EMAIL = process.env.HAI_CORPUS_EVAL_EMAIL || "hai-corpus+club-site@hasky.top";
 const EVAL_PASSWORD = process.env.HAI_CORPUS_EVAL_PASSWORD || `HaiCorpus-${crypto.randomUUID()}-2026`;
 const LIMIT = Number(process.env.HAI_CORPUS_LIMIT || "0");
@@ -43,9 +43,9 @@ async function main() {
   const evalUser = await ensureEvalUser();
   const accessToken = await signInEvalUser();
   try {
-    moduleBeforeRun = await loadAskHanModule();
+    moduleBeforeRun = await loadHaiChatModule();
     if (!moduleBeforeRun.is_enabled) await setModuleEnabled(true);
-    const module = await loadAskHanModule();
+    const module = await loadHaiChatModule();
     const runtimeSettings = await loadRuntimeSettings();
 
     console.log(`Found ${cases.length} corpus cases. Selected ${selected.length}.`);
@@ -212,7 +212,7 @@ async function signInEvalUser() {
   return data.session.access_token;
 }
 
-async function loadAskHanModule() {
+async function loadHaiChatModule() {
   const { data, error } = await admin
     .from("hai_feature_modules")
     .select("id, slug, name, is_enabled, default_model, default_temperature, default_max_output_tokens, default_top_p")

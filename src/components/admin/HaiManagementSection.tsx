@@ -291,9 +291,8 @@ export default function HaiManagementSection() {
       setAccessRows((accessResult.data as HaiUserAccessRow[]) ?? []);
       setInvites((inviteResult.data as HaiInviteCode[]) ?? []);
       const moduleRows = (moduleResult.data as HaiFeatureModule[]) ?? [];
-      // work 模块统一由「Work 工具中心」集中管理；这里只承载 chat 模块，避免职责重叠。
-      const chatModules = moduleRows.filter((module) => module.surface_mode !== "work");
-      setModules(chatModules);
+      // Chat 与 Work 模块的生成参数统一在此面板管理，不再拆分。
+      setModules(moduleRows);
       setQuotas((quotaResult.data as HaiQuotaPolicy[]) ?? []);
       const chunkCounts = new Map<string, number>();
       for (const chunk of (knowledgeChunkResult.data ?? []) as Array<{ source_id: string }>) {
@@ -1559,8 +1558,8 @@ export default function HaiManagementSection() {
       </CollapsiblePanel>
 
       <CollapsiblePanel
-        title="功能模块与生成参数"
-        description="管理 HAI 功能模块及各模块的生成上限。"
+        title="功能模块与生成参数（Chat + Work）"
+        description="管理所有 HAI 功能模块的模型、温度、Token 等生成参数。"
         icon={<Bot className="h-5 w-5" />}
         summary={`${modules.filter((module) => module.is_enabled).length}/${modules.length} 启用`}
       >

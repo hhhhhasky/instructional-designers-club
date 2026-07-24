@@ -41,7 +41,7 @@ import {
   archiveHaiConversation,
   archiveHaiMemory,
   createHaiMemory,
-  getAskHanModule,
+  getHaiChatModule,
   getHaiAccessStatus,
   getHaiConversations,
   getHaiMemories,
@@ -121,7 +121,7 @@ export default function HaiPage() {
         setUsage(usage);
         if (access.allowed) {
           const [moduleRow, rows, memoryRows, profileCompleted] = await Promise.all([
-            getAskHanModule(),
+            getHaiChatModule(),
             getHaiConversations(),
             getHaiMemories(),
             hasCompletedHaiProfileOnboarding(),
@@ -213,7 +213,7 @@ export default function HaiPage() {
       if (result.access.allowed) {
         try {
           const [moduleRow, , memoryRows, profileCompleted] = await Promise.all([
-            getAskHanModule(),
+            getHaiChatModule(),
             refreshConversations(null),
             getHaiMemories(),
             hasCompletedHaiProfileOnboarding(),
