@@ -233,6 +233,9 @@ Deno.serve(async (request) => {
               validationIssue = error instanceof Error ? error.message : "返回内容不符合输出契约";
             }
           }
+          if (!parsed && !rawOutput.trim()) {
+            throw new Error('模型未返回任何内容，可能是思考过程消耗了全部 token 额度。请在 HAI 配置中增大该模块的 max_output_tokens（建议 ≥ 16384）或关闭 thinking 后重试。');
+          }
           if (!parsed || validationIssue) {
             sendSse(controller, encoder, { type: "progress", stage: "repairing", message: "正在校正产物格式" });
             rawOutput = await collectModelOutput({

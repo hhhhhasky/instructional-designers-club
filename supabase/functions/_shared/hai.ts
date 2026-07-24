@@ -302,7 +302,11 @@ export function buildChatCompletionOptions(params: {
   const minTemperature = params.minTemperature ?? 0;
   const temperature = clamp(rawTemperature, minTemperature, 2);
   const topP = finiteNumber(params.module.default_top_p);
-  const maxTokens = Math.max(1, Math.round(finiteNumber(params.module.default_max_output_tokens) ?? 4096));
+  const rawMax = Math.round(finiteNumber(params.module.default_max_output_tokens) ?? 4096);
+  // reasoning 模型 (如 deepseek-v4-pro) thinking 会消耗大量 token，
+  // 4096 不够用会导致思考吃光 budget、模型不产出 content。
+  const thinkingFloor = params.module.thinking_enabled === true ? 16384 : 1;
+  const maxTokens = Math.max(rawMax, thinkingFloor);
   const reasoningEffort = normalizeReasoningEffort(params.module.reasoning_effort);
   const responseFormat = normalizeResponseFormat(params.module.response_format);
   const stopSequences = Array.isArray(params.module.stop_sequences)
