@@ -29,8 +29,8 @@ import {
   type NormalizedHaiTrace,
   readHaiTrace,
 } from "../_shared/hai_trace.ts";
-import { classifyIntent } from "../_shared/hai_orchestrator/intent_classifier.ts";
-import { hanCourseMethodCards } from "../_shared/hai_orchestrator/knowledge/method_bank/han_course_method_cards.ts";
+import { classifyIntent } from "../_shared/hai_chat/intent_classifier.ts";
+import { hanCourseMethodCards } from "../_shared/hai_chat/method_cards.ts";
 
 type MessageRow = {
   id: string;

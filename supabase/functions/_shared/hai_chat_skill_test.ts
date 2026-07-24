@@ -5,8 +5,8 @@ import {
   normalizeHaiChatSkillReferenceConfig,
   selectHaiChatSkillReferences,
 } from "./hai_chat_skill.ts";
-import { classifyIntent } from "./hai_orchestrator/intent_classifier.ts";
-import { hanCourseMethodCards } from "./hai_orchestrator/knowledge/method_bank/han_course_method_cards.ts";
+import { classifyIntent } from "./hai_chat/intent_classifier.ts";
+import { hanCourseMethodCards } from "./hai_chat/method_cards.ts";
 
 const skill: HaiChatSkillRuntime = {
   skill_id: "skill-1",
