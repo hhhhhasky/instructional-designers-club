@@ -543,9 +543,12 @@ export async function* streamDeepSeek(
       if (!line.startsWith("data: ")) continue;
       const payload = line.slice(6).trim();
       if (!payload || payload === "[DONE]") continue;
-      const data = JSON.parse(payload);
-      const token = data?.choices?.[0]?.delta?.content;
-      if (token) yield String(token);
+      let data;
+      try { data = JSON.parse(payload); } catch { continue; }
+      const delta = data?.choices?.[0]?.delta;
+      if (!delta) continue;
+      // reasoning_content 是思考过程，不混入输出流（否则会污染 JSON 解析）
+      if (delta.content) yield String(delta.content as string);
     }
   }
 }

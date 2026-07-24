@@ -584,11 +584,14 @@ async function collectModelOutput(params: {
   const model = params.completionOptions.model;
   console.log("[hai-work] calling DeepSeek with model:", model, "providerId:", params.module.model_provider_id, "moduleSlug:", params.module.slug);
   let output = "";
+  // hai-work 需要结构化 JSON 产出，reasoning 模型（如 deepseek-v4-pro）的 thinking
+  // 会消耗大量 token 用于思考过程，可能导致 output 为空。强制关闭 thinking。
+  const workOptions = { ...params.completionOptions, thinkingEnabled: false };
   for await (const token of streamDeepSeek([
     { role: "system", content: params.system },
     { role: "user", content: params.user },
   ], {
-    ...params.completionOptions,
+    ...workOptions,
     responseFormat: "json_object",
     userId: params.userId,
     admin: params.admin,
