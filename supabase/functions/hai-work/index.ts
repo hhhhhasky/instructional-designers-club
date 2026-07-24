@@ -222,7 +222,15 @@ Deno.serve(async (request) => {
           let markdown = rawOutput
             .replace(/^```(?:markdown|md)?\s*\n?/, "")
             .replace(/\n?```\s*$/, "")
+            // 去掉 thinking 模式的思考链：deepseek v4 pro 会把推理过程放在正文前面
+            .replace(/【思考】[\s\S]*?【\/思考】/g, "")
+            .replace(/【思考过程】[\s\S]*?【\/思考过程】/g, "")
             .trim();
+          // 如果标题前还有思考链残渣（不以 # 或 * 或数字开头的连续行），从第一个 # 标题开始截取
+          const headingMatch = markdown.match(/^#\s+/m);
+          if (headingMatch && headingMatch.index! > 0) {
+            markdown = markdown.slice(headingMatch.index!);
+          }
 
           if (!markdown) {
             // 空输出重试一次
@@ -238,7 +246,11 @@ Deno.serve(async (request) => {
             markdown = rawOutput
               .replace(/^```(?:markdown|md)?\s*\n?/, "")
               .replace(/\n?```\s*$/, "")
+              .replace(/【思考】[\s\S]*?【\/思考】/g, "")
+              .replace(/【思考过程】[\s\S]*?【\/思考过程】/g, "")
               .trim();
+            const hMatch = markdown.match(/^#\s+/m);
+            if (hMatch && hMatch.index! > 0) markdown = markdown.slice(hMatch.index!);
           }
 
           if (!markdown) throw new Error("AI 未返回任何内容，请重试。");
