@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  getAskHanModule,
   getHaiMemories,
   hasCompletedHaiProfileOnboarding,
   saveHaiProfileMemories,
@@ -30,7 +31,7 @@ vi.mock("@/db/hai-api", () => ({
   getHaiMemories: vi.fn().mockResolvedValue([]),
   getHaiMessages: vi.fn().mockResolvedValue([]),
   getHaiMessageFeedback: vi.fn().mockResolvedValue([]),
-  getHaiModules: vi.fn().mockResolvedValue([{
+  getAskHanModule: vi.fn().mockResolvedValue({
     id: "module-1",
     slug: "ask-han",
     name: "问问哈老师",
@@ -53,7 +54,7 @@ vi.mock("@/db/hai-api", () => ({
     knowledge_match_count: 5,
     sort_order: 1,
     is_enabled: true,
-  }]),
+  }),
   hasCompletedHaiProfileOnboarding: vi.fn().mockResolvedValue(true),
   redeemHaiInvite: vi.fn(),
   saveHaiProfileMemories: vi.fn().mockResolvedValue([]),
@@ -156,6 +157,24 @@ describe("HAI mobile chat shell", () => {
 
     unmount();
     expect(document.body).not.toHaveClass("hai-chat-active");
+  });
+
+  it("shows an explicit unavailable state when ask-han cannot be loaded", async () => {
+    vi.mocked(getAskHanModule).mockRejectedValueOnce(
+      new Error("“问问哈老师”当前未启用，请联系管理员检查模块和已发布 Skill。"),
+    );
+
+    render(
+      <MemoryRouter initialEntries={["/hai"]}>
+        <HaiPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("HAI 暂时不可用");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "“问问哈老师”当前未启用，请联系管理员检查模块和已发布 Skill。",
+    );
+    expect(screen.queryByLabelText("输入教学问题")).not.toBeInTheDocument();
   });
 });
 

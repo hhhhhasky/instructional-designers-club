@@ -1,5 +1,10 @@
-import { useEffect, useState } from "react";
-import { getHomePageSnapshot, type ClubStats, type HomeCourseBuckets } from "@/db/api";
+import { useMemo } from "react";
+import type {
+  ClubStats,
+  HomeCourseBuckets,
+  HomePageSnapshot,
+} from "@/db/api";
+import { useHomeSnapshot } from "@/hooks/useHomeSnapshot";
 import type { Course, MemberProfile, Faq, SiteContent, Testimonial } from "@/types/types";
 
 // 首页可变内容的统一读取入口（带兜底）。
@@ -221,7 +226,7 @@ const FALLBACK: HomeContent = {
 
 const d = (row: SiteContent | null | undefined): Record<string, unknown> => row?.data ?? {};
 
-function buildHomeContentFromSnapshot(snapshot: Awaited<ReturnType<typeof getHomePageSnapshot>>): HomeContent {
+function buildHomeContentFromSnapshot(snapshot: HomePageSnapshot): HomeContent {
   const siteContent = snapshot.site_content ?? {};
   const heroRow = siteContent.hero;
   const introRow = siteContent.introduction;
@@ -299,23 +304,11 @@ function buildHomeContentFromSnapshot(snapshot: Awaited<ReturnType<typeof getHom
 }
 
 export function useHomeContent(): HomeContent {
-  const [content, setContent] = useState<HomeContent>(FALLBACK);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const snapshot = await getHomePageSnapshot();
-        if (!cancelled) setContent(buildHomeContentFromSnapshot(snapshot));
-      } catch (error) {
-        console.error("加载首页内容快照失败:", error);
-        if (!cancelled) setContent({ ...FALLBACK, loaded: true, loadingHomeCourses: false });
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return content;
+  const { snapshot, loading, error } = useHomeSnapshot();
+  return useMemo(() => {
+    if (snapshot) return buildHomeContentFromSnapshot(snapshot);
+    if (loading) return FALLBACK;
+    if (error) console.error("加载首页内容快照失败:", error);
+    return { ...FALLBACK, loaded: true, loadingHomeCourses: false };
+  }, [error, loading, snapshot]);
 }

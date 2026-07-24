@@ -24,7 +24,7 @@ describe("HAI dashboard aggregation", () => {
     }];
     const traces: HaiTraceMessageRow[] = [
       traceMessage("trace-1", 80, true),
-      traceMessage("trace-2", 60, false),
+      legacyTraceMessage("trace-2", 60, false),
     ];
 
     const result = buildHaiDashboardData(events, alerts, traces, 7, new Date("2026-07-13T12:00:00.000Z"));
@@ -95,7 +95,9 @@ function traceMessage(id: string, score: number, pass: boolean): HaiTraceMessage
     id,
     created_at: "2026-07-13T10:00:00.000Z",
     metadata: {
-      hai_context_trace: {
+      hai_trace: {
+        trace_version: 2,
+        kind: "chat_skill",
         question: "公开课应该先改哪里？",
         intent_result: {
           primary_intent: "showcase_lesson_diagnosis",
@@ -106,6 +108,25 @@ function traceMessage(id: string, score: number, pass: boolean): HaiTraceMessage
         },
         diagnostic_module: "showcase_lesson_diagnosis",
         evaluation_result: { score, pass, problems: pass ? [] : ["建议不够聚焦"] },
+      },
+    },
+  };
+}
+
+function legacyTraceMessage(id: string, score: number, pass: boolean): HaiTraceMessageRow {
+  return {
+    id,
+    created_at: "2026-07-13T09:00:00.000Z",
+    metadata: {
+      hai_context_trace: {
+        question: "旧链路问题",
+        intent_result: {
+          primary_intent: "legacy",
+          scene: "daily_lesson",
+          user_goal: "diagnosis",
+          support_depth: "advice",
+        },
+        evaluation_result: { score, pass, problems: ["旧链路样本"] },
       },
     },
   };

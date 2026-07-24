@@ -18,11 +18,20 @@ import LockOverlay from '@/components/common/LockOverlay';
 import UpgradePopup from '@/components/common/UpgradePopup';
 import PageMeta from '@/components/common/PageMeta';
 import { useHomeContent } from '@/hooks/useHomeContent';
+import { HomeSnapshotProvider } from '@/hooks/useHomeSnapshot';
 import { getIcon, getColor, renderInline } from '@/lib/content-render';
 
 export default function HomePage() {
+  return (
+    <HomeSnapshotProvider>
+      <HomePageContent />
+    </HomeSnapshotProvider>
+  );
+}
+
+function HomePageContent() {
   const navigate = useNavigate();
-  const { user, accessLevel, profile, loading } = useAuth();
+  const { user, accessLevel, loading } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeLevel, setUpgradeLevel] = useState<'plus' | 'pro'>('plus');
   const content = useHomeContent();
@@ -49,7 +58,7 @@ export default function HomePage() {
     navigate(`/courses/${courseId}`);
   }, [navigate, user, accessLevel]);
 
-  const navItems = [
+  const guestNavItems = [
     { id: 'introduction', label: '俱乐部介绍' },
     { id: 'founder', label: '创始人介绍' },
     { id: 'free-courses', label: '免费课程' },
@@ -60,6 +69,12 @@ export default function HomePage() {
     { id: 'faq', label: '常见问题' },
     { id: 'join', label: '会员方案' },
   ];
+  const memberNavItems = [
+    { id: 'my-learning', label: '今日教研桌' },
+    { id: 'free-courses', label: '免费课程' },
+    { id: 'member-courses', label: '会员课程' },
+  ];
+  const navItems = user ? memberNavItems : guestNavItems;
 
   return (
     <>
@@ -71,43 +86,60 @@ export default function HomePage() {
       />
     <div className="min-h-screen bg-cream">
       <Header />
-      <PageNavigation items={navItems} />
-      {user && profile && !loading && (
+      {!loading && <PageNavigation items={navItems} />}
+      {user && !loading && (
         <>
           <MemberHomeHero />
           <NotificationCard />
         </>
       )}
-      {/* ========== Hero Section ========== */}
-      <section className="relative py-20 md:py-24 xl:py-40 px-4 overflow-hidden pt-28 md:pt-32 xl:pt-48 gradient-animate border-b-2 border-bd">
-        <div className="absolute top-20 right-10 w-72 h-72 bg-acl rounded-full blur-3xl pointer-events-none animate-pulse-slow" />
-        <div className="absolute bottom-20 left-10 w-96 h-96 bg-acl rounded-full blur-3xl pointer-events-none animate-pulse-slow" />
+      {!loading && !user && (
+        <>
+          {/* ========== 访客封面：教研编辑部 ========== */}
+          <section className="editorial-home-hero border-b border-bd px-4 pb-16 pt-28 md:pb-24 md:pt-36">
+            <div className="relative mx-auto grid max-w-6xl gap-10 md:grid-cols-[minmax(0,1fr)_220px] md:items-end">
+              <div className="animate-fade-in-up">
+                <span className="editorial-kicker">TEACHING DESIGN REVIEW · 会员学习与教研平台</span>
+                <h1
+                  className="mt-6 max-w-4xl text-4xl font-ds-black leading-[1.15] tracking-tight text-tx md:text-6xl xl:text-7xl"
+                  style={{ fontFamily: 'var(--fd)' }}
+                >
+                  {content.hero.title_line1}
+                  <br />
+                  <span className="text-ac">{content.hero.title_line2}</span>
+                </h1>
+                <p className="mt-6 max-w-3xl text-base font-medium leading-8 text-txs md:text-xl md:leading-9">
+                  {content.hero.subtitle}
+                </p>
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                  <Button asChild size="lg" className="bg-ac px-8 text-white shadow-none hover:bg-acd">
+                    <Link to="/courses">
+                      浏览课程目录
+                      <span className="ml-2" aria-hidden="true">→</span>
+                    </Link>
+                  </Button>
+                  <Button asChild size="lg" variant="outline" className="border-bd bg-[var(--paper)] px-8 hover:border-ac hover:bg-[var(--paper)]">
+                    <a href="#introduction">先认识俱乐部</a>
+                  </Button>
+                </div>
+              </div>
 
-        <div className="relative max-w-6xl mx-auto text-center space-y-6 md:space-y-10">
-          <div className="space-y-4 md:space-y-6 animate-fade-in-down">
-            <h1 className="text-4xl md:text-5xl xl:text-7xl font-ds-black text-tx tracking-tight leading-tight" style={{ fontFamily: 'var(--fd)' }}>
-              {content.hero.title_line1}
-              <br />
-              <span className="text-tx">{content.hero.title_line2}</span>
-            </h1>
-            <p className="text-lg md:text-2xl xl:text-3xl text-txs max-w-3xl mx-auto leading-relaxed font-medium">{content.hero.subtitle}</p>
-          </div>
+              <aside className="editorial-margin-note animate-fade-in" aria-label="本期导读">
+                <span className="editorial-stamp">本期导读</span>
+                <ol className="mt-5 space-y-4 text-sm text-txs">
+                  <li><span>01</span><strong>学习科学</strong></li>
+                  <li><span>02</span><strong>课堂设计</strong></li>
+                  <li><span>03</span><strong>教师 AI</strong></li>
+                </ol>
+                <p className="mt-6 border-t border-dashed border-bd pt-4 text-xs leading-6 text-txt">
+                  从教学判断出发，再选择方法与工具。
+                </p>
+              </aside>
+            </div>
+          </section>
 
-          <div className="flex flex-col items-center gap-3 md:gap-6 animate-fade-in-up">
-            <Button
-              size="lg"
-              className="btn-pill text-base md:text-xl xl:text-2xl px-8 md:px-12 xl:px-16 py-3 md:py-7 xl:py-8 bg-ac !text-white font-ds-bold hover:bg-acd shadow-ds-accent border-2 border-ac"
-              onClick={() => window.open(content.hero.cta_link, '_blank')}
-            >
-              {content.hero.cta_text}
-              <span className="ml-2">→</span>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* ========== 最新动态 / 上新信息流（R-P0-03）—— 仅未登录访客 ========== */}
-      {!loading && !user && <AnnouncementFeed variant="section" />}
+          {/* ========== 最新动态 / 上新信息流（R-P0-03）—— 仅未登录访客 ========== */}
+          <AnnouncementFeed variant="section" />
 
       {/* ========== 俱乐部介绍 ========== */}
       <section id="introduction" className="py-8 md:py-16 xl:py-24 px-4 bg-aml">
@@ -250,6 +282,8 @@ export default function HomePage() {
           </Card>
         </div>
       </section>
+        </>
+      )}
 
       {/* ========== 免费课程 ========== */}
       <section id="free-courses" className="py-8 md:py-16 xl:py-24 px-4 relative overflow-hidden bg-tll">
@@ -505,9 +539,11 @@ export default function HomePage() {
         </div>
       </section>
 
+      {!loading && !user && (
+        <>
       {/* ========== 俱乐部数据 ========== */}
       <section id="stats" className="py-8 md:py-16 xl:py-24 px-4 bg-acl relative overflow-hidden">
-        <div className="hidden md:block absolute top-16 right-16 w-20 h-20 rounded-full bg-ac/10 deco-circle animate-pulse-slow" />
+        <div className="hidden md:block absolute top-16 right-16 w-20 h-20 rounded-full bg-ac/10 deco-circle" />
         <div className="hidden md:block absolute bottom-16 left-16 w-16 h-16 rounded-full bg-tl/15 deco-circle" />
 
         <div className="max-w-6xl mx-auto relative">
@@ -621,23 +657,6 @@ export default function HomePage() {
             </CardContent>
           </Card>
 
-          {/* 立刻报名按钮 */}
-          <div className="mt-10 md:mt-16 text-center animate-fade-in-up">
-            <Button
-              size="lg"
-              className="btn-super-cta animate-glow-pulse text-base md:text-2xl xl:text-3xl px-8 md:px-16 xl:px-20 py-4 md:py-8 xl:py-10 !text-white font-ds-black rounded-full border-0 relative z-10"
-              onClick={() => window.open(content.membersMeta.cta_link, '_blank')}
-            >
-              <span className="relative z-10 flex items-center gap-2 md:gap-3">
-                <span>💎</span>
-                <span>{content.membersMeta.cta_text}</span>
-                <span className="text-xl md:text-2xl xl:text-3xl">→</span>
-              </span>
-            </Button>
-            <p className="text-sm md:text-base text-txs mt-3 md:mt-6 font-medium">
-              {content.membersMeta.cta_hint}
-            </p>
-          </div>
         </div>
       </section>
 
@@ -690,9 +709,11 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+        </>
+      )}
 
-      {/* 立即加入 - 产品档位展示 */}
-      <PricingSection />
+      {/* 游客的轻量会员说明固定在页面末端，会员不展示获客内容。 */}
+      {!loading && !user && <PricingSection />}
       <Footer />
       <UpgradePopup
         open={showUpgrade}

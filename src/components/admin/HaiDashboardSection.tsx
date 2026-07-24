@@ -27,7 +27,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   getAdminHaiDashboard,
-  rollbackHaiDailyReview,
   triggerHaiDailyReview,
   type HaiDashboardData,
   type HaiDashboardRangeDays,
@@ -52,7 +51,6 @@ export default function HaiDashboardSection() {
   const [error, setError] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [reviewing, setReviewing] = useState(false);
-  const [rollingBack, setRollingBack] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -112,20 +110,6 @@ export default function HaiDashboardSection() {
     }
   }
 
-  async function rollbackLatestReview() {
-    if (!latestReview || rollingBack) return;
-    setRollingBack(true);
-    setError("");
-    try {
-      await rollbackHaiDailyReview(latestReview.run_date);
-      setRefreshKey((key) => key + 1);
-    } catch {
-      setError("回滚失败，请检查该次复盘的发布前快照。");
-    } finally {
-      setRollingBack(false);
-    }
-  }
-
   return (
     <div className="space-y-6">
       <section className="relative overflow-hidden rounded-ds-xl bg-[#244f48] p-5 text-white shadow-ds-lg md:p-7">
@@ -181,19 +165,13 @@ export default function HaiDashboardSection() {
           <div>
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-ac" />
-              <h3 className="text-ds-lg font-ds-black text-tx">每日复盘与受控迭代</h3>
+              <h3 className="text-ds-lg font-ds-black text-tx">每日复盘与 Skill 草稿</h3>
             </div>
             <p className="mt-1 text-ds-xs leading-relaxed text-txs">
-              每天 00:05 复盘前一日全部 HAI 回答；点踩优先。仅低风险且反事实 A/B 提分的表达层改动自动上线，核心边界与路由只生成待审核候选。
+              每天 00:05 复盘前一日 HAI 回答，点踩与低分样本优先；有明确改进时生成待审核 Skill 草稿，已发布版本不会被自动改写。
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {latestReview?.publish_mode === "gated_auto" && (
-              <Button variant="outline" disabled={rollingBack} onClick={() => void rollbackLatestReview()}>
-                {rollingBack ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {rollingBack ? "回滚中" : "回滚最近自动发布"}
-              </Button>
-            )}
             <Button variant="outline" disabled={reviewing} onClick={() => void runReviewNow()}>
               {reviewing ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
               {reviewing ? "复盘执行中" : "立即复盘昨日"}
@@ -207,7 +185,7 @@ export default function HaiDashboardSection() {
             <ReviewMetric label="复盘回答" value={`${latestReview.turns_evaluated}`} note={`低分 ${latestReview.low_score_count} 条`} />
             <ReviewMetric label="严格评分" value={latestReview.average_score == null ? "-" : `${latestReview.average_score}`} note={latestReview.pass_rate == null ? "尚无通过率" : `通过率 ${Math.round(latestReview.pass_rate * 100)}%`} />
             <ReviewMetric label="用户反馈" value={`${latestReview.positive_feedback_count}/${latestReview.negative_feedback_count}`} note="点赞 / 点踩" />
-            <ReviewMetric label="发布结果" value={publishModeLabel(latestReview.publish_mode)} note={latestReview.note || latestReview.error_message || "无备注"} />
+            <ReviewMetric label="复盘结果" value={reviewResultLabel(latestReview.status, latestReview.publish_mode)} note={latestReview.note || latestReview.error_message || "无备注"} />
           </div>
         ) : (
           <p className="mt-5 rounded-ds-md bg-bg px-4 py-8 text-center text-ds-sm text-txs">尚无每日复盘记录，部署后可先手动补跑昨日。</p>
@@ -217,7 +195,7 @@ export default function HaiDashboardSection() {
           <div className="mt-4 overflow-x-auto">
             <table className="w-full min-w-[760px] text-left text-ds-sm">
               <thead className="text-txs">
-                <tr className="border-b border-bd"><th className="py-2">日期</th><th>状态</th><th className="text-right">回答</th><th className="text-right">均分</th><th className="text-right">低分</th><th>发布</th><th>结论</th></tr>
+                <tr className="border-b border-bd"><th className="py-2">日期</th><th>状态</th><th className="text-right">回答</th><th className="text-right">均分</th><th className="text-right">低分</th><th>结果</th><th>结论</th></tr>
               </thead>
               <tbody>
                 {data.daily_reviews.slice(0, 7).map((run) => (
@@ -227,7 +205,7 @@ export default function HaiDashboardSection() {
                     <td className="text-right text-txs">{run.turns_evaluated}</td>
                     <td className="text-right text-tx">{run.average_score ?? "-"}</td>
                     <td className="text-right text-red-600">{run.low_score_count}</td>
-                    <td className="text-txs">{publishModeLabel(run.publish_mode)}</td>
+                    <td className="text-txs">{reviewResultLabel(run.status, run.publish_mode)}</td>
                     <td className="max-w-sm truncate text-txs">{run.error_message || run.note || "-"}</td>
                   </tr>
                 ))}
@@ -459,8 +437,12 @@ function reviewStatusLabel(status: "running" | "completed" | "failed" | "skipped
   return { running: "执行中", completed: "已完成", failed: "失败", skipped: "已跳过" }[status];
 }
 
-function publishModeLabel(mode: "none" | "pending" | "gated_auto" | "manual" | "rolled_back") {
-  return { none: "未改动", pending: "待审核", gated_auto: "门禁自动发布", manual: "人工发布", rolled_back: "已回滚" }[mode];
+function reviewResultLabel(status: string, mode: string) {
+  if (status === "failed") return "失败";
+  if (mode === "draft" || mode === "pending") return "待人工审查草稿";
+  if (mode === "manual") return "已人工发布";
+  if (mode === "none") return "仅报告";
+  return "历史记录";
 }
 
 function RankMark({ rank }: { rank: number }) {

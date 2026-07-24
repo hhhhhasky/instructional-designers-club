@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createClient } from "@supabase/supabase-js";
+import { readHaiTrace } from "./lib/hai-trace.mjs";
 
 const ROOT = process.cwd();
 const OUTPUT_DIR = join(ROOT, "docs", "hai-quality-runs");
@@ -312,7 +313,7 @@ async function loadTrace(messageId) {
     .eq("id", messageId)
     .maybeSingle();
   if (error) throw error;
-  return data?.metadata?.hai_context_trace ?? null;
+  return readHaiTrace(data?.metadata);
 }
 
 async function evaluateAnswer(testCase, answer) {

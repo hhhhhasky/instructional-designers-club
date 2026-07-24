@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { ClipboardPenLine, MapPinned, MessageSquareText, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import EmptyLearningState from "@/components/learning/EmptyLearningState";
@@ -78,12 +78,12 @@ export default function MemberHomeHero() {
     return (
       <section
         id="my-learning"
-        className="pt-20 md:pt-24 pb-6 md:pb-8 px-4 bg-acl scroll-mt-32"
+        className="editorial-desk-section scroll-mt-32 px-4 pb-8 pt-20 md:pb-10 md:pt-24"
       >
-        <div className="max-w-6xl mx-auto text-center">
-          <p className="text-ds-base font-ds-bold text-tx mb-1">
-            👋 Hi {nickname}，欢迎回来
-          </p>
+        <div className="editorial-paper mx-auto max-w-6xl p-6 text-center">
+          <span className="editorial-kicker">TODAY'S DESK · 今日教研桌</span>
+          <p className="mb-2 mt-3 text-ds-base font-ds-bold text-tx">Hi {nickname}，欢迎回来</p>
+          <p className="mb-3 text-xs text-txs">学习数据暂时未能载入，你仍可继续进入课程与教研工具。</p>
           <Link
             to="/learning"
             className="text-ds-sm text-ac font-ds-semibold hover:underline"
@@ -117,36 +117,46 @@ export default function MemberHomeHero() {
   return (
     <section
       id="my-learning"
-      className="pt-20 md:pt-24 pb-6 md:pb-8 px-4 bg-acl scroll-mt-32"
+      className="editorial-desk-section scroll-mt-32 px-4 pb-8 pt-20 md:pb-10 md:pt-24"
     >
-      <div className="max-w-6xl mx-auto">
+      <div className="editorial-paper mx-auto max-w-6xl p-5 md:p-8">
         {/* 欢迎栏 */}
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-2 mb-4 md:mb-6 animate-fade-in">
+        <div className="mb-5 flex animate-fade-in flex-col gap-3 border-b border-dashed border-bd pb-5 md:mb-7 md:flex-row md:items-end md:justify-between md:pb-6">
           <div>
+            <span className="editorial-kicker">TODAY'S DESK · 今日教研桌</span>
             <h2
-              className="text-ds-lg md:text-ds-xl font-ds-black text-tx"
+              className="mt-3 text-ds-lg font-ds-black text-tx md:text-ds-xl"
               style={{ fontFamily: "var(--fd)" }}
             >
-              👋 Hi {nickname}，欢迎回来
+              Hi {nickname}，今天从哪里继续？
             </h2>
-            <p className="text-ds-sm text-txs mt-1">继续你的教学设计精进之旅</p>
+            <p className="mt-1 text-ds-sm text-txs">课程、咨询与教研产物，都在这张桌上接续。</p>
             {gamificationSnapshot && (
               <p className="text-ds-sm text-tx mt-2 max-w-2xl">
                 {gamificationSnapshot.statusLine}
               </p>
             )}
-            <Link
-              to="/learning-map"
-              className="text-ds-sm text-ac font-ds-semibold hover:underline mt-2 inline-block"
-            >
-              🗺️ 学习地图 →
-            </Link>
           </div>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-ds-pill text-ds-xs font-ds-bold bg-white text-ac border border-ac/20 self-start md:self-auto">
+          <span className="editorial-stamp inline-flex items-center gap-1.5 self-start md:self-auto">
             <Sparkles className="w-3.5 h-3.5" />
             {levelLabel}
           </span>
         </div>
+
+        <nav className="mb-6 grid gap-2 sm:grid-cols-3" aria-label="今日教研快捷入口">
+          <Link to="/learning-map" className="editorial-desk-link">
+            <MapPinned className="h-4 w-4 text-ac" aria-hidden="true" />
+            <span><strong>学习地图</strong><small>查看课程进度</small></span>
+          </Link>
+          <Link to="/hai/chat" className="editorial-desk-link">
+            <MessageSquareText className="h-4 w-4 text-tl" aria-hidden="true" />
+            <span><strong>问问哈老师</strong><small>诊断一个教学问题</small></span>
+          </Link>
+          <Link to="/hai/work" className="editorial-desk-link">
+            <ClipboardPenLine className="h-4 w-4 text-am" aria-hidden="true" />
+            <span><strong>HAI Work</strong><small>继续教研产物</small></span>
+          </Link>
+        </nav>
 
         {/* 加载中：局部 spinner，不用全屏 LoadingOverlay */}
         {loading && (

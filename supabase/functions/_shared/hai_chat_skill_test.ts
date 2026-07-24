@@ -143,18 +143,29 @@ Deno.test("chat skill trace records the exact published version and selected car
     question,
     intent: classifyIntent(question),
     methodCards: hanCourseMethodCards,
+    memorySelection: {
+      should_load_memory: false,
+      memory_types: [],
+      reason: "test",
+    },
     memoryLoaded: false,
+    evaluation: null,
   });
   if (
-    trace.mode !== "skill" || trace.version_id !== "version-1" ||
-    trace.snapshot_hash !== "snapshot-hash-1"
+    trace.trace_version !== 2 || trace.mode !== "skill" ||
+    trace.skill.version.id !== "version-1" ||
+    trace.skill.version.snapshot_hash !== "snapshot-hash-1"
   ) {
     throw new Error("skill version trace is incomplete");
   }
   if (trace.method_card_ids.length === 0) {
     throw new Error("skill trace did not record method card selection");
   }
-  if (!trace.reference_paths.includes("references/question-chain.md")) {
+  if (
+    !trace.references.some((reference) =>
+      reference.path === "references/question-chain.md"
+    )
+  ) {
     throw new Error("skill trace did not record selected references");
   }
 });

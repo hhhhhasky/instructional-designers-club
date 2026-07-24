@@ -38,6 +38,7 @@ import TeacherAiCatalogToc from '@/components/course/TeacherAiCatalogToc';
 import PlusCatalogToc from '@/components/course/PlusCatalogToc';
 import CourseQuestionsPanel from '@/components/course/CourseQuestionsPanel';
 import CoursePasswordGate from '@/components/course/CoursePasswordGate';
+import { CourseReadingProgress } from '@/components/course/CourseEditorialShell';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import {
   CourseContentAccessError,
@@ -567,6 +568,7 @@ export default function CourseDetailPage() {
 
   // 纯文本/图集课：手动标记完成（乐观更新本地状态，学习记录已落库）
   const isCurrentCompleted = manuallyMarked || getStatus(course.id) === 'completed';
+  const currentCourseProgress = isCurrentCompleted ? 100 : getProgress(course.id);
   const isProCourse = course.membership_type === 'pro';
   const hasTeacherAiCatalog = isProCourse && teacherAiCatalog.categories.length > 0;
   const isPlusCourse = course.membership_type === 'plus';
@@ -622,13 +624,17 @@ export default function CourseDetailPage() {
           keywords={course.category || undefined}
         />
       )}
-    <div className="min-h-screen bg-cream flex flex-col lg:h-dvh lg:min-h-0 lg:overflow-hidden">
+    <div className="course-reading-desk min-h-screen flex flex-col lg:h-dvh lg:min-h-0 lg:overflow-hidden">
       <Header />
 
-      <main className="flex-1 pt-20 pb-ds-11 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden lg:pb-4">
+      <main
+        data-testid="course-reading-desk"
+        className="flex-1 pt-20 pb-ds-11 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden lg:pb-4"
+      >
         {/* Breadcrumb — 不用动画，避免叠层上下文问题 */}
-        <div className="max-w-7xl mx-auto w-full px-4 pt-5 pb-1 lg:flex-none">
-          <div className="flex items-center gap-1.5 text-sm text-tx/60">
+        <div className="max-w-7xl mx-auto w-full px-4 pt-5 pb-2 lg:flex-none">
+          <span className="editorial-kicker">READING DESK · 课程阅读桌</span>
+          <div className="mt-2 flex items-center gap-1.5 text-sm text-tx/60" aria-label="课程位置">
             <button
               onClick={handleBack}
               className="inline-flex items-center gap-1 hover:text-ac transition-colors group"
@@ -673,9 +679,12 @@ export default function CourseDetailPage() {
                 style={{ width: tocOpen ? 260 : 48 }}
               >
                 {tocOpen ? (
-                  <div className="bg-bc rounded-lg border border-bd shadow-ds-elegant overflow-hidden h-full min-h-0 flex flex-col">
-                    <div className="flex items-center justify-between px-3 py-3 border-b border-bdl bg-warm/30">
-                      <h3 className="font-bold text-tx text-sm">教师AI课目录</h3>
+                  <div className="course-editorial-toc !max-h-none h-full min-h-0 !p-0 flex flex-col">
+                    <div className="flex items-center justify-between px-3 py-3 border-b border-dashed border-bd bg-[var(--paper-deep)]">
+                      <div>
+                        <span className="editorial-kicker">CONTENTS</span>
+                        <h3 className="font-bold text-tx text-sm">教师AI课目录</h3>
+                      </div>
                       <button
                         type="button"
                         onClick={() => setTocOpen(false)}
@@ -698,7 +707,7 @@ export default function CourseDetailPage() {
                   <button
                     type="button"
                     onClick={() => setTocOpen(true)}
-                    className="w-12 h-full min-h-[120px] bg-bc rounded-lg border border-bd shadow-ds-elegant py-3 flex flex-col items-center gap-2 text-txs hover:text-amber-700 transition-colors"
+                    className="w-12 h-full min-h-[120px] bg-[var(--paper)] rounded-lg border border-bd shadow-ds-sm py-3 flex flex-col items-center gap-2 text-txs hover:text-ac transition-colors"
                     aria-label="展开目录"
                   >
                     <PanelLeftOpen className="w-5 h-5" />
@@ -715,9 +724,12 @@ export default function CourseDetailPage() {
                 style={{ width: tocOpen ? 260 : 48 }}
               >
                 {tocOpen ? (
-                  <div className="bg-bc rounded-lg border border-bd shadow-ds-elegant overflow-hidden h-full min-h-0 flex flex-col">
-                    <div className="flex items-center justify-between px-3 py-3 border-b border-bdl bg-warm/30">
-                      <h3 className="font-bold text-tx text-sm">教学通识课目录</h3>
+                  <div className="course-editorial-toc !max-h-none h-full min-h-0 !p-0 flex flex-col">
+                    <div className="flex items-center justify-between px-3 py-3 border-b border-dashed border-bd bg-[var(--paper-deep)]">
+                      <div>
+                        <span className="editorial-kicker">CONTENTS</span>
+                        <h3 className="font-bold text-tx text-sm">教学通识课目录</h3>
+                      </div>
                       <button
                         type="button"
                         onClick={() => setTocOpen(false)}
@@ -740,7 +752,7 @@ export default function CourseDetailPage() {
                   <button
                     type="button"
                     onClick={() => setTocOpen(true)}
-                    className="w-12 h-full min-h-[120px] bg-bc rounded-lg border border-bd shadow-ds-elegant py-3 flex flex-col items-center gap-2 text-txs hover:text-ac transition-colors"
+                    className="w-12 h-full min-h-[120px] bg-[var(--paper)] rounded-lg border border-bd shadow-ds-sm py-3 flex flex-col items-center gap-2 text-txs hover:text-ac transition-colors"
                     aria-label="展开目录"
                   >
                     <PanelLeftOpen className="w-5 h-5" />
@@ -755,7 +767,7 @@ export default function CourseDetailPage() {
               data-testid="course-detail-scroll-region"
               className="flex-1 min-w-0 lg:h-full lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pb-6 lg:[scrollbar-gutter:stable]"
             >
-              <div className="bg-bc rounded-ds-lg border border-bd shadow-ds-elegant overflow-hidden">
+              <div className="course-reading-paper">
 
                 {/* Hero Video */}
                 <div className="relative bg-black">
@@ -915,7 +927,10 @@ export default function CourseDetailPage() {
                 <div className="p-6 md:p-8">
 
                   {/* Title */}
-                  <h1 className="text-2xl md:text-3xl font-black text-tx font-serif leading-tight">
+                  <span className="editorial-kicker">
+                    LESSON {String(currentPosition).padStart(2, '0')} · {courseCollectionLabel}
+                  </span>
+                  <h1 className="mt-2 text-2xl md:text-3xl font-black text-tx font-serif leading-tight">
                     {course.title}
                   </h1>
 
@@ -939,13 +954,20 @@ export default function CourseDetailPage() {
                     )}
                   </div>
 
+                  <CourseReadingProgress
+                    current={currentPosition}
+                    total={siblingCourses.length}
+                    progress={currentCourseProgress}
+                    completed={isCurrentCompleted}
+                  />
+
                   {/* Description */}
                   <section className="pt-7 pb-6 border-b border-bdl">
                     <h2 className="text-xl font-bold text-tx font-serif mb-3 flex items-center gap-2">
                       <BookOpen className="w-4 h-4 text-ac" />
                       课程简介
                     </h2>
-                    <div className="bg-bgs rounded-md p-5">
+                    <div className="border-l-2 border-ac/35 bg-[var(--paper-deep)] p-5">
                       <p className="text-lg text-tx leading-relaxed whitespace-pre-wrap font-body">
                         {course.description || '本课程将帮助您深入理解教学设计的核心概念和实践方法，通过系统化的学习，掌握AI时代的教学设计技能。'}
                       </p>
@@ -1055,9 +1077,10 @@ export default function CourseDetailPage() {
                 data-testid="desktop-course-catalog"
                 className="hidden lg:block w-72 flex-shrink-0 lg:h-full lg:min-h-0"
               >
-                <div className="bg-bc rounded-lg border border-bd shadow-ds-elegant overflow-hidden h-full min-h-0 flex flex-col">
+                <div className="course-editorial-toc !max-h-none h-full min-h-0 !p-0 flex flex-col">
                   {/* Sidebar Header */}
-                  <div className="px-4 py-3 border-b border-bdl bg-warm/30">
+                  <div className="px-4 py-3 border-b border-dashed border-bd bg-[var(--paper-deep)]">
+                    <span className="editorial-kicker">CONTENTS</span>
                     <h3 className="font-bold text-tx text-sm flex items-center gap-2">
                       <List className="w-4 h-4 text-ac" />
                       {courseCollectionLabel}
@@ -1132,7 +1155,8 @@ export default function CourseDetailPage() {
             <Sheet open={mobileTocOpen} onOpenChange={setMobileTocOpen}>
               <SheetContent side="left" className="w-72 p-0">
                 <div className="flex flex-col h-full">
-                  <div className="px-4 py-3 border-b border-bdl bg-warm/30">
+                  <div className="px-4 py-3 border-b border-dashed border-bd bg-[var(--paper-deep)]">
+                    <span className="editorial-kicker">CONTENTS</span>
                     <SheetTitle className="text-sm font-bold text-tx">教师AI课目录</SheetTitle>
                     <SheetDescription className="sr-only">教师AI课全部系列与单课导航</SheetDescription>
                   </div>
@@ -1157,7 +1181,8 @@ export default function CourseDetailPage() {
             <Sheet open={mobileTocOpen} onOpenChange={setMobileTocOpen}>
               <SheetContent side="left" className="w-72 p-0">
                 <div className="flex flex-col h-full">
-                  <div className="px-4 py-3 border-b border-bdl bg-warm/30">
+                  <div className="px-4 py-3 border-b border-dashed border-bd bg-[var(--paper-deep)]">
+                    <span className="editorial-kicker">CONTENTS</span>
                     <SheetTitle className="text-sm font-bold text-tx">教学通识课目录</SheetTitle>
                     <SheetDescription className="sr-only">教学通识课全部篇章、模块与单课导航</SheetDescription>
                   </div>
@@ -1182,7 +1207,8 @@ export default function CourseDetailPage() {
             <Sheet open={mobileTocOpen} onOpenChange={setMobileTocOpen}>
               <SheetContent side="left" className="w-72 p-0">
                 <div className="flex flex-col h-full">
-                  <div className="px-4 py-3 border-b border-bdl bg-warm/30">
+                  <div className="px-4 py-3 border-b border-dashed border-bd bg-[var(--paper-deep)]">
+                    <span className="editorial-kicker">CONTENTS</span>
                     <SheetTitle className="text-sm font-bold text-tx">{courseCollectionLabel}</SheetTitle>
                     <SheetDescription className="sr-only">当前系列全部课程导航</SheetDescription>
                     <p className="text-xs text-txs mt-1">共 {siblingCourses.length} 节课程</p>
@@ -1242,7 +1268,7 @@ export default function CourseDetailPage() {
         data-testid="mobile-course-navigation"
         className="fixed inset-x-0 bottom-0 z-40 pb-safe md:hidden"
       >
-        <div className="absolute inset-0 bg-bc/95 backdrop-blur-xl border-t border-bd shadow-[0_-4px_20px_rgba(0,0,0,0.10)]" />
+        <div className="absolute inset-0 bg-[rgba(255,253,248,0.95)] backdrop-blur-xl border-t border-bd shadow-[0_-4px_20px_rgba(74,55,40,0.10)]" />
         <div className="relative h-16 px-3 flex items-center justify-between gap-3">
           <button
             type="button"

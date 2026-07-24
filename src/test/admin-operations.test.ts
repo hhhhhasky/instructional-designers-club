@@ -118,6 +118,7 @@ function sourceFixture(): OperationsDashboardSource {
       recent_events: [],
       alerts: [],
       recent_traces: [],
+      daily_reviews: [],
     },
     maintenance: {
       published_courses: 20,

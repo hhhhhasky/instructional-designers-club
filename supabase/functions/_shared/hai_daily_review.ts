@@ -23,8 +23,8 @@ export type DailyReviewEvaluation = {
   target_layer: string;
 };
 
-export type PromptCandidate = {
-  key: string;
+export type SkillFileCandidate = {
+  target_path: string;
   proposed_content: string;
   reason: string;
   risk: "low" | "medium" | "high";
@@ -45,10 +45,6 @@ const WEIGHTS: DailyReviewScores = {
   style: 0.10,
   brevity: 0.05,
 };
-
-// R12/R13 当前实际注入链路里，只有 style_pack 是低风险、热生效且不改变
-// 身份/事实边界/语义路由的层。其余层可以生成候选，但必须人工审核。
-export const AUTO_PUBLISH_PROMPT_KEYS = new Set(["style_pack"]);
 
 export function previousShanghaiDayWindow(now = new Date()): ReviewWindow {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -114,17 +110,18 @@ export function normalizeEvaluation(
   };
 }
 
-export function normalizeCandidate(value: unknown): PromptCandidate | null {
+export function normalizeSkillFileCandidate(
+  value: unknown,
+): SkillFileCandidate | null {
   const record = asRecord(value);
-  const key = text(record.key);
+  const targetPath = text(record.target_path);
   const proposedContent = text(record.proposed_content);
-  if (!key || !proposedContent) return null;
+  if (!targetPath || !proposedContent) return null;
   const riskValue = text(record.risk);
-  const risk: PromptCandidate["risk"] = riskValue === "low" || riskValue === "medium"
-    ? riskValue
-    : "high";
+  const risk: SkillFileCandidate["risk"] =
+    riskValue === "low" || riskValue === "medium" ? riskValue : "high";
   return {
-    key,
+    target_path: targetPath,
     proposed_content: proposedContent,
     reason: text(record.reason) || "根据每日低分样本生成。",
     risk,
@@ -132,28 +129,35 @@ export function normalizeCandidate(value: unknown): PromptCandidate | null {
   };
 }
 
-export function validateCandidate(
-  candidate: PromptCandidate,
-  currentContent: string,
-): { valid: boolean; autoPublishable: boolean; reasons: string[] } {
+export function validateSkillFileCandidate(
+  candidate: SkillFileCandidate,
+  currentFiles: Record<string, string>,
+): { valid: boolean; reasons: string[] } {
   const reasons: string[] = [];
   const proposed = candidate.proposed_content.trim();
-  const current = currentContent.trim();
-  if (!current) reasons.push("当前配置为空，不能自动覆盖。");
-  if (proposed.length < 80) reasons.push("候选内容过短，可能丢失原有约束。");
-  if (proposed.length > Math.max(600, current.length * 1.25)) {
-    reasons.push("候选内容膨胀超过 25%。");
+  const current = currentFiles[candidate.target_path]?.trim() ?? "";
+  if (
+    candidate.target_path !== "SKILL.md" &&
+    !candidate.target_path.startsWith("references/")
+  ) {
+    reasons.push("候选只能修改 SKILL.md 或既有 references 文件。");
   }
-  if (proposed === current) reasons.push("候选与当前配置相同。");
+  if (!current) reasons.push("目标文件不存在或为空，不能生成替换草稿。");
+  if (candidate.evidence_message_ids.length === 0) {
+    reasons.push("候选没有绑定任何低分证据。");
+  }
+  if (proposed.length < 80) reasons.push("候选内容过短，可能丢失原有约束。");
+  if (current && proposed.length < current.length * 0.75) {
+    reasons.push("候选内容缩减超过 25%，可能丢失原有约束。");
+  }
+  if (proposed.length > Math.max(1000, current.length * 1.5)) {
+    reasons.push("候选内容膨胀超过 50%。");
+  }
+  if (current && proposed === current) reasons.push("候选与当前文件相同。");
   if (/api[ _-]?key|service[_ -]?role|系统提示词全文|忽略.{0,8}(?:规则|指令)/i.test(proposed)) {
     reasons.push("候选包含敏感实现词或提示词注入模式。");
   }
-  const valid = reasons.length === 0;
-  return {
-    valid,
-    autoPublishable: valid && candidate.risk === "low" && AUTO_PUBLISH_PROMPT_KEYS.has(candidate.key),
-    reasons,
-  };
+  return { valid: reasons.length === 0, reasons };
 }
 
 export function summarizeEvaluations(evaluations: DailyReviewEvaluation[]) {
@@ -170,10 +174,9 @@ export function summarizeEvaluations(evaluations: DailyReviewEvaluation[]) {
   };
 }
 
-export function calculateAbGate(params: {
+export function compareEvaluationSets(params: {
   baseline: DailyReviewEvaluation[];
   candidate: DailyReviewEvaluation[];
-  minimumImprovement: number;
 }) {
   const baseline = summarizeEvaluations(params.baseline);
   const candidate = summarizeEvaluations(params.candidate);
@@ -182,8 +185,6 @@ export function calculateAbGate(params: {
     Number(candidate.dimensionScores[dimension]) < Number(baseline.dimensionScores[dimension]) - 2
   );
   return {
-    passed: improvement >= params.minimumImprovement &&
-      candidate.passRate >= baseline.passRate && regressedDimensions.length === 0,
     improvement,
     baseline,
     candidate,

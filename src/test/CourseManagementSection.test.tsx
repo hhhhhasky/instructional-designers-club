@@ -139,11 +139,9 @@ const makeCourse = (overrides: Partial<Course> = {}): Course => ({
 });
 
 describe('CourseManagementSection', () => {
-  let openSpy: ReturnType<typeof vi.spyOn>;
-
   beforeEach(() => {
     vi.clearAllMocks();
-    openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    vi.spyOn(window, 'open').mockImplementation(() => null);
     vi.mocked(getAdminCourseList).mockResolvedValue([makeCourse()]);
     vi.mocked(getAdminCourseCategories).mockResolvedValue([
       { id: 'cat-shuoke', name: '说课篇', sort_order: 1, is_active: true, plus_track_id: 'theory' },
@@ -409,6 +407,6 @@ describe('CourseManagementSection', () => {
     await user.selectOptions(screen.getByLabelText('筛选 Plus 篇章'), 'scenarios');
     await user.click(screen.getByRole('button', { name: '预览结构' }));
 
-    expect(openSpy).toHaveBeenCalledWith('/courses/plus/scenarios', '_blank');
+    expect(window.open).toHaveBeenCalledWith('/courses/plus/scenarios', '_blank');
   });
 });

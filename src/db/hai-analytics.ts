@@ -95,7 +95,10 @@ export interface HaiDailyReviewRun {
   issues_found: Array<Record<string, unknown>>;
   changes_applied: Array<Record<string, unknown>>;
   changes_pending: Array<Record<string, unknown>>;
-  publish_mode: "none" | "pending" | "gated_auto" | "manual" | "rolled_back";
+  publish_mode: "none" | "draft" | "pending" | "gated_auto" | "manual" | "rolled_back";
+  baseline_skill_version_id: string | null;
+  candidate_skill_version_id: string | null;
+  candidate_comparison: Record<string, unknown>;
   note: string | null;
   error_message: string | null;
   completed_at: string | null;
@@ -135,7 +138,7 @@ const MAX_EVENT_PAGES = 20;
 export async function getAdminHaiDashboard(rangeDays: HaiDashboardRangeDays): Promise<HaiDashboardData> {
   const now = new Date();
   const since = startOfRange(rangeDays, now).toISOString();
-  const [events, alertResult, traceResult, reviewResult] = await Promise.all([
+  const [events, alertResult, traceResult, dailyReviews] = await Promise.all([
     fetchUsageEvents(since),
     supabase
       .from("hai_usage_alerts")
@@ -150,16 +153,11 @@ export async function getAdminHaiDashboard(rangeDays: HaiDashboardRangeDays): Pr
       .gte("created_at", since)
       .order("created_at", { ascending: false })
       .limit(1000),
-    supabase
-      .from("hai_optimization_log")
-      .select("id, run_date, status, turns_evaluated, average_score, pass_rate, low_score_count, positive_feedback_count, negative_feedback_count, issues_found, changes_applied, changes_pending, publish_mode, note, error_message, completed_at, created_at")
-      .order("run_date", { ascending: false })
-      .limit(14),
+    fetchDailyReviews(),
   ]);
 
   if (alertResult.error) throw alertResult.error;
   if (traceResult.error) throw traceResult.error;
-  if (reviewResult.error) throw reviewResult.error;
 
   return buildHaiDashboardData(
     events,
@@ -167,21 +165,13 @@ export async function getAdminHaiDashboard(rangeDays: HaiDashboardRangeDays): Pr
     (traceResult.data as HaiTraceMessageRow[]) ?? [],
     rangeDays,
     now,
-    (reviewResult.data as HaiDailyReviewRun[]) ?? [],
+    dailyReviews,
   );
 }
 
 export async function triggerHaiDailyReview(runDate?: string) {
   const { data, error } = await supabase.functions.invoke("hai-daily-review", {
     body: { trigger: "admin", force: true, ...(runDate ? { runDate } : {}) },
-  });
-  if (error) throw error;
-  return data as Record<string, unknown>;
-}
-
-export async function rollbackHaiDailyReview(runDate: string) {
-  const { data, error } = await supabase.functions.invoke("hai-daily-review", {
-    body: { action: "rollback", runDate },
   });
   if (error) throw error;
   return data as Record<string, unknown>;
@@ -208,6 +198,24 @@ async function fetchUsageEvents(since: string): Promise<HaiUsageEventRow[]> {
   }
 
   return rows;
+}
+
+async function fetchDailyReviews(): Promise<HaiDailyReviewRun[]> {
+  const { data, error } = await supabase
+    .from("hai_optimization_log")
+    .select("id, run_date, status, turns_evaluated, average_score, pass_rate, low_score_count, positive_feedback_count, negative_feedback_count, issues_found, changes_applied, changes_pending, publish_mode, baseline_skill_version_id, candidate_skill_version_id, candidate_comparison, note, error_message, completed_at, created_at")
+    .order("run_date", { ascending: false })
+    .limit(14);
+
+  if (error) {
+    // 容错：daily-review 历史只是看板的辅助面板。远端 schema 可能因待应用迁移
+    // 暂时缺少新增列（如 baseline_skill_version_id 等），不应让整张运营数据看板随之崩掉。
+    // 失败时降级为空列表，待迁移应用后自动恢复。
+    console.warn("getAdminHaiDashboard: daily-review query failed, degrading to empty list.", error);
+    return [];
+  }
+
+  return (data as HaiDailyReviewRun[]) ?? [];
 }
 
 export function buildHaiDashboardData(
@@ -361,25 +369,54 @@ function toDateKey(date: Date) {
 }
 
 function toTrace(message: HaiTraceMessageRow): HaiRecentTrace | null {
-  const trace = recordOf(message.metadata.hai_context_trace);
+  const trace = normalizedTraceOf(message.metadata);
   if (!trace) return null;
-  const intent = recordOf(trace.intent_result);
-  const evaluation = recordOf(trace.evaluation_result);
+  const intent = trace.intent;
+  const evaluation = trace.evaluation;
   return {
     id: message.id,
-    question: stringOf(trace.question) || "无问题文本",
+    question: trace.question || "无问题文本",
     intent: stringOf(intent?.primary_intent) || "unknown",
     scene: stringOf(intent?.scene) || "unclear",
     user_goal: stringOf(intent?.user_goal) || "unclear",
     support_depth: stringOf(intent?.support_depth) || "advice",
     route_method: stringOf(intent?.route_method) || "-",
-    diagnostic_module: stringOf(trace.diagnostic_module) || "-",
+    diagnostic_module: trace.diagnosticModule || "-",
     score: numberOf(evaluation?.score),
     passed: typeof evaluation?.pass === "boolean" ? evaluation.pass : null,
     problems: Array.isArray(evaluation?.problems)
       ? evaluation.problems.filter((item): item is string => typeof item === "string")
       : [],
     created_at: message.created_at,
+  };
+}
+
+function normalizedTraceOf(metadata: Record<string, unknown>) {
+  const current = recordOf(metadata.hai_trace);
+  if (current) {
+    return {
+      question: stringOf(current.question),
+      intent: recordOf(current.intent_result),
+      evaluation: recordOf(current.evaluation_result),
+      diagnosticModule: stringOf(current.diagnostic_module),
+    };
+  }
+  const legacySkill = recordOf(metadata.hai_skill_trace);
+  if (legacySkill) {
+    return {
+      question: stringOf(legacySkill.question),
+      intent: recordOf(legacySkill.intent_result),
+      evaluation: recordOf(legacySkill.evaluation_result),
+      diagnosticModule: stringOf(legacySkill.diagnostic_module),
+    };
+  }
+  const legacyContext = recordOf(metadata.hai_context_trace);
+  if (!legacyContext) return null;
+  return {
+    question: stringOf(legacyContext.question),
+    intent: recordOf(legacyContext.intent_result),
+    evaluation: recordOf(legacyContext.evaluation_result),
+    diagnosticModule: stringOf(legacyContext.diagnostic_module),
   };
 }
 

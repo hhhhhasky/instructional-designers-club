@@ -14,6 +14,7 @@ import { readFileSync } from "node:fs";
 import { writeFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { createClient } from "@supabase/supabase-js";
+import { hasHaiTrace, readHaiTrace } from "./lib/hai-trace.mjs";
 
 const ROOT = process.cwd();
 loadEnv(".env");
@@ -78,9 +79,9 @@ if (error) throw error;
 
 // 只保留有 trace 的（trace 是评估的输入；没有 trace 的视为可观察但不在评分范围）
 const turns = (assistantMsgs ?? [])
-  .filter((m) => m.metadata && m.metadata.hai_context_trace)
+  .filter((m) => hasHaiTrace(m.metadata))
   .map((m, idx) => {
-    const t = m.metadata.hai_context_trace;
+    const t = readHaiTrace(m.metadata);
     return {
       turn_index: idx + 1,
       message_id: m.id,

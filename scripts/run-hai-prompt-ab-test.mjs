@@ -236,7 +236,7 @@ async function main() {
     results,
     jsonPath,
   }));
-  await updatePlanDoc(RUN_ID, mdPath, summary);
+  await updateProjectDoc(RUN_ID, mdPath, summary);
   console.log(`Wrote ${mdPath}`);
   console.log(`Wrote ${jsonPath}`);
 }
@@ -583,11 +583,12 @@ function formatDelta(value) {
   return value > 0 ? `+${value}` : String(value);
 }
 
-async function updatePlanDoc(runId, mdPath, summary) {
-  const planPath = join(ROOT, "docs", "HAI_PROMPT_OPTIMIZATION_PLAN.md");
-  const content = await readFile(planPath, "utf8");
+async function updateProjectDoc(runId, mdPath, summary) {
+  const projectDocPath = join(ROOT, "docs", "项目需求与开发进展.md");
+  const content = await readFile(projectDocPath, "utf8");
   const relMd = mdPath.replace(`${ROOT}/`, "");
-  const replacement = `### ${CANDIDATE_ROUND} - 九十分标准与严格评分校准
+  const replacement = `<!-- HAI_R05_AUTO_START -->
+### ${CANDIDATE_ROUND} 自动化脚本回写区
 
 | 项目 | 内容 |
 |---|---|
@@ -602,10 +603,13 @@ async function updatePlanDoc(runId, mdPath, summary) {
 | 胜 / 平 / 负 | ${summary.wins} / ${summary.ties} / ${summary.losses} |
 | 详细报告 | \`${relMd}\` |
 | 记录 | 已保存每条用户问题、原版回复、候选版回复、自动评分和评语 |
-`;
-  const pattern = new RegExp(`\\n### ${CANDIDATE_ROUND} - [\\s\\S]*?(?=\\n## 13\\. 每轮记录模板)|(?=\\n## 13\\. 每轮记录模板)`);
-  const updated = content.replace(pattern, `\n${replacement}\n`);
-  await writeFile(planPath, updated);
+<!-- HAI_R05_AUTO_END -->`;
+  const pattern = /<!-- HAI_R05_AUTO_START -->[\s\S]*?<!-- HAI_R05_AUTO_END -->/;
+  if (!pattern.test(content)) {
+    throw new Error("Missing HAI R05 update markers in docs/项目需求与开发进展.md");
+  }
+  const updated = content.replace(pattern, replacement);
+  await writeFile(projectDocPath, updated);
 }
 
 function compact(object) {

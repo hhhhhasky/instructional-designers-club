@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, BookOpen, ChevronRight, Clock } from 'lucide-react';
+import { AlertCircle, BookOpen, ChevronRight, Clock, GraduationCap } from 'lucide-react';
 import { getCategoryIcon } from '@/lib/categoryIcons';
 import ContentFormatBadges from '@/components/course/ContentFormatBadges';
 import Header from '@/components/layout/Header';
@@ -11,6 +11,11 @@ import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
 import PageMeta from '@/components/common/PageMeta';
 import UpgradePopup from '@/components/common/UpgradePopup';
+import {
+  CourseEditorialCatalogLayout,
+  CourseEditorialHero,
+  CourseEditorialVolume,
+} from '@/components/course/CourseEditorialShell';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCourseCatalogSnapshot, getCourseDetailSnapshot } from '@/db/api';
 import { canAccessCourse } from '@/lib/access-control';
@@ -76,6 +81,10 @@ export default function TeacherAiCoursesPage() {
     setIsNavigating(true);
     setTimeout(() => navigate(`/courses/${course.id}`), 200);
   };
+  const totalCourseCount = categories.reduce(
+    (sum, category) => sum + (coursesByCategory[category]?.length ?? 0),
+    0,
+  );
 
   return (
     <>
@@ -88,22 +97,19 @@ export default function TeacherAiCoursesPage() {
       <div className="min-h-screen bg-cream flex flex-col">
         <Header />
         {isNavigating && <LoadingOverlay message="正在加载课程..." />}
-        <main className="flex-1 pt-20 pb-12">
-          <section className="relative overflow-hidden border-b border-bdl bg-[radial-gradient(circle_at_18%_12%,rgba(245,158,11,0.16),transparent_30%),radial-gradient(circle_at_82%_0%,rgba(42,122,110,0.12),transparent_34%),var(--bg)] px-4 py-12 md:py-16">
-            <div className="max-w-7xl mx-auto">
-              <div className="max-w-3xl">
-                <Badge className="mb-4 bg-bc/80 text-amber-700 border border-amber-500/25 rounded-full px-3 py-1">
-                  Pro 专属
-                </Badge>
-                <h1 className="text-3xl md:text-5xl font-ds-black text-tx leading-tight" style={{ fontFamily: 'var(--fd)' }}>
-                  教师AI课
-                </h1>
-                <p className="mt-4 text-base md:text-lg text-txs max-w-2xl">
-                  在教学通识课的基础上，用 AI 拓展教学设计的深度和广度：理解 AI、选择工具，并把它接入备课、分析、活动设计和课程开发。
-                </p>
-              </div>
-            </div>
-          </section>
+        <main className="course-reading-desk flex-1 pb-12 pt-20">
+          <CourseEditorialHero
+            kicker="PRO CATALOGUE · 教师 AI 专题刊"
+            badge="PRO 专属"
+            title="教师 AI 课"
+            description="在教学通识课的基础上，用 AI 拓展教学设计的深度和广度：理解 AI、选择工具，并把它接入备课、分析、活动设计和课程开发。"
+            audience="建议按系列卷册顺序阅读；需要解决具体问题时，也可以直接从目录定位到对应单课。"
+            icon={GraduationCap}
+            stats={[
+              { label: '系列卷册', value: categories.length },
+              { label: '已发布单课', value: totalCourseCount },
+            ]}
+          />
 
           {isLoading && (
             <div className="max-w-7xl mx-auto px-4 py-16 text-center">
@@ -183,112 +189,44 @@ function CourseSeriesList({
   const initialMobileValue = [categories[0]];
 
   return (
-    <section className="max-w-7xl mx-auto px-4 py-8 md:py-10 pb-16">
-      {/* 桌面端：左侧系列导航 + 右侧各系列单课 */}
-      <div className="hidden lg:grid lg:grid-cols-[280px_1fr] gap-6">
-        <aside className="self-start sticky top-24 bg-bc border border-bd rounded-lg p-4 shadow-ds-sm">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold text-txs">系列课导航</p>
-            <span className="text-xs text-txt">{categories.length} 个系列</span>
-          </div>
-          <nav className="space-y-1">
-            {categories.map((category) => {
-              const count = (coursesByCategory[category] || []).length;
-              const Icon = getCategoryIcon(category);
-              return (
-                <a
-                  key={category}
-                  href={`#${encodeURIComponent(category)}`}
-                  className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-tx hover:bg-amber-50 hover:text-amber-700 transition-colors"
-                >
-                  <Icon className="w-4 h-4 flex-shrink-0" />
-                  <span className="flex-1 truncate">{category}</span>
-                  <span className="text-xs text-txs">{count}</span>
-                </a>
-              );
-            })}
-          </nav>
-        </aside>
-
-        <div className="space-y-6">
-          {categories.map((category, index) => {
-            const categoryCourses = coursesByCategory[category] || [];
-            const Icon = getCategoryIcon(category);
-            const tags = categoryTags[category];
-            return (
-              <section
-                key={category}
-                id={category}
-                className="scroll-mt-28 bg-bc border border-bd rounded-lg p-5 shadow-ds-sm animate-fade-in-up"
-                style={{ animationDelay: `${index * 0.05}s` }}
-              >
-                <div className="flex items-start gap-3 border-b border-bdl pb-4 mb-4">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-amber-500 to-orange-500 flex-shrink-0">
-                    <Icon className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="text-xl font-ds-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>
-                        {category}
-                      </h2>
-                      <Badge variant="outline" className="rounded-full">
-                        {categoryCourses.length} 节
-                      </Badge>
-                    </div>
-                    {tags && (
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {tags.applicable_scenarios.map((s) => (
-                          <span key={`s-${s}`} className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border bg-teal-100 text-teal-700 border-teal-200">
-                            {s}
-                          </span>
-                        ))}
-                        {tags.content_types.map((t) => (
-                          <span key={`t-${t}`} className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border bg-blue-100 text-blue-700 border-blue-200">
-                            {t}
-                          </span>
-                        ))}
-                        {tags.applicable_audience.map((a) => (
-                          <span key={`a-${a}`} className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border bg-purple-100 text-purple-700 border-purple-200">
-                            {a}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <CourseGrid courses={categoryCourses} clickedCourseId={clickedCourseId} onCourseClick={onCourseClick} />
-              </section>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 移动端：Accordion 折叠 */}
-      <div className="lg:hidden">
+    <CourseEditorialCatalogLayout
+      label="系列卷册"
+      countLabel={`${categories.length} 卷`}
+      toc={categories.map((category, index) => {
+        const count = (coursesByCategory[category] || []).length;
+        const Icon = getCategoryIcon(category);
+        return (
+          <a key={category} href={`#${encodeURIComponent(category)}`} className="course-editorial-toc-link">
+            <span className="font-mono text-[10px] text-txt">{String(index + 1).padStart(2, '0')}</span>
+            <Icon className="h-4 w-4 flex-shrink-0 text-ac" aria-hidden="true" />
+            <span className="flex-1 truncate">{category}</span>
+            <span className="text-xs text-txt">{count}</span>
+          </a>
+        );
+      })}
+      mobile={(
         <Accordion type="multiple" defaultValue={initialMobileValue} className="space-y-3">
-          {categories.map((category) => {
+          {categories.map((category, index) => {
             const categoryCourses = coursesByCategory[category] || [];
             const Icon = getCategoryIcon(category);
             return (
               <AccordionItem
                 key={category}
                 value={category}
-                className="bg-card border-2 border-bd rounded-xl overflow-hidden shadow-ds-sm"
+                className="course-editorial-volume overflow-hidden"
               >
-                <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-warm/50 transition-colors">
+                <AccordionTrigger className="min-h-16 px-4 py-3 hover:bg-[var(--proof-soft)] hover:no-underline">
                   <div className="flex items-center gap-3 w-full">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-amber-500 to-orange-500 flex-shrink-0">
-                      <Icon className="w-5 h-5 text-white" />
+                    <div className="course-editorial-mark">
+                      <Icon className="h-5 w-5" aria-hidden="true" />
                     </div>
                     <div className="flex-1 text-left min-w-0">
+                      <span className="editorial-kicker">VOL. {String(index + 1).padStart(2, '0')}</span>
                       <h3 className="text-base font-ds-bold text-tx truncate" style={{ fontFamily: 'var(--fd)' }}>
                         {category}
                       </h3>
-                      <p className="text-xs text-txs">共 {categoryCourses.length} 节课程</p>
+                      <p className="text-xs text-txs">{categoryCourses.length} 节课程</p>
                     </div>
-                    <Badge variant="outline" className="rounded-full flex-shrink-0">
-                      {categoryCourses.length}
-                    </Badge>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-3 pb-3 pt-1">
@@ -298,8 +236,39 @@ function CourseSeriesList({
             );
           })}
         </Accordion>
-      </div>
-    </section>
+      )}
+    >
+      {categories.map((category, index) => {
+        const categoryCourses = coursesByCategory[category] || [];
+        const Icon = getCategoryIcon(category);
+        const tags = categoryTags[category];
+        return (
+          <CourseEditorialVolume
+            key={category}
+            id={category}
+            index={index}
+            title={category}
+            count={categoryCourses.length}
+            icon={Icon}
+            tags={tags ? (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {tags.applicable_scenarios.map((tag) => (
+                  <span key={`s-${tag}`} className="rounded-ds-sm border border-tl/20 bg-tll px-2 py-0.5 text-xs font-medium text-tl">{tag}</span>
+                ))}
+                {tags.content_types.map((tag) => (
+                  <span key={`t-${tag}`} className="rounded-ds-sm border border-am/20 bg-aml px-2 py-0.5 text-xs font-medium text-am">{tag}</span>
+                ))}
+                {tags.applicable_audience.map((tag) => (
+                  <span key={`a-${tag}`} className="rounded-ds-sm border border-ac/20 bg-acl px-2 py-0.5 text-xs font-medium text-ac">{tag}</span>
+                ))}
+              </div>
+            ) : undefined}
+          >
+            <CourseGrid courses={categoryCourses} clickedCourseId={clickedCourseId} onCourseClick={onCourseClick} />
+          </CourseEditorialVolume>
+        );
+      })}
+    </CourseEditorialCatalogLayout>
   );
 }
 
@@ -371,18 +340,15 @@ function CourseCard({
       onMouseEnter={() => void getCourseDetailSnapshot(course.id)}
       onFocus={() => void getCourseDetailSnapshot(course.id)}
       onTouchStart={() => void getCourseDetailSnapshot(course.id)}
+      aria-label={`打开课程：${course.title}`}
       className={cn(
-        'group w-full flex items-center gap-4 p-4 rounded-lg border-2 border-bd text-left',
-        'hover:border-amber-500/50 hover:bg-amber-50/40 cursor-pointer transition-all duration-300',
-        'hover:shadow-ds-md hover:-translate-y-0.5',
-        clickedCourseId === course.id && 'border-amber-500 bg-amber-50/50',
+        'course-editorial-entry group cursor-pointer',
+        clickedCourseId === course.id && 'border-ac bg-acl/40',
       )}
     >
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center">
-        <span className="text-sm font-bold text-amber-700">{index + 1}</span>
-      </div>
+      <span className="course-editorial-index">{String(index + 1).padStart(2, '0')}</span>
       <div className="flex-1 min-w-0">
-        <h4 className="font-semibold text-tx mb-1 truncate group-hover:text-amber-700 transition-colors">
+        <h4 className="font-semibold text-tx mb-1 truncate group-hover:text-ac transition-colors">
           {course.title}
         </h4>
         <div className="flex flex-wrap items-center gap-2 text-xs text-txs">
@@ -403,7 +369,7 @@ function CourseCard({
           <ContentFormatBadges course={course} />
         </div>
       </div>
-      <ChevronRight className="w-5 h-5 text-txs group-hover:text-amber-700 group-hover:translate-x-1 transition-all flex-shrink-0" />
+      <ChevronRight className="w-5 h-5 text-txs group-hover:text-ac group-hover:translate-x-1 transition-all flex-shrink-0" aria-hidden="true" />
     </button>
   );
 }

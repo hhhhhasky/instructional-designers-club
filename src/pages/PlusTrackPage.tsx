@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,11 @@ import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
 import PageMeta from '@/components/common/PageMeta';
 import UpgradePopup from '@/components/common/UpgradePopup';
+import {
+  CourseEditorialCatalogLayout,
+  CourseEditorialHero,
+  CourseEditorialVolume,
+} from '@/components/course/CourseEditorialShell';
 import { getCourseCatalogSnapshot, getCourseDetailSnapshot } from '@/db/api';
 import { canAccessCourse } from '@/lib/access-control';
 import { cn } from '@/lib/utils';
@@ -17,14 +22,13 @@ import {
   PLUS_TRACKS,
   buildPlusTrackUrl,
   getCoursesForModule,
-  getCoursesForTrack,
   getEffectivePlusTracks,
   getModuleIcon,
   getPlusTrack,
   getTrackCourseCount,
   type PlusTrackConfig,
 } from '@/lib/plusCourseStructure';
-import { AlertCircle, ArrowLeft, BookOpen, ChevronRight, Clock, LockKeyhole, PlayCircle } from 'lucide-react';
+import { AlertCircle, BookOpen, ChevronRight, Clock, LockKeyhole, PlayCircle } from 'lucide-react';
 
 export default function PlusTrackPage() {
   const { trackId } = useParams<{ trackId: PlusCourseTrackId }>();
@@ -66,10 +70,6 @@ export default function PlusTrackPage() {
     });
   }, [isLoading, track]);
 
-  const trackCourses = useMemo(() => {
-    if (!track) return [];
-    return getCoursesForTrack(courses, track.id, plusTracks);
-  }, [courses, track, plusTracks]);
   const visibleTrackCourseCount = track ? getTrackCourseCount(courses, track.id, plusTracks) : 0;
   const initialMobileModules = track
     ? [decodeURIComponent(window.location.hash.replace('#', '')) || track.modules[0]?.id].filter(Boolean)
@@ -127,64 +127,41 @@ export default function PlusTrackPage() {
       <div className="min-h-screen bg-cream flex flex-col">
         <Header />
         {isLoading && <LoadingOverlay message="正在加载 Plus 篇章..." />}
-        <main className="flex-1 pt-20 pb-12">
-          <section className="border-b border-bdl bg-[radial-gradient(circle_at_15%_20%,rgba(196,93,62,0.10),transparent_32%),radial-gradient(circle_at_80%_10%,rgba(42,122,110,0.10),transparent_36%),var(--bg)] px-4 py-8 md:py-12">
-            <div className="max-w-7xl mx-auto">
-              <button
-                onClick={() => navigate('/courses')}
-                className="inline-flex items-center gap-1 text-sm text-txs hover:text-ac transition-colors mb-5"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                返回课程地图
-              </button>
-
-              <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-                <div className="max-w-3xl">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className={cn('w-13 h-13 rounded-lg bg-gradient-to-br flex items-center justify-center text-white', track.accent)}>
-                      <TrackIcon className="w-7 h-7" />
-                    </div>
-                    <Badge className="bg-bc text-ac border border-ac/20 rounded-full px-3 py-1">
-                      Plus · {track.shortTitle}
-                    </Badge>
-                  </div>
-                  <h1 className="text-3xl md:text-5xl font-ds-black text-tx leading-tight" style={{ fontFamily: 'var(--fd)' }}>
-                    {track.title}
-                  </h1>
-                  <p className="mt-4 text-lg text-txs leading-relaxed">{track.description}</p>
-                  <p className="mt-2 text-sm text-txt">适合：{track.audience}</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 min-w-[260px]">
-                  <div className="bg-bc/85 border border-bd rounded-lg p-4">
-                    <p className="text-2xl font-ds-black text-tx">{track.modules.length}</p>
-                    <p className="text-xs text-txs">系列课</p>
-                  </div>
-                  <div className="bg-bc/85 border border-bd rounded-lg p-4">
-                    <p className="text-2xl font-ds-black text-tx">{visibleTrackCourseCount}</p>
-                    <p className="text-xs text-txs">已发布单课</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-8 flex flex-wrap gap-2">
-                {plusTracks.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => navigate(buildPlusTrackUrl(item.id))}
-                    className={cn(
-                      'px-3 py-1.5 rounded-full border text-sm transition-colors',
-                      item.id === track.id
-                        ? 'bg-ac text-white border-ac'
-                        : 'bg-bc text-tx border-bd hover:border-ac/40 hover:text-ac',
-                    )}
-                  >
-                    {item.title}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </section>
+        <main className="course-reading-desk flex-1 pb-12 pt-20">
+          <CourseEditorialHero
+            kicker="PLUS VOLUME · 教学通识课卷册"
+            badge={`PLUS · ${track.shortTitle}`}
+            title={track.title}
+            description={track.description}
+            audience={`适合：${track.audience}`}
+            icon={TrackIcon}
+            onBack={() => navigate('/courses')}
+            backLabel="返回课程地图"
+            stats={[
+              { label: '系列卷册', value: track.modules.length },
+              { label: '已发布单课', value: visibleTrackCourseCount },
+            ]}
+          >
+            <nav className="flex flex-wrap gap-2" aria-label="教学通识课篇章">
+              {plusTracks.map((item, index) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => navigate(buildPlusTrackUrl(item.id))}
+                  aria-current={item.id === track.id ? 'page' : undefined}
+                  className={cn(
+                    'min-h-10 rounded-ds-sm border px-3 py-1.5 text-sm font-ds-semibold transition-colors',
+                    item.id === track.id
+                      ? 'border-ac bg-ac text-white'
+                      : 'border-bd bg-[var(--paper)] text-txs hover:border-ac/40 hover:text-ac',
+                  )}
+                >
+                  <span className="mr-1.5 font-mono text-[10px] opacity-70">{String(index + 1).padStart(2, '0')}</span>
+                  {item.title}
+                </button>
+              ))}
+            </nav>
+          </CourseEditorialHero>
 
           {error && !isLoading && (
             <div className="max-w-7xl mx-auto px-4 py-10">
@@ -196,56 +173,38 @@ export default function PlusTrackPage() {
           )}
 
           {!isLoading && !error && (
-            <section className="max-w-7xl mx-auto px-4 py-8">
-              <div className="hidden lg:grid lg:grid-cols-[280px_1fr] gap-6">
-                <aside className="self-start sticky top-24 bg-bc border border-bd rounded-lg p-4 shadow-ds-sm">
-                  <p className="text-sm font-semibold text-txs mb-3">系列课导航</p>
-                  <nav className="space-y-1">
-                    {track.modules.map((module) => {
-                      const count = getCoursesForModule(courses, track.id, module.id, plusTracks).length;
-                      const Icon = getModuleIcon(module.iconKey || module.id);
-                      return (
-                        <a
-                          key={module.id}
-                          href={`#${encodeURIComponent(module.id)}`}
-                          className="flex items-center gap-2 px-3 py-2 rounded-md text-sm text-tx hover:bg-acl hover:text-ac transition-colors"
-                        >
-                          <Icon className="w-4 h-4" />
-                          <span className="flex-1">{module.title}</span>
-                          <span className="text-xs text-txs">{count}</span>
-                        </a>
-                      );
-                    })}
-                  </nav>
-                </aside>
-
-                <div className="space-y-6">
-                  {track.modules.map((module) => (
-                    <ModuleSection
-                      key={module.id}
-                      trackId={track.id}
-                      moduleId={module.id}
-                      title={module.title}
-                      description={module.description}
-                      courses={getCoursesForModule(courses, track.id, module.id, plusTracks)}
-                      onCourseClick={handleCourseClick}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="lg:hidden">
+            <CourseEditorialCatalogLayout
+              label={`${track.shortTitle}目录`}
+              countLabel={`${track.modules.length} 卷`}
+              toc={track.modules.map((module, index) => {
+                const count = getCoursesForModule(courses, track.id, module.id, plusTracks).length;
+                const Icon = getModuleIcon(module.iconKey || module.id);
+                return (
+                  <a key={module.id} href={`#${encodeURIComponent(module.id)}`} className="course-editorial-toc-link">
+                    <span className="font-mono text-[10px] text-txt">{String(index + 1).padStart(2, '0')}</span>
+                    <Icon className="h-4 w-4 flex-shrink-0 text-ac" aria-hidden="true" />
+                    <span className="flex-1 truncate">{module.title}</span>
+                    <span className="text-xs text-txt">{count}</span>
+                  </a>
+                );
+              })}
+              mobile={(
                 <Accordion type="multiple" defaultValue={initialMobileModules} className="space-y-3">
-                  {track.modules.map((module) => {
+                  {track.modules.map((module, index) => {
                     const moduleCourses = getCoursesForModule(courses, track.id, module.id, plusTracks);
                     const Icon = getModuleIcon(module.iconKey || module.id);
                     return (
-                      <AccordionItem key={module.id} value={module.id} className="bg-bc border border-bd rounded-lg overflow-hidden">
-                        <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                          <div className="flex items-center gap-2 text-left">
-                            <Icon className="w-4 h-4 text-ac" />
-                            <span className="font-bold text-tx">{module.title}</span>
-                            <span className="text-xs text-txs">({moduleCourses.length})</span>
+                      <AccordionItem key={module.id} value={module.id} className="course-editorial-volume overflow-hidden">
+                        <AccordionTrigger className="min-h-16 px-4 py-3 hover:bg-[var(--proof-soft)] hover:no-underline">
+                          <div className="flex w-full items-center gap-3 text-left">
+                            <div className="course-editorial-mark">
+                              <Icon className="h-5 w-5" aria-hidden="true" />
+                            </div>
+                            <span className="min-w-0 flex-1">
+                              <span className="editorial-kicker block">VOL. {String(index + 1).padStart(2, '0')}</span>
+                              <strong className="block truncate text-tx">{module.title}</strong>
+                              <small className="text-txs">{moduleCourses.length} 节课程</small>
+                            </span>
                           </div>
                         </AccordionTrigger>
                         <AccordionContent className="px-4 pb-4">
@@ -256,8 +215,21 @@ export default function PlusTrackPage() {
                     );
                   })}
                 </Accordion>
-              </div>
-            </section>
+              )}
+            >
+              {track.modules.map((module, index) => (
+                <ModuleSection
+                  key={module.id}
+                  index={index}
+                  moduleId={module.id}
+                  iconKey={module.iconKey || module.id}
+                  title={module.title}
+                  description={module.description}
+                  courses={getCoursesForModule(courses, track.id, module.id, plusTracks)}
+                  onCourseClick={handleCourseClick}
+                />
+              ))}
+            </CourseEditorialCatalogLayout>
           )}
         </main>
         <Footer />
@@ -268,40 +240,34 @@ export default function PlusTrackPage() {
 }
 
 function ModuleSection({
+  index,
   moduleId,
+  iconKey,
   title,
   description,
   courses,
   onCourseClick,
 }: {
-  trackId: PlusCourseTrackId;
+  index: number;
   moduleId: string;
+  iconKey: string;
   title: string;
   description: string;
   courses: Course[];
   onCourseClick: (course: Course) => void;
 }) {
-  const Icon = getModuleIcon(moduleId);
+  const Icon = getModuleIcon(iconKey);
   return (
-    <section id={moduleId} className="scroll-mt-28 bg-bc border border-bd rounded-lg p-5 shadow-ds-sm">
-      <div className="flex items-start gap-3 border-b border-bdl pb-4 mb-4">
-        <div className="w-10 h-10 rounded-lg bg-acl flex items-center justify-center">
-          <Icon className="w-5 h-5 text-ac" />
-        </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-ds-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>
-              {title}
-            </h2>
-            <Badge variant="outline" className="rounded-full">
-              {courses.length} 节
-            </Badge>
-          </div>
-          <p className="text-sm text-txs mt-1">{description}</p>
-        </div>
-      </div>
+    <CourseEditorialVolume
+      id={moduleId}
+      index={index}
+      title={title}
+      description={description}
+      count={courses.length}
+      icon={Icon}
+    >
       <CourseList courses={courses} onCourseClick={onCourseClick} />
-    </section>
+    </CourseEditorialVolume>
   );
 }
 
@@ -332,11 +298,10 @@ function CourseList({
           onMouseEnter={() => void getCourseDetailSnapshot(course.id)}
           onFocus={() => void getCourseDetailSnapshot(course.id)}
           onTouchStart={() => void getCourseDetailSnapshot(course.id)}
-          className="group flex items-start gap-3 rounded-lg border border-bd bg-bgs/30 p-4 text-left hover:border-ac/50 hover:bg-acl/30 transition-all"
+          aria-label={`打开课程：${course.title}`}
+          className="course-editorial-entry group"
         >
-          <div className="mt-0.5 w-8 h-8 rounded-full bg-bc border border-bd flex items-center justify-center text-xs font-bold text-ac">
-            {index + 1}
-          </div>
+          <span className="course-editorial-index">{String(index + 1).padStart(2, '0')}</span>
           <div className="min-w-0 flex-1">
             <h3 className="font-semibold text-tx leading-snug group-hover:text-ac">{course.title}</h3>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-txs">
@@ -357,7 +322,7 @@ function CourseList({
               </span>
             </div>
           </div>
-          <ChevronRight className="w-5 h-5 text-txs group-hover:text-ac group-hover:translate-x-1 transition-all flex-shrink-0" />
+          <ChevronRight className="w-5 h-5 text-txs group-hover:text-ac group-hover:translate-x-1 transition-all flex-shrink-0" aria-hidden="true" />
         </button>
       ))}
     </div>

@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { readHaiTrace } from "./lib/hai-trace.mjs";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const GOLDEN_PATH = join(ROOT, "supabase/functions/_shared/hai_orchestrator/evals/golden_questions.json");
@@ -144,7 +145,7 @@ async function loadTrace(messageId) {
   });
   if (!response.ok) return null;
   const rows = await response.json();
-  return rows?.[0]?.metadata?.hai_context_trace ?? null;
+  return readHaiTrace(rows?.[0]?.metadata);
 }
 
 function evaluateRules(testCase, answer) {

@@ -1,9 +1,9 @@
 import {
-  calculateAbGate,
+  compareEvaluationSets,
   explicitDateWindow,
   normalizeEvaluation,
   previousShanghaiDayWindow,
-  validateCandidate,
+  validateSkillFileCandidate,
 } from "./hai_daily_review.ts";
 import { assertEquals } from "jsr:@std/assert@1";
 
@@ -35,20 +35,29 @@ Deno.test("点踩会压低总分并判为不通过", () => {
   assertEquals(result?.passed, false);
 });
 
-Deno.test("只有低风险 style_pack 候选可自动发布", () => {
+Deno.test("Skill 文件候选只生成草稿且必须指向既有文件", () => {
   const current = "当前风格规则。".repeat(30);
   const candidate = {
-    key: "style_pack",
+    target_path: "SKILL.md",
     proposed_content: `${current}\n新增一条针对稳定失败模式的短规则。`,
     reason: "连续三条样本出现同一问题",
     risk: "low" as const,
     evidence_message_ids: ["m1", "m2", "m3"],
   };
-  assertEquals(validateCandidate(candidate, current).autoPublishable, true);
-  assertEquals(validateCandidate({ ...candidate, key: "safety_boundaries" }, current).autoPublishable, false);
+  assertEquals(
+    validateSkillFileCandidate(candidate, { "SKILL.md": current }).valid,
+    true,
+  );
+  assertEquals(
+    validateSkillFileCandidate(
+      { ...candidate, target_path: "references/missing.md" },
+      { "SKILL.md": current },
+    ).valid,
+    false,
+  );
 });
 
-Deno.test("A/B 门禁要求提分且无维度回退", () => {
+Deno.test("候选对比记录提分与回退维度但不自动发布", () => {
   const make = (id: string, score: number) => normalizeEvaluation({
     message_id: id,
     scores: {
@@ -63,9 +72,8 @@ Deno.test("A/B 门禁要求提分且无维度回退", () => {
     summary: "",
     target_layer: "style_pack",
   }, 80)!;
-  assertEquals(calculateAbGate({
+  assertEquals(compareEvaluationSets({
     baseline: [make("b1", 70), make("b2", 72)],
     candidate: [make("c1", 80), make("c2", 82)],
-    minimumImprovement: 4,
-  }).passed, true);
+  }).improvement, 10);
 });

@@ -2,11 +2,16 @@ import {
   buildHanMethodIndexForRouter,
   type HanMethodCard,
   selectHanMethodCandidatesForRouter,
-} from "./hai_orchestrator/knowledge/method_bank/han_course_method_cards.ts";
+} from "./hai_chat/method_cards.ts";
 import type {
   IntentResult,
+  MemorySelection,
   ResponseEvaluation,
-} from "./hai_orchestrator/types.ts";
+} from "./hai_chat/types.ts";
+import {
+  HAI_TRACE_VERSION,
+  type HaiTraceV2,
+} from "./hai_trace.ts";
 
 export type HaiChatSkillReferenceConfig = {
   include_method_index: boolean;
@@ -43,20 +48,7 @@ export type HaiChatSkillRuntime = {
   references: HaiChatSkillReference[];
 };
 
-export type HaiChatSkillTrace = {
-  mode: "skill";
-  skill_id: string;
-  skill_slug: string;
-  skill_name: string;
-  version_id: string;
-  version_label: string;
-  snapshot_hash: string;
-  source_path: string;
-  method_card_ids: string[];
-  reference_paths: string[];
-  reference_hashes: string[];
-  memory_loaded: boolean;
-};
+export type HaiChatSkillTrace = HaiTraceV2;
 
 const DEFAULT_REFERENCE_CONFIG: HaiChatSkillReferenceConfig = {
   include_method_index: true,
@@ -214,7 +206,9 @@ export function buildHaiChatSkillTrace(params: {
   question: string;
   intent: IntentResult;
   methodCards: HanMethodCard[];
+  memorySelection: MemorySelection;
   memoryLoaded: boolean;
+  evaluation: ResponseEvaluation | null;
 }): HaiChatSkillTrace {
   const selectedCards = selectHaiChatSkillMethodCards({
     question: params.question,
@@ -228,20 +222,32 @@ export function buildHaiChatSkillTrace(params: {
     referenceConfig: params.skill.reference_config,
   });
   return {
+    trace_version: HAI_TRACE_VERSION,
+    kind: "chat_skill",
     mode: "skill",
-    skill_id: params.skill.skill_id,
-    skill_slug: params.skill.skill_slug,
-    skill_name: params.skill.skill_name,
-    version_id: params.skill.version_id,
-    version_label: params.skill.version_label,
-    snapshot_hash: params.skill.snapshot_hash,
-    source_path: params.skill.source_path,
+    question: params.question,
+    skill: {
+      id: params.skill.skill_id,
+      slug: params.skill.skill_slug,
+      name: params.skill.skill_name,
+      source_path: params.skill.source_path,
+      version: {
+        id: params.skill.version_id,
+        label: params.skill.version_label,
+        snapshot_hash: params.skill.snapshot_hash,
+      },
+    },
+    intent_result: params.intent,
     method_card_ids: selectedCards.map((card) => card.id),
-    reference_paths: selectedReferences.map((reference) => reference.path),
-    reference_hashes: selectedReferences.map((reference) =>
-      reference.content_hash
-    ),
-    memory_loaded: params.memoryLoaded,
+    references: selectedReferences.map((reference) => ({
+      path: reference.path,
+      content_hash: reference.content_hash,
+    })),
+    memory_selection: {
+      ...params.memorySelection,
+      loaded: params.memoryLoaded,
+    },
+    evaluation_result: params.evaluation,
   };
 }
 

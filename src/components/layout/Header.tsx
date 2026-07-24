@@ -122,6 +122,8 @@ export default function Header() {
   };
 
   const prefetchRoute = (path: string) => {
+    void routes.find((route) => route.path === path)?.preload?.();
+
     if (path === "/courses" || path === "/teacher-ai-courses") {
       void getCourseCatalogSnapshot();
       return;

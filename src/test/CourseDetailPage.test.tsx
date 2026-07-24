@@ -30,14 +30,11 @@ vi.mock('@/db/api', () => ({
       super(message);
     }
   },
-  getCourseById: vi.fn(),
-  getCourseByIdAdmin: vi.fn(),
   incrementCourseViewCount: vi.fn(),
   getCourseCatalogSnapshot: vi.fn(),
   getCourseDetailSnapshot: vi.fn(),
   getCourseProtectedContent: vi.fn(),
   getCoursesByMembershipAndCategory: vi.fn(),
-  getCoursesByMembershipType: vi.fn(),
   getCategoriesByMembershipType: vi.fn(),
   getPlusCourseStructure: vi.fn(),
   getLearningData: vi.fn(),
@@ -66,13 +63,11 @@ vi.mock('@/components/common/PageMeta', () => ({ default: () => null }));
 // --- Test Data ---
 
 import {
-  getCourseById,
   CourseContentAccessError,
   getCourseCatalogSnapshot,
   getCourseDetailSnapshot,
   getCourseProtectedContent,
   getCoursesByMembershipAndCategory,
-  getCoursesByMembershipType,
   getCategoriesByMembershipType,
   getPlusCourseStructure,
 } from '@/db/api';
@@ -199,9 +194,7 @@ async function renderAndWait(
   );
   vi.mocked(getCourseProtectedContent).mockResolvedValue(makeProtectedContent(makeCourse({ id: courseId }), attachments));
   vi.mocked(getCourseCatalogSnapshot).mockResolvedValue(makeCatalog(siblingCourses));
-  vi.mocked(getCourseById).mockResolvedValue(makeCourse({ id: courseId }));
   vi.mocked(getCoursesByMembershipAndCategory).mockResolvedValue(siblingCourses);
-  vi.mocked(getCoursesByMembershipType).mockResolvedValue(siblingCourses);
   vi.mocked(getCategoriesByMembershipType).mockResolvedValue(['教学设计']);
   vi.mocked(getUserLearningRecords).mockResolvedValue([]);
 
@@ -236,6 +229,17 @@ describe('CourseDetailPage — 课程导航功能', () => {
     // "教学设计" 出现在多个位置（面包屑、Badge、目录标题），用 getAllByText
     expect(screen.getAllByText('教学设计').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('第一节：导入').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('使用阅读桌层级并暴露可访问的学习进度', async () => {
+    await renderAndWait('c1');
+
+    expect(screen.getByTestId('course-reading-desk')).toBeInTheDocument();
+    expect(screen.getByText('READING DESK · 课程阅读桌')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: '当前课程完成度' })).toHaveAttribute(
+      'aria-valuenow',
+      '0',
+    );
   });
 
   it('显示课程下载文件列表', async () => {
@@ -373,9 +377,7 @@ describe('CourseDetailPage — 课程导航功能', () => {
 
     // "第一节：导入" 出现在移动端目录和桌面端侧边栏中
     // 它们是 button 元素，点击当前课程不应导航
-    const items = screen.getAllByText('第一节：导入');
-    // 过滤出 button 元素（目录中的课程项）
-    const buttons = items.filter(el => el.tagName === 'P' && el.closest('button'));
+    screen.getAllByText('第一节：导入');
     // 当前课程在目录中已有高亮，点击它的 button 不触发导航
     // 由于 handleNavigateToCourse 有 `if (courseId === id) return` 守卫
     // 可以直接验证 navigate 没被调用
@@ -425,8 +427,6 @@ describe('CourseDetailPage — 课程导航功能', () => {
     );
     vi.mocked(getCourseCatalogSnapshot).mockResolvedValue(makeCatalog([singleCourse]));
     vi.mocked(getCourseProtectedContent).mockResolvedValue(makeProtectedContent(singleCourse));
-    vi.mocked(getCourseById).mockResolvedValue(singleCourse);
-    vi.mocked(getCoursesByMembershipType).mockResolvedValue([singleCourse]);
     vi.mocked(getCategoriesByMembershipType).mockResolvedValue(['教学设计']);
     vi.mocked(getUserLearningRecords).mockResolvedValue([]);
 
@@ -445,7 +445,6 @@ describe('CourseDetailPage — 课程导航功能', () => {
       makeDetailSnapshot(freeCourses[0], freeCourses, null),
     );
     vi.mocked(getCourseProtectedContent).mockResolvedValue(makeProtectedContent(freeCourses[0]));
-    vi.mocked(getCourseById).mockResolvedValue(freeCourses[0]);
     vi.mocked(getCoursesByMembershipAndCategory).mockResolvedValue(freeCourses);
     vi.mocked(getUserLearningRecords).mockResolvedValue([]);
 
@@ -485,8 +484,6 @@ describe('CourseDetailPage — 课程导航功能', () => {
     );
     vi.mocked(getCourseProtectedContent).mockResolvedValue(makeProtectedContent(plusCourses[0]));
     vi.mocked(getCourseCatalogSnapshot).mockResolvedValue(plusCatalog);
-    vi.mocked(getCourseById).mockResolvedValue(plusCourses[0]);
-    vi.mocked(getCoursesByMembershipType).mockResolvedValue(plusCourses);
     vi.mocked(getPlusCourseStructure).mockResolvedValue(plusCategoryTracks);
     vi.mocked(getCoursesByMembershipAndCategory).mockResolvedValue([]);
     vi.mocked(getUserLearningRecords).mockResolvedValue([]);

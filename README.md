@@ -157,7 +157,8 @@ npm run build
 
 ## 相关文档
 
+- [项目需求与开发进展（唯一管理文档）](docs/项目需求与开发进展.md)
 - [内容运营后台部署与使用](docs/内容运营后台-部署与使用.md)
 - [教学通识课 Plus 课程大纲](docs/教学通识课Plus-课程大纲.md)
-- [教学通识课 Plus 课程结构重构接手文档](docs/教学通识课Plus-课程结构重构接手文档.md)
+- [HAI 当前功能实现机制说明](docs/HAI_当前功能实现机制说明.md)
 - [课程分类整理脚本说明](scripts/README_COURSE_CATEGORIES.md)

@@ -4,7 +4,7 @@ import {
   jsonResponse,
   requireUser,
 } from "../_shared/hai.ts";
-import { hanCourseMethodCards } from "../_shared/hai_orchestrator/knowledge/method_bank/han_course_method_cards.ts";
+import { hanCourseMethodCards } from "../_shared/hai_chat/method_cards.ts";
 
 Deno.serve(async (request) => {
   const cors = handleCors(request);

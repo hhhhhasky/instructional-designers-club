@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   workSkillDeleteBlockReason,
+  workSkillEnableBlockReason,
   workVersionDeleteBlockReason,
 } from "@/components/admin/HaiWorkSkillManagement";
 
@@ -21,5 +22,11 @@ describe("HAI Work Skill maintenance guards", () => {
     expect(workVersionDeleteBlockReason({ status: "published" })).toContain("不能直接删除");
     expect(workVersionDeleteBlockReason({ status: "draft" })).toBeNull();
     expect(workVersionDeleteBlockReason({ status: "archived" })).toBeNull();
+  });
+
+  it("requires a published version before a Skill can expose its frontend tool", () => {
+    expect(workSkillEnableBlockReason(true, [{ status: "draft" }])).toContain("先发布");
+    expect(workSkillEnableBlockReason(true, [{ status: "published" }])).toBeNull();
+    expect(workSkillEnableBlockReason(false, [])).toBeNull();
   });
 });

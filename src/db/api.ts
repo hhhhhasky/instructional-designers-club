@@ -21,183 +21,11 @@ import type {
   Testimonial,
   UserNotification,
 } from "@/types/types";
+import { isMissingBackendContract, toDataAccessError } from "./errors";
 import { supabase } from "./supabase";
 
 const COURSE_PUBLIC_COLUMNS =
   'id, title, description, instructor, category_id, category, level, duration, credits, status, membership_type, is_trial, password_access_enabled, image_url, plus_lesson_order, plus_representative, sort_order, view_count, created_at, updated_at, has_video, has_audio, has_body, has_essence, has_images, has_meeting';
-
-/**
- * 获取所有已发布的课程列表
- * @returns 课程列表
- */
-export async function getCourses(): Promise<Course[]> {
-  try {
-    const { data, error } = await supabase
-      .from('courses')
-      .select(COURSE_PUBLIC_COLUMNS)
-      .eq('status', 'published')
-      .order('sort_order', { ascending: true });
-
-    if (error) {
-      console.error('获取课程列表失败:', error);
-      throw error;
-    }
-
-    return Array.isArray(data) ? data.map((course) => withProtectedCourseCover(course as Course)) : [];
-  } catch (error) {
-    console.error('获取课程列表异常:', error);
-    return [];
-  }
-}
-
-/**
- * 根据ID获取单个课程详情
- * @param courseId 课程ID
- * @returns 课程详情
- */
-export async function getCourseById(courseId: string): Promise<Course | null> {
-  try {
-    const { data, error } = await supabase
-      .from('courses')
-      .select(COURSE_PUBLIC_COLUMNS)
-      .eq('id', courseId)
-      .eq('status', 'published')
-      .maybeSingle();
-
-    if (error) {
-      console.error('获取课程详情失败:', error);
-      throw error;
-    }
-
-    return data ? withProtectedCourseCover(data as Course) : null;
-  } catch (error) {
-    console.error('获取课程详情异常:', error);
-    return null;
-  }
-}
-
-/**
- * 管理员获取任意状态的课程详情（不限制 status）
- * @param courseId 课程ID
- * @returns 课程详情（含草稿和已归档）
- */
-export async function getCourseByIdAdmin(courseId: string): Promise<Course | null> {
-  try {
-    const { data, error } = await supabase.rpc('admin_course_detail', {
-      p_course_id: courseId,
-    });
-
-    if (error) {
-      console.error('getCourseByIdAdmin error:', error);
-      throw error;
-    }
-
-    return data;
-  } catch (error) {
-    console.error('获取课程详情异常:', error);
-    return null;
-  }
-}
-
-/**
- * 获取所有课程分类（按 sort_order 排序）
- * @returns 分类列表
- */
-export async function getCourseCategories(): Promise<string[]> {
-  try {
-    // 从 course_categories 表获取分类（标准分类表）
-    // 只获取启用的分类，按 sort_order 排序
-    const { data, error } = await supabase
-      .from('course_categories')
-      .select('name')
-      .eq('is_active', true)  // 只获取启用的分类
-      .order('sort_order', { ascending: true });
-
-    if (error) {
-      console.error('获取课程分类失败:', error);
-      throw error;
-    }
-
-    if (!Array.isArray(data)) {
-      return ['全部'];
-    }
-
-    // 提取分类名称
-    const categories = data.map(item => item.name).filter(Boolean);
-    return ['全部', ...categories];
-  } catch (error) {
-    console.error('获取课程分类异常:', error);
-    return ['全部'];
-  }
-}
-
-/**
- * 根据分类获取课程列表
- * @param category 分类名称
- * @returns 课程列表
- */
-export async function getCoursesByCategory(category: string): Promise<Course[]> {
-  try {
-    let query = supabase
-      .from('courses')
-      .select(COURSE_PUBLIC_COLUMNS)
-      .eq('status', 'published')
-      .order('sort_order', { ascending: true });
-
-    // 如果不是"全部"，则按分类筛选
-    if (category !== '全部') {
-      query = query.eq('category', category);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('获取分类课程失败:', error);
-      throw error;
-    }
-
-    return Array.isArray(data) ? data.map((course) => withProtectedCourseCover(course as Course)) : [];
-  } catch (error) {
-    console.error('获取分类课程异常:', error);
-    return [];
-  }
-}
-
-/**
- * 根据会员类型获取课程列表
- * @param membershipType 会员类型
- * @returns 课程列表
- */
-export async function getCoursesByMembershipType(membershipType: MembershipType): Promise<Course[]> {
-  try {
-    let query = supabase
-      .from('courses')
-      .select(COURSE_PUBLIC_COLUMNS)
-      .eq('status', 'published')
-      .order('sort_order', { ascending: true });
-
-    // 根据会员类型筛选
-    if (membershipType === 'free') {
-      // 免费课程：membership_type = 'free' 或 is_trial = true
-      query = query.or('membership_type.eq.free,is_trial.eq.true');
-    } else {
-      // Plus或Pro课程：直接按membership_type筛选
-      query = query.eq('membership_type', membershipType);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('获取会员类型课程失败:', error);
-      throw error;
-    }
-
-    return Array.isArray(data) ? data.map((course) => withProtectedCourseCover(course as Course)) : [];
-  } catch (error) {
-    console.error('获取会员类型课程异常:', error);
-    return [];
-  }
-}
 
 /**
  * 获取 Plus 课程篇章 / 分类定义。
@@ -505,69 +333,6 @@ export async function validateCategoryData(): Promise<{
   }
 }
 
-export interface ClubStats {
-  camps: number;
-  courses: number;
-  totalMinutes: number;
-  members: number;
-}
-
-/**
- * 获取俱乐部统计数据
- * @returns 俱乐部统计数据
- */
-export async function getClubStats(): Promise<ClubStats> {
-  try {
-    // 并行查询学习营数量和课程数量
-    const [categoriesResult, coursesResult] = await Promise.all([
-      // 查询 course_categories 表的总行数（学习营数量）
-      supabase
-        .from('course_categories')
-        .select('id', { count: 'exact', head: true }),
-      
-      // 查询 courses 表的总行数和总时长（课程节数）
-      supabase
-        .from('courses')
-        .select('duration', { count: 'exact' })
-        .eq('status', 'published')
-    ]);
-
-    // 获取学习营数量
-    const camps = categoriesResult.count || 0;
-
-    // 获取课程节数
-    const courses = coursesResult.count || 0;
-
-    // 计算累计课程时长（所有课程的duration总和）
-    let totalMinutes = 0;
-    if (coursesResult.data && Array.isArray(coursesResult.data)) {
-      totalMinutes = coursesResult.data.reduce((sum, course) => {
-        return sum + (course.duration || 0);
-      }, 0);
-    }
-
-    // 会员人数：优先取后台 site_content.stats.member_count 手填值；
-    // 未配置时回退到 profiles 表真实会员数。
-    const members = await getMemberCount();
-
-    return {
-      camps,
-      courses,
-      totalMinutes,
-      members
-    };
-  } catch (error) {
-    console.error('获取俱乐部统计数据失败:', error);
-    // 返回默认值
-    return {
-      camps: 0,
-      courses: 0,
-      totalMinutes: 0,
-      members: 0
-    };
-  }
-}
-
 /**
  * 获取课程分类的标签数据（从分类表的字段中获取）
  * @param categoryName 课程分类名称
@@ -832,6 +597,13 @@ export interface HomeCourseBuckets {
   pro: Course[];
 }
 
+export interface ClubStats {
+  camps: number;
+  courses: number;
+  totalMinutes: number;
+  members: number;
+}
+
 export interface HomePageSnapshot {
   site_content: Record<string, SiteContent> | null;
   member_profiles: MemberProfile[] | null;
@@ -880,9 +652,20 @@ function withDefaultHomeBuckets(value: Partial<HomeCourseBuckets> | null | undef
   };
 }
 
-function pickSettledData<T>(res: PromiseSettledResult<{ data: unknown; error: unknown }>): T[] | null {
-  if (res.status !== 'fulfilled' || res.value.error) return null;
-  return Array.isArray(res.value.data) ? (res.value.data as T[]) : [];
+function readSettledData<T>(
+  result: PromiseSettledResult<{ data: unknown; error: unknown }>,
+  operation: string,
+): T[] {
+  if (result.status === "rejected") {
+    throw toDataAccessError(operation, result.reason);
+  }
+  if (result.value.error) {
+    throw toDataAccessError(operation, result.value.error);
+  }
+  if (!Array.isArray(result.value.data)) {
+    throw toDataAccessError(operation, new Error("返回值不是数组"));
+  }
+  return result.value.data as T[];
 }
 
 function normalizeHomeSnapshot(value: unknown, source: HomePageSnapshot['source']): HomePageSnapshot {
@@ -986,18 +769,30 @@ async function fetchHomePageSnapshotRestFallback(): Promise<HomePageSnapshot> {
       .limit(20),
   ]);
 
-  const siteRows = pickSettledData<SiteContent>(siteRes);
-  const siteContent = siteRows ? normalizeSiteContentMap(siteRows) : null;
+  const siteRows = readSettledData<SiteContent>(siteRes, "读取首页运营内容");
+  const siteContent = normalizeSiteContentMap(siteRows);
   const statsData = siteContent?.stats?.data ?? {};
   const memberOverride = statsData.member_count;
   const hasMemberOverride = typeof memberOverride === 'number' && memberOverride >= 0;
   let memberCount = hasMemberOverride ? memberOverride : 0;
   if (!hasMemberOverride) {
     const { data: rpcCount, error } = await supabase.rpc('public_member_count');
-    if (!error && typeof rpcCount === 'number') memberCount = rpcCount;
+    if (error) throw toDataAccessError("读取公开会员数", error);
+    if (typeof rpcCount !== "number") {
+      throw toDataAccessError("读取公开会员数", new Error("返回值不是数字"));
+    }
+    memberCount = rpcCount;
   }
 
-  const courses = pickSettledData<Course>(coursesRes) ?? [];
+  const courses = readSettledData<Course>(coursesRes, "读取首页课程");
+  const categoryResult = categoriesRes.status === "fulfilled"
+    ? categoriesRes.value
+    : (() => {
+      throw toDataAccessError("读取首页课程分类", categoriesRes.reason);
+    })();
+  if (categoryResult.error) {
+    throw toDataAccessError("读取首页课程分类", categoryResult.error);
+  }
   const bySortOrder = (a: Course, b: Course) => (a.sort_order ?? Number.MAX_SAFE_INTEGER) - (b.sort_order ?? Number.MAX_SAFE_INTEGER);
   const latestCourses = courses
     .filter((course) => course.created_at && new Date(course.created_at).getTime() >= latestSince)
@@ -1012,18 +807,15 @@ async function fetchHomePageSnapshotRestFallback(): Promise<HomePageSnapshot> {
 
   return {
     site_content: siteContent,
-    member_profiles: pickSettledData<MemberProfile>(memberRes),
-    testimonials: pickSettledData<Testimonial>(testimonialRes),
-    faqs: pickSettledData<Faq>(faqRes),
-    announcements: pickSettledData<Announcement>(announcementRes) ?? [],
+    member_profiles: readSettledData<MemberProfile>(memberRes, "读取会员风采"),
+    testimonials: readSettledData<Testimonial>(testimonialRes, "读取会员评价"),
+    faqs: readSettledData<Faq>(faqRes, "读取首页问答"),
+    announcements: readSettledData<Announcement>(announcementRes, "读取俱乐部动态"),
     latest_courses: latestCourses,
-    activities: pickSettledData<Activity>(activityRes) ?? [],
+    activities: readSettledData<Activity>(activityRes, "读取俱乐部活动"),
     home_courses: homeCourses,
     stats_counts: {
-      camps:
-        categoriesRes.status === 'fulfilled' && !categoriesRes.value.error
-          ? Number((categoriesRes.value as { count?: number | null }).count ?? 0)
-          : 0,
+      camps: Number((categoryResult as { count?: number | null }).count ?? 0),
       courses: courses.length,
       totalMinutes: courses.reduce((sum, course) => sum + (course.duration || 0), 0),
       members: memberCount,
@@ -1042,6 +834,9 @@ const homePageSnapshotCache = createAsyncCache<HomePageSnapshot>({
     try {
       return await fetchHomePageSnapshotRpc();
     } catch (error) {
+      if (!isMissingBackendContract(error)) {
+        throw toDataAccessError("读取首页快照", error);
+      }
       console.warn('home_page_snapshot RPC unavailable; falling back to REST batch:', error);
       return fetchHomePageSnapshotRestFallback();
     }
@@ -1231,12 +1026,12 @@ async function fetchCourseCatalogSnapshotRestFallback(): Promise<CourseCatalogSn
 
   return normalizeCourseCatalogSnapshot(
     {
-      plus_courses: pickSettledData<Course>(plusCoursesRes) ?? [],
-      plus_track_rows: pickSettledData<PlusCourseTrackRow>(plusTracksRes) ?? [],
-      plus_module_rows: pickSettledData<PlusCourseModuleRow>(plusModulesRes) ?? [],
-      plus_category_rows: pickSettledData<CourseCategory>(plusCategoriesRes) ?? [],
-      pro_courses: pickSettledData<Course>(proCoursesRes) ?? [],
-      pro_category_rows: pickSettledData<CourseCategory>(proCategoriesRes) ?? [],
+      plus_courses: readSettledData<Course>(plusCoursesRes, "读取 Plus 课程"),
+      plus_track_rows: readSettledData<PlusCourseTrackRow>(plusTracksRes, "读取 Plus 篇章"),
+      plus_module_rows: readSettledData<PlusCourseModuleRow>(plusModulesRes, "读取 Plus 模块"),
+      plus_category_rows: readSettledData<CourseCategory>(plusCategoriesRes, "读取 Plus 分类"),
+      pro_courses: readSettledData<Course>(proCoursesRes, "读取 Pro 课程"),
+      pro_category_rows: readSettledData<CourseCategory>(proCategoriesRes, "读取 Pro 分类"),
       generated_at: new Date().toISOString(),
     },
     'rest-fallback',
@@ -1251,6 +1046,9 @@ const courseCatalogSnapshotCache = createAsyncCache<CourseCatalogSnapshot>({
     try {
       return await fetchCourseCatalogSnapshotRpc();
     } catch (error) {
+      if (!isMissingBackendContract(error)) {
+        throw toDataAccessError("读取课程目录快照", error);
+      }
       console.warn('course_catalog_snapshot RPC unavailable; falling back to REST batch:', error);
       return fetchCourseCatalogSnapshotRestFallback();
     }
@@ -1350,6 +1148,9 @@ function getCourseDetailCache(courseId: string) {
       try {
         return await fetchCourseDetailSnapshotRpc(courseId);
       } catch (error) {
+        if (!isMissingBackendContract(error)) {
+          throw toDataAccessError("读取课程详情快照", error);
+        }
         console.warn('course_detail_snapshot RPC unavailable; falling back to REST batch:', error);
         return fetchCourseDetailSnapshotRestFallback(courseId);
       }
@@ -1381,196 +1182,17 @@ export async function getCourseDetailSnapshot(
 }
 
 /**
- * 会员人数：优先取后台 site_content.stats.member_count 手填值，
- * 否则用公开计数 RPC（public_member_count，SECURITY DEFINER 绕过 profiles RLS，
- * 匿名用户也能拿到真实活跃会员数）。全部失败时回退 0。
- */
-export async function getMemberCount(): Promise<number> {
-  try {
-    const { data } = await supabase
-      .from('site_content')
-      .select('data')
-      .eq('section_key', 'stats')
-      .maybeSingle();
-    const override = (data?.data as Record<string, unknown> | null)?.member_count;
-    if (typeof override === 'number' && override >= 0) return override;
-
-    const { data: rpcCount, error } = await supabase.rpc('public_member_count');
-    if (!error && typeof rpcCount === 'number') return rpcCount;
-    return 0;
-  } catch {
-    return 0;
-  }
-}
-
-/**
- * 读取首页某个单例区块内容（不存在时返回 null，调用方走兜底）
- */
-export async function getSiteContent<T = Record<string, unknown>>(
-  sectionKey: string
-): Promise<SiteContent | null> {
-  try {
-    const { data, error } = await supabase
-      .from('site_content')
-      .select('*')
-      .eq('section_key', sectionKey)
-      .maybeSingle();
-    if (error) {
-      console.error(`getSiteContent(${sectionKey}) 失败:`, error);
-      return null;
-    }
-    return (data as SiteContent | null) ?? null;
-  } catch (error) {
-    console.error(`getSiteContent(${sectionKey}) 异常:`, error);
-    return null;
-  }
-}
-
-/**
- * 读取首页会员风采（仅激活项，按 sort_order 排序）。
- * 注意：查询出错时抛出异常（不静默返回空），便于调用方区分
- * 「运营清空」与「表缺失/网络异常」——前者应显示空，后者应走兜底。
- */
-export async function getMemberProfiles(): Promise<MemberProfile[]> {
-  const { data, error } = await supabase
-    .from('member_profiles')
-    .select('*')
-    .order('sort_order', { ascending: true });
-  if (error) {
-    console.error('getMemberProfiles 失败:', error);
-    throw error;
-  }
-  return (data as MemberProfile[]) ?? [];
-}
-
-/**
- * 读取 FAQ（仅激活项）。同上，出错抛异常。
- */
-export async function getFaqs(): Promise<Faq[]> {
-  const { data, error } = await supabase
-    .from('faqs')
-    .select('*')
-    .order('sort_order', { ascending: true });
-  if (error) {
-    console.error('getFaqs 失败:', error);
-    throw error;
-  }
-  return (data as Faq[]) ?? [];
-}
-
-/**
- * 读取会员评价（仅激活项）。同上，出错抛异常。
- */
-export async function getTestimonials(): Promise<Testimonial[]> {
-  const { data, error } = await supabase
-    .from('testimonials')
-    .select('*')
-    .order('sort_order', { ascending: true });
-  if (error) {
-    console.error('getTestimonials 失败:', error);
-    throw error;
-  }
-  return (data as Testimonial[]) ?? [];
-}
-
-/**
- * 读取最近上架的课程（R-P0-03 动态流自动汇聚）。
- * 按 created_at 倒序取已发布课程，仅保留 withinDays 天内上架的，
- * 避免把陈旧课程当作「上新」展示。created_at 为空的课程自动被过滤。
- */
-export async function getLatestCourses(
-  limit = 4,
-  withinDays = 60
-): Promise<Course[]> {
-  try {
-    const since = new Date(
-      Date.now() - withinDays * 24 * 60 * 60 * 1000
-    ).toISOString();
-    const { data, error } = await supabase
-      .from('courses')
-      .select('id, title, description, category, image_url, membership_type, created_at, is_trial')
-      .eq('status', 'published')
-      .gte('created_at', since)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-    if (error) {
-      console.error('getLatestCourses 失败:', error);
-      return [];
-    }
-    return ((data as Course[]) ?? []).map((course) => withProtectedCourseCover(course));
-  } catch (error) {
-    console.error('getLatestCourses 异常:', error);
-    return [];
-  }
-}
-
-/**
- * 读取有效动态（已发布、未过期、激活），置顶优先 + 发布时间倒序
- */
-export async function getActiveAnnouncements(limit = 20): Promise<Announcement[]> {
-  try {
-    const nowIso = new Date().toISOString();
-    const { data, error } = await supabase
-      .from('announcements')
-      .select('*')
-      .eq('is_active', true)
-      .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
-      .order('is_pinned', { ascending: false })
-      .order('published_at', { ascending: false })
-      .limit(limit);
-    if (error) {
-      console.error('getActiveAnnouncements 失败:', error);
-      return [];
-    }
-    return (data as Announcement[]) ?? [];
-  } catch (error) {
-    console.error('getActiveAnnouncements 异常:', error);
-    return [];
-  }
-}
-
-/**
- * 读取近期活动（仅激活项，按开始时间升序）
- */
-export async function getActivities(limit = 20): Promise<Activity[]> {
-  try {
-    const { data, error } = await supabase
-      .from('activities')
-      .select('*')
-      .order('start_time', { ascending: true, nullsFirst: false })
-      .order('sort_order', { ascending: true })
-      .limit(limit);
-    if (error) {
-      console.error('getActivities 失败:', error);
-      return [];
-    }
-    return (data as Activity[]) ?? [];
-  } catch (error) {
-    console.error('getActivities 异常:', error);
-    return [];
-  }
-}
-
-/**
  * 读取单个活动详情（按 id，不过滤 is_active，是否可见由页面层判断）。
- * 找不到返回 null；出错同样返回 null（页面统一兜底为「不存在或已下架」）。
+ * 找不到返回 null；读取失败抛出领域错误，页面可区分“没有活动”和“服务不可用”。
  */
 export async function getActivityById(id: string): Promise<Activity | null> {
-  try {
-    const { data, error } = await supabase
-      .from('activities')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-    if (error) {
-      console.error('getActivityById 失败:', error);
-      return null;
-    }
-    return (data as Activity) ?? null;
-  } catch (error) {
-    console.error('getActivityById 异常:', error);
-    return null;
-  }
+  const { data, error } = await supabase
+    .from('activities')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw toDataAccessError("读取活动详情", error);
+  return (data as Activity) ?? null;
 }
 
 /**

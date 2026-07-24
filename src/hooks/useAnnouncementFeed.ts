@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { getHomePageSnapshot } from "@/db/api";
+import { useMemo } from "react";
+import type { HomePageSnapshot } from "@/db/api";
+import { useHomeSnapshot } from "@/hooks/useHomeSnapshot";
 import type {
   AnnouncementType,
   ActivityType,
@@ -14,7 +15,7 @@ import type {
  *  3. 近期活动 / 直播预告（activities，仅未来的）—— 直播预告是核心回访钩子
  *
  * 排序：置顶优先，其余按时间倒序。上限 8 条。
- * 任意一类来源拉取失败时静默跳过，不影响其余来源展示。
+ * 三类来源来自同一份首页快照，避免重复请求和来源间状态漂移。
  */
 
 export type FeedSource = "announcement" | "course" | "activity";
@@ -105,108 +106,88 @@ function isExternalHref(url: string): boolean {
 }
 
 export function useAnnouncementFeed(): AnnouncementFeedState {
-  const [items, setItems] = useState<FeedItem[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    (async () => {
-      setLoading(true);
-
-      const snapshot = await getHomePageSnapshot();
-
-      if (cancelled) return;
-
-      const merged: FeedItem[] = [];
-
-      // 1) 运营发布的动态
-      for (const a of snapshot.announcements.slice(0, MAX_ITEMS)) {
-        merged.push({
-          key: `a:${a.id}`,
-          source: "announcement",
-          type: a.type,
-          title: a.title,
-          summary: a.summary,
-          timestamp: a.published_at,
-          pinned: !!a.is_pinned,
-          href: a.link_url || null,
-          external: a.link_url ? isExternalHref(a.link_url) : false,
-          linkLabel: a.link_label || null,
-        });
-      }
-
-      // 2) 自动汇聚最新课程
-      for (const c of snapshot.latest_courses.slice(0, MAX_LATEST_COURSES)) {
-        merged.push({
-          key: `c:${c.id}`,
-          source: "course",
-          type: "new_course",
-          title: c.title,
-          summary: c.description || null,
-          timestamp: c.created_at || new Date().toISOString(),
-          pinned: false,
-          href: `/courses/${c.id}`,
-          external: false,
-          linkLabel: "去学习",
-        });
-      }
-
-      // 3) 近期活动 / 直播（未结束的；进行中的共学/磨课等也展示）
-      // 按 created_at 倒序，保证运营新加的活动优先入选（不被裁掉）
-      const current = snapshot.activities
-        .filter((act) => act.is_active && isActivityNotEnded(act.end_time))
-        .slice()
-        .sort(
-          (a, b) =>
-            new Date(b.created_at).getTime() -
-            new Date(a.created_at).getTime()
-        )
-        .slice(0, MAX_ACTIVITIES);
-      for (const act of current) {
-        const feedType = activityToFeedType(act.activity_type);
-        merged.push({
-          key: `v:${act.id}`,
-          source: "activity",
-          type: feedType,
-          title: act.title,
-          summary: act.description || null,
-          timestamp: activitySortTimestamp(act.start_time, act.created_at),
-          pinned: false,
-          // 活动卡片永远指向详情页：详情页会展示运营填写的全部信息，
-          // 并在有「会议链接」时再给出对应入口。很多活动只是告知性质，
-          // 不一定有视频/会议链接，不能因缺链接就让卡片无法点击。
-          href: `/activities/${act.id}`,
-          external: false,
-          linkLabel: ACTIVITY_LABEL[act.activity_type],
-          timeLabel: activityDisplayLabel(act.start_time, act.end_time),
-        });
-      }
-
-      // 排序：置顶优先，其余按时间倒序
-      merged.sort((x, y) => {
-        if (x.pinned !== y.pinned) return x.pinned ? -1 : 1;
-        return (
-          new Date(y.timestamp).getTime() - new Date(x.timestamp).getTime()
-        );
-      });
-
-      if (!cancelled) {
-        setItems(merged.slice(0, MAX_ITEMS));
-        setLoading(false);
-      }
-    })().catch((error) => {
-      console.error("加载首页动态快照失败:", error);
-      if (!cancelled) {
-        setItems([]);
-        setLoading(false);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
+  const { snapshot, loading } = useHomeSnapshot();
+  const items = useMemo(
+    () => snapshot ? buildAnnouncementFeed(snapshot) : [],
+    [snapshot],
+  );
   return { items, loading };
+}
+
+function buildAnnouncementFeed(snapshot: HomePageSnapshot): FeedItem[] {
+  const merged: FeedItem[] = [];
+
+  for (const announcement of snapshot.announcements.slice(0, MAX_ITEMS)) {
+    merged.push({
+      key: `a:${announcement.id}`,
+      source: "announcement",
+      type: announcement.type,
+      title: announcement.title,
+      summary: announcement.summary,
+      timestamp: announcement.published_at,
+      pinned: !!announcement.is_pinned,
+      href: announcement.link_url || null,
+      external: announcement.link_url
+        ? isExternalHref(announcement.link_url)
+        : false,
+      linkLabel: announcement.link_label || null,
+    });
+  }
+
+  for (const course of snapshot.latest_courses.slice(0, MAX_LATEST_COURSES)) {
+    merged.push({
+      key: `c:${course.id}`,
+      source: "course",
+      type: "new_course",
+      title: course.title,
+      summary: course.description || null,
+      timestamp: course.created_at || snapshot.generated_at ||
+        "1970-01-01T00:00:00.000Z",
+      pinned: false,
+      href: `/courses/${course.id}`,
+      external: false,
+      linkLabel: "去学习",
+    });
+  }
+
+  const currentActivities = snapshot.activities
+    .filter((activity) =>
+      activity.is_active && isActivityNotEnded(activity.end_time)
+    )
+    .slice()
+    .sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() -
+        new Date(a.created_at).getTime(),
+    )
+    .slice(0, MAX_ACTIVITIES);
+
+  for (const activity of currentActivities) {
+    merged.push({
+      key: `v:${activity.id}`,
+      source: "activity",
+      type: activityToFeedType(activity.activity_type),
+      title: activity.title,
+      summary: activity.description || null,
+      timestamp: activitySortTimestamp(
+        activity.start_time,
+        activity.created_at,
+      ),
+      pinned: false,
+      href: `/activities/${activity.id}`,
+      external: false,
+      linkLabel: ACTIVITY_LABEL[activity.activity_type],
+      timeLabel: activityDisplayLabel(
+        activity.start_time,
+        activity.end_time,
+      ),
+    });
+  }
+
+  merged.sort((left, right) => {
+    if (left.pinned !== right.pinned) return left.pinned ? -1 : 1;
+    return new Date(right.timestamp).getTime() -
+      new Date(left.timestamp).getTime();
+  });
+  return merged.slice(0, MAX_ITEMS);
 }

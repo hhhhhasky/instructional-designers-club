@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { createClient } from "@supabase/supabase-js";
+import { readHaiTrace } from "./lib/hai-trace.mjs";
 
 const ROOT = process.cwd();
 const CORPUS_DIR = join(ROOT, "docs", "hai-consultation-corpus");
@@ -315,7 +316,7 @@ async function loadTrace(messageId) {
     .eq("id", messageId)
     .maybeSingle();
   if (error) throw error;
-  return data?.metadata?.hai_context_trace ?? null;
+  return readHaiTrace(data?.metadata);
 }
 
 async function structuralCheck(files) {
