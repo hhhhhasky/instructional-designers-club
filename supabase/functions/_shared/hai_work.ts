@@ -1,7 +1,8 @@
 export type HaiWorkToolSlug =
   | "lesson-diagnosis"
   | "segment-optimization"
-  | "subject-lesson-design";
+  | "subject-lesson-design"
+  | "teaching-design";
 
 export type WorkSkillCandidate = {
   id: string;
@@ -41,6 +42,7 @@ const toolSlugs = new Set<HaiWorkToolSlug>([
   "lesson-diagnosis",
   "segment-optimization",
   "subject-lesson-design",
+  "teaching-design",
 ]);
 
 export function isHaiWorkToolSlug(value: string): value is HaiWorkToolSlug {
@@ -71,6 +73,13 @@ export function validateWorkInput(
       "topic",
       "teaching_mode",
       "lesson_type",
+    ],
+    "teaching-design": [
+      "stage",
+      "subject",
+      "design_type",
+      "desired_outcomes",
+      "unit_duration",
     ],
   };
 
@@ -334,6 +343,7 @@ function matchesCriteria(criteria: Record<string, unknown>, input: Record<string
     ["subjects", "subject"],
     ["lesson_types", "lesson_type"],
     ["teaching_modes", "teaching_mode"],
+    ["design_types", "design_type"],
   ];
   return mappings.every(([criteriaKey, inputKey]) => {
     const allowed = Array.isArray(criteria[criteriaKey])
@@ -347,7 +357,7 @@ function matchesCriteria(criteria: Record<string, unknown>, input: Record<string
 }
 
 function criteriaSpecificity(criteria: Record<string, unknown>) {
-  return ["stages", "subjects", "lesson_types", "teaching_modes"]
+  return ["stages", "subjects", "lesson_types", "teaching_modes", "design_types"]
     .filter((key) => Array.isArray(criteria[key]) && (criteria[key] as unknown[]).length > 0)
     .length;
 }
@@ -370,6 +380,9 @@ function fieldLabel(key: string) {
     segment_type: "环节类型",
     current_design: "当前设计",
     desired_outcome: "希望达成的效果",
+    design_type: "设计类型",
+    desired_outcomes: "预期成果",
+    unit_duration: "课时数",
   } as Record<string, string>)[key] ?? key;
 }
 

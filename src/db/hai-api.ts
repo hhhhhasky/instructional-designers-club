@@ -62,7 +62,7 @@ export interface HaiModelProvider {
 }
 
 export type HaiMode = "chat" | "work";
-export type HaiWorkToolSlug = "lesson-diagnosis" | "segment-optimization" | "subject-lesson-design";
+export type HaiWorkToolSlug = "lesson-diagnosis" | "segment-optimization" | "subject-lesson-design" | "teaching-design";
 export type HaiWorkRunStatus = "queued" | "running" | "completed" | "failed";
 export const HAI_CHAT_MODULE_SLUG = "hai-chat" as const;
 
