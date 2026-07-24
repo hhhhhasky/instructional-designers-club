@@ -713,6 +713,68 @@ function requireFields(value: Record<string, unknown>, fields: string[], label: 
   if (missing.length > 0) throw new Error(`${label}缺少必要字段：${missing.join("、")}。`);
 }
 
+/**
+ * 自动补齐产物中缺失的必填字符串字段，避免因 LLM 遗漏个别字段（如 transition）
+ * 而导致整个产物被拒绝。只补字符串类型字段，不覆盖已有有效值。
+ */
+const PATCH_DEFAULTS: Record<string, string> = {
+  transition: "（承上启下，自然过渡至下一环节）",
+  purpose: "（巩固学习效果，深化理解）",
+  materials: "教材、课件与补充材料",
+  key_question_or_task: "完成本环节核心学习任务",
+  knowledge_landing: "（结合教材知识进行归纳总结）",
+  step: "教学活动步骤",
+  teacher_behavior: "教师引导讲解与组织互动",
+  student_behavior: "学生独立思考、小组合作与展示交流",
+  expected_output: "学生能够达成该步骤的学习目标",
+  evaluation: "课堂观察、提问反馈与当堂检测",
+};
+
+export function patchWorkOutput(
+  parsed: Record<string, unknown>,
+  outputContract: Record<string, unknown>,
+): Record<string, unknown> {
+  if (outputContract.format !== "sizheng_public_lesson_v2") return parsed;
+  const flowFields = contractFields(outputContract.lesson_flow_required);
+  const stepFields = contractFields(outputContract.lesson_step_required);
+
+  const flows = Array.isArray(parsed.lesson_flow) ? parsed.lesson_flow : [];
+  let patched = 0;
+
+  const patchedFlows = flows.map((flow) => {
+    if (!isRecord(flow)) return flow;
+    const item = { ...flow };
+    for (const field of flowFields) {
+      if (_isMissing(item[field]) && PATCH_DEFAULTS[field]) {
+        item[field] = PATCH_DEFAULTS[field];
+        patched++;
+      }
+    }
+    const steps = Array.isArray(item.steps) ? item.steps : [];
+    item.steps = steps.map((step) => {
+      if (!isRecord(step)) return step;
+      const s = { ...step };
+      for (const field of stepFields) {
+        if (_isMissing(s[field]) && PATCH_DEFAULTS[field]) {
+          s[field] = PATCH_DEFAULTS[field];
+          patched++;
+        }
+      }
+      return s;
+    });
+    return item;
+  });
+
+  if (patched > 0) {
+    console.log("[hai_work] auto-patched", patched, "missing fields in work output");
+  }
+  return { ...parsed, lesson_flow: patchedFlows };
+}
+
+function _isMissing(value: unknown): boolean {
+  return value === undefined || value === null || (typeof value === "string" && !value.trim());
+}
+
 function valueToText(value: unknown): string {
   if (typeof value === "string") return value;
   if (typeof value === "number" || typeof value === "boolean") return String(value);

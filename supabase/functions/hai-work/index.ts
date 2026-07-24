@@ -23,6 +23,7 @@ import {
   renderWorkMarkdown,
   selectWorkSkillReferences,
   selectWorkSkill,
+  patchWorkOutput,
   validateWorkInput,
   validateWorkOutput,
   type WorkSkillCandidate,
@@ -250,6 +251,7 @@ Deno.serve(async (request) => {
             if (parsed) parsed = applyWorkOutputRuntimeTrace(parsed, skill, input, textbookSourcePaths);
           }
           if (!parsed) throw new Error("AI 返回内容无法解析为结构化产物，请重试。");
+          parsed = patchWorkOutput(parsed, skill.version.output_contract);
           validateWorkOutput(parsed, skill.version.output_contract);
 
           const markdown = renderWorkMarkdown(toolSlug, parsed);
