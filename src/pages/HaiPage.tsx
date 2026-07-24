@@ -1,5 +1,4 @@
 import {
-  ArrowLeft,
   Archive,
   Bot,
   Brain,
@@ -8,7 +7,6 @@ import {
   History,
   Loader2,
   LockKeyhole,
-  Menu,
   Pin,
   Plus,
   Send,
@@ -26,8 +24,7 @@ import PageMeta from "@/components/common/PageMeta";
 import HaiProfileOnboardingDialog, {
   type HaiProfileOnboardingMemory,
 } from "@/components/hai/HaiProfileOnboardingDialog";
-import HaiDesktopModeSwitch from "@/components/hai/HaiDesktopModeSwitch";
-import Header from "@/components/layout/Header";
+import HaiWorkspaceShell from "@/components/hai/HaiWorkspaceShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,18 +35,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Sheet, SheetClose, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { SheetClose } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   archiveHaiConversation,
   archiveHaiMemory,
   createHaiMemory,
+  getAskHanModule,
   getHaiAccessStatus,
   getHaiConversations,
   getHaiMemories,
   getHaiMessageFeedback,
   getHaiMessages,
-  getHaiModules,
   type HaiAccessStatus,
   type HaiConversation,
   type HaiFeatureModule,
@@ -64,7 +61,6 @@ import {
   streamHaiChat,
 } from "@/db/hai-api";
 import { copyHaiAnswer, createHaiShareImage } from "@/lib/hai-share";
-import { useHaiExit } from "@/lib/hai-navigation";
 
 type DraftMessage = Pick<HaiMessage, "id" | "role" | "content" | "created_at"> & {
   pending?: boolean;
@@ -78,22 +74,21 @@ export const HAI_STARTER_QUESTIONS = [
 
 export default function HaiPage() {
   const navigate = useNavigate();
-  const exitHai = useHaiExit();
   const { user, loading } = useAuth();
   const [access, setAccess] = useState<HaiAccessStatus | null>(null);
   const [usage, setUsage] = useState<HaiUsageSummary | null>(null);
-  const [modules, setModules] = useState<HaiFeatureModule[]>([]);
+  const [chatModule, setChatModule] = useState<HaiFeatureModule | null>(null);
   const [conversations, setConversations] = useState<HaiConversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<DraftMessage[]>([]);
   const [messageFeedback, setMessageFeedback] = useState<Record<string, HaiMessageFeedback["rating"]>>({});
   const [memories, setMemories] = useState<HaiUserMemory[]>([]);
-  const [activeModuleSlug, setActiveModuleSlug] = useState("ask-han");
   const [draft, setDraft] = useState("");
   const [memoryDraft, setMemoryDraft] = useState("");
   const [memoryCategory, setMemoryCategory] = useState("teaching_preference");
   const [inviteCode, setInviteCode] = useState("");
   const [status, setStatus] = useState("");
+  const [initializationError, setInitializationError] = useState("");
   const [busy, setBusy] = useState(false);
   const [booting, setBooting] = useState(true);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -102,8 +97,6 @@ export default function HaiPage() {
   const [profileOnboardingError, setProfileOnboardingError] = useState("");
   const messagesScrollRef = useRef<HTMLDivElement | null>(null);
 
-  const visibleModules = useMemo(() => modules.filter((item) => item.slug === "ask-han"), [modules]);
-  const activeModule = visibleModules.find((item) => item.slug === activeModuleSlug) ?? visibleModules[0] ?? modules[0] ?? null;
   const weeklyUsagePercent = useMemo(() => {
     if (!usage?.weekly_limit) return 0;
     return Math.min(100, Math.round((usage.weekly_used / usage.weekly_limit) * 100));
@@ -113,37 +106,37 @@ export default function HaiPage() {
     if (!loading && !user) {
       navigate("/login", { state: { from: "/hai/chat" } });
     }
-  }, [loading, navigate, user]);
+  }, [loading, navigate, user?.id]);
 
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
     (async () => {
       setBooting(true);
+      setInitializationError("");
       try {
-        const [{ access, usage }, moduleRows] = await Promise.all([
-          getHaiAccessStatus(),
-          getHaiModules(),
-        ]);
+        const { access, usage } = await getHaiAccessStatus();
         if (cancelled) return;
         setAccess(access);
         setUsage(usage);
-        setModules(moduleRows);
-        setActiveModuleSlug("ask-han");
         if (access.allowed) {
-          const [rows, memoryRows, profileCompleted] = await Promise.all([
+          const [moduleRow, rows, memoryRows, profileCompleted] = await Promise.all([
+            getAskHanModule(),
             getHaiConversations(),
             getHaiMemories(),
             hasCompletedHaiProfileOnboarding(),
           ]);
           if (cancelled) return;
+          setChatModule(moduleRow);
           setConversations(rows);
           setMemories(memoryRows);
           setActiveConversationId((current) => current ?? rows[0]?.id ?? null);
           setProfileOnboardingOpen(!profileCompleted);
         }
       } catch (error) {
-        if (!cancelled) setStatus(error instanceof Error ? error.message : "HAI 初始化失败。");
+        if (!cancelled) {
+          setInitializationError(error instanceof Error ? error.message : "HAI 初始化失败。");
+        }
       } finally {
         if (!cancelled) setBooting(false);
       }
@@ -151,7 +144,7 @@ export default function HaiPage() {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!activeConversationId) {
@@ -218,13 +211,20 @@ export default function HaiPage() {
       setUsage(result.usage);
       setInviteCode("");
       if (result.access.allowed) {
-        const [, memoryRows, profileCompleted] = await Promise.all([
-          refreshConversations(null),
-          getHaiMemories(),
-          hasCompletedHaiProfileOnboarding(),
-        ]);
-        setMemories(memoryRows);
-        setProfileOnboardingOpen(!profileCompleted);
+        try {
+          const [moduleRow, , memoryRows, profileCompleted] = await Promise.all([
+            getAskHanModule(),
+            refreshConversations(null),
+            getHaiMemories(),
+            hasCompletedHaiProfileOnboarding(),
+          ]);
+          setChatModule(moduleRow);
+          setInitializationError("");
+          setMemories(memoryRows);
+          setProfileOnboardingOpen(!profileCompleted);
+        } catch (error) {
+          setInitializationError(error instanceof Error ? error.message : "HAI 初始化失败。");
+        }
       }
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "邀请码兑换失败。");
@@ -235,7 +235,7 @@ export default function HaiPage() {
 
   async function handleSend(suggestedQuestion?: string) {
     const text = (suggestedQuestion ?? draft).trim();
-    if (!text || busy || !activeModule) return;
+    if (!text || busy || !chatModule) return;
     setBusy(true);
     setStatus("");
     setDraft("");
@@ -261,9 +261,7 @@ export default function HaiPage() {
       await streamHaiChat(
         {
           conversationId: activeConversationId,
-          moduleSlug: activeModule.slug,
           message: text,
-          mode: "chat",
         },
         {
           onEvent: (event) => {
@@ -367,10 +365,9 @@ export default function HaiPage() {
     }
   }
 
-  function startNewConversation(moduleSlug?: string) {
+  function startNewConversation() {
     setActiveConversationId(null);
     setMessages([]);
-    if (moduleSlug) setActiveModuleSlug(moduleSlug);
     setHistoryOpen(false);
   }
 
@@ -411,176 +408,103 @@ export default function HaiPage() {
         canonicalPath="/hai/chat"
         keywords="HAI,AI教研,问问哈老师"
       />
-      <div className="hai-page flex min-h-0 w-full max-w-full flex-col overflow-hidden bg-cream md:min-h-screen">
-        <div className="hidden md:block">
-          <Header />
-        </div>
-        <main className="flex min-h-0 flex-1 overflow-hidden p-0 md:px-5 md:pb-6 md:pt-20">
-          <div className="mx-auto flex h-full min-h-0 w-full max-w-[1500px] flex-col overflow-hidden border-[#d9d0c1] bg-[#fffdf8] md:h-[calc(100dvh-7rem)] md:rounded-[28px] md:border md:shadow-[0_24px_70px_rgba(72,55,31,0.12)]">
-            <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[#ded7ca] bg-[#fffdf8]/95 px-3 py-2.5 backdrop-blur md:px-5 md:py-3">
-              <div className="flex min-w-0 items-center gap-2.5">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-9 w-9 shrink-0"
-                  onClick={exitHai}
-                  aria-label="返回网站"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-                <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
-                  <SheetTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 lg:hidden" aria-label="打开对话记录">
-                      <Menu className="h-5 w-5" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="left" className="w-[300px] overflow-hidden bg-[#f4efe5] p-0" hideCloseButton>
-                    <HistoryPanel
-                      conversations={conversations}
-                      activeConversationId={activeConversationId}
-                      onSelect={(id) => {
-                        setActiveConversationId(id);
-                        setHistoryOpen(false);
-                      }}
-                      onArchive={handleArchiveConversation}
-                      onNew={() => startNewConversation()}
-                      showClose
-                    />
-                  </SheetContent>
-                </Sheet>
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-[#e8dfd1] text-[#a45d3d] shadow-[0_6px_16px_rgba(72,55,31,0.10)]">
-                  <Bot className="h-4.5 w-4.5" />
-                </div>
-                <div className="min-w-0">
-                  <h1 className="truncate text-base font-black tracking-tight text-[#2d302b] md:text-lg">聊聊问题</h1>
-                  <p className="hidden truncate text-xs text-[#7c7469] sm:block">
-                    {activeModule ? activeModule.name : "和 HAI 一起想清楚教学问题"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <HaiDesktopModeSwitch />
-                {access?.allowed && (
-                  <Sheet>
-                    <SheetTrigger asChild>
-                      <Button size="sm" variant="outline" className="h-9 w-9 px-0 xl:hidden" aria-label="打开上下文">
-                        <Pin className="h-4 w-4" />
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent side="right" className="w-[320px] overflow-y-auto bg-[#fbfaf8] p-0" hideCloseButton>
-                      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-bd bg-white px-4 py-3">
-                        <span className="text-ds-sm font-ds-bold text-tx">上下文</span>
-                        <SheetClose asChild>
-                          <Button size="icon-sm" variant="ghost" aria-label="关闭上下文">
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </SheetClose>
-                      </div>
-                      <div className="min-h-full bg-[#fbfaf8] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-                        {contextPanel}
-                      </div>
-                    </SheetContent>
-                  </Sheet>
-                )}
-              </div>
-            </header>
-
-            <div className="grid min-h-0 flex-1 lg:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)_280px]">
-              <aside className="hidden min-h-0 overflow-hidden border-r border-[#ded7ca] bg-[#f4efe5] lg:block">
-                {history}
-              </aside>
-
-              <section className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-[#fffdf8]">
-
-              {booting ? (
-                <div className="flex flex-1 items-center justify-center text-txs">
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  正在加载 HAI
-                </div>
-              ) : !access?.allowed ? (
-                <LockedPanel
-                  reason={access?.reason}
-                  inviteCode={inviteCode}
+      <HaiWorkspaceShell
+        mode="consultation"
+        title="聊聊问题"
+        subtitle={chatModule ? chatModule.name : "和 HAI 一起想清楚教学问题"}
+        sidebar={history}
+        inspector={access?.allowed ? contextPanel : undefined}
+        sidebarLabel="打开对话记录"
+        inspectorLabel="打开咨询上下文"
+        mobileSidebarOpen={historyOpen}
+        onMobileSidebarOpenChange={setHistoryOpen}
+        sidebarPadded={false}
+        contentMode="managed"
+        footer={<Footer />}
+      >
+        {booting ? (
+          <div className="flex flex-1 items-center justify-center text-txs">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            正在加载 HAI
+          </div>
+        ) : initializationError ? (
+          <UnavailablePanel message={initializationError} />
+        ) : !access?.allowed ? (
+          <LockedPanel
+            reason={access?.reason}
+            inviteCode={inviteCode}
+            busy={busy}
+            status={status}
+            onCodeChange={setInviteCode}
+            onSubmit={handleRedeemInvite}
+          />
+        ) : (
+          <>
+            <div
+              ref={messagesScrollRef}
+              className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain bg-[var(--bg)] px-3 py-3 scroll-smooth md:px-4 md:py-5"
+              aria-label="对话内容"
+              data-testid="hai-message-scroll-region"
+            >
+              {messages.length === 0 ? (
+                <EmptyState
+                  module={chatModule}
                   busy={busy}
-                  status={status}
-                  onCodeChange={setInviteCode}
-                  onSubmit={handleRedeemInvite}
+                  onQuestionSelect={(question) => void handleSend(question)}
                 />
               ) : (
-                <>
-                  <div
-                    ref={messagesScrollRef}
-                    className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain bg-[#fbfaf8] px-3 py-3 scroll-smooth md:px-4 md:py-5"
-                    aria-label="对话内容"
-                    data-testid="hai-message-scroll-region"
-                  >
-                    {messages.length === 0 ? (
-                      <EmptyState
-                        module={activeModule}
-                        busy={busy}
-                        onQuestionSelect={(question) => void handleSend(question)}
-                      />
-                    ) : (
-                      <div className="mx-auto flex max-w-3xl flex-col gap-4">
-                        {messages.map((message, index) => (
-                          <MessageBubble
-                            key={message.id}
-                            message={message}
-                            question={message.role === "assistant" ? findPreviousQuestion(messages, index) : undefined}
-                            feedback={messageFeedback[message.id]}
-                            onFeedback={handleMessageFeedback}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="shrink-0 border-t border-bd bg-white p-2.5 md:p-4" data-testid="hai-composer">
-                    {status && (
-                      <p className="mb-2 rounded-ds-md border border-red-200 bg-red-50 px-3 py-2 text-ds-sm text-red-700">
-                        {status}
-                      </p>
-                    )}
-                    <div className="mx-auto flex w-full max-w-3xl min-w-0 gap-2">
-                      <textarea
-                        rows={1}
-                        value={draft}
-                        onChange={(event) => setDraft(event.target.value)}
-                        onKeyDown={(event) => {
-                          if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
-                            event.preventDefault();
-                            void handleSend();
-                          }
-                        }}
-                        placeholder={activeModule ? `发送给「${activeModule.short_label}」` : "输入你的教学问题"}
-                        className="h-[52px] min-h-[52px] min-w-0 flex-1 resize-none rounded-ds-md border border-bd bg-bg px-3.5 py-3 text-[16px] leading-relaxed text-tx outline-none transition focus:border-ac focus:ring-2 focus:ring-ac/15 md:h-[72px] md:min-h-[72px] md:rounded-ds-lg md:px-4"
-                        disabled={busy}
-                        aria-label="输入教学问题"
-                      />
-                      <Button
-                        className="h-[52px] w-[52px] rounded-ds-md bg-ac text-white hover:bg-acd md:h-[72px] md:w-14 md:rounded-ds-lg"
-                        disabled={busy || !draft.trim()}
-                        onClick={() => void handleSend()}
-                        aria-label="发送"
-                      >
-                        {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-                      </Button>
-                    </div>
-                  </div>
-                </>
+                <div className="mx-auto flex max-w-3xl flex-col gap-4">
+                  {messages.map((message, index) => (
+                    <MessageBubble
+                      key={message.id}
+                      message={message}
+                      question={message.role === "assistant" ? findPreviousQuestion(messages, index) : undefined}
+                      feedback={messageFeedback[message.id]}
+                      onFeedback={handleMessageFeedback}
+                    />
+                  ))}
+                </div>
               )}
-              </section>
-
-              <aside className="hidden min-h-0 overflow-y-auto border-l border-[#ded7ca] bg-[#f8f4ec] p-4 xl:block">
-                {contextPanel}
-              </aside>
             </div>
-          </div>
-        </main>
-        <div className="hidden md:block">
-          <Footer />
-        </div>
-      </div>
+
+            <div
+              className="shrink-0 border-t border-bd bg-[var(--paper)] px-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] pt-2.5 md:p-4"
+              data-testid="hai-composer"
+            >
+              {status && (
+                <p className="mb-2 rounded-ds-md border border-red-200 bg-red-50 px-3 py-2 text-ds-sm text-red-700">
+                  {status}
+                </p>
+              )}
+              <div className="mx-auto flex w-full max-w-3xl min-w-0 gap-2">
+                <textarea
+                  rows={1}
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+                      event.preventDefault();
+                      void handleSend();
+                    }
+                  }}
+                  placeholder={chatModule ? `发送给「${chatModule.short_label}」` : "输入你的教学问题"}
+                  className="h-[52px] min-h-[52px] min-w-0 flex-1 resize-none rounded-ds-md border border-bd bg-bg px-3.5 py-3 text-[16px] leading-relaxed text-tx outline-none transition focus:border-ac focus:ring-2 focus:ring-ac/15 md:h-[72px] md:min-h-[72px] md:rounded-ds-lg md:px-4"
+                  disabled={busy}
+                  aria-label="输入教学问题"
+                />
+                <Button
+                  className="h-[52px] w-[52px] rounded-ds-md bg-ac text-white hover:bg-acd md:h-[72px] md:w-14 md:rounded-ds-lg"
+                  disabled={busy || !draft.trim() || !chatModule}
+                  onClick={() => void handleSend()}
+                  aria-label="发送"
+                >
+                  {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
+      </HaiWorkspaceShell>
       {access?.allowed && (
         <HaiProfileOnboardingDialog
           open={profileOnboardingOpen}
@@ -613,9 +537,9 @@ function HistoryPanel({
   showClose?: boolean;
 }) {
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[#f4efe5] p-4">
+    <div className="flex h-full min-h-0 flex-col bg-[var(--paper-deep)] p-4">
       <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-2 text-[11px] font-black tracking-[0.16em] text-[#8f684e]">
+        <div className="flex items-center gap-2 text-[11px] font-black tracking-[0.16em] text-[var(--proof)]">
           <History className="h-4 w-4" />
           对话记录
         </div>
@@ -639,7 +563,7 @@ function HistoryPanel({
           <div
             key={conversation.id}
             className={`group flex items-start gap-2 rounded-[14px] border p-3 transition ${
-              activeConversationId === conversation.id ? "border-[#c9a88f] bg-white" : "border-transparent hover:bg-white/75"
+              activeConversationId === conversation.id ? "border-ac/30 bg-[var(--paper)]" : "border-transparent hover:bg-[var(--paper)]/75"
             }`}
           >
             <button
@@ -808,7 +732,7 @@ export function MessageBubble({
               </DialogClose>
             </div>
           </DialogHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[#eee8df] p-2 sm:p-5">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[var(--paper-deep)] p-2 sm:p-5">
             {sharePreviewUrl && (
               <img
                 src={sharePreviewUrl}
@@ -869,6 +793,23 @@ export function EmptyState({
           ))}
         </div>
         <p className="mt-2 text-ds-xs text-txt sm:mt-3 sm:text-center">点击后直接发送，也可以在下方写自己的问题</p>
+      </div>
+    </div>
+  );
+}
+
+function UnavailablePanel({ message }: { message: string }) {
+  return (
+    <div className="flex flex-1 items-center justify-center bg-bg px-4">
+      <div
+        className="w-full max-w-md rounded-ds-lg border border-amber-200 bg-white p-6 text-center shadow-ds-md"
+        role="alert"
+      >
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-ds-full bg-amber-50">
+          <Bot className="h-6 w-6 text-amber-700" />
+        </div>
+        <h2 className="text-ds-xl font-ds-black text-tx">HAI 暂时不可用</h2>
+        <p className="mt-2 text-ds-sm leading-relaxed text-txs">{message}</p>
       </div>
     </div>
   );
