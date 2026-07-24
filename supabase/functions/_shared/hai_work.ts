@@ -241,8 +241,9 @@ export function buildWorkPrompt(params: {
     selectedReferences.length > 0
       ? `用户已选择“${String(params.input.teaching_mode ?? "")}”作为唯一主导模式。只执行对应 V3 模板，不得混用另外两套主流程。`
       : "当前 Skill 没有加载模式 reference，不得声称使用了对应 V3 模板。",
-    `输出契约：${JSON.stringify(params.skill.version.output_contract)}`,
-    "只输出一个合法 JSON 对象，不要输出代码围栏或额外说明。",
+    `请直接输出完整的 Markdown 格式教案。不要使用代码围栏（\`\`\`）包裹整个输出。
+按照教学设计的自然结构组织内容，根据课题特点灵活调整篇幅和各部分格式，
+不必拘泥于统一模板。每个部分根据实际需要决定详略。`,
   ].join("\n\n");
 
   const user = [

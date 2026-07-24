@@ -15,17 +15,12 @@ import {
   streamDeepSeek,
 } from "../_shared/hai.ts";
 import {
-  applyWorkOutputRuntimeTrace,
   assertWorkSkillRuntimeReady,
   buildWorkPrompt,
   isHaiWorkToolSlug,
-  parseWorkJson,
-  renderWorkMarkdown,
   selectWorkSkillReferences,
   selectWorkSkill,
-  patchWorkOutput,
   validateWorkInput,
-  validateWorkOutput,
   type WorkSkillCandidate,
 } from "../_shared/hai_work.ts";
 
@@ -223,38 +218,30 @@ Deno.serve(async (request) => {
             userId: auth.user.id,
             admin: auth.admin,
           });
-          let parsed = parseWorkJson(rawOutput);
-          if (parsed) parsed = applyWorkOutputRuntimeTrace(parsed, skill, input, textbookSourcePaths);
-          let validationIssue = "返回内容不是合法 JSON 对象";
-          if (parsed) {
-            try {
-              validateWorkOutput(parsed, skill.version.output_contract);
-              validationIssue = "";
-            } catch (error) {
-              validationIssue = error instanceof Error ? error.message : "返回内容不符合输出契约";
-            }
-          }
-          if (!parsed && !rawOutput.trim()) {
-            throw new Error('模型未返回任何内容，可能是思考过程消耗了全部 token 额度。请在 HAI 配置中增大该模块的 max_output_tokens（建议 ≥ 16384）或关闭 thinking 后重试。');
-          }
-          if (!parsed || validationIssue) {
-            sendSse(controller, encoder, { type: "progress", stage: "repairing", message: "正在校正产物格式" });
+          // 去掉模型可能包裹的 Markdown 代码围栏
+          let markdown = rawOutput
+            .replace(/^```(?:markdown|md)?\s*\n?/, "")
+            .replace(/\n?```\s*$/, "")
+            .trim();
+
+          if (!markdown) {
+            // 空输出重试一次
+            sendSse(controller, encoder, { type: "progress", stage: "repairing", message: "产物为空，正在重试" });
             rawOutput = await collectModelOutput({
-              system: "你是结构化产物修复器。只修复 JSON 格式和缺失结构，不改变已有教学判断，不编造用户未提供的事实。只返回一个合法 JSON 对象。",
-              user: `校验问题：${validationIssue}\n\n原始系统要求：\n${prompt.system}\n\n原始任务上下文（包括教材知识与已加载 reference）：\n${prompt.user}\n\n待修复内容：\n${rawOutput}`,
+              system: prompt.system,
+              user: prompt.user,
               module,
               completionOptions,
               userId: auth.user.id,
               admin: auth.admin,
             });
-            parsed = parseWorkJson(rawOutput);
-            if (parsed) parsed = applyWorkOutputRuntimeTrace(parsed, skill, input, textbookSourcePaths);
+            markdown = rawOutput
+              .replace(/^```(?:markdown|md)?\s*\n?/, "")
+              .replace(/\n?```\s*$/, "")
+              .trim();
           }
-          if (!parsed) throw new Error("AI 返回内容无法解析为结构化产物，请重试。");
-          parsed = patchWorkOutput(parsed, skill.version.output_contract);
-          validateWorkOutput(parsed, skill.version.output_contract);
 
-          const markdown = renderWorkMarkdown(toolSlug, parsed);
+          if (!markdown) throw new Error("AI 未返回任何内容，请重试。");
           const versionNumber = await nextVersionNumber(auth.admin, taskId);
           const { data: artifact, error: artifactError } = await auth.admin
             .from("hai_work_artifacts")
@@ -265,7 +252,7 @@ Deno.serve(async (request) => {
               parent_artifact_id: parentArtifact?.id ?? null,
               version_number: versionNumber,
               title: taskTitle(module.name, input),
-              content_json: parsed,
+              content_json: { format: "markdown" },
               content_markdown: markdown,
             })
             .select("id, version_number")
@@ -586,15 +573,13 @@ async function collectModelOutput(params: {
   const model = params.completionOptions.model;
   console.log("[hai-work] calling DeepSeek with model:", model, "providerId:", params.module.model_provider_id, "moduleSlug:", params.module.slug);
   let output = "";
-  // hai-work 需要结构化 JSON 产出，reasoning 模型（如 deepseek-v4-pro）的 thinking
-  // 会消耗大量 token 用于思考过程，可能导致 output 为空。强制关闭 thinking。
+  // 强制关闭 thinking — Markdown 产出不需要推理步骤。
   const workOptions = { ...params.completionOptions, thinkingEnabled: false };
   for await (const token of streamDeepSeek([
     { role: "system", content: params.system },
     { role: "user", content: params.user },
   ], {
     ...workOptions,
-    responseFormat: "json_object",
     userId: params.userId,
     admin: params.admin,
     modelProviderId: params.module.model_provider_id,
