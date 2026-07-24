@@ -1,4 +1,4 @@
-import { BookOpen, Bot, ChevronDown, KeyRound, Loader2, Pencil, Plus, RefreshCw, Save, SlidersHorizontal, Ticket, Trash2, UserPlus, X } from "lucide-react";
+import { BookOpen, Bot, ChevronDown, Cpu, KeyRound, Loader2, Pencil, Plus, RefreshCw, Save, SlidersHorizontal, Ticket, Trash2, UserPlus, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import HaiChatSkillManagement from "@/components/admin/HaiChatSkillManagement";
@@ -7,7 +7,8 @@ import ModuleParamFields, { NumberInput } from "@/components/admin/hai/ModulePar
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getAdminStudentList, type StudentItem } from "@/db/admin-api";
-import type { HaiFeatureModule } from "@/db/hai-api";
+import type { HaiFeatureModule, HaiModelProvider } from "@/db/hai-api";
+import { deleteHaiModelProvider, getHaiModelProviders, saveHaiModelProvider } from "@/db/hai-api";
 import { supabase } from "@/db/supabase";
 
 interface HaiUserAccessRow {
@@ -164,6 +165,9 @@ export default function HaiManagementSection() {
   const [quotas, setQuotas] = useState<HaiQuotaPolicy[]>([]);
   const [knowledgeSources, setKnowledgeSources] = useState<HaiKnowledgeSource[]>([]);
   const [runtimeSettings, setRuntimeSettings] = useState<HaiRuntimeSetting[]>([]);
+  const [modelProviders, setModelProviders] = useState<HaiModelProvider[]>([]);
+  const [providerDraft, setProviderDraft] = useState({ id: "", label: "", model_name: "", api_key: "", base_url: "", is_enabled: true, sort_order: 0 });
+  const [editingProviderId, setEditingProviderId] = useState<string | null>(null);
   const [defaultMethodCards, setDefaultMethodCards] = useState<HanMethodCard[]>([]);
   const [methodCardConfigRows, setMethodCardConfigRows] = useState<HaiMethodCardConfigRow[]>([]);
   const [selectedMethodCardId, setSelectedMethodCardId] = useState("");
@@ -238,6 +242,7 @@ export default function HaiManagementSection() {
         knowledgeChunkResult,
         runtimeResult,
         methodCardResult,
+        providerRows,
       ] = await Promise.all([
         getAdminStudentList(),
         supabase
@@ -270,6 +275,7 @@ export default function HaiManagementSection() {
           .order("category", { ascending: true })
           .order("key", { ascending: true }),
         supabase.functions.invoke("hai-method-cards-admin", { body: {} }),
+        getHaiModelProviders(),
       ]);
 
       if (accessResult.error) throw accessResult.error;
@@ -298,6 +304,7 @@ export default function HaiManagementSection() {
         chunk_count: chunkCounts.get(source.id) ?? 0,
       })));
       setRuntimeSettings((runtimeResult.data as HaiRuntimeSetting[]) ?? []);
+      setModelProviders(providerRows);
       const methodCardPayload = (methodCardResult.data ?? {}) as {
         default_cards?: HanMethodCard[];
         override_rows?: HaiMethodCardConfigRow[];
@@ -403,6 +410,54 @@ export default function HaiManagementSection() {
       item.key === setting.key ? { ...item, value: normalized, enabled } : item
     )));
     setStatus("运行时设置已保存。");
+  }
+
+  async function handleSaveProvider() {
+    setSaving(true);
+    setStatus("");
+    try {
+      await saveHaiModelProvider({
+        id: editingProviderId || undefined,
+        label: providerDraft.label,
+        model_name: providerDraft.model_name,
+        api_key: providerDraft.api_key,
+        base_url: providerDraft.base_url,
+        is_enabled: providerDraft.is_enabled,
+        sort_order: providerDraft.sort_order,
+      });
+      setEditingProviderId(null);
+      setProviderDraft({ id: "", label: "", model_name: "", api_key: "", base_url: "", is_enabled: true, sort_order: 0 });
+      await loadAll();
+      setStatus("模型供应商已保存。");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "保存失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDeleteProvider(id: string) {
+    if (!confirm("确定删除该模型供应商？")) return;
+    try {
+      await deleteHaiModelProvider(id);
+      await loadAll();
+      setStatus("模型供应商已删除。");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "删除失败");
+    }
+  }
+
+  function startEditProvider(provider: HaiModelProvider) {
+    setEditingProviderId(provider.id);
+    setProviderDraft({
+      id: provider.id,
+      label: provider.label,
+      model_name: provider.model_name,
+      api_key: "",
+      base_url: provider.base_url,
+      is_enabled: provider.is_enabled,
+      sort_order: provider.sort_order,
+    });
   }
 
   function startCreateMethodCard() {
@@ -1417,6 +1472,93 @@ export default function HaiManagementSection() {
       </CollapsiblePanel>
 
       <CollapsiblePanel
+        title="模型供应商"
+        description="配置 LLM 模型后端（API Key、Base URL、模型名）。API Key 仅在服务端使用，不会暴露给前端。"
+        icon={<Cpu className="h-5 w-5" />}
+        summary={`${modelProviders.filter((p) => p.is_enabled).length}/${modelProviders.length} 启用`}
+      >
+        {/* Add / Edit form */}
+        <div className="mb-4 rounded-ds-md border border-bd bg-white p-3">
+          <p className="mb-2 text-ds-sm font-ds-bold text-tx">
+            {editingProviderId ? "编辑模型供应商" : "新增模型供应商"}
+          </p>
+          <div className="grid gap-2 sm:grid-cols-5">
+            <input
+              placeholder="标签（如 DeepSeek V4）"
+              value={providerDraft.label}
+              onChange={(e) => setProviderDraft((d) => ({ ...d, label: e.target.value }))}
+              className="h-9 rounded-ds-sm border border-bd bg-white px-2 text-ds-sm"
+            />
+            <input
+              placeholder="模型名（如 deepseek-v4-flash）"
+              value={providerDraft.model_name}
+              onChange={(e) => setProviderDraft((d) => ({ ...d, model_name: e.target.value }))}
+              className="h-9 rounded-ds-sm border border-bd bg-white px-2 text-ds-sm"
+            />
+            <input
+              type="password"
+              placeholder={editingProviderId ? "留空=不修改" : "API Key"}
+              value={providerDraft.api_key}
+              onChange={(e) => setProviderDraft((d) => ({ ...d, api_key: e.target.value }))}
+              className="h-9 rounded-ds-sm border border-bd bg-white px-2 text-ds-sm"
+            />
+            <input
+              placeholder="Base URL（如 https://api.deepseek.com）"
+              value={providerDraft.base_url}
+              onChange={(e) => setProviderDraft((d) => ({ ...d, base_url: e.target.value }))}
+              className="h-9 rounded-ds-sm border border-bd bg-white px-2 text-ds-sm"
+            />
+            <div className="flex items-center gap-2">
+              <select
+                value={providerDraft.is_enabled ? "1" : "0"}
+                onChange={(e) => setProviderDraft((d) => ({ ...d, is_enabled: e.target.value === "1" }))}
+                className="h-9 rounded-ds-sm border border-bd bg-white px-2 text-ds-sm"
+              >
+                <option value="1">启用</option>
+                <option value="0">停用</option>
+              </select>
+              <Button size="sm" onClick={handleSaveProvider} disabled={saving || !providerDraft.label.trim() || !providerDraft.model_name.trim()}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                保存
+              </Button>
+              {editingProviderId && (
+                <Button size="sm" variant="outline" onClick={() => { setEditingProviderId(null); setProviderDraft({ id: "", label: "", model_name: "", api_key: "", base_url: "", is_enabled: true, sort_order: 0 }); }}>
+                  <X className="h-4 w-4" />取消
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+        {/* Provider list */}
+        {modelProviders.length === 0 ? (
+          <p className="py-4 text-center text-ds-sm text-txs">暂无模型供应商，请添加。</p>
+        ) : (
+          <div className="space-y-2">
+            {modelProviders.map((provider) => (
+              <div
+                key={provider.id}
+                className="flex flex-wrap items-center gap-3 rounded-ds-md border border-bd bg-white px-3 py-2"
+              >
+                <span className="min-w-[140px] text-ds-sm font-ds-bold text-tx">{provider.label}</span>
+                <code className="text-ds-xs text-txs">{provider.model_name}</code>
+                <span className="text-ds-xs text-txs truncate max-w-[200px] hidden sm:inline">{provider.base_url}</span>
+                <Badge variant={provider.is_enabled ? "default" : "secondary"}>
+                  {provider.is_enabled ? "启用" : "停用"}
+                </Badge>
+                <span className="flex-1" />
+                <Button size="sm" variant="outline" onClick={() => startEditProvider(provider)}>
+                  <Pencil className="h-3.5 w-3.5" />编辑
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => handleDeleteProvider(provider.id)}>
+                  <Trash2 className="h-3.5 w-3.5" />删除
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </CollapsiblePanel>
+
+      <CollapsiblePanel
         title="功能模块与生成参数"
         description="管理 HAI 功能模块及各模块的生成上限。"
         icon={<Bot className="h-5 w-5" />}
@@ -1432,7 +1574,7 @@ export default function HaiManagementSection() {
                 </Button>
               </div>
               <p className="mb-3 min-h-10 text-ds-xs text-txs">{module.description}</p>
-              <ModuleParamFields module={module} onPatch={(updates) => updateModule(module, updates)} />
+              <ModuleParamFields module={module} onPatch={(updates) => updateModule(module, updates)} providers={modelProviders} />
             </div>
           ))}
         </div>

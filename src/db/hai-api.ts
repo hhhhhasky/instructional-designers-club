@@ -1,4 +1,6 @@
-import { supabase } from "@/db/supabase";
+import { supabase, typedSupabase } from "@/db/supabase";
+import { consumeSseResponse } from "@/lib/sse";
+import type { Database } from "@/types/database.generated";
 
 export interface HaiAccessStatus {
   authenticated: boolean;
@@ -41,14 +43,45 @@ export interface HaiFeatureModule {
   memory_limit: number;
   material_match_count: number;
   knowledge_match_count: number;
+  model_provider_id: string | null;
   sort_order: number;
   is_enabled: boolean;
   surface_mode?: "chat" | "work";
 }
 
+/** Frontend-safe model provider. api_key is NEVER returned to the client. */
+export interface HaiModelProvider {
+  id: string;
+  label: string;
+  model_name: string;
+  base_url: string;
+  is_enabled: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export type HaiMode = "chat" | "work";
 export type HaiWorkToolSlug = "lesson-diagnosis" | "segment-optimization" | "subject-lesson-design";
 export type HaiWorkRunStatus = "queued" | "running" | "completed" | "failed";
+export const HAI_CHAT_MODULE_SLUG = "ask-han" as const;
+
+export type HaiApiErrorCode =
+  | "chat_module_unavailable"
+  | "task_not_found"
+  | "service_unavailable";
+
+export class HaiApiError extends Error {
+  readonly code: HaiApiErrorCode;
+  readonly detail?: string;
+
+  constructor(code: HaiApiErrorCode, message: string, detail?: string) {
+    super(message);
+    this.name = "HaiApiError";
+    this.code = code;
+    this.detail = detail;
+  }
+}
 
 export interface HaiTextbookCatalogEntry {
   collection_slug: string;
@@ -249,15 +282,28 @@ export async function redeemHaiInvite(code: string): Promise<{
   return normalizeAccessPayload(data);
 }
 
-export async function getHaiModules(): Promise<HaiFeatureModule[]> {
-  const { data, error } = await supabase
+export async function getAskHanModule(): Promise<HaiFeatureModule> {
+  const { data, error } = await typedSupabase
     .from("hai_feature_modules")
     .select("*")
     .eq("surface_mode", "chat")
+    .eq("slug", HAI_CHAT_MODULE_SLUG)
     .eq("is_enabled", true)
-    .order("sort_order", { ascending: true });
-  if (error) throw error;
-  return (data as HaiFeatureModule[]) ?? [];
+    .maybeSingle();
+  if (error) {
+    throw new HaiApiError(
+      "service_unavailable",
+      "无法读取“问问哈老师”配置，请稍后重试。",
+      error.message,
+    );
+  }
+  if (!data) {
+    throw new HaiApiError(
+      "chat_module_unavailable",
+      "“问问哈老师”当前未启用，请联系管理员检查模块和已发布 Skill。",
+    );
+  }
+  return normalizeAskHanModule(data);
 }
 
 export async function getHaiWorkTools(): Promise<HaiFeatureModule[]> {
@@ -269,6 +315,39 @@ export async function getHaiWorkTools(): Promise<HaiFeatureModule[]> {
     .order("sort_order", { ascending: true });
   if (error) throw error;
   return (data as HaiFeatureModule[]) ?? [];
+}
+
+// ── Model Providers ────────────────────────────────────────────
+
+export async function getHaiModelProviders(): Promise<HaiModelProvider[]> {
+  const { data, error } = await supabase
+    .from("hai_model_providers")
+    .select("id, label, model_name, base_url, is_enabled, sort_order, created_at, updated_at")
+    .order("sort_order", { ascending: true });
+  if (error) throw error;
+  return (data as HaiModelProvider[]) ?? [];
+}
+
+export async function saveHaiModelProvider(
+  provider: { label: string; model_name: string; api_key: string; base_url: string; is_enabled: boolean; sort_order: number; id?: string },
+): Promise<void> {
+  const { error } = await supabase
+    .from("hai_model_providers")
+    .upsert({
+      id: provider.id,
+      label: provider.label,
+      model_name: provider.model_name,
+      api_key: provider.api_key,
+      base_url: provider.base_url,
+      is_enabled: provider.is_enabled,
+      sort_order: provider.sort_order,
+    });
+  if (error) throw error;
+}
+
+export async function deleteHaiModelProvider(id: string): Promise<void> {
+  const { error } = await supabase.from("hai_model_providers").delete().eq("id", id);
+  if (error) throw error;
 }
 
 export async function getHaiTextbookCatalog(
@@ -295,21 +374,67 @@ export async function getHaiWorkTasks(): Promise<HaiWorkTask[]> {
 }
 
 export async function getHaiWorkTaskDetail(taskId: string): Promise<HaiWorkTaskDetail> {
-  const { error: staleRunError } = await supabase.rpc("hai_mark_stale_work_runs", { p_task_id: taskId });
-  if (staleRunError) throw staleRunError;
+  refreshStaleWorkRunsInBackground(taskId);
+
   const [taskResult, runsResult, artifactsResult] = await Promise.all([
     supabase.from("hai_work_tasks").select("*").eq("id", taskId).single(),
     supabase.from("hai_work_runs").select("*").eq("task_id", taskId).order("created_at", { ascending: false }),
     supabase.from("hai_work_artifacts").select("*").eq("task_id", taskId).order("version_number", { ascending: false }),
   ]);
-  if (taskResult.error) throw taskResult.error;
-  if (runsResult.error) throw runsResult.error;
-  if (artifactsResult.error) throw artifactsResult.error;
+  if (taskResult.error) {
+    if (taskResult.error.code === "PGRST116") {
+      throw new HaiApiError("task_not_found", "该 HAI Work 任务不存在或你无权访问。");
+    }
+    throw new HaiApiError(
+      "service_unavailable",
+      "HAI Work 任务暂时无法读取，请稍后重试。",
+      taskResult.error.message,
+    );
+  }
+  if (runsResult.error) {
+    throw new HaiApiError(
+      "service_unavailable",
+      "HAI Work 运行记录暂时无法读取，请稍后重试。",
+      runsResult.error.message,
+    );
+  }
+  if (artifactsResult.error) {
+    throw new HaiApiError(
+      "service_unavailable",
+      "HAI Work 产物暂时无法读取，请稍后重试。",
+      artifactsResult.error.message,
+    );
+  }
   return {
     task: taskResult.data as HaiWorkTask,
     runs: (runsResult.data as HaiWorkRun[]) ?? [],
     artifacts: (artifactsResult.data as HaiWorkArtifact[]) ?? [],
   };
+}
+
+function refreshStaleWorkRunsInBackground(taskId: string) {
+  try {
+    void Promise.resolve(
+      supabase.rpc("hai_mark_stale_work_runs", { p_task_id: taskId }),
+    ).then(({ error }) => {
+      if (error) {
+        console.warn("[HAI Work] 过期运行状态后台校正失败", {
+          taskId,
+          message: error.message,
+        });
+      }
+    }).catch((error: unknown) => {
+      console.warn("[HAI Work] 过期运行状态后台校正异常", {
+        taskId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    });
+  } catch (error) {
+    console.warn("[HAI Work] 过期运行状态后台校正异常", {
+      taskId,
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
 }
 
 export async function archiveHaiWorkTask(taskId: string): Promise<void> {
@@ -346,25 +471,10 @@ export async function streamHaiWork(
       clientRequestId: payload.clientRequestId || crypto.randomUUID(),
     }),
   });
-  if (!response.ok || !response.body) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(String(body.message || "HAI Work 请求失败。"));
-  }
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const events = buffer.split("\n\n");
-    buffer = events.pop() ?? "";
-    for (const event of events) {
-      const line = event.split("\n").find((part) => part.startsWith("data: "));
-      if (line) handlers.onEvent(JSON.parse(line.slice(6)) as HaiWorkStreamEvent);
-    }
-  }
+  await consumeSseResponse<HaiWorkStreamEvent>(response, {
+    fallbackErrorMessage: "HAI Work 请求失败。",
+    onEvent: handlers.onEvent,
+  });
 }
 
 export async function getHaiConversations(): Promise<HaiConversation[]> {
@@ -578,10 +688,7 @@ export async function deleteHaiMaterial(materialId: string): Promise<void> {
 export async function streamHaiChat(
   payload: {
     conversationId: string | null;
-    moduleSlug: string;
     message: string;
-    mode?: "chat" | "roundtable";
-    roleIds?: string[];
     capturePromptSnapshot?: boolean;
   },
   handlers: {
@@ -592,8 +699,7 @@ export async function streamHaiChat(
   const accessToken = data.session?.access_token;
   if (!accessToken) throw new Error("请先登录。");
 
-  const endpoint = payload.mode === "roundtable" ? "hai-roundtable-chat" : "hai-chat";
-  const url = `${getFunctionsBaseUrl()}/${endpoint}`;
+  const url = `${getFunctionsBaseUrl()}/hai-chat`;
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -602,31 +708,15 @@ export async function streamHaiChat(
     },
     body: JSON.stringify({
       ...payload,
+      moduleSlug: HAI_CHAT_MODULE_SLUG,
+      mode: "chat",
       clientRequestId: crypto.randomUUID(),
     }),
   });
-
-  if (!response.ok || !response.body) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(String(data.message || "HAI 请求失败。"));
-  }
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const events = buffer.split("\n\n");
-    buffer = events.pop() ?? "";
-    for (const event of events) {
-      const line = event.split("\n").find((part) => part.startsWith("data: "));
-      if (!line) continue;
-      handlers.onEvent(JSON.parse(line.slice(6)) as HaiStreamEvent);
-    }
-  }
+  await consumeSseResponse<HaiStreamEvent>(response, {
+    fallbackErrorMessage: "HAI 请求失败。",
+    onEvent: handlers.onEvent,
+  });
 }
 
 function getFunctionsBaseUrl(): string {
@@ -641,6 +731,61 @@ function normalizeAccessPayload(value: unknown) {
     access: (isRecord(record.access) ? record.access : {}) as unknown as HaiAccessStatus,
     usage: (isRecord(record.usage) ? record.usage : null) as HaiUsageSummary | null,
   };
+}
+
+function normalizeAskHanModule(
+  row: Database["public"]["Tables"]["hai_feature_modules"]["Row"],
+): HaiFeatureModule {
+  const reasoningEffort = row.reasoning_effort;
+  const responseFormat = row.response_format;
+  const inputSchema = normalizeModuleInputSchema(row.input_schema);
+  if (
+    row.slug !== HAI_CHAT_MODULE_SLUG ||
+    row.surface_mode !== "chat" ||
+    (reasoningEffort !== "high" && reasoningEffort !== "max") ||
+    (responseFormat !== "text" && responseFormat !== "json_object") ||
+    inputSchema === null
+  ) {
+    throw new HaiApiError(
+      "service_unavailable",
+      "“问问哈老师”配置不完整，请联系管理员检查模块配置。",
+      `slug=${row.slug}, surface_mode=${row.surface_mode}, reasoning_effort=${reasoningEffort}, response_format=${responseFormat}`,
+    );
+  }
+  return {
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    short_label: row.short_label,
+    description: row.description,
+    icon_key: row.icon_key,
+    category: row.category,
+    input_schema: inputSchema,
+    default_model: row.default_model,
+    default_temperature: row.default_temperature,
+    default_max_output_tokens: row.default_max_output_tokens,
+    thinking_enabled: row.thinking_enabled,
+    default_top_p: row.default_top_p,
+    reasoning_effort: reasoningEffort,
+    response_format: responseFormat,
+    stop_sequences: row.stop_sequences,
+    history_message_limit: row.history_message_limit,
+    memory_limit: row.memory_limit,
+    material_match_count: row.material_match_count,
+    knowledge_match_count: row.knowledge_match_count,
+    sort_order: row.sort_order,
+    is_enabled: row.is_enabled,
+    surface_mode: "chat",
+  };
+}
+
+function normalizeModuleInputSchema(value: unknown): Array<Record<string, unknown>> | null {
+  if (!Array.isArray(value)) return null;
+  const fields: Array<Record<string, unknown>> = [];
+  for (const item of value) {
+    if (isRecord(item)) fields.push(item);
+  }
+  return fields;
 }
 
 async function getFunctionErrorMessage(error: unknown, fallback: string): Promise<string> {

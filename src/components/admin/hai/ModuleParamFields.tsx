@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { HaiFeatureModule } from "@/db/hai-api";
+import type { HaiFeatureModule, HaiModelProvider } from "@/db/hai-api";
 
 /**
  * 功能模块的「前端展示 + 生成参数」编辑控件。
@@ -10,9 +10,11 @@ import type { HaiFeatureModule } from "@/db/hai-api";
 export default function ModuleParamFields({
   module,
   onPatch,
+  providers = [],
 }: {
   module: HaiFeatureModule;
   onPatch: (updates: Partial<HaiFeatureModule>) => void;
+  providers?: HaiModelProvider[];
 }) {
   return (
     <div className="grid grid-cols-2 gap-2 text-ds-sm">
@@ -21,7 +23,30 @@ export default function ModuleParamFields({
       <div className="col-span-2">
         <TextInput label="入口说明" value={module.description} onChange={(value) => onPatch({ description: value })} />
       </div>
-      <TextInput label="模型" value={module.default_model} onChange={(value) => onPatch({ default_model: value })} />
+      {providers.length > 0 ? (
+        <label className="block">
+          <span className="mb-1 block text-ds-xs text-txs">模型</span>
+          <select
+            value={module.model_provider_id ?? ""}
+            onChange={(event) => {
+              const providerId = event.target.value || null;
+              const provider = providerId ? providers.find((p) => p.id === providerId) : null;
+              onPatch({
+                model_provider_id: providerId,
+                default_model: provider?.model_name ?? module.default_model,
+              });
+            }}
+            className="h-9 w-full rounded-ds-sm border border-bd bg-white px-2 text-ds-sm"
+          >
+            <option value="">-- 环境变量默认 --</option>
+            {providers.filter((p) => p.is_enabled).map((p) => (
+              <option key={p.id} value={p.id}>{p.label} ({p.model_name})</option>
+            ))}
+          </select>
+        </label>
+      ) : (
+        <TextInput label="模型" value={module.default_model} onChange={(value) => onPatch({ default_model: value })} />
+      )}
       <NumberInput label="温度" value={Number(module.default_temperature)} step={0.05} onChange={(value) => onPatch({ default_temperature: value })} />
       <OptionalNumberInput label="Top P" value={module.default_top_p} step={0.05} min={0.01} max={1} onChange={(value) => onPatch({ default_top_p: value })} />
       <NumberInput label="输出" value={module.default_max_output_tokens} onChange={(value) => onPatch({ default_max_output_tokens: value })} />

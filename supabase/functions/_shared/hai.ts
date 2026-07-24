@@ -56,6 +56,7 @@ export type HaiModuleConfig = {
   reasoning_effort?: string | null;
   response_format?: string | null;
   stop_sequences?: string[] | null;
+  model_provider_id?: string | null;
 };
 
 export type HaiChatCompletionOptions = {
@@ -67,6 +68,7 @@ export type HaiChatCompletionOptions = {
   reasoningEffort?: "high" | "max";
   responseFormat?: "text" | "json_object";
   stopSequences?: string[];
+  modelProviderId?: string | null;
 };
 
 const defaultRuntimeConfig: HaiRuntimeConfig = {
@@ -316,12 +318,14 @@ export function buildChatCompletionOptions(params: {
     reasoningEffort,
     responseFormat,
     stopSequences: stopSequences.length > 0 ? stopSequences : undefined,
+    modelProviderId: params.module.model_provider_id ?? null,
   };
 }
 
 export function runtimeConfigSnapshot(runtime: HaiRuntimeConfig, options: HaiChatCompletionOptions) {
   return {
     model: options.model,
+    model_provider_id: options.modelProviderId ?? null,
     temperature: options.temperature,
     top_p: options.topP ?? null,
     max_tokens: options.maxTokens,
@@ -407,6 +411,70 @@ function deepSeekConfig() {
   };
 }
 
+type ProviderConfig = {
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+};
+
+/**
+ * Resolve a model provider's credentials.
+ * When modelProviderId is provided, looks it up from hai_model_providers.
+ * Falls back to the legacy DEEPSEEK_* env vars for backward compatibility.
+ */
+async function resolveProviderConfig(
+  admin: SupabaseClient,
+  modelProviderId: string | null | undefined,
+  fallbackModel?: string | null,
+): Promise<ProviderConfig> {
+  if (!modelProviderId) {
+    const envKey = Deno.env.get("DEEPSEEK_API_KEY");
+    if (!envKey) throw new HttpError(503, "AI 服务未配置 API Key。");
+    return {
+      baseUrl: Deno.env.get("DEEPSEEK_BASE_URL") || "https://api.deepseek.com",
+      apiKey: envKey,
+      model: fallbackModel || Deno.env.get("DEEPSEEK_MODEL") || "deepseek-v4-flash",
+    };
+  }
+
+  const { data, error } = await admin
+    .from("hai_model_providers")
+    .select("label, model_name, api_key, base_url, is_enabled")
+    .eq("id", modelProviderId)
+    .maybeSingle();
+
+  if (error || !data) {
+    console.warn("Model provider not found in DB, falling back to env:", error?.message);
+    const envKey = Deno.env.get("DEEPSEEK_API_KEY");
+    if (!envKey) throw new HttpError(503, "AI 服务未配置 API Key。");
+    return {
+      baseUrl: Deno.env.get("DEEPSEEK_BASE_URL") || "https://api.deepseek.com",
+      apiKey: envKey,
+      model: fallbackModel || Deno.env.get("DEEPSEEK_MODEL") || "deepseek-v4-flash",
+    };
+  }
+
+  if (!data.is_enabled) {
+    throw new HttpError(503, `模型供应商 "${data.label}" 已被禁用。`);
+  }
+
+  // ENV: prefix → read from Deno.env; otherwise use the stored value
+  let apiKey = data.api_key;
+  if (apiKey.startsWith("ENV:")) {
+    const envName = apiKey.slice(4);
+    apiKey = Deno.env.get(envName) || "";
+  }
+  if (!apiKey) {
+    throw new HttpError(503, `模型供应商 "${data.label}" 的 API Key 未配置。`);
+  }
+
+  return {
+    baseUrl: data.base_url.replace(/\/$/, "") || "https://api.deepseek.com",
+    apiKey,
+    model: fallbackModel || data.model_name,
+  };
+}
+
 export async function* streamDeepSeek(
   messages: ChatMessage[],
   options: {
@@ -419,9 +487,13 @@ export async function* streamDeepSeek(
     responseFormat?: "text" | "json_object" | null;
     stopSequences?: string[] | null;
     userId?: string | null;
+    admin?: SupabaseClient | null;
+    modelProviderId?: string | null;
   } = {},
 ) {
-  const config = deepSeekConfig();
+  const config = options.admin
+    ? await resolveProviderConfig(options.admin, options.modelProviderId, options.model)
+    : deepSeekConfig();
   if (!config.apiKey) throw new HttpError(503, "AI 服务未配置 DeepSeek API Key。");
 
   const response = await fetch(`${config.baseUrl.replace(/\/$/, "")}/chat/completions`, {
@@ -482,10 +554,12 @@ export function sendSse(controller: ReadableStreamDefaultController<Uint8Array>,
   controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
 }
 
-type MemoryCandidate = {
+export type ExplicitMemoryCandidate = {
   category: string;
   content: string;
   confidence: number;
+  slot: "teaching_assignment" | "student_profile" | "response_preference" | "teaching_constraint";
+  intent: "remember" | "future_rule";
 };
 
 export async function rememberExplicitTeacherFacts(
@@ -497,91 +571,190 @@ export async function rememberExplicitTeacherFacts(
   if (candidates.length === 0) return;
 
   for (const candidate of candidates) {
-    const { data: existing, error: selectError } = await admin
+    const { data: existingRows, error: selectError } = await admin
       .from("hai_user_memories")
-      .select("id")
+      .select("id, content, source_type, status")
       .eq("user_id", userId)
       .eq("category", candidate.category)
-      .eq("content", candidate.content)
       .neq("status", "archived")
-      .limit(1)
-      .maybeSingle();
+      .limit(20);
     if (selectError) {
       console.warn("hai memory select failed", selectError.message);
       continue;
     }
-    if (existing) continue;
+
+    const existing = (Array.isArray(existingRows) ? existingRows : []) as Array<{
+      id: string;
+      content: string;
+      source_type: string | null;
+      status: string;
+    }>;
+    if (existing.some((item) => item.content === candidate.content)) continue;
+
+    const slotPrefix = explicitMemorySlotPrefix(candidate.slot);
+    const conflicts = existing.filter((item) => item.content.startsWith(slotPrefix));
+    const protectedConflicts = conflicts.filter((item) => !isAutoExtractedMemory(item.source_type));
+    const replaceableConflicts = conflicts.filter((item) => isAutoExtractedMemory(item.source_type));
+    let status: "active" | "candidate" = "active";
+    let action: "new" | "update" | "conflict" = "new";
+
+    if (protectedConflicts.length > 0) {
+      status = "candidate";
+      action = "conflict";
+    } else if (replaceableConflicts.length > 0) {
+      const { error: archiveError } = await admin
+        .from("hai_user_memories")
+        .update({ status: "archived" })
+        .in("id", replaceableConflicts.map((item) => item.id));
+      if (archiveError) {
+        console.warn("hai memory conflict archive failed", archiveError.message);
+        status = "candidate";
+        action = "conflict";
+      } else {
+        action = "update";
+      }
+    }
 
     const { error } = await admin.from("hai_user_memories").insert({
       user_id: userId,
       category: candidate.category,
       content: candidate.content,
       confidence: candidate.confidence,
-      source_type: "chat_explicit",
-      status: "active",
-      metadata: { extractor: "regex-v1" },
+      source_type: `chat_explicit_v2:${candidate.intent}:${action}`,
+      status,
     });
     if (error) console.warn("hai memory insert failed", error.message);
   }
 }
 
-function extractExplicitMemoryCandidates(text: string): MemoryCandidate[] {
+export function extractExplicitMemoryCandidates(text: string): ExplicitMemoryCandidate[] {
   const source = text.replace(/\s+/g, " ").trim();
   if (!source || source.length > 3000) return [];
-  const compact = source.replace(/\s+/g, "");
-  const candidates: MemoryCandidate[] = [];
+  const instruction = extractExplicitMemoryInstruction(source);
+  if (!instruction) return [];
 
-  const teaching = compact.match(/(?:我是|我现在|我目前)?(?:教|带|任教)([^，。！？；;、\n]{2,40})(?:的)?(?:老师|学生|班)?/);
+  const payload = instruction.payload;
+  const compact = payload.replace(/\s+/g, "");
+  const candidates: ExplicitMemoryCandidate[] = [];
+
+  if (instruction.intent === "future_rule") {
+    const value = cleanMemoryValue(payload);
+    if (!value) return [];
+    return [{
+      category: "teaching_preference",
+      content: `这位老师希望 HAI ${value}。`,
+      confidence: 0.98,
+      slot: "response_preference",
+      intent: instruction.intent,
+    }];
+  }
+
+  const teaching = compact.match(
+    /(?:我(?:现在|目前)?(?:主要)?(?:教|带|任教))([^，。！？；;、\n]{2,40}?)(?:(?:的)?(?:老师|学生|班))?(?=[，。！？；;、\n]|$)/,
+  ) ?? compact.match(
+    /我是([^，。！？；;、\n]{2,40}?)(?:老师|教师)(?=[，。！？；;、\n]|$)/,
+  );
   if (teaching) {
     const value = cleanMemoryValue(teaching[1]);
     if (value) {
       candidates.push({
         category: "basic_info",
         content: `这位老师教${value}。`,
-        confidence: 0.88,
+        confidence: 0.98,
+        slot: "teaching_assignment",
+        intent: instruction.intent,
       });
     }
   }
 
-  const students = source.match(/我的学生([^。！？\n]{4,100})/);
+  const students = payload.match(/我的学生([^。！？；;\n]{4,100})/);
   if (students) {
     const value = cleanMemoryValue(students[1]);
     if (value) {
       candidates.push({
         category: "student_view",
         content: `这位老师的学生${value}。`,
-        confidence: 0.82,
+        confidence: 0.98,
+        slot: "student_profile",
+        intent: instruction.intent,
       });
     }
   }
 
-  const preference = source.match(/(?:请记住|记住|以后记住|我的偏好是|我希望你)([^。！？\n]{6,120})/);
+  const preference = payload.match(/(?:我的偏好是|我希望你|回答时请|给建议时请)([^。！？；;\n]{4,120})/);
   if (preference) {
     const value = cleanMemoryValue(preference[1]);
     if (value) {
       candidates.push({
         category: "teaching_preference",
         content: `这位老师希望 HAI ${value}。`,
-        confidence: 0.86,
+        confidence: 0.98,
+        slot: "response_preference",
+        intent: instruction.intent,
       });
     }
   }
 
-  const constraint = source.match(/(?:我的限制是|现实限制是|现在的问题是|最大的困难是)([^。！？\n]{4,120})/);
+  const constraint = payload.match(/(?:我的限制是|现实限制是|客观限制是|最大的困难是)([^。！？；;\n]{4,120})/);
   if (constraint) {
     const value = cleanMemoryValue(constraint[1]);
     if (value) {
       candidates.push({
         category: "constraint",
         content: `这位老师当前的现实限制是${value}。`,
-        confidence: 0.8,
+        confidence: 0.98,
+        slot: "teaching_constraint",
+        intent: instruction.intent,
       });
     }
   }
 
   return candidates
     .filter((candidate) => candidate.content.length <= 180)
+    .filter((candidate, index, all) => (
+      all.findIndex((item) => (
+        item.category === candidate.category && item.content === candidate.content
+      )) === index
+    ))
     .slice(0, 4);
+}
+
+function extractExplicitMemoryInstruction(source: string): {
+  intent: ExplicitMemoryCandidate["intent"];
+  payload: string;
+} | null {
+  const remember = source.match(
+    /(?:^|[。！？；;]\s*)(?:(?:请你?|麻烦你)(?:帮我)?|帮我)?(?:记住|记一下|记下来)(?:这件事|以下内容)?[：:，,\s]*(.+)$/u,
+  );
+  if (remember?.[1]) {
+    const payload = remember[1].trim();
+    return payload ? { intent: "remember", payload } : null;
+  }
+
+  const futureRule = source.match(
+    /(?:^|[。！？；;]\s*)((?:以后|今后)(?=(?:请|都|一律|务必|就|要|不要|别|回答|建议|分析|跟我|和我|按|照))[^。！？\n]{3,240})/u,
+  );
+  if (futureRule?.[1]) {
+    return { intent: "future_rule", payload: futureRule[1].trim() };
+  }
+  return null;
+}
+
+function explicitMemorySlotPrefix(slot: ExplicitMemoryCandidate["slot"]) {
+  switch (slot) {
+    case "teaching_assignment":
+      return "这位老师教";
+    case "student_profile":
+      return "这位老师的学生";
+    case "response_preference":
+      return "这位老师希望 HAI ";
+    case "teaching_constraint":
+      return "这位老师当前的现实限制是";
+  }
+}
+
+function isAutoExtractedMemory(sourceType: string | null) {
+  return sourceType === "chat_explicit" || sourceType?.startsWith("chat_explicit_v2:") === true;
 }
 
 function cleanMemoryValue(value: string) {

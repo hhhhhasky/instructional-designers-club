@@ -39,6 +39,7 @@ type ModuleRow = {
   reasoning_effort: string | null;
   response_format: string | null;
   stop_sequences: string[] | null;
+  model_provider_id: string | null;
 };
 
 type WorkRequestBody = {
@@ -219,6 +220,7 @@ Deno.serve(async (request) => {
             module,
             completionOptions,
             userId: auth.user.id,
+            admin: auth.admin,
           });
           let parsed = parseWorkJson(rawOutput);
           if (parsed) parsed = applyWorkOutputRuntimeTrace(parsed, skill, input, textbookSourcePaths);
@@ -239,6 +241,7 @@ Deno.serve(async (request) => {
               module,
               completionOptions,
               userId: auth.user.id,
+              admin: auth.admin,
             });
             parsed = parseWorkJson(rawOutput);
             if (parsed) parsed = applyWorkOutputRuntimeTrace(parsed, skill, input, textbookSourcePaths);
@@ -344,7 +347,7 @@ Deno.serve(async (request) => {
 
 async function loadModule(admin: any, slug: string): Promise<ModuleRow> {
   const { data, error } = await admin.from("hai_feature_modules").select(
-    "slug, name, default_model, default_temperature, default_max_output_tokens, thinking_enabled, default_top_p, reasoning_effort, response_format, stop_sequences",
+    "slug, name, default_model, default_temperature, default_max_output_tokens, thinking_enabled, default_top_p, reasoning_effort, response_format, stop_sequences, model_provider_id",
   ).eq("slug", slug).eq("surface_mode", "work").eq("is_enabled", true).maybeSingle();
   if (error) throw new HttpError(500, error.message);
   if (!data) throw new HttpError(404, "该 HAI Work 功能暂未启用。");
@@ -571,6 +574,7 @@ async function collectModelOutput(params: {
   module: ModuleRow;
   completionOptions: ReturnType<typeof buildChatCompletionOptions>;
   userId: string;
+  admin: any;
 }) {
   let output = "";
   for await (const token of streamDeepSeek([
@@ -580,6 +584,8 @@ async function collectModelOutput(params: {
     ...params.completionOptions,
     responseFormat: "json_object",
     userId: params.userId,
+    admin: params.admin,
+    modelProviderId: params.module.model_provider_id,
   })) output += token;
   return output;
 }

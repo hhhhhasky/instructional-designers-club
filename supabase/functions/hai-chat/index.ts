@@ -28,20 +28,20 @@ import {
   type HaiChatSkillTrace,
   normalizeHaiChatSkillReferenceConfig,
 } from "../_shared/hai_chat_skill.ts";
-import { classifyIntent } from "../_shared/hai_orchestrator/intent_classifier.ts";
+import { classifyIntent } from "../_shared/hai_chat/intent_classifier.ts";
 import {
   hanCourseMethodCards,
   type HanMethodCard,
   type HanMethodCardConfigRow,
   mergeHanMethodCards,
-} from "../_shared/hai_orchestrator/knowledge/method_bank/han_course_method_cards.ts";
+} from "../_shared/hai_chat/method_cards.ts";
 import {
   memoryCategoryMatchesTypes,
   selectMemory,
-} from "../_shared/hai_orchestrator/memory_selector.ts";
-import { normalizeHaiVoiceFormatting } from "../_shared/hai_orchestrator/response_composer.ts";
-import { evaluateResponse } from "../_shared/hai_orchestrator/response_evaluator.ts";
-import type { MemorySelection } from "../_shared/hai_orchestrator/types.ts";
+} from "../_shared/hai_chat/memory_selector.ts";
+import { normalizeHaiVoiceFormatting } from "../_shared/hai_chat/response_format.ts";
+import { evaluateResponse } from "../_shared/hai_chat/response_evaluator.ts";
+import type { MemorySelection } from "../_shared/hai_chat/types.ts";
 
 type ModuleRow = {
   id: string;
@@ -59,6 +59,7 @@ type ModuleRow = {
   memory_limit: number | null;
   material_match_count: number | null;
   knowledge_match_count: number | null;
+  model_provider_id: string | null;
 };
 
 type ConversationRow = {
@@ -242,6 +243,8 @@ Deno.serve(async (request) => {
             const token of streamDeepSeek(messages, {
               ...completionOptions,
               userId: auth.user.id,
+              admin: auth.admin,
+              modelProviderId: module.model_provider_id,
             })
           ) {
             output += token;
@@ -285,6 +288,8 @@ Deno.serve(async (request) => {
               const token of streamDeepSeek(finalMessages, {
                 ...completionOptions,
                 userId: auth.user.id,
+                admin: auth.admin,
+                modelProviderId: module.model_provider_id,
               })
             ) {
               finalAnswer += token;
@@ -296,13 +301,20 @@ Deno.serve(async (request) => {
           }
 
           finalAnswer = normalizeHaiVoiceFormatting(finalAnswer);
+          const finalEvaluation = runtime.evaluatorEnabled
+            ? evaluateResponse(finalAnswer, undefined, {
+              passScore: runtime.evaluatorPassScore,
+            })
+            : null;
 
           const skillTrace = buildHaiChatSkillTrace({
             skill: chatSkill,
             question: text,
             intent: skillIntent,
             methodCards,
+            memorySelection,
             memoryLoaded: memories.length > 0,
+            evaluation: finalEvaluation,
           });
 
           output = finalAnswer;
@@ -425,7 +437,7 @@ async function loadModule(
   const { data, error } = await admin
     .from("hai_feature_modules")
     .select(
-      "id, slug, name, default_model, default_temperature, default_max_output_tokens, thinking_enabled, default_top_p, reasoning_effort, response_format, stop_sequences, history_message_limit, memory_limit, material_match_count, knowledge_match_count",
+      "id, slug, name, default_model, default_temperature, default_max_output_tokens, thinking_enabled, default_top_p, reasoning_effort, response_format, stop_sequences, history_message_limit, memory_limit, material_match_count, knowledge_match_count, model_provider_id",
     )
     .eq("slug", slug)
     .eq("is_enabled", true)
@@ -676,15 +688,13 @@ function buildMessageMetadata(
     module_slug: moduleSlug,
     model: options.model,
     chat_mode: "skill",
-    skill_slug: skillTrace.skill_slug,
-    skill_version: skillTrace.version_label,
-    skill_version_id: skillTrace.version_id,
-    skill_snapshot_hash: skillTrace.snapshot_hash,
+    skill_slug: skillTrace.skill.slug,
+    skill_version: skillTrace.skill.version.label,
+    skill_version_id: skillTrace.skill.version.id,
+    skill_snapshot_hash: skillTrace.skill.version.snapshot_hash,
+    hai_trace: skillTrace,
   };
   if (runtime.logConfigSnapshot) metadata.config = configSnapshot;
-  if (runtime.logConfigSnapshot) {
-    metadata.hai_skill_trace = skillTrace;
-  }
   return metadata;
 }
 
