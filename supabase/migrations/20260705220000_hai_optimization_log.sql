@@ -1,6 +1,6 @@
 -- HAI 每日自我优化闭环的结构化留痕表。
 -- 由 scripts/hai-apply-prompt-config.mjs 在每次落地时写入;
--- docs/hai-optimization-changelog.md 是人类可读副本，两者并存。
+-- docs/项目需求与开发进展.md 是当前人类可读项目台账；详细质量证据保存在 docs/hai-quality-runs/。
 
 create table if not exists public.hai_optimization_log (
   id uuid primary key default gen_random_uuid(),
