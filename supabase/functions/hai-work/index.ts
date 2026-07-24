@@ -305,6 +305,8 @@ Deno.serve(async (request) => {
               teaching_mode: String(input.teaching_mode ?? ""),
               fallback_skill: skill.is_fallback,
               revision: Boolean(parentArtifact),
+              model: completionOptions.model,
+              model_provider_id: module.model_provider_id ?? null,
             },
           });
           sendSse(controller, encoder, {
@@ -576,6 +578,8 @@ async function collectModelOutput(params: {
   userId: string;
   admin: any;
 }) {
+  const model = params.completionOptions.model;
+  console.log("[hai-work] calling DeepSeek with model:", model, "providerId:", params.module.model_provider_id, "moduleSlug:", params.module.slug);
   let output = "";
   for await (const token of streamDeepSeek([
     { role: "system", content: params.system },
