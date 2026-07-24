@@ -1,4 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.generated";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
@@ -15,3 +16,9 @@ export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
     detectSessionInUrl: false,
   },
 });
+
+/**
+ * 新代码优先使用这个有数据库契约的别名；旧数据层仍在逐个收紧，
+ * 避免一次性用断言掩盖历史 RPC 与远端 schema 的真实漂移。
+ */
+export const typedSupabase = supabase as SupabaseClient<Database>;
