@@ -455,6 +455,24 @@
     repeating-linear-gradient(0deg, transparent 0 31px, rgba(111, 91, 63, 0.035) 31px 32px);
 }
 
+/* HAI Work 可调宽布局:桌面端三栏,两栏之间各嵌一条 6px 拖拽条(作为独立 grid 列)。
+   移动端不设列,侧栏与拖拽条在 lg/xl 才显示,小屏隐藏后只剩内容区单列堆叠。
+   列宽由 --hai-sidebar-w / --hai-inspector-w 驱动,组件 inline style 覆盖默认值。 */
+.hai-work-resizable-grid {
+  --hai-sidebar-w: 260px;
+  --hai-inspector-w: 280px;
+}
+@media (min-width: 1024px) {
+  .hai-work-resizable-grid {
+    grid-template-columns: var(--hai-sidebar-w) 6px minmax(0, 1fr);
+  }
+}
+@media (min-width: 1280px) {
+  .hai-work-resizable-grid:not(.hai-work-resizable-grid--no-inspector) {
+    grid-template-columns: var(--hai-sidebar-w) 6px minmax(0, 1fr) 6px var(--hai-inspector-w);
+  }
+}
+
 .hai-work-artifact .markdown-body,
 .hai-work-artifact [data-markdown-content] {
   color: #343630;

@@ -6,13 +6,43 @@ import {
   NotebookPen,
   PanelRight,
 } from "lucide-react";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import HaiDesktopModeSwitch from "@/components/hai/HaiDesktopModeSwitch";
 import Header from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useHaiExit } from "@/lib/hai-navigation";
 import { cn } from "@/lib/utils";
+
+// 可调宽布局:桌面三栏宽度本地持久化(仅 resizable 页面启用;移动端走 Sheet 不受影响)。
+const HAI_LAYOUT_STORAGE_KEY = "hai-work-layout";
+const HAI_LAYOUT_DEFAULTS = { sidebar: 260, inspector: 280 };
+const HAI_LAYOUT_LIMITS = {
+  sidebar: { min: 200, max: 420 },
+  inspector: { min: 220, max: 460 },
+} as const;
+
+type HaiLayout = { sidebar: number; inspector: number };
+type HaiLayoutCSSVars = CSSProperties & Partial<Record<`--hai-${string}`, string>>;
+
+function clampWidth(value: number, range: { min: number; max: number }) {
+  return Math.min(range.max, Math.max(range.min, value));
+}
+
+function readHaiLayout(): HaiLayout {
+  if (typeof window === "undefined") return { ...HAI_LAYOUT_DEFAULTS };
+  try {
+    const raw = window.localStorage.getItem(HAI_LAYOUT_STORAGE_KEY);
+    if (!raw) return { ...HAI_LAYOUT_DEFAULTS };
+    const parsed = JSON.parse(raw) as Partial<HaiLayout>;
+    return {
+      sidebar: clampWidth(Number(parsed.sidebar) || HAI_LAYOUT_DEFAULTS.sidebar, HAI_LAYOUT_LIMITS.sidebar),
+      inspector: clampWidth(Number(parsed.inspector) || HAI_LAYOUT_DEFAULTS.inspector, HAI_LAYOUT_LIMITS.inspector),
+    };
+  } catch {
+    return { ...HAI_LAYOUT_DEFAULTS };
+  }
+}
 
 export type HaiWorkspaceMode = "consultation" | "production" | "proof";
 
@@ -33,6 +63,7 @@ type HaiWorkspaceShellProps = {
   footer?: ReactNode;
   contentMode?: "managed" | "scroll";
   contentClassName?: string;
+  resizable?: boolean;
 };
 
 const modePresentation = {
@@ -74,7 +105,42 @@ export default function HaiWorkspaceShell({
   footer,
   contentMode = "scroll",
   contentClassName,
+  resizable = false,
 }: HaiWorkspaceShellProps) {
+  const [layout, setLayout] = useState<HaiLayout>(readHaiLayout);
+
+  useEffect(() => {
+    if (!resizable) return;
+    try {
+      window.localStorage.setItem(HAI_LAYOUT_STORAGE_KEY, JSON.stringify(layout));
+    } catch {
+      // 无痕模式或配额不足时静默跳过。
+    }
+  }, [layout, resizable]);
+
+  function startDrag(which: "sidebar" | "inspector", event: ReactPointerEvent<HTMLDivElement>) {
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = layout[which];
+    const range = HAI_LAYOUT_LIMITS[which];
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    const handleMove = (moveEvent: PointerEvent) => {
+      const delta = moveEvent.clientX - startX;
+      // 左栏向右拖变宽;右栏向左拖变宽,故取反。
+      const next = clampWidth(which === "sidebar" ? startWidth + delta : startWidth - delta, range);
+      setLayout((current) => ({ ...current, [which]: next }));
+    };
+    const handleUp = () => {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", handleUp);
+    };
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", handleUp);
+  }
+
   const exitHai = useHaiExit();
   const presentation = modePresentation[mode];
   const WorkspaceIcon = presentation.Icon;
@@ -173,18 +239,33 @@ export default function HaiWorkspaceShell({
             </div>
           </header>
 
-          <div className={cn(
-            "grid min-h-0 flex-1 print:block print:overflow-visible",
-            inspector
-              ? "lg:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)_280px]"
-              : "lg:grid-cols-[260px_minmax(0,1fr)]",
-          )}>
+          <div
+            className={cn(
+              "grid min-h-0 flex-1 print:block print:overflow-visible",
+              resizable
+                ? cn("hai-work-resizable-grid", !inspector && "hai-work-resizable-grid--no-inspector")
+                : inspector
+                  ? "lg:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)_280px]"
+                  : "lg:grid-cols-[260px_minmax(0,1fr)]",
+            )}
+            style={resizable ? ({
+              "--hai-sidebar-w": `${layout.sidebar}px`,
+              "--hai-inspector-w": `${layout.inspector}px`,
+            } as HaiLayoutCSSVars) : undefined}
+          >
             <aside className={cn(
               "hidden min-h-0 overflow-y-auto border-r border-[var(--paper-rule)] bg-[var(--paper-deep)] lg:block print:hidden",
               sidebarPadded && "p-4",
             )}>
               {sidebar}
             </aside>
+            {resizable && (
+              <div
+                aria-hidden
+                className="hidden w-1.5 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-ac/25 active:bg-ac/40 lg:block print:hidden"
+                onPointerDown={(event) => startDrag("sidebar", event)}
+              />
+            )}
             <section className={cn(
               "min-h-0 min-w-0 bg-[var(--paper)] print:overflow-visible print:bg-white",
               contentMode === "managed"
@@ -194,6 +275,13 @@ export default function HaiWorkspaceShell({
             )}>
               {children}
             </section>
+            {resizable && inspector && (
+              <div
+                aria-hidden
+                className="hidden w-1.5 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-ac/25 active:bg-ac/40 xl:block print:hidden"
+                onPointerDown={(event) => startDrag("inspector", event)}
+              />
+            )}
             {inspector && (
               <aside className="hidden min-h-0 overflow-y-auto border-l border-[var(--paper-rule)] bg-[var(--bg)] p-4 xl:block print:hidden">
                 {inspector}

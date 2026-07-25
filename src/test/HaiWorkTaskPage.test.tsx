@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getHaiWorkTaskDetail, streamHaiWork, type HaiWorkTask } from "@/db/hai-api";
+import { deleteHaiWorkTask, getHaiWorkTaskDetail, renameHaiWorkTask, streamHaiWork, type HaiWorkTask } from "@/db/hai-api";
 import { WorkSidebar } from "@/pages/HaiWorkPage";
 import HaiWorkTaskPage from "@/pages/HaiWorkTaskPage";
 
@@ -61,6 +61,8 @@ vi.mock("@/db/hai-api", () => ({
   getHaiWorkTasks: vi.fn().mockResolvedValue([detail.task]),
   getHaiWorkTools: vi.fn().mockResolvedValue(tools),
   archiveHaiWorkTask: vi.fn(),
+  deleteHaiWorkTask: vi.fn(),
+  renameHaiWorkTask: vi.fn(),
   streamHaiWork: vi.fn(),
 }));
 
@@ -93,6 +95,35 @@ describe("HAI Work task page", () => {
     expect(screen.getByRole("button", { name: "复制产物" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "下载 Markdown" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "打印或另存 PDF" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "导出 PDF" })).toBeInTheDocument();
+  });
+
+  it("renames the task from the action menu", async () => {
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
+    renderPage();
+    await screen.findByText("# 第二版诊断");
+
+    await user.click(screen.getAllByRole("button", { name: "任务操作" })[0]);
+    await user.click(await screen.findByRole("menuitem", { name: /重命名/ }));
+
+    const input = screen.getByDisplayValue(detail.task.title) as HTMLInputElement;
+    await user.clear(input);
+    await user.type(input, "教案诊断｜荷塘月色");
+    await user.click(screen.getByRole("button", { name: "保存" }));
+
+    expect(renameHaiWorkTask).toHaveBeenCalledWith("task-1", "教案诊断｜荷塘月色");
+  });
+
+  it("deletes the task from the action menu", async () => {
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
+    renderPage();
+    await screen.findByText("# 第二版诊断");
+
+    await user.click(screen.getAllByRole("button", { name: "任务操作" })[0]);
+    await user.click(await screen.findByRole("menuitem", { name: /删除/ }));
+    await user.click(await screen.findByRole("button", { name: "永久删除" }));
+
+    expect(deleteHaiWorkTask).toHaveBeenCalledWith("task-1");
   });
 
   it("creates a child artifact when revising the selected version", async () => {

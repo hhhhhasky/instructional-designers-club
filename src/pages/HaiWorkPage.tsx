@@ -12,10 +12,11 @@ import {
   UploadCloud,
   WandSparkles,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import PageMeta from "@/components/common/PageMeta";
 import HaiWorkShell from "@/components/hai/HaiWorkShell";
+import TaskActionMenu from "@/components/hai/TaskActionMenu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -142,10 +143,17 @@ export default function HaiWorkPage() {
     return () => { cancelled = true; };
   }, [user]);
 
+  const loadTasks = useCallback(async () => {
+    try {
+      setTasks(await getHaiWorkTasks());
+    } catch {
+      // 列表刷新失败不阻断,静默处理。
+    }
+  }, []);
   const enabledToolSlugs = useMemo(() => new Set(tools.map((item) => item.slug)), [tools]);
   const activeModule = toolSlug ? tools.find((item) => item.slug === toolSlug) : undefined;
   const activeConfig = toolSlug ? resolveWorkToolConfig(toolSlug, activeModule) : null;
-  const sidebar = <WorkSidebar tasks={tasks} tools={tools} />;
+  const sidebar = <WorkSidebar tasks={tasks} tools={tools} onTasksChanged={loadTasks} />;
 
   return (
     <>
@@ -168,14 +176,14 @@ export default function HaiWorkPage() {
             <WorkError message="这项工作功能尚未在后台启用。" />
           )
         ) : (
-          <WorkLanding tools={tools} tasks={tasks} />
+          <WorkLanding tools={tools} tasks={tasks} onTasksChanged={loadTasks} />
         )}
       </HaiWorkShell>
     </>
   );
 }
 
-function WorkLanding({ tools, tasks }: { tools: HaiFeatureModule[]; tasks: HaiWorkTask[] }) {
+function WorkLanding({ tools, tasks, onTasksChanged }: { tools: HaiFeatureModule[]; tasks: HaiWorkTask[]; onTasksChanged?: () => void }) {
   const visibleTools = getSupportedWorkTools(tools);
   return (
     <div className="mx-auto max-w-6xl px-4 py-5 pb-[calc(6rem+env(safe-area-inset-bottom))] md:px-8 md:py-8">
@@ -212,7 +220,7 @@ function WorkLanding({ tools, tasks }: { tools: HaiFeatureModule[]; tasks: HaiWo
         </div>
         {tasks.length > 0 ? (
           <div className="grid gap-3 md:grid-cols-2">
-            {tasks.slice(0, 6).map((task) => <RecentTaskCard key={task.id} task={task} tools={tools} />)}
+            {tasks.slice(0, 6).map((task) => <RecentTaskCard key={task.id} task={task} tools={tools} onTasksChanged={onTasksChanged} />)}
           </div>
         ) : (
           <div className="rounded-ds-xl border border-dashed border-[var(--paper-rule)] bg-[var(--paper-deep)] px-6 py-10 text-center">
@@ -496,7 +504,7 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
   );
 }
 
-export function WorkSidebar({ tasks, tools = [] }: { tasks: HaiWorkTask[]; tools?: HaiFeatureModule[] }) {
+export function WorkSidebar({ tasks, tools = [], onTasksChanged }: { tasks: HaiWorkTask[]; tools?: HaiFeatureModule[]; onTasksChanged?: () => void }) {
   const visibleTools = getSupportedWorkTools(tools);
   return (
     <div>
@@ -518,10 +526,19 @@ export function WorkSidebar({ tasks, tools = [] }: { tasks: HaiWorkTask[]; tools
       </div>
       <div className="mt-3 space-y-1">
         {tasks.slice(0, 8).map((task) => (
-          <Link key={task.id} to={`/hai/work/tasks/${task.id}`} className="block rounded-ds-md px-3 py-2.5 transition hover:bg-[var(--paper)]">
-            <p className="truncate text-xs font-bold text-tx">{task.title}</p>
-            <p className="mt-1 text-[10px] text-txt">{formatDate(task.updated_at)} · v{task.latest_artifact?.version_number ?? "—"}</p>
-          </Link>
+          <div key={task.id} className="group relative flex items-center rounded-ds-md transition hover:bg-[var(--paper)]">
+            <Link to={`/hai/work/tasks/${task.id}`} className="min-w-0 flex-1 px-3 py-2.5 pr-9">
+              <p className="truncate text-xs font-bold text-tx">{task.title}</p>
+              <p className="mt-1 text-[10px] text-txt">{formatDate(task.updated_at)} · v{task.latest_artifact?.version_number ?? "—"}</p>
+            </Link>
+            <TaskActionMenu
+              task={task}
+              onArchived={onTasksChanged}
+              onRenamed={onTasksChanged}
+              onDeleted={onTasksChanged}
+              triggerClassName="absolute right-0.5 top-0.5 opacity-40 transition group-hover:opacity-100 focus:opacity-100"
+            />
+          </div>
         ))}
         {tasks.length === 0 && <p className="px-3 py-4 text-xs leading-5 text-txt">任务完成后会出现在这里。</p>}
       </div>
@@ -529,18 +546,27 @@ export function WorkSidebar({ tasks, tools = [] }: { tasks: HaiWorkTask[]; tools
   );
 }
 
-function RecentTaskCard({ task, tools }: { task: HaiWorkTask; tools: HaiFeatureModule[] }) {
+function RecentTaskCard({ task, tools, onTasksChanged }: { task: HaiWorkTask; tools: HaiFeatureModule[]; onTasksChanged?: () => void }) {
   const config = resolveWorkToolConfig(task.module_slug, tools.find((item) => item.slug === task.module_slug));
   const Icon = config.icon;
   return (
-    <Link to={`/hai/work/tasks/${task.id}`} className="group flex items-center gap-4 rounded-ds-xl border border-[var(--paper-rule)] bg-[var(--paper)] p-4 shadow-ds-xs transition hover:border-ac/40 hover:shadow-ds-md">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px] text-white" style={{ backgroundColor: config.accent }}><Icon className="h-5 w-5" /></span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-black text-tx">{task.title}</span>
-        <span className="mt-1 block text-xs text-txs">{formatDate(task.updated_at)} · v{task.latest_artifact?.version_number ?? "—"}</span>
-      </span>
-      <ArrowRight className="h-4 w-4 text-txt transition group-hover:translate-x-1" />
-    </Link>
+    <div className="group relative flex items-center gap-4 rounded-ds-xl border border-[var(--paper-rule)] bg-[var(--paper)] p-4 pr-12 shadow-ds-xs transition hover:border-ac/40 hover:shadow-ds-md">
+      <Link to={`/hai/work/tasks/${task.id}`} className="flex min-w-0 flex-1 items-center gap-4">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px] text-white" style={{ backgroundColor: config.accent }}><Icon className="h-5 w-5" /></span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-black text-tx">{task.title}</span>
+          <span className="mt-1 block text-xs text-txs">{formatDate(task.updated_at)} · v{task.latest_artifact?.version_number ?? "—"}</span>
+        </span>
+        <ArrowRight className="h-4 w-4 text-txt transition group-hover:translate-x-1" />
+      </Link>
+      <TaskActionMenu
+        task={task}
+        onArchived={onTasksChanged}
+        onRenamed={onTasksChanged}
+        onDeleted={onTasksChanged}
+        triggerClassName="absolute right-1.5 top-1.5 opacity-40 transition group-hover:opacity-100 focus:opacity-100"
+      />
+    </div>
   );
 }
 

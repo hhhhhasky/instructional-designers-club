@@ -26,6 +26,7 @@ export default function HaiWorkShell({
       title={title}
       subtitle={subtitle}
       contentMode="scroll"
+      resizable
     >
       {children}
     </HaiWorkspaceShell>

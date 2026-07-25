@@ -1,10 +1,10 @@
 import {
-  Archive,
   Check,
   ChevronLeft,
   Copy,
   Download,
   FileClock,
+  FileDown,
   Loader2,
   Printer,
   RefreshCcw,
@@ -14,14 +14,15 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 import MarkdownRenderer from "@/components/common/MarkdownRenderer";
 import PageMeta from "@/components/common/PageMeta";
 import HaiWorkShell from "@/components/hai/HaiWorkShell";
+import TaskActionMenu from "@/components/hai/TaskActionMenu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  archiveHaiWorkTask,
   getHaiWorkTaskDetail,
   getHaiWorkTasks,
   getHaiWorkTools,
@@ -34,6 +35,8 @@ import {
 } from "@/db/hai-api";
 import { resolveWorkToolConfig, WorkSidebar } from "@/pages/HaiWorkPage";
 import { cn } from "@/lib/utils";
+
+const HAI_PDF_WATERMARK = "文档来自于教学设计师俱乐部哈老师研发的 HAI 产出";
 
 export default function HaiWorkTaskPage() {
   const { taskId = "" } = useParams();
@@ -49,6 +52,7 @@ export default function HaiWorkTaskPage() {
   const [revision, setRevision] = useState("");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/login", { state: { from: `/hai/work/tasks/${taskId}` } });
@@ -72,6 +76,13 @@ export default function HaiWorkTaskPage() {
     }
   }, [taskId, user]);
 
+  const reloadTaskList = useCallback(async () => {
+    try {
+      setTasks(await getHaiWorkTasks());
+    } catch {
+      // 任务列表刷新失败不阻断,详情页保持可用。
+    }
+  }, []);
   useEffect(() => { void loadDetail(false); }, [loadDetail]);
 
   const activeRun = detail?.runs.find((run) => run.status === "queued" || run.status === "running");
@@ -168,10 +179,32 @@ export default function HaiWorkTaskPage() {
     URL.revokeObjectURL(url);
   }
 
-  async function archiveTask() {
-    if (!detail || busy) return;
-    await archiveHaiWorkTask(detail.task.id);
-    navigate("/hai/work");
+  async function exportPdf() {
+    if (!selectedArtifact || !detail || exporting) return;
+    setExporting(true);
+    try {
+      // 懒加载排版器与字体:仅在真正导出时拉取,避免拖慢任务详情页首屏。
+      const { renderHaiPdf } = await import("@/lib/hai-pdf");
+      const bytes = await renderHaiPdf({
+        title: selectedArtifact.title,
+        version: selectedArtifact.version_number,
+        markdown: selectedArtifact.content_markdown,
+        watermark: HAI_PDF_WATERMARK,
+        metaRight: `${detail.task.title} · v${selectedArtifact.version_number} · ${formatDateTime(detail.task.created_at)}`,
+      });
+      const blob = new Blob([new Uint8Array(bytes)], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${safeFileName(selectedArtifact.title)}-v${selectedArtifact.version_number}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast.success("PDF 已生成。");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "PDF 生成失败,请重试。");
+    } finally {
+      setExporting(false);
+    }
   }
 
   const inspector = detail ? (
@@ -188,7 +221,7 @@ export default function HaiWorkTaskPage() {
     <>
       <PageMeta title={detail?.task.title ?? "HAI 工作任务"} description="HAI 版本化任务产物" canonicalPath={`/hai/work/tasks/${taskId}`} />
       <HaiWorkShell
-        sidebar={<WorkSidebar tasks={tasks} tools={tools} />}
+        sidebar={<WorkSidebar tasks={tasks} tools={tools} onTasksChanged={reloadTaskList} />}
         inspector={inspector}
         workspaceMode="proof"
         title={config?.name ?? "工作任务"}
@@ -219,7 +252,18 @@ export default function HaiWorkTaskPage() {
                   <Button size="sm" variant="ghost" onClick={() => window.print()} disabled={!selectedArtifact} aria-label="打印或另存 PDF">
                     <Printer className="h-4 w-4" /><span className="hidden sm:inline">打印</span>
                   </Button>
-                  <Button size="icon-sm" variant="ghost" onClick={() => void archiveTask()} aria-label="归档任务"><Archive className="h-4 w-4" /></Button>
+                  <Button size="sm" variant="ghost" onClick={() => void exportPdf()} disabled={!selectedArtifact || exporting} aria-label="导出 PDF">
+                    {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}<span className="hidden sm:inline">{exporting ? "生成中" : "PDF"}</span>
+                  </Button>
+                  <TaskActionMenu
+                    task={detail.task}
+                    onArchived={() => navigate("/hai/work")}
+                    onDeleted={() => navigate("/hai/work")}
+                    onRenamed={(title) => {
+                      setDetail((current) => current ? { ...current, task: { ...current.task, title } } : current);
+                      void reloadTaskList();
+                    }}
+                  />
                 </div>
               </div>
               {detail.artifacts.length > 1 && (

@@ -445,6 +445,18 @@ export async function archiveHaiWorkTask(taskId: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function renameHaiWorkTask(taskId: string, title: string): Promise<void> {
+  const trimmed = title.trim();
+  if (!trimmed) throw new Error("任务名不能为空。");
+  const { error } = await supabase.from("hai_work_tasks").update({ title: trimmed }).eq("id", taskId);
+  if (error) throw error;
+}
+
+export async function deleteHaiWorkTask(taskId: string): Promise<void> {
+  const { error } = await supabase.from("hai_work_tasks").delete().eq("id", taskId);
+  if (error) throw error;
+}
+
 export async function streamHaiWork(
   payload: {
     toolSlug: HaiWorkToolSlug;
