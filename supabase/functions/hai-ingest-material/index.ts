@@ -145,37 +145,12 @@ async function parseMaterial(blob: Blob, material: MaterialRow): Promise<{
 
   if (mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
     const mammoth = await import("npm:mammoth@1.8.0");
-    const result = await mammoth.extractRawText({ arrayBuffer: buffer });
+    // mammoth v1.8.0 的 Deno 版 unzip 只认 path/buffer/file,不认 arrayBuffer。
+    const result = await mammoth.extractRawText({ buffer: buffer });
     return { text: String(result.value || "").trim(), parser: "mammoth", mimeType };
   }
 
-  if (mimeType === "application/pdf") {
-    const { getDocument } = await import("npm:pdfjs-dist@4.9.124");
-    const doc = await getDocument({ data: buffer, disableFontFace: true }).promise;
-    const pages: string[] = [];
-    for (let pageNumber = 1; pageNumber <= doc.numPages; pageNumber += 1) {
-      const page = await doc.getPage(pageNumber);
-      const content = await page.getTextContent();
-      const pageText = content.items
-        .map((item: unknown) => {
-          if (typeof item === "object" && item && "str" in item) {
-            return String((item as { str: string }).str);
-          }
-          return "";
-        })
-        .join(" ")
-        .replace(/\s+/g, " ")
-        .trim();
-      if (pageText) pages.push(`## 第 ${pageNumber} 页\n${pageText}`);
-    }
-    const text = pages.join("\n\n").trim();
-    if (!text) {
-      throw new HttpError(422, "该 PDF 没有可提取文本层；扫描件 OCR 将在后续接入。");
-    }
-    return { text, parser: "pdfjs", mimeType };
-  }
-
-  throw new HttpError(422, `暂不支持该文件类型：${mimeType}。当前支持文本、Markdown、HTML、JSON、CSV、DOCX 和文字型 PDF。`);
+  throw new HttpError(422, `暂不支持该文件类型：${mimeType}。当前支持文本、Markdown 和 Word(.docx)。`);
 }
 
 function normalizeMimeType(mimeType: string, fileName: string) {
@@ -188,7 +163,6 @@ function normalizeMimeType(mimeType: string, fileName: string) {
   if (name.endsWith(".json")) return "application/json";
   if (name.endsWith(".csv")) return "text/csv";
   if (name.endsWith(".docx")) return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-  if (name.endsWith(".pdf")) return "application/pdf";
   return lower || "application/octet-stream";
 }
 

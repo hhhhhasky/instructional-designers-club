@@ -95,8 +95,8 @@ describe("HAI Work task page", () => {
     expect(screen.getByText("通用 Skill 模式")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "复制产物" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "下载 Markdown" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "打印或另存 PDF" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "导出 PDF" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "打印" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "导出 Word" })).toBeInTheDocument();
   });
 
   it("renames the task from the action menu", async () => {

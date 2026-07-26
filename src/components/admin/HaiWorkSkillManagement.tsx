@@ -368,18 +368,22 @@ export default function HaiWorkSkillManagement() {
           {modules.map((module) => {
             const moduleSkills = skillsByModule[module.slug] ?? [];
             const hasPublishedSkill = moduleSkills.some((skill) => versions.some((item) => item.skill_id === skill.id && item.status === "published"));
+            const enabledSkillCount = moduleSkills.filter((s) => s.is_enabled).length;
             return (
               <div key={module.id} className="rounded-ds-md border border-bd bg-bg p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <h3 className="text-ds-base font-ds-bold text-tx">{module.name}</h3>
                     <Badge variant="outline" className={module.is_enabled ? "text-green-700" : "text-txs"}>
-                      {module.is_enabled ? "前端显示中" : "前端已隐藏"} · 由 Skill 控制
+                      {module.is_enabled ? `前端显示中 · ${enabledSkillCount}/${moduleSkills.length} 个 Skill 已启用` : "前端已隐藏 · 无已启用 Skill"}
                     </Badge>
                     {hasPublishedSkill && <Badge variant="outline" className="text-green-700">存在已发布版本</Badge>}
                   </div>
                 </div>
                 <p className="mt-1 text-ds-xs text-txs">{module.description}</p>
+                {hasPublishedSkill && enabledSkillCount === 0 && (
+                  <div className="mt-2 rounded-ds-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] text-amber-800">⚠ 该工具存在已发布版本，但所有 Skill 均已停用——前端不会显示此功能。请选中下方 Skill 卡片，点击「启用」。</div>
+                )}
 
                 <div className="mt-4">
                   <div className="mb-2 flex items-center gap-2 text-ds-xs text-txs"><span className="font-ds-bold text-tx">Skills</span><span>（{moduleSkills.length}）</span></div>
@@ -389,7 +393,7 @@ export default function HaiWorkSkillManagement() {
                     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                       {moduleSkills.map((skill) => (
                         <button key={skill.id} type="button" onClick={() => setSelectedSkillId(skill.id)} className={`rounded-ds-md border p-3 text-left transition ${skill.id === selectedSkillId ? "border-ac/40 bg-ac/5" : "border-bd bg-white hover:bg-bg"}`}>
-                          <div className="flex items-center justify-between gap-2"><span className="truncate text-ds-sm font-ds-bold text-tx">{skill.name}</span><span className={`h-2 w-2 shrink-0 rounded-full ${skill.is_enabled ? "bg-green-500" : "bg-slate-300"}`} /></div>
+                          <div className="flex items-center justify-between gap-2"><span className="truncate text-ds-sm font-ds-bold text-tx">{skill.name}</span><Badge variant="outline" className={`text-[10px] shrink-0 ${skill.is_enabled ? "border-green-300 text-green-700" : "border-slate-200 text-txs"}`}>{skill.is_enabled ? "已启用" : "已停用"}</Badge></div>
                           <p className="mt-1 text-[11px] text-txs">优先级 {skill.priority}</p>
                           <div className="mt-2 flex flex-wrap gap-1">{skill.is_fallback && <Badge variant="outline">通用降级</Badge>}{versions.some((item) => item.skill_id === skill.id && item.status === "published") ? <Badge variant="outline" className="text-green-700">已发布</Badge> : <Badge variant="outline" className="text-amber-700">仅草稿</Badge>}</div>
                         </button>

@@ -648,14 +648,35 @@ export async function getHaiMaterials(): Promise<HaiMaterial[]> {
   return (data as HaiMaterial[]) ?? [];
 }
 
+// 读取 supabase.functions.invoke 失败时的真实错误信息。
+// invoke 在非 2xx 时抛出的 FunctionsHttpError.message 只是通用提示
+// "Edge Function returned a non-2xx status code",真正原因在 error.context(Response)的 body 里。
+// OOM/超时被网关强杀时 body 通常不是 JSON,此时走兜底文案。
+async function readIngestError(err: unknown): Promise<string> {
+  const ctx = (err as { context?: { json?: () => Promise<unknown> } } | null)?.context;
+  if (ctx && typeof ctx.json === "function") {
+    try {
+      const body = (await ctx.json()) as { message?: string };
+      if (body?.message) return body.message;
+    } catch {
+      // body 不是 JSON(网关 5xx),落到兜底文案。
+    }
+  }
+  return "素材解析失败或超时，请尝试较小的 PDF 或拆分后再上传。";
+}
+
 export async function uploadHaiMaterial(params: {
   userId: string;
   file: File;
   kind: HaiMaterial["kind"];
   conversationId?: string | null;
 }): Promise<HaiMaterial> {
-  const safeName = params.file.name.replace(/[^\w.\-\u4e00-\u9fa5]+/g, "_");
-  const storagePath = `${params.userId}/${crypto.randomUUID()}-${safeName}`;
+  // Supabase Storage validates object keys against URL-safe ASCII, so CJK or
+  // other non-ASCII chars in the filename are rejected server-side ("Invalid key").
+  // The original filename is preserved in file_name below, so the storage key
+  // only needs a UUID + ASCII extension to always be valid.
+  const asciiExt = params.file.name.match(/(\.[a-zA-Z0-9]+)+$/)?.[0] ?? "";
+  const storagePath = `${params.userId}/${crypto.randomUUID()}${asciiExt}`;
   const { error: uploadError } = await supabase.storage
     .from("hai-user-materials")
     .upload(storagePath, params.file, {
@@ -685,7 +706,17 @@ export async function uploadHaiMaterial(params: {
   const { error: ingestError } = await supabase.functions.invoke("hai-ingest-material", {
     body: { materialId: material.id },
   });
-  if (ingestError) throw ingestError;
+  if (ingestError) {
+    // OOM/超时被网关强杀时,边缘函数来不及跑 catch,material 会卡在 processing。
+    // 这里把真实错误读出来(读不到就走兜底文案),并把当前 material 标记为 failed,
+    // 避免行一直停在 processing、前端只看到"Edge Function returned a non-2xx status code"。
+    const detail = await readIngestError(ingestError);
+    await supabase
+      .from("hai_materials")
+      .update({ status: "failed", error_message: detail })
+      .eq("id", material.id);
+    throw new Error(detail);
+  }
 
   const { data: refreshed, error: refreshError } = await supabase
     .from("hai_materials")

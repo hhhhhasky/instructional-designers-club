@@ -37,7 +37,7 @@ import {
 import { resolveWorkToolConfig, WorkSidebar } from "@/pages/HaiWorkPage";
 import { cn } from "@/lib/utils";
 
-const HAI_PDF_WATERMARK = "文档来自于教学设计师俱乐部哈老师研发的 HAI 产出";
+const HAI_DOC_WATERMARK = "文档来自于教学设计师俱乐部哈老师研发的 HAI 产出";
 
 export default function HaiWorkTaskPage() {
   const { taskId = "" } = useParams();
@@ -184,29 +184,28 @@ export default function HaiWorkTaskPage() {
     URL.revokeObjectURL(url);
   }
 
-  async function exportPdf() {
+  async function exportDocx() {
     if (!selectedArtifact || !detail || exporting) return;
     setExporting(true);
     try {
-      // 懒加载排版器与字体:仅在真正导出时拉取,避免拖慢任务详情页首屏。
-      const { renderHaiPdf } = await import("@/lib/hai-pdf");
-      const bytes = await renderHaiPdf({
+      // 懒加载 Word 排版器:仅在真正导出时拉取,避免拖慢任务详情页首屏。
+      const { renderHaiDocx } = await import("@/lib/hai-docx");
+      const blob = await renderHaiDocx({
         title: selectedArtifact.title,
         version: selectedArtifact.version_number,
         markdown: selectedArtifact.content_markdown,
-        watermark: HAI_PDF_WATERMARK,
+        watermark: HAI_DOC_WATERMARK,
         metaRight: `${detail.task.title} · v${selectedArtifact.version_number} · ${formatDateTime(detail.task.created_at)}`,
       });
-      const blob = new Blob([new Uint8Array(bytes)], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${safeFileName(selectedArtifact.title)}-v${selectedArtifact.version_number}.pdf`;
+      link.download = `${safeFileName(selectedArtifact.title)}-v${selectedArtifact.version_number}.docx`;
       link.click();
       URL.revokeObjectURL(url);
-      toast.success("PDF 已生成。");
+      toast.success("Word 已生成。");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "PDF 生成失败,请重试。");
+      toast.error(error instanceof Error ? error.message : "Word 生成失败,请重试。");
     } finally {
       setExporting(false);
     }
@@ -254,11 +253,11 @@ export default function HaiWorkTaskPage() {
                   <Button size="sm" variant="ghost" onClick={downloadArtifact} disabled={!selectedArtifact} aria-label="下载 Markdown">
                     <Download className="h-4 w-4" /><span className="hidden sm:inline">Markdown</span>
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => window.print()} disabled={!selectedArtifact} aria-label="打印或另存 PDF">
+                  <Button size="sm" variant="ghost" onClick={() => window.print()} disabled={!selectedArtifact} aria-label="打印">
                     <Printer className="h-4 w-4" /><span className="hidden sm:inline">打印</span>
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => void exportPdf()} disabled={!selectedArtifact || exporting} aria-label="导出 PDF">
-                    {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}<span className="hidden sm:inline">{exporting ? "生成中" : "PDF"}</span>
+                  <Button size="sm" variant="ghost" onClick={() => void exportDocx()} disabled={!selectedArtifact || exporting} aria-label="导出 Word">
+                    {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}<span className="hidden sm:inline">{exporting ? "生成中" : "Word"}</span>
                   </Button>
                   <TaskActionMenu
                     task={detail.task}

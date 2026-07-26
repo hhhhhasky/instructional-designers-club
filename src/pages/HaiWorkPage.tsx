@@ -103,7 +103,7 @@ export const HAI_DESIGN_TYPES = [
   { value: "cognitive-load-analysis", name: "认知负荷分析", description: "分析任务的内在/外在/相关负荷" },
   { value: "document-based-lesson", name: "史料探究课", description: "四阶段史料探究（历史）" },
 ];
-const acceptedFileTypes = ".txt,.md,.markdown,.html,.htm,.json,.csv,.docx,.pdf";
+const acceptedFileTypes = ".txt,.md,.markdown,.docx";
 const maxFileBytes = 20 * 1024 * 1024;
 
 export default function HaiWorkPage() {
@@ -488,7 +488,7 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-ds-md bg-[var(--paper)] text-ac shadow-ds-sm"><UploadCloud className="h-5 w-5" /></span>
             <span className="min-w-0">
               <span className="block text-sm font-bold text-tx">上传补充材料</span>
-              <span className="mt-1 block truncate text-xs text-txs">TXT / MD / DOCX / 文字型 PDF，最多 5 份，每份 20MB</span>
+              <span className="mt-1 block truncate text-xs text-txs">TXT / MD / DOCX，最多 5 份，每份 20MB</span>
             </span>
           </span>
           <input type="file" multiple accept={acceptedFileTypes} className="sr-only" onChange={(event) => selectFiles(event.target.files)} />
