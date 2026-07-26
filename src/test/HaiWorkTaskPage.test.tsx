@@ -59,6 +59,7 @@ vi.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: stableUser, l
 vi.mock("@/db/hai-api", () => ({
   getHaiWorkTaskDetail: vi.fn().mockResolvedValue(detail),
   getHaiWorkTasks: vi.fn().mockResolvedValue([detail.task]),
+  getArchivedHaiWorkTasks: vi.fn().mockResolvedValue([]),
   getHaiWorkTools: vi.fn().mockResolvedValue(tools),
   archiveHaiWorkTask: vi.fn(),
   deleteHaiWorkTask: vi.fn(),
@@ -80,7 +81,7 @@ describe("HAI Work task page", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("keeps the task sidebar renderable before the tool catalog is available", () => {
-    render(<MemoryRouter><WorkSidebar tasks={[detail.task as HaiWorkTask]} /></MemoryRouter>);
+    render(<MemoryRouter><WorkSidebar tasks={[detail.task as HaiWorkTask]} archivedTasks={[]} /></MemoryRouter>);
 
     expect(screen.getByText("最近任务")).toBeInTheDocument();
     expect(screen.getByText(detail.task.title)).toBeInTheDocument();

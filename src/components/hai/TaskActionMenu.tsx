@@ -1,10 +1,11 @@
-import { Archive, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   archiveHaiWorkTask,
   deleteHaiWorkTask,
   renameHaiWorkTask,
+  unarchiveHaiWorkTask,
   type HaiWorkTask,
 } from "@/db/hai-api";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ import { cn } from "@/lib/utils";
 type TaskActionMenuProps = {
   task: HaiWorkTask;
   onArchived?: () => void;
+  onUnarchived?: () => void;
   onRenamed?: (title: string) => void;
   onDeleted?: () => void;
   disabled?: boolean;
@@ -38,6 +40,7 @@ type TaskActionMenuProps = {
 export default function TaskActionMenu({
   task,
   onArchived,
+  onUnarchived,
   onRenamed,
   onDeleted,
   disabled,
@@ -63,6 +66,20 @@ export default function TaskActionMenu({
       onArchived?.();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "归档失败,请重试。");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleUnarchive() {
+    if (disabled || busy) return;
+    setBusy(true);
+    try {
+      await unarchiveHaiWorkTask(task.id);
+      toast.success("任务已恢复。");
+      onUnarchived?.();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "恢复失败,请重试。");
     } finally {
       setBusy(false);
     }
@@ -118,9 +135,15 @@ export default function TaskActionMenu({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align={align}>
-          <DropdownMenuItem onClick={() => void handleArchive()} disabled={busy}>
-            <Archive className="h-4 w-4" />归档
-          </DropdownMenuItem>
+          {task.status === "archived" ? (
+            <DropdownMenuItem onClick={() => void handleUnarchive()} disabled={busy}>
+              <ArchiveRestore className="h-4 w-4" />恢复
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem onClick={() => void handleArchive()} disabled={busy}>
+              <Archive className="h-4 w-4" />归档
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onClick={() => setRenameOpen(true)} disabled={busy}>
             <Pencil className="h-4 w-4" />重命名
           </DropdownMenuItem>

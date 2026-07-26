@@ -1,6 +1,7 @@
 import {
   ArrowRight,
   BookOpenCheck,
+  ChevronDown,
   ClipboardCheck,
   Clock3,
   FileText,
@@ -20,7 +21,9 @@ import TaskActionMenu from "@/components/hai/TaskActionMenu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
 import {
+  getArchivedHaiWorkTasks,
   getHaiAccessStatus,
   getHaiTextbookCatalog,
   getHaiWorkTasks,
@@ -111,6 +114,7 @@ export default function HaiWorkPage() {
   const [access, setAccess] = useState<HaiAccessStatus | null>(null);
   const [tools, setTools] = useState<HaiFeatureModule[]>([]);
   const [tasks, setTasks] = useState<HaiWorkTask[]>([]);
+  const [archivedTasks, setArchivedTasks] = useState<HaiWorkTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -124,15 +128,17 @@ export default function HaiWorkPage() {
     (async () => {
       setLoading(true);
       try {
-        const [{ access: nextAccess }, nextTools, nextTasks] = await Promise.all([
+        const [{ access: nextAccess }, nextTools, nextTasks, nextArchivedTasks] = await Promise.all([
           getHaiAccessStatus(),
           getHaiWorkTools(),
           getHaiWorkTasks(),
+          getArchivedHaiWorkTasks(),
         ]);
         if (!cancelled) {
           setAccess(nextAccess);
           setTools(nextTools);
           setTasks(nextTasks);
+          setArchivedTasks(nextArchivedTasks);
         }
       } catch (nextError) {
         if (!cancelled) setError(nextError instanceof Error ? nextError.message : "教研工作台加载失败。");
@@ -145,7 +151,12 @@ export default function HaiWorkPage() {
 
   const loadTasks = useCallback(async () => {
     try {
-      setTasks(await getHaiWorkTasks());
+      const [nextTasks, nextArchivedTasks] = await Promise.all([
+        getHaiWorkTasks(),
+        getArchivedHaiWorkTasks(),
+      ]);
+      setTasks(nextTasks);
+      setArchivedTasks(nextArchivedTasks);
     } catch {
       // 列表刷新失败不阻断,静默处理。
     }
@@ -153,7 +164,7 @@ export default function HaiWorkPage() {
   const enabledToolSlugs = useMemo(() => new Set(tools.map((item) => item.slug)), [tools]);
   const activeModule = toolSlug ? tools.find((item) => item.slug === toolSlug) : undefined;
   const activeConfig = toolSlug ? resolveWorkToolConfig(toolSlug, activeModule) : null;
-  const sidebar = <WorkSidebar tasks={tasks} tools={tools} onTasksChanged={loadTasks} />;
+  const sidebar = <WorkSidebar tasks={tasks} archivedTasks={archivedTasks} tools={tools} onTasksChanged={loadTasks} />;
 
   return (
     <>
@@ -504,8 +515,11 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
   );
 }
 
-export function WorkSidebar({ tasks, tools = [], onTasksChanged }: { tasks: HaiWorkTask[]; tools?: HaiFeatureModule[]; onTasksChanged?: () => void }) {
+export function WorkSidebar({ tasks, archivedTasks, tools = [], onTasksChanged }: { tasks: HaiWorkTask[]; archivedTasks: HaiWorkTask[]; tools?: HaiFeatureModule[]; onTasksChanged?: () => void }) {
   const visibleTools = getSupportedWorkTools(tools);
+  const [archivedOpen, setArchivedOpen] = useState(false);
+  const [showAllActive, setShowAllActive] = useState(false);
+  const visibleActive = showAllActive ? tasks : tasks.slice(0, 10); // 超过 10 条折叠,避免侧栏过长
   return (
     <div>
       <p className="editorial-kicker px-1">工作工具</p>
@@ -525,23 +539,58 @@ export function WorkSidebar({ tasks, tools = [], onTasksChanged }: { tasks: HaiW
         <Clock3 className="h-3.5 w-3.5 text-txt" />
       </div>
       <div className="mt-3 space-y-1">
-        {tasks.slice(0, 8).map((task) => (
-          <div key={task.id} className="group relative flex items-center rounded-ds-md transition hover:bg-[var(--paper)]">
-            <Link to={`/hai/work/tasks/${task.id}`} className="min-w-0 flex-1 px-3 py-2.5 pr-9">
-              <p className="truncate text-xs font-bold text-tx">{task.title}</p>
-              <p className="mt-1 text-[10px] text-txt">{formatDate(task.updated_at)} · v{task.latest_artifact?.version_number ?? "—"}</p>
-            </Link>
-            <TaskActionMenu
-              task={task}
-              onArchived={onTasksChanged}
-              onRenamed={onTasksChanged}
-              onDeleted={onTasksChanged}
-              triggerClassName="absolute right-0.5 top-0.5 opacity-40 transition group-hover:opacity-100 focus:opacity-100"
-            />
-          </div>
-        ))}
+        {visibleActive.map((task) => <TaskRow key={task.id} task={task} onTasksChanged={onTasksChanged} />)}
         {tasks.length === 0 && <p className="px-3 py-4 text-xs leading-5 text-txt">任务完成后会出现在这里。</p>}
       </div>
+      {tasks.length > 10 && (
+        <button
+          type="button"
+          onClick={() => setShowAllActive((open) => !open)}
+          className="mt-2 flex w-full items-center justify-center gap-1 rounded-ds-md px-3 py-2 text-[11px] font-bold text-txt transition hover:bg-[var(--paper)] hover:text-ac"
+          aria-expanded={showAllActive}
+        >
+          {showAllActive ? "收起" : `展示全部(${tasks.length})`}
+          <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showAllActive && "rotate-180")} />
+        </button>
+      )}
+      {archivedTasks.length > 0 && (
+        <>
+          <div className="my-5 h-px bg-[var(--paper-rule)]" />
+          <button
+            type="button"
+            onClick={() => setArchivedOpen((open) => !open)}
+            className="flex w-full items-center justify-between px-1 text-left"
+            aria-expanded={archivedOpen}
+          >
+            <span className="text-[11px] font-black tracking-[0.16em] text-txt">已归档 · {archivedTasks.length}</span>
+            <ChevronDown className={cn("h-3.5 w-3.5 text-txt transition-transform", archivedOpen && "rotate-180")} />
+          </button>
+          {archivedOpen && (
+            <div className="mt-3 space-y-1">
+              {archivedTasks.map((task) => <TaskRow key={task.id} task={task} onTasksChanged={onTasksChanged} />)}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function TaskRow({ task, onTasksChanged }: { task: HaiWorkTask; onTasksChanged?: () => void }) {
+  return (
+    <div className="group relative flex items-center rounded-ds-md transition hover:bg-[var(--paper)]">
+      <Link to={`/hai/work/tasks/${task.id}`} className="min-w-0 flex-1 px-3 py-2.5 pr-9">
+        <p className="truncate text-xs font-bold text-tx">{task.title}</p>
+        <p className="mt-1 text-[10px] text-txt">{formatDate(task.updated_at)} · v{task.latest_artifact?.version_number ?? "—"}</p>
+      </Link>
+      <TaskActionMenu
+        task={task}
+        onArchived={onTasksChanged}
+        onUnarchived={onTasksChanged}
+        onRenamed={onTasksChanged}
+        onDeleted={onTasksChanged}
+        triggerClassName="absolute right-0.5 top-0.5 opacity-40 transition group-hover:opacity-100 focus:opacity-100"
+      />
     </div>
   );
 }

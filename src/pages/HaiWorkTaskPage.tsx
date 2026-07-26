@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import {
+  getArchivedHaiWorkTasks,
   getHaiWorkTaskDetail,
   getHaiWorkTasks,
   getHaiWorkTools,
@@ -44,6 +45,7 @@ export default function HaiWorkTaskPage() {
   const { user, loading: authLoading } = useAuth();
   const [detail, setDetail] = useState<HaiWorkTaskDetail | null>(null);
   const [tasks, setTasks] = useState<HaiWorkTask[]>([]);
+  const [archivedTasks, setArchivedTasks] = useState<HaiWorkTask[]>([]);
   const [tools, setTools] = useState<HaiFeatureModule[]>([]);
   const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,10 +63,11 @@ export default function HaiWorkTaskPage() {
   const loadDetail = useCallback(async (preserveSelection = true) => {
     if (!user || !taskId) return;
     try {
-      const [nextDetail, nextTasks, nextTools] = await Promise.all([getHaiWorkTaskDetail(taskId), getHaiWorkTasks(), getHaiWorkTools()]);
+      const [nextDetail, nextTasks, nextTools, nextArchivedTasks] = await Promise.all([getHaiWorkTaskDetail(taskId), getHaiWorkTasks(), getHaiWorkTools(), getArchivedHaiWorkTasks()]);
       setDetail(nextDetail);
       setTasks(nextTasks);
       setTools(nextTools);
+      setArchivedTasks(nextArchivedTasks);
       setSelectedArtifactId((current) => preserveSelection && current
         ? current
         : nextDetail.artifacts[0]?.id ?? null);
@@ -78,7 +81,9 @@ export default function HaiWorkTaskPage() {
 
   const reloadTaskList = useCallback(async () => {
     try {
-      setTasks(await getHaiWorkTasks());
+      const [nextTasks, nextArchivedTasks] = await Promise.all([getHaiWorkTasks(), getArchivedHaiWorkTasks()]);
+      setTasks(nextTasks);
+      setArchivedTasks(nextArchivedTasks);
     } catch {
       // 任务列表刷新失败不阻断,详情页保持可用。
     }
@@ -221,7 +226,7 @@ export default function HaiWorkTaskPage() {
     <>
       <PageMeta title={detail?.task.title ?? "HAI 工作任务"} description="HAI 版本化任务产物" canonicalPath={`/hai/work/tasks/${taskId}`} />
       <HaiWorkShell
-        sidebar={<WorkSidebar tasks={tasks} tools={tools} onTasksChanged={reloadTaskList} />}
+        sidebar={<WorkSidebar tasks={tasks} archivedTasks={archivedTasks} tools={tools} onTasksChanged={reloadTaskList} />}
         inspector={inspector}
         workspaceMode="proof"
         title={config?.name ?? "工作任务"}

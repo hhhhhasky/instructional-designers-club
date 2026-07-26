@@ -29,6 +29,7 @@ vi.mock("@/db/hai-api", () => ({
   getHaiAccessStatus: vi.fn().mockResolvedValue({ access: { authenticated: true, allowed: true }, usage: null }),
   getHaiWorkTools: vi.fn().mockResolvedValue(tools),
   getHaiWorkTasks: vi.fn().mockResolvedValue([]),
+  getArchivedHaiWorkTasks: vi.fn().mockResolvedValue([]),
   getHaiTextbookCatalog: vi.fn().mockResolvedValue([
     {
       collection_slug: "junior-politics-grade-7-volume-1-2024",

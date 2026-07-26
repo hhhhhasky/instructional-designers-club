@@ -368,7 +368,18 @@ export async function getHaiWorkTasks(): Promise<HaiWorkTask[]> {
     .select("*, latest_artifact:hai_work_artifacts!hai_work_tasks_latest_artifact_id_fkey(id, version_number, created_at)")
     .eq("status", "active")
     .order("updated_at", { ascending: false })
-    .limit(50);
+    .limit(200); // 侧栏「最近任务」展示全部,200 覆盖个人教研工作台
+  if (error) throw error;
+  return (data as unknown as HaiWorkTask[]) ?? [];
+}
+
+export async function getArchivedHaiWorkTasks(): Promise<HaiWorkTask[]> {
+  const { data, error } = await supabase
+    .from("hai_work_tasks")
+    .select("*, latest_artifact:hai_work_artifacts!hai_work_tasks_latest_artifact_id_fkey(id, version_number, created_at)")
+    .eq("status", "archived")
+    .order("archived_at", { ascending: false, nullsFirst: false })
+    .limit(200);
   if (error) throw error;
   return (data as unknown as HaiWorkTask[]) ?? [];
 }
@@ -441,6 +452,17 @@ export async function archiveHaiWorkTask(taskId: string): Promise<void> {
   const { error } = await supabase.from("hai_work_tasks").update({
     status: "archived",
     archived_at: new Date().toISOString(),
+  }).eq("id", taskId);
+  if (error) throw error;
+}
+
+export async function unarchiveHaiWorkTask(taskId: string): Promise<void> {
+  // 仅更新 status / archived_at:authenticated 角色对 hai_work_tasks 只有这两列的 update 权限
+  // (migration 20260721150000 第 249 行 grant)。updated_at 由 update_hai_work_tasks_updated_at
+  // 触发器自动刷新,因此恢复的任务会自然回到 active 区顶部,无需也不能手动写入。
+  const { error } = await supabase.from("hai_work_tasks").update({
+    status: "active",
+    archived_at: null,
   }).eq("id", taskId);
   if (error) throw error;
 }
