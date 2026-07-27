@@ -17,6 +17,7 @@ React 18、TypeScript、Vite、React Router、Tailwind、Supabase（Auth/Postgre
 
 ## 目录与约定
 
+- `CLAUDE.md` 与 `AGENTS.md` 的基础信息、命令、技术栈和红线必须同步更新；修改任一文档时，需同步检查并更新另一文档。
 - `src/`：前端页面、组件、数据访问与测试。
 - `supabase/migrations/`：数据库结构、RLS、RPC 与种子配置；不要改写已经发布的历史迁移来伪装新迁移。
 - `supabase/functions/`：Edge Functions 与共享 HAI 运行逻辑。

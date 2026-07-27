@@ -136,14 +136,14 @@ export default function HaiProfileOnboardingDialog({
         hideCloseButton
         onEscapeKeyDown={(event) => event.preventDefault()}
         onInteractOutside={(event) => event.preventDefault()}
-        className="max-h-[calc(100dvh-1rem)] max-w-2xl gap-0 overflow-hidden rounded-[28px] border border-[#e4d8ca] bg-[#fffdf8] p-0 shadow-[0_28px_90px_rgba(83,57,40,0.28)] sm:max-h-[calc(100dvh-2rem)]"
+        className="flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-2xl flex-col gap-0 overflow-hidden rounded-[22px] border border-[#e4d8ca] bg-[#fffdf8] p-0 shadow-[0_28px_90px_rgba(83,57,40,0.28)] sm:h-[min(680px,calc(100dvh-2rem))] sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100%-2rem)] sm:rounded-[28px]"
         data-testid="hai-profile-onboarding"
       >
-        <div className="relative overflow-hidden border-b border-[#eadfD2] bg-[#f7ede5] px-5 pb-5 pt-6 sm:px-8 sm:pb-6">
+        <div className="relative shrink-0 overflow-hidden border-b border-[#eadfD2] bg-[#f7ede5] px-4 pb-4 pt-4 sm:px-8 sm:pb-6 sm:pt-6">
           <div className="absolute -right-12 -top-16 h-44 w-44 rounded-full bg-ac/10" />
           <div className="absolute -bottom-20 right-20 h-32 w-32 rounded-full border-[18px] border-white/50" />
           <DialogHeader className="relative text-left">
-            <div className="mb-3 flex items-center justify-between gap-4">
+            <div className="mb-2 flex items-center justify-between gap-3 sm:mb-3 sm:gap-4">
               <div className="inline-flex items-center gap-2 rounded-ds-pill border border-ac/15 bg-white/75 px-3 py-1.5 text-ds-xs font-ds-semibold text-ac shadow-ds-xs backdrop-blur">
                 <Sparkles className="h-3.5 w-3.5" />
                 第一次见面
@@ -152,14 +152,14 @@ export default function HaiProfileOnboardingDialog({
                 {step + 1} / {TOTAL_STEPS}
               </span>
             </div>
-            <DialogTitle className="font-ds-black text-[1.65rem] leading-tight text-tx sm:text-[2rem]">
+            <DialogTitle className="font-ds-black text-[1.4rem] leading-tight text-tx sm:text-[2rem]">
               先让我认识你
             </DialogTitle>
-            <DialogDescription className="mt-2 max-w-xl text-ds-sm leading-relaxed text-[#756457] sm:text-ds-base">
+            <DialogDescription className="mt-1 max-w-xl text-xs leading-relaxed text-[#756457] sm:mt-2 sm:text-ds-base">
               只需点击几次，HAI 会把这些信息作为你的长期记忆，在之后的教学咨询中理解你的真实处境。
             </DialogDescription>
           </DialogHeader>
-          <div className="relative mt-5 grid grid-cols-6 gap-1.5" aria-label={`问卷进度 ${step + 1}/${TOTAL_STEPS}`}>
+          <div className="relative mt-3 grid grid-cols-6 gap-1.5 sm:mt-5" aria-label={`问卷进度 ${step + 1}/${TOTAL_STEPS}`}>
             {Array.from({ length: TOTAL_STEPS }, (_, index) => (
               <span
                 key={index}
@@ -172,7 +172,7 @@ export default function HaiProfileOnboardingDialog({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-8 sm:py-7">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-8 sm:py-7">
           {step === 0 && (
             <QuestionSection
               icon={<GraduationCap className="h-5 w-5" />}
@@ -328,12 +328,12 @@ export default function HaiProfileOnboardingDialog({
           )}
         </div>
 
-        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-[#eadfd2] bg-white px-5 py-4 sm:px-8">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-t border-[#eadfd2] bg-white px-4 py-3 sm:gap-3 sm:px-8 sm:py-4">
           <div>
             {step > 0 ? (
               <Button
                 variant="ghost"
-                className="text-txs hover:bg-bgs hover:text-tx"
+                className="h-9 px-2 text-xs text-txs hover:bg-bgs hover:text-tx sm:px-3 sm:text-txs"
                 onClick={() => setStep((current) => Math.max(0, current - 1))}
                 disabled={saving}
               >
@@ -343,7 +343,7 @@ export default function HaiProfileOnboardingDialog({
             ) : (
               <button
                 type="button"
-                className="px-2 py-2 text-ds-sm text-txs transition hover:text-tx"
+                className="px-1 py-2 text-xs text-txs transition hover:text-tx sm:px-2 sm:text-ds-sm"
                 onClick={onSkip}
               >
                 稍后再填写
@@ -371,12 +371,14 @@ export default function HaiProfileOnboardingDialog({
           )}
           {step === 5 && (
             <Button
-              className="h-10 rounded-ds-pill bg-ac px-5 text-white shadow-accent hover:bg-acd"
+              className="h-9 shrink-0 rounded-ds-pill bg-ac px-3 text-xs text-white shadow-accent hover:bg-acd sm:h-10 sm:px-5 sm:text-sm"
               disabled={!supportStyle || saving}
               onClick={() => void onSubmit(memories)}
+              aria-label={saving ? "正在保存" : "完成，让 HAI 记住我"}
             >
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-              {saving ? "正在保存" : "完成，让 HAI 记住我"}
+              <span className="sm:hidden">{saving ? "保存中" : "确认"}</span>
+              <span className="hidden sm:inline">{saving ? "正在保存" : "完成，让 HAI 记住我"}</span>
             </Button>
           )}
         </div>
@@ -400,23 +402,23 @@ function QuestionSection({
 }) {
   return (
     <section className="animate-in fade-in-0 slide-in-from-right-2 duration-300">
-      <div className="flex items-start gap-3">
-        <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-ds-full bg-acl text-ac">
-          {icon}
+      <div className="flex items-start gap-2.5 sm:gap-3">
+        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-ds-full bg-acl text-ac sm:h-10 sm:w-10">
+          <span className="[&>svg]:h-4 [&>svg]:w-4 sm:[&>svg]:h-5 sm:[&>svg]:w-5">{icon}</span>
         </span>
         <div>
           <p className="text-ds-xs font-ds-bold tracking-[0.12em] text-ac">{eyebrow}</p>
-          <h2 className="mt-1 text-ds-xl font-ds-black leading-tight text-tx sm:text-ds-2xl">{title}</h2>
-          <p className="mt-2 text-ds-sm leading-relaxed text-txs">{description}</p>
+          <h2 className="mt-1 text-lg font-ds-black leading-tight text-tx sm:text-ds-2xl">{title}</h2>
+          <p className="mt-1.5 text-xs leading-relaxed text-txs sm:mt-2 sm:text-ds-sm">{description}</p>
         </div>
       </div>
-      <div className="mt-5">{children}</div>
+      <div className="mt-4 sm:mt-5">{children}</div>
     </section>
   );
 }
 
 function ChoiceGrid({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">{children}</div>;
+  return <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-2.5">{children}</div>;
 }
 
 function ChoiceButton({
@@ -439,8 +441,8 @@ function ChoiceButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "group relative min-h-12 rounded-ds-md border px-3 py-2.5 text-left text-ds-sm font-ds-semibold leading-snug transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/25 disabled:cursor-not-allowed disabled:opacity-35",
-        wide && "flex min-h-14 items-center pr-12",
+        "group relative min-h-10 rounded-ds-md border px-2.5 py-2 text-left text-xs font-ds-semibold leading-snug transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/25 disabled:cursor-not-allowed disabled:opacity-35 sm:min-h-12 sm:px-3 sm:py-2.5 sm:text-ds-sm",
+        wide && "flex min-h-12 items-center pr-10 sm:min-h-14 sm:pr-12",
         selected
           ? "border-ac bg-ac text-white shadow-accent"
           : "border-bd bg-white text-tx shadow-ds-xs hover:-translate-y-0.5 hover:border-ac/40 hover:bg-[#fffaf6] hover:shadow-ds-sm",
@@ -449,7 +451,7 @@ function ChoiceButton({
       {children}
       <span
         className={cn(
-          "absolute right-2.5 top-2.5 flex h-5 w-5 items-center justify-center rounded-ds-full border transition",
+          "absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-ds-full border transition sm:right-2.5 sm:top-2.5 sm:h-5 sm:w-5",
           selected ? "border-white/40 bg-white text-ac" : "border-bd bg-bgs text-transparent",
           wide && "top-1/2 -translate-y-1/2",
         )}
