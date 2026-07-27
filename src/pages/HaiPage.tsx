@@ -887,6 +887,7 @@ function UsagePanel({
   onCreateMemory: () => void;
   onArchiveMemory: (memoryId: string) => void;
 }) {
+  const weeklyRemainingPercent = Math.max(0, 100 - weeklyUsagePercent);
   return (
     <div className="space-y-4">
       <div>
@@ -900,7 +901,7 @@ function UsagePanel({
           <div className="h-full bg-ac transition-all" style={{ width: `${weeklyUsagePercent}%` }} />
         </div>
         <p className="mt-2 text-ds-xs text-txs">
-          {formatNumber(usage?.weekly_used ?? 0)} / {formatNumber(usage?.weekly_limit ?? 0)} tokens
+          本周已用 {weeklyUsagePercent}% · 剩余 {weeklyRemainingPercent}%
         </p>
       </div>
       <div className="rounded-ds-lg border border-bd bg-white p-3">
@@ -982,10 +983,6 @@ function findPreviousQuestion(messages: DraftMessage[], assistantIndex: number) 
     if (messages[index]?.role === "user") return messages[index].content;
   }
   return undefined;
-}
-
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("zh-CN").format(value);
 }
 
 function memoryLabel(category: string) {

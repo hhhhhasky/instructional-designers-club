@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  getHaiConversations,
+  getHaiMessages,
   getHaiChatModule,
   getHaiWorkTaskDetail,
   HAI_CHAT_MODULE_SLUG,
@@ -8,8 +10,9 @@ import {
   streamHaiChat,
 } from "@/db/hai-api";
 
-const { fromMock, getSessionMock, rpcMock } = vi.hoisted(() => ({
+const { fromMock, getUserMock, getSessionMock, rpcMock } = vi.hoisted(() => ({
   fromMock: vi.fn(),
+  getUserMock: vi.fn(),
   getSessionMock: vi.fn(),
   rpcMock: vi.fn(),
 }));
@@ -19,6 +22,7 @@ vi.mock("@/db/supabase", () => ({
     from: fromMock,
     rpc: rpcMock,
     auth: {
+      getUser: getUserMock,
       getSession: getSessionMock,
     },
   },
@@ -126,6 +130,7 @@ describe("HAI Chat module boundary", () => {
 describe("HAI Work task detail reliability", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
     fromMock.mockImplementation((table: string) => {
       if (table === "hai_work_tasks") {
         return createQuery({
@@ -201,13 +206,45 @@ describe("HAI Work task detail reliability", () => {
   });
 });
 
+describe("HAI personal data isolation", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getUserMock.mockResolvedValue({ data: { user: { id: "admin-user" } }, error: null });
+  });
+
+  it("scopes the personal conversation list to the current user even for admins", async () => {
+    const query = createQuery({ data: [], error: null });
+    fromMock.mockReturnValue(query);
+
+    await expect(getHaiConversations()).resolves.toEqual([]);
+
+    expect(fromMock).toHaveBeenCalledWith("hai_conversations");
+    expect(query.eq).toHaveBeenCalledWith("user_id", "admin-user");
+    expect(query.is).toHaveBeenCalledWith("archived_at", null);
+  });
+
+  it("scopes message reads to both conversation id and current user", async () => {
+    const query = createQuery({ data: [], error: null });
+    fromMock.mockReturnValue(query);
+
+    await expect(getHaiMessages("conversation-from-sidebar")).resolves.toEqual([]);
+
+    expect(fromMock).toHaveBeenCalledWith("hai_messages");
+    expect(query.eq).toHaveBeenCalledWith("conversation_id", "conversation-from-sidebar");
+    expect(query.eq).toHaveBeenCalledWith("user_id", "admin-user");
+  });
+});
+
 function createQuery(result: { data: unknown; error: unknown }) {
   const query = {
     select: vi.fn(() => query),
     eq: vi.fn(() => query),
-    order: vi.fn(() => Promise.resolve(result)),
+    is: vi.fn(() => query),
+    order: vi.fn(() => query),
+    limit: vi.fn(() => Promise.resolve(result)),
     maybeSingle: vi.fn(() => Promise.resolve(result)),
     single: vi.fn(() => Promise.resolve(result)),
+    then: vi.fn((resolve, reject) => Promise.resolve(result).then(resolve, reject)),
   };
   return query;
 }

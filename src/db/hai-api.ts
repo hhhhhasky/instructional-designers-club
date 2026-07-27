@@ -363,9 +363,11 @@ export async function getHaiTextbookCatalog(
 }
 
 export async function getHaiWorkTasks(): Promise<HaiWorkTask[]> {
+  const userId = await requireCurrentUserId();
   const { data, error } = await supabase
     .from("hai_work_tasks")
     .select("*, latest_artifact:hai_work_artifacts!hai_work_tasks_latest_artifact_id_fkey(id, version_number, created_at)")
+    .eq("user_id", userId)
     .eq("status", "active")
     .order("updated_at", { ascending: false })
     .limit(200); // 侧栏「最近任务」展示全部,200 覆盖个人教研工作台
@@ -374,9 +376,11 @@ export async function getHaiWorkTasks(): Promise<HaiWorkTask[]> {
 }
 
 export async function getArchivedHaiWorkTasks(): Promise<HaiWorkTask[]> {
+  const userId = await requireCurrentUserId();
   const { data, error } = await supabase
     .from("hai_work_tasks")
     .select("*, latest_artifact:hai_work_artifacts!hai_work_tasks_latest_artifact_id_fkey(id, version_number, created_at)")
+    .eq("user_id", userId)
     .eq("status", "archived")
     .order("archived_at", { ascending: false, nullsFirst: false })
     .limit(200);
@@ -385,12 +389,13 @@ export async function getArchivedHaiWorkTasks(): Promise<HaiWorkTask[]> {
 }
 
 export async function getHaiWorkTaskDetail(taskId: string): Promise<HaiWorkTaskDetail> {
+  const userId = await requireCurrentUserId();
   refreshStaleWorkRunsInBackground(taskId);
 
   const [taskResult, runsResult, artifactsResult] = await Promise.all([
-    supabase.from("hai_work_tasks").select("*").eq("id", taskId).single(),
-    supabase.from("hai_work_runs").select("*").eq("task_id", taskId).order("created_at", { ascending: false }),
-    supabase.from("hai_work_artifacts").select("*").eq("task_id", taskId).order("version_number", { ascending: false }),
+    supabase.from("hai_work_tasks").select("*").eq("id", taskId).eq("user_id", userId).single(),
+    supabase.from("hai_work_runs").select("*").eq("task_id", taskId).eq("user_id", userId).order("created_at", { ascending: false }),
+    supabase.from("hai_work_artifacts").select("*").eq("task_id", taskId).eq("user_id", userId).order("version_number", { ascending: false }),
   ]);
   if (taskResult.error) {
     if (taskResult.error.code === "PGRST116") {
@@ -449,33 +454,37 @@ function refreshStaleWorkRunsInBackground(taskId: string) {
 }
 
 export async function archiveHaiWorkTask(taskId: string): Promise<void> {
+  const userId = await requireCurrentUserId();
   const { error } = await supabase.from("hai_work_tasks").update({
     status: "archived",
     archived_at: new Date().toISOString(),
-  }).eq("id", taskId);
+  }).eq("id", taskId).eq("user_id", userId);
   if (error) throw error;
 }
 
 export async function unarchiveHaiWorkTask(taskId: string): Promise<void> {
+  const userId = await requireCurrentUserId();
   // 仅更新 status / archived_at:authenticated 角色对 hai_work_tasks 只有这两列的 update 权限
   // (migration 20260721150000 第 249 行 grant)。updated_at 由 update_hai_work_tasks_updated_at
   // 触发器自动刷新,因此恢复的任务会自然回到 active 区顶部,无需也不能手动写入。
   const { error } = await supabase.from("hai_work_tasks").update({
     status: "active",
     archived_at: null,
-  }).eq("id", taskId);
+  }).eq("id", taskId).eq("user_id", userId);
   if (error) throw error;
 }
 
 export async function renameHaiWorkTask(taskId: string, title: string): Promise<void> {
+  const userId = await requireCurrentUserId();
   const trimmed = title.trim();
   if (!trimmed) throw new Error("任务名不能为空。");
-  const { error } = await supabase.from("hai_work_tasks").update({ title: trimmed }).eq("id", taskId);
+  const { error } = await supabase.from("hai_work_tasks").update({ title: trimmed }).eq("id", taskId).eq("user_id", userId);
   if (error) throw error;
 }
 
 export async function deleteHaiWorkTask(taskId: string): Promise<void> {
-  const { error } = await supabase.from("hai_work_tasks").delete().eq("id", taskId);
+  const userId = await requireCurrentUserId();
+  const { error } = await supabase.from("hai_work_tasks").delete().eq("id", taskId).eq("user_id", userId);
   if (error) throw error;
 }
 
@@ -512,9 +521,11 @@ export async function streamHaiWork(
 }
 
 export async function getHaiConversations(): Promise<HaiConversation[]> {
+  const userId = await requireCurrentUserId();
   const { data, error } = await supabase
     .from("hai_conversations")
     .select("*")
+    .eq("user_id", userId)
     .is("archived_at", null)
     .order("updated_at", { ascending: false })
     .limit(50);
@@ -523,10 +534,12 @@ export async function getHaiConversations(): Promise<HaiConversation[]> {
 }
 
 export async function getHaiMessages(conversationId: string): Promise<HaiMessage[]> {
+  const userId = await requireCurrentUserId();
   const { data, error } = await supabase
     .from("hai_messages")
     .select("*")
     .eq("conversation_id", conversationId)
+    .eq("user_id", userId)
     .order("created_at", { ascending: true });
   if (error) throw error;
   return (data as HaiMessage[]) ?? [];
@@ -563,17 +576,21 @@ export async function setHaiMessageFeedback(
 }
 
 export async function archiveHaiConversation(conversationId: string): Promise<void> {
+  const userId = await requireCurrentUserId();
   const { error } = await supabase
     .from("hai_conversations")
     .update({ archived_at: new Date().toISOString() })
-    .eq("id", conversationId);
+    .eq("id", conversationId)
+    .eq("user_id", userId);
   if (error) throw error;
 }
 
 export async function getHaiMemories(): Promise<HaiUserMemory[]> {
+  const userId = await requireCurrentUserId();
   const { data, error } = await supabase
     .from("hai_user_memories")
     .select("*")
+    .eq("user_id", userId)
     .eq("status", "active")
     .order("updated_at", { ascending: false });
   if (error) throw error;
@@ -581,9 +598,11 @@ export async function getHaiMemories(): Promise<HaiUserMemory[]> {
 }
 
 export async function hasCompletedHaiProfileOnboarding(): Promise<boolean> {
+  const userId = await requireCurrentUserId();
   const { data, error } = await supabase
     .from("hai_user_memories")
     .select("id")
+    .eq("user_id", userId)
     .eq("source_type", HAI_PROFILE_ONBOARDING_SOURCE)
     .limit(1);
   if (error) throw error;
@@ -631,17 +650,21 @@ export async function createHaiMemory(params: {
 }
 
 export async function archiveHaiMemory(memoryId: string): Promise<void> {
+  const userId = await requireCurrentUserId();
   const { error } = await supabase
     .from("hai_user_memories")
     .update({ status: "archived" })
-    .eq("id", memoryId);
+    .eq("id", memoryId)
+    .eq("user_id", userId);
   if (error) throw error;
 }
 
 export async function getHaiMaterials(): Promise<HaiMaterial[]> {
+  const userId = await requireCurrentUserId();
   const { data, error } = await supabase
     .from("hai_materials")
     .select("*")
+    .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(80);
   if (error) throw error;
@@ -728,10 +751,12 @@ export async function uploadHaiMaterial(params: {
 }
 
 export async function deleteHaiMaterial(materialId: string): Promise<void> {
+  const userId = await requireCurrentUserId();
   const { data: material, error: selectError } = await supabase
     .from("hai_materials")
     .select("id, storage_path")
     .eq("id", materialId)
+    .eq("user_id", userId)
     .single();
   if (selectError) throw selectError;
 
@@ -746,7 +771,8 @@ export async function deleteHaiMaterial(materialId: string): Promise<void> {
   const { error } = await supabase
     .from("hai_materials")
     .delete()
-    .eq("id", materialId);
+    .eq("id", materialId)
+    .eq("user_id", userId);
   if (error) throw error;
 }
 
@@ -788,6 +814,12 @@ function getFunctionsBaseUrl(): string {
   const url = import.meta.env.VITE_SUPABASE_URL;
   if (!url) throw new Error("缺少 VITE_SUPABASE_URL。");
   return `${String(url).replace(/\/$/, "")}/functions/v1`;
+}
+
+async function requireCurrentUserId(): Promise<string> {
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user?.id) throw new Error("请先登录。");
+  return data.user.id;
 }
 
 function normalizeAccessPayload(value: unknown) {

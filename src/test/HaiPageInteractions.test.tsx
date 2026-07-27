@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  getHaiAccessStatus,
   getHaiChatModule,
   getHaiMemories,
   hasCompletedHaiProfileOnboarding,
@@ -139,6 +140,12 @@ describe("HAI first-entry profile onboarding", () => {
 });
 
 describe("HAI mobile chat shell", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(getHaiMemories).mockResolvedValue([]);
+    vi.mocked(hasCompletedHaiProfileOnboarding).mockResolvedValue(true);
+  });
+
   it("locks the page shell and leaves the message region as the single vertical scroller", async () => {
     const { unmount } = render(
       <MemoryRouter initialEntries={["/hai"]}>
@@ -175,6 +182,29 @@ describe("HAI mobile chat shell", () => {
       "HAI Chat 当前未启用，请联系管理员检查模块和已发布 Skill。",
     );
     expect(screen.queryByLabelText("输入教学问题")).not.toBeInTheDocument();
+  });
+
+  it("shows only the weekly quota percentage in the user-facing usage panel", async () => {
+    vi.mocked(getHaiAccessStatus).mockResolvedValueOnce({
+      access: { authenticated: true, allowed: true, quota_policy_key: "beta" },
+      usage: {
+        policy_key: "beta",
+        daily_used: 10000,
+        weekly_used: 45000,
+        daily_limit: 30000,
+        weekly_limit: 150000,
+      },
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/hai"]}>
+        <HaiPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("本周已用 30% · 剩余 70%")).toBeInTheDocument();
+    expect(screen.queryByText(/tokens/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("45,000 / 150,000 tokens")).not.toBeInTheDocument();
   });
 });
 
