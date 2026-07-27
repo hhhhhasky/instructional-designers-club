@@ -840,6 +840,7 @@ function normalizeHaiChatModule(
     knowledge_match_count: row.knowledge_match_count,
     sort_order: row.sort_order,
     is_enabled: row.is_enabled,
+    model_provider_id: row.model_provider_id ?? null,
     surface_mode: "chat",
   };
 }

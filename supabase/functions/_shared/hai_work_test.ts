@@ -231,6 +231,46 @@ Deno.test("work prompt separates built-in textbook knowledge from user materials
   assertEquals(prompt.system.includes("不是教材逐字原文"), true);
 });
 
+Deno.test("segment-optimization prompt injects segment methodology and markdown directive", () => {
+  const prompt = buildWorkPrompt({
+    toolSlug: "segment-optimization",
+    input: {
+      stage: "初中",
+      subject: "语文",
+      topic: "背影",
+      segment_type: "课程导入",
+      current_design: "教师问：你们和父亲关系怎样？",
+      desired_outcome: "让学生暴露对父爱的前概念。",
+    },
+    skill: candidate({}),
+    materialContext: "",
+  });
+  // 环节专属方法论按 segment_type 注入
+  assertEquals(prompt.system.includes("课程导入"), true);
+  assertEquals(prompt.system.includes("核心目的"), true);
+  // Markdown 直出指令（替代旧的「输出 JSON」与「输出教案」）
+  assertEquals(prompt.system.includes("Markdown 环节优化方案"), true);
+  assertEquals(prompt.system.includes("不要输出 JSON"), true);
+  assertEquals(prompt.system.includes("教案"), false);
+});
+
+Deno.test("segment-optimization prompt falls back to 其他 methodology for unknown segment type", () => {
+  const prompt = buildWorkPrompt({
+    toolSlug: "segment-optimization",
+    input: {
+      segment_type: "未知环节",
+      stage: "初中",
+      subject: "语文",
+      topic: "x",
+      current_design: "y",
+      desired_outcome: "z",
+    },
+    skill: candidate({}),
+    materialContext: "",
+  });
+  assertEquals(prompt.system.includes("通用优化框架"), true);
+});
+
 Deno.test("parseWorkJson extracts a fenced object", () => {
   assertEquals(parseWorkJson('```json\n{"summary":"ok"}\n```'), { summary: "ok" });
 });

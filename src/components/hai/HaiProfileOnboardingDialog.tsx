@@ -19,44 +19,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { HAI_STAGES, subjectsForStage } from "@/lib/hai-subject-options";
 import { cn } from "@/lib/utils";
 
 export interface HaiProfileOnboardingMemory {
   category: "basic_info" | "challenge" | "teaching_preference";
   content: string;
 }
-
-const STAGES = ["幼儿园", "小学", "初中", "高中", "中职", "高校", "其他教育场景"] as const;
-
-const GENERAL_SUBJECTS = [
-  "语文",
-  "数学",
-  "英语",
-  "物理",
-  "化学",
-  "生物",
-  "地理",
-  "政治 / 道法",
-  "历史",
-  "科学",
-  "信息科技",
-  "心理健康",
-  "音乐",
-  "美术",
-  "体育",
-  "综合实践",
-  "其他 / 专业课",
-] as const;
-
-const KINDERGARTEN_SUBJECTS = [
-  "语言",
-  "健康",
-  "社会",
-  "科学",
-  "艺术",
-  "综合主题活动",
-  "其他 / 专业课",
-] as const;
 
 const EXPERIENCES = ["1 年以内", "1—3 年", "4—7 年", "8—15 年", "16 年以上"] as const;
 
@@ -111,7 +80,7 @@ export default function HaiProfileOnboardingDialog({
   const [challenges, setChallenges] = useState<string[]>([]);
   const [supportStyle, setSupportStyle] = useState("");
 
-  const subjectOptions = stage === "幼儿园" ? KINDERGARTEN_SUBJECTS : GENERAL_SUBJECTS;
+  const subjectOptions = subjectsForStage(stage);
   const requiresOtherSubject = subjects.includes("其他 / 专业课");
   const canContinueSubjects = subjects.length > 0 && (!requiresOtherSubject || Boolean(otherSubject.trim()));
   const canContinueChallenges = challenges.length > 0;
@@ -212,7 +181,7 @@ export default function HaiProfileOnboardingDialog({
               description="选择最常工作的学段即可。"
             >
               <ChoiceGrid>
-                {STAGES.map((option) => (
+                {HAI_STAGES.map((option) => (
                   <ChoiceButton
                     key={option}
                     selected={stage === option}

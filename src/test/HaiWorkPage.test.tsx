@@ -2,7 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { type HaiFeatureModule, getHaiWorkTools, streamHaiWork } from "@/db/hai-api";
+import { getHaiWorkTools, type HaiFeatureModule, streamHaiWork } from "@/db/hai-api";
 import HaiWorkPage from "@/pages/HaiWorkPage";
 
 vi.mock("@/components/layout/Header", () => ({ default: () => <div data-testid="global-header" /> }));
@@ -132,7 +132,7 @@ describe("HAI Work workbench", () => {
 
     await screen.findByText("先把真实情况交给 HAI");
     await user.selectOptions(screen.getByRole("combobox", { name: /学段/ }), "初中");
-    await user.type(screen.getByRole("textbox", { name: /学科/ }), "语文");
+    await user.selectOptions(screen.getByRole("combobox", { name: /学科/ }), "语文");
     await user.type(screen.getByRole("textbox", { name: /课题/ }), "背影");
     await user.type(screen.getByRole("textbox", { name: /教案正文/ }), "教学目标：理解父爱。教学环节：教师讲解。教学评价：课堂提问。");
     await user.click(screen.getByRole("button", { name: "开始教案诊断" }));
@@ -142,5 +142,32 @@ describe("HAI Work workbench", () => {
       expect.objectContaining({ toolSlug: "lesson-diagnosis", materialIds: [] }),
       expect.any(Object),
     );
+  });
+
+  it("switches subject options to kindergarten domains when stage is 幼儿园", async () => {
+    const user = userEvent.setup();
+    renderAt("/hai/work/lesson-diagnosis");
+
+    await screen.findByText("先把真实情况交给 HAI");
+    await user.selectOptions(screen.getByRole("combobox", { name: /学段/ }), "幼儿园");
+    const subjectSelect = screen.getByRole("combobox", { name: /学科/ }) as HTMLSelectElement;
+    const optionTexts = Array.from(subjectSelect.options).map((option) => option.textContent);
+    expect(optionTexts).toContain("语言");
+    expect(optionTexts).not.toContain("语文");
+  });
+
+  it("rejects segment-optimization when current design and files are both empty", async () => {
+    const user = userEvent.setup();
+    renderAt("/hai/work/segment-optimization");
+
+    await screen.findByText("先把真实情况交给 HAI");
+    await user.selectOptions(screen.getByRole("combobox", { name: /学段/ }), "初中");
+    await user.selectOptions(screen.getByRole("combobox", { name: /学科/ }), "语文");
+    await user.type(screen.getByRole("textbox", { name: /课题/ }), "背影");
+    await user.selectOptions(screen.getByRole("combobox", { name: /要优化的环节/ }), "课程导入");
+    await user.type(screen.getByRole("textbox", { name: /希望优化后达成什么效果/ }), "暴露前概念");
+    await user.click(screen.getByRole("button", { name: /开始环节优化/ }));
+
+    expect(await screen.findByText("请粘贴当前环节设计，或上传环节设计文件。")).toBeInTheDocument();
   });
 });

@@ -4,8 +4,8 @@ import {
   getHaiWorkTaskDetail,
   HAI_CHAT_MODULE_SLUG,
   HaiApiError,
-  streamHaiChat,
   type HaiFeatureModule,
+  streamHaiChat,
 } from "@/db/hai-api";
 
 const { fromMock, getSessionMock, rpcMock } = vi.hoisted(() => ({
@@ -50,6 +50,7 @@ const haiChatModule = {
   knowledge_match_count: 0,
   sort_order: 1,
   is_enabled: true,
+  model_provider_id: null,
   surface_mode: "chat",
 } satisfies HaiFeatureModule;
 
