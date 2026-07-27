@@ -82,6 +82,26 @@ export const HAI_WORK_TOOL_CONFIG: Record<HaiWorkToolSlug, HaiWorkToolVisualConf
   },
 };
 
+/** 各工具表单顶部的引导标题与说明，按功能本身定制，替代原先所有工具共用的同一句话。 */
+const WORK_INTRO: Record<HaiWorkToolSlug, { title: string; subtitle: string }> = {
+  "lesson-diagnosis": {
+    title: "先把这份教案交给 HAI",
+    subtitle: "粘贴或上传完整教案，信息越具体，诊断越能切中真实问题。HAI 会从七个教学设计要素与四组系统关系给出评分、证据和优先修改建议。",
+  },
+  "segment-optimization": {
+    title: "先把这一环节交给 HAI",
+    subtitle: "聚焦导入、问题链、练习、评价等单个环节。粘贴当前环节设计或直接上传材料（二选一即可），再说明希望达成的效果，HAI 会给出可直接替换的优化稿。",
+  },
+  "subject-lesson-design": {
+    title: "先把本课信息交给 HAI",
+    subtitle: "按年级、册次、单元、课题精确选择内置教材目录，无需手动上传教材。HAI 会读取对应知识点、匹配思政 Skill，生成价值议题、学习任务与评价证据的完整公开课教案。",
+  },
+  "teaching-design": {
+    title: "先把设计目标交给 HAI",
+    subtitle: "说明学段、学科、预期成果与课时范围，HAI 会用逆向设计方法生成完整方案——先定预期结果，再定评估证据，最后排学习活动，对齐核心素养与教-学-评一致性。",
+  },
+};
+
 const segmentTypes = ["课程导入", "问题链", "任务活动", "教师讲解", "合作探究", "练习迁移", "评价反馈", "课堂总结", "其他"];
 const teachingModes = [
   { value: "案例式", description: "围绕一个核心案例，引导学生分析、解释并归纳教材知识。" },
@@ -407,8 +427,8 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
 
       <div className="editorial-paper mt-5 p-5 md:p-7">
         <p className="editorial-kicker" style={{ color: config.accent }}>{config.eyebrow}</p>
-        <h2 className="mt-2 font-serif text-2xl font-black text-tx">先把真实情况交给 HAI</h2>
-        <p className="mt-2 text-sm leading-6 text-txs">信息越具体，产物越能进入你的课堂。思政公开课可直接选择内置教材目录，无需手动上传教材。</p>
+        <h2 className="mt-2 font-serif text-2xl font-black text-tx">{WORK_INTRO[toolSlug].title}</h2>
+        <p className="mt-2 text-sm leading-6 text-txs">{WORK_INTRO[toolSlug].subtitle}</p>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           {toolSlug === "subject-lesson-design" ? (

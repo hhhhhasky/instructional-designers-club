@@ -97,7 +97,7 @@ describe("HAI Work workbench", () => {
     const user = userEvent.setup();
     renderAt("/hai/work/subject-lesson-design");
 
-    await screen.findByText("先把真实情况交给 HAI");
+    await screen.findByText("先把本课信息交给 HAI");
     expect(screen.getByLabelText("学段")).toHaveTextContent("初中");
     expect(screen.getByLabelText("学科与课型")).toHaveTextContent("道德与法治 · 公开课");
     await user.selectOptions(await screen.findByRole("combobox", { name: "年级" }), "7年级");
@@ -130,7 +130,7 @@ describe("HAI Work workbench", () => {
     });
     renderAt("/hai/work/lesson-diagnosis");
 
-    await screen.findByText("先把真实情况交给 HAI");
+    await screen.findByText("先把这份教案交给 HAI");
     await user.selectOptions(screen.getByRole("combobox", { name: /学段/ }), "初中");
     await user.selectOptions(screen.getByRole("combobox", { name: /学科/ }), "语文");
     await user.type(screen.getByRole("textbox", { name: /课题/ }), "背影");
@@ -148,7 +148,7 @@ describe("HAI Work workbench", () => {
     const user = userEvent.setup();
     renderAt("/hai/work/lesson-diagnosis");
 
-    await screen.findByText("先把真实情况交给 HAI");
+    await screen.findByText("先把这份教案交给 HAI");
     await user.selectOptions(screen.getByRole("combobox", { name: /学段/ }), "幼儿园");
     const subjectSelect = screen.getByRole("combobox", { name: /学科/ }) as HTMLSelectElement;
     const optionTexts = Array.from(subjectSelect.options).map((option) => option.textContent);
@@ -160,7 +160,7 @@ describe("HAI Work workbench", () => {
     const user = userEvent.setup();
     renderAt("/hai/work/segment-optimization");
 
-    await screen.findByText("先把真实情况交给 HAI");
+    await screen.findByText("先把这一环节交给 HAI");
     await user.selectOptions(screen.getByRole("combobox", { name: /学段/ }), "初中");
     await user.selectOptions(screen.getByRole("combobox", { name: /学科/ }), "语文");
     await user.type(screen.getByRole("textbox", { name: /课题/ }), "背影");
