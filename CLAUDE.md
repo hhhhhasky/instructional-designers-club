@@ -227,6 +227,49 @@ functions/
 
 ---
 
+## 9. 部署、迁移与推送流程
+
+> 这些操作都改远端/线上，**必须用户明确授权**才能执行（见 §4 红线）。部署前先本地验证：`pnpm exec tsgo -p tsconfig.check.json` + `pnpm exec vitest run` + `deno test` + `pnpm exec biome check` 全绿。
+
+### 9.1 DB 迁移（migration）
+
+1. **新建** `supabase/migrations/YYYYMMDDHHMMSS_描述.sql`，**只增不改**（不改写已发布的历史 migration）。
+2. **dry-run 核对**：`supabase db push --dry-run`。确认只推新 migration、无 schema 漂移（本仓库约定远端为唯一真相）。
+3. **应用**：`yes | supabase db push`（`yes` 自动确认交互提示）。失败的 migration 不记为 applied，可改文件重推。
+4. **查远端数据**：`supabase db query "SQL"` 默认连**本地** Postgres（常未启动，报 54322 拒绝连接）；查远端用 Dashboard SQL Editor 或带 linked 连接。
+
+> ⚠️ **Work Skill 版本化约束（已踩坑）**：触发器 `hai_protect_work_skill_version_snapshot` 禁止 UPDATE 已 `published`/`archived` 版本的 `prompt_template / input_contract / output_contract / snapshot_hash / source_metadata`（报 `已发布或归档的 Work Skill 版本快照不可修改`）；`status` 本身可改。另有 partial unique index「每 skill 只一个 published」、`unique(skill_id, version_label)`。
+> **更新已发布 Work Skill prompt 的正确方式**：① 把旧 published 版本 `status` 改成 `archived`（`where status='published' and version_label <> '新标签'`）；② INSERT 新版本（新 `version_label`，如 `markdown-v2`，`status='published'`，`on conflict (skill_id, version_label) do nothing` 保幂等）。范例：`20260727100000_hai_segment_optimization_markdown_prompt.sql`。
+
+### 9.2 Edge Function 部署
+
+- `supabase functions deploy <name>`（如 `supabase functions deploy hai-work`），部署到 linked project，自动打包 `supabase/functions/_shared/` 下被引用的依赖。
+- `WARNING: Docker is not running` 只是警告，deploy 不需要 Docker。
+- **改了 `_shared/` 下文件（如 `hai_work.ts`）后，必须重新部署引用它的 function**（hai-work / hai-chat 等），否则线上不生效。
+- 部署后可在 Supabase Dashboard > Functions 查看版本与日志。
+
+### 9.3 前端（Cloudflare Pages）
+
+- 推 GitHub 后，若 Cloudflare Pages 绑了 GitHub 自动部署，会自动构建上线；否则手动在 Dashboard 触发。本地预览构建：`pnpm build`。
+
+### 9.4 代码推送 GitHub
+
+- 本仓库工作流：**直接在 `master` 提交并推送**（单人运营项目，git 历史均在 master）。
+- commit 风格：中文 + 类型前缀，如 `feat(hai-work): ...`、`docs: ...`、`fix: ...`。
+- **精确 `git add` 指定文件**，不要 `git add -A`——避免纳入工作树里 pre-existing 的无关改动（如 `.claude/skills/...`）。
+- `git push origin master`；可按语义分多个 commit（docs / feat 分开）。
+
+### 9.5 改 HAI Work 后端的推荐顺序
+
+1. 本地验证全绿（tsgo + vitest + deno + biome）
+2. DB migration：`db push --dry-run` → `db push`
+3. Edge Function：`supabase functions deploy hai-work`（若改了 `_shared/hai_work.ts`）
+4. 代码推 GitHub：精确 `git add` → `commit` → `push origin master`
+5. 前端：若 Cloudflare Pages 自动部署则等待，否则手动触发
+6. 真实账号端到端复核 + 把变更登记进 `docs/项目需求与开发进展.md` §2.x
+
+---
+
 ## 给 Claude 的工作准则
 
 1. **动手前**：读本文件定位 → 读 `docs/项目需求与开发进展.md` 看状态 → `git status` 看工作树。
