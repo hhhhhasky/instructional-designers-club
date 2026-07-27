@@ -61,7 +61,6 @@ export function validateWorkInput(
       "subject",
       "topic",
       "segment_type",
-      "current_design",
       "desired_outcome",
     ],
     "subject-lesson-design": [
@@ -95,6 +94,14 @@ export function validateWorkInput(
     materialCount === 0
   ) {
     throw new Error("请粘贴教案正文或上传教案文件。");
+  }
+
+  if (
+    toolSlug === "segment-optimization" &&
+    !String(input.current_design ?? "").trim() &&
+    materialCount === 0
+  ) {
+    throw new Error("请粘贴当前环节设计，或上传环节设计文件。");
   }
 
 }

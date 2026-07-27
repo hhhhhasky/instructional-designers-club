@@ -111,6 +111,22 @@ Deno.test("subject lesson design requires structured textbook routing fields", (
   }, 0);
 });
 
+Deno.test("segment-optimization allows current_design or material upload (either-or)", () => {
+  const base = {
+    stage: "初中",
+    subject: "语文",
+    topic: "春",
+    segment_type: "课程导入",
+    desired_outcome: "让学生暴露前概念",
+  };
+  // 既无当前环节设计、也无材料 → 拦截（与前端二选一一致）
+  assertThrows(() => validateWorkInput("segment-optimization", { ...base }, 0), "当前环节设计");
+  // 有材料、未填当前环节设计 → 放行（修复点：上传材料后不再强制要求 current_design）
+  validateWorkInput("segment-optimization", { ...base }, 1);
+  // 填了当前环节设计、无材料 → 放行
+  validateWorkInput("segment-optimization", { ...base, current_design: "教师问：你们见过春天吗？" }, 0);
+});
+
 Deno.test("work skill loads common references plus only the selected mode template", () => {
   const reference = (path: string, loadMode: "always" | "case" | "issue" | "task") => ({
     id: path,
