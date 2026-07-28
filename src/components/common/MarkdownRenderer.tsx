@@ -41,9 +41,11 @@ function splitDetailsBlocks(content: string): MarkdownSegment[] {
 export default function MarkdownRenderer({
   content,
   className,
+  onVideoSeek,
 }: {
   content: string;
   className?: string;
+  onVideoSeek?: (seconds: number) => void;
 }) {
   const segments = splitDetailsBlocks(content);
 
@@ -65,19 +67,48 @@ export default function MarkdownRenderer({
                 {segment.summary}
               </summary>
               <div className="mt-3 border-t border-bdl pt-3">
-                <MarkdownRenderer content={segment.content} />
+                <MarkdownRenderer content={segment.content} onVideoSeek={onVideoSeek} />
               </div>
             </details>
           );
         }
 
-        return <MarkdownBlock key={index} content={segment.content} />;
+        return <MarkdownBlock key={index} content={segment.content} onVideoSeek={onVideoSeek} />;
       })}
     </div>
   );
 }
 
-function MarkdownBlock({ content }: { content: string }) {
+export function parseVideoTimestamp(value: string): number | null {
+  const parts = value.trim().split(':');
+  if (!parts.every((part) => /^\d+$/.test(part))) return null;
+
+  if (parts.length === 1) {
+    const seconds = Number(parts[0]);
+    return Number.isFinite(seconds) ? seconds : null;
+  }
+
+  if (parts.length === 2) {
+    const [minutes, seconds] = parts.map(Number);
+    if (seconds >= 60) return null;
+    return minutes * 60 + seconds;
+  }
+
+  if (parts.length === 3) {
+    const [hours, minutes, seconds] = parts.map(Number);
+    if (minutes >= 60 || seconds >= 60) return null;
+    return hours * 3600 + minutes * 60 + seconds;
+  }
+
+  return null;
+}
+
+function timestampFromHref(href: string | undefined): number | null {
+  if (!href?.startsWith('#t=')) return null;
+  return parseVideoTimestamp(href.slice(3));
+}
+
+function MarkdownBlock({ content, onVideoSeek }: { content: string; onVideoSeek?: (seconds: number) => void }) {
   if (!content.trim()) return null;
 
   return (
@@ -115,16 +146,31 @@ function MarkdownBlock({ content }: { content: string }) {
           </ol>
         ),
         li: ({ children }) => <li className="leading-relaxed pl-1">{children}</li>,
-        a: ({ children, href }) => (
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-ac underline underline-offset-2 hover:text-acd transition-colors"
-          >
-            {children}
-          </a>
-        ),
+        a: ({ children, href }) => {
+          const seconds = timestampFromHref(href);
+          if (seconds !== null && onVideoSeek) {
+            return (
+              <button
+                type="button"
+                onClick={() => onVideoSeek(seconds)}
+                aria-label={`跳转到视频时间点 ${String(children)}`}
+                className="inline-flex items-center rounded bg-acl px-1.5 py-0.5 font-semibold text-ac underline underline-offset-2 hover:bg-ac/15 transition-colors"
+              >
+                {children}
+              </button>
+            );
+          }
+          return (
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-ac underline underline-offset-2 hover:text-acd transition-colors"
+            >
+              {children}
+            </a>
+          );
+        },
         blockquote: ({ children }) => (
           <blockquote className="border-l-4 border-ac/40 bg-bgs/60 pl-4 py-2 my-4 rounded-r-ds-md text-txs">
             {children}

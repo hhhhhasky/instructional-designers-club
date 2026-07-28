@@ -1328,11 +1328,12 @@ export default function CourseManagementSection() {
             <div className="space-y-3">
               <h4 className="text-ds-sm font-ds-semibold text-tx">正文（长文）</h4>
               <p className="text-ds-xs text-txs -mt-1">
-                将光标放到目标位置，点击工具栏中的上传按钮即可选择本地图片；上传完成后会自动插入图片代码。
+                支持 Markdown。视频课可用时间点按钮插入单个时间戳，也可以直接导入下载的 TXT 时间轴文本，系统会自动转换并插入；将光标放到目标位置，点击上传按钮即可插入图片。
               </p>
               <MarkdownEditor
                 value={form.body || ""}
                 onChange={(v) => updateForm("body", v || null)}
+                enableVideoTimestamps={Boolean(form.video_url)}
               />
             </div>
 

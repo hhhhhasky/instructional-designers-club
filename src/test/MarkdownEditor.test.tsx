@@ -9,9 +9,9 @@ vi.mock('@/db/course-media', () => ({
   uploadCourseImage: vi.fn(),
 }));
 
-function ControlledEditor({ initialValue = '' }: { initialValue?: string }) {
+function ControlledEditor({ initialValue = '', enableVideoTimestamps = false }: { initialValue?: string; enableVideoTimestamps?: boolean }) {
   const [value, setValue] = useState(initialValue);
-  return <MarkdownEditor value={value} onChange={setValue} />;
+  return <MarkdownEditor value={value} onChange={setValue} enableVideoTimestamps={enableVideoTimestamps} />;
 }
 
 describe('MarkdownEditor image upload', () => {
@@ -52,5 +52,38 @@ describe('MarkdownEditor image upload', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('图片不能超过 10MB');
     expect(screen.getByRole('textbox')).toHaveValue('正文');
+  });
+
+  it('inserts a video timestamp template when enabled', async () => {
+    const user = userEvent.setup();
+    render(<ControlledEditor initialValue="前文" enableVideoTimestamps />);
+
+    const editor = screen.getByRole('textbox') as HTMLTextAreaElement;
+    editor.focus();
+    editor.setSelectionRange(2, 2);
+    await user.click(screen.getByRole('button', { name: '插入视频时间点' }));
+
+    expect(screen.getByRole('textbox')).toHaveValue('前文[00:00](#t=00:00) 讲解内容');
+  });
+
+  it('imports a downloaded timestamp text file and converts it at the cursor', async () => {
+    const user = userEvent.setup();
+    render(<ControlledEditor initialValue={'课程简介\n'} enableVideoTimestamps />);
+
+    const editor = screen.getByRole('textbox') as HTMLTextAreaElement;
+    editor.focus();
+    editor.setSelectionRange(editor.value.length, editor.value.length);
+    await user.upload(
+      screen.getByLabelText('选择时间轴 TXT 文件'),
+      new File(['00:01 开宗明义\n07:43 三要素模型\n内容由 AI 生成，仅供参考'], '时间轴.txt', {
+        type: 'text/plain',
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('textbox')).toHaveValue(
+        '课程简介\n- [00:01](#t=00:01) 开宗明义\n- [07:43](#t=07:43) 三要素模型\n\n内容由 AI 生成，仅供参考',
+      );
+    });
   });
 });

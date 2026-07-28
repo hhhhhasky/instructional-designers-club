@@ -55,6 +55,7 @@ export default function CourseContentStack({
   isCompleted = false,
   playbackRate = 1,
   onPlaybackRateChange,
+  onVideoSeek,
 }: {
   course: Course;
   onAudioProgress?: (percent: number) => void;
@@ -63,6 +64,7 @@ export default function CourseContentStack({
   isCompleted?: boolean;
   playbackRate?: CoursePlaybackRate;
   onPlaybackRateChange?: (rate: CoursePlaybackRate) => void;
+  onVideoSeek?: (seconds: number) => void;
 }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [lightbox, setLightbox] = useState<string | null>(null);
@@ -132,7 +134,7 @@ export default function CourseContentStack({
             正文
           </h2>
           <article className="bg-bgs/40 rounded-ds-md px-5 py-4">
-            <MarkdownRenderer content={course.body as string} />
+            <MarkdownRenderer content={course.body as string} onVideoSeek={onVideoSeek} />
           </article>
         </div>
       )}

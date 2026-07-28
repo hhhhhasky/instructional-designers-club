@@ -188,11 +188,14 @@ function renderCourseDetail(courseId = 'c1') {
 async function renderAndWait(
   courseId = 'c1',
   attachments: import('@/types/types').CourseAttachment[] = [],
+  courseOverrides: Record<string, unknown> = {},
 ) {
   vi.mocked(getCourseDetailSnapshot).mockResolvedValue(
-    makeDetailSnapshot(makeCourse({ id: courseId }), siblingCourses, makeCatalog(siblingCourses)),
+    makeDetailSnapshot(makeCourse({ id: courseId, ...courseOverrides }), siblingCourses, makeCatalog(siblingCourses)),
   );
-  vi.mocked(getCourseProtectedContent).mockResolvedValue(makeProtectedContent(makeCourse({ id: courseId }), attachments));
+  vi.mocked(getCourseProtectedContent).mockResolvedValue(
+    makeProtectedContent(makeCourse({ id: courseId, ...courseOverrides }), attachments),
+  );
   vi.mocked(getCourseCatalogSnapshot).mockResolvedValue(makeCatalog(siblingCourses));
   vi.mocked(getCoursesByMembershipAndCategory).mockResolvedValue(siblingCourses);
   vi.mocked(getCategoriesByMembershipType).mockResolvedValue(['教学设计']);
@@ -239,6 +242,20 @@ describe('CourseDetailPage — 课程导航功能', () => {
     await user.click(screen.getByRole('menuitemradio', { name: '1.5×' }));
 
     expect((document.querySelector('video') as HTMLVideoElement).playbackRate).toBe(1.5);
+  });
+
+  it('点击正文时间戳会跳转视频并尝试播放', async () => {
+    const user = userEvent.setup();
+    await renderAndWait('c1', [], { body: '[01:15](#t=01:15) 核心讲解' });
+
+    const video = document.querySelector('video') as HTMLVideoElement;
+    Object.defineProperty(video, 'readyState', { configurable: true, value: 1 });
+    vi.spyOn(video, 'play').mockResolvedValue(undefined);
+
+    await user.click(screen.getByRole('button', { name: '跳转到视频时间点 01:15' }));
+
+    expect(video.currentTime).toBe(75);
+    expect(video.play).toHaveBeenCalledOnce();
   });
 
   it('使用阅读桌层级并暴露可访问的学习进度', async () => {

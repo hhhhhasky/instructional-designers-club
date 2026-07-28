@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { Bold, Heading2, List, Link2, Image as ImageIcon, Eye, Pencil, Loader2, Upload } from 'lucide-react';
+import { Bold, Heading2, List, Link2, Image as ImageIcon, Eye, Pencil, Loader2, Upload, Clock3 } from 'lucide-react';
 import MarkdownRenderer from '@/components/common/MarkdownRenderer';
 import { uploadCourseImage } from '@/db/course-media';
+import { convertVideoTimestampText } from '@/lib/video-timestamps';
 import { cn } from '@/lib/utils';
 
 /**
@@ -12,13 +13,16 @@ export default function MarkdownEditor({
   value,
   onChange,
   placeholder = '在此编写正文（支持 Markdown：标题、列表、加粗、链接、图片等）',
+  enableVideoTimestamps = false,
 }: {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  enableVideoTimestamps?: boolean;
 }) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const timestampFileInputRef = useRef<HTMLInputElement>(null);
   const latestValueRef = useRef(value);
   const [mode, setMode] = useState<'write' | 'preview'>('write');
   const [uploading, setUploading] = useState(false);
@@ -72,6 +76,8 @@ export default function MarkdownEditor({
       apply(() => ({ text: `[链接文字](https://)` })),
     image: () =>
       apply(() => ({ text: `![图片说明](图片URL)` })),
+    timestamp: () =>
+      apply(() => ({ text: `[00:00](#t=00:00) 讲解内容` })),
   };
 
   const handleImageUpload = async (file: File | undefined) => {
@@ -108,6 +114,40 @@ export default function MarkdownEditor({
     }
   };
 
+  const handleTimestampImport = async (file: File | undefined) => {
+    if (!file) return;
+
+    setMode('write');
+    setUploadError(null);
+    try {
+      const converted = convertVideoTimestampText(await file.text());
+      const ta = ref.current;
+      const start = ta?.selectionStart ?? latestValueRef.current.length;
+      const end = ta?.selectionEnd ?? start;
+      const current = latestValueRef.current;
+      const safeStart = Math.min(start, current.length);
+      const safeEnd = Math.min(Math.max(end, safeStart), current.length);
+      const beforeCursor = current.slice(0, safeStart);
+      const separator = beforeCursor.trim()
+        ? beforeCursor.endsWith('\n')
+          ? ''
+          : '\n\n'
+        : '';
+      const inserted = `${separator}${converted.markdown}`;
+      const next = current.slice(0, safeStart) + inserted + current.slice(safeEnd);
+      commitValue(next);
+      requestAnimationFrame(() => {
+        const position = safeStart + inserted.length;
+        ref.current?.focus();
+        ref.current?.setSelectionRange(position, position);
+      });
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : '时间轴文本转换失败，请检查文件格式');
+    } finally {
+      if (timestampFileInputRef.current) timestampFileInputRef.current.value = '';
+    }
+  };
+
   return (
     <div className="border border-bd rounded-ds-lg overflow-hidden bg-bg">
       {/* 工具栏 + 模式切换 */}
@@ -128,6 +168,24 @@ export default function MarkdownEditor({
           <ToolButton title="图片" onClick={tools.image}>
             <ImageIcon className="w-4 h-4" />
           </ToolButton>
+          {enableVideoTimestamps && (
+            <>
+              <ToolButton title="插入视频时间点" onClick={tools.timestamp}>
+                <Clock3 className="w-4 h-4" />
+              </ToolButton>
+              <ToolButton title="导入时间轴文本" onClick={() => timestampFileInputRef.current?.click()}>
+                <Upload className="w-4 h-4" />
+              </ToolButton>
+              <input
+                ref={timestampFileInputRef}
+                type="file"
+                accept=".txt,text/plain"
+                aria-label="选择时间轴 TXT 文件"
+                className="sr-only"
+                onChange={(event) => void handleTimestampImport(event.target.files?.[0])}
+              />
+            </>
+          )}
           <ToolButton
             title={uploading ? '图片上传中' : '上传本地图片'}
             onClick={() => fileInputRef.current?.click()}

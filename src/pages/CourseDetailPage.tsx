@@ -204,6 +204,26 @@ export default function CourseDetailPage() {
     void completeCurrentCourse();
   }, [completeCurrentCourse]);
 
+  const handleVideoSeek = useCallback((seconds: number) => {
+    const video = videoRef.current;
+    if (!video || !Number.isFinite(seconds) || seconds < 0) return;
+
+    const seekAndPlay = () => {
+      if (Number.isFinite(video.duration) && seconds > video.duration) return;
+      video.currentTime = seconds;
+      void video.play().catch(() => {
+        // 浏览器可能禁止非静音自动播放，但点击时间戳本身仍应完成定位。
+      });
+      video.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+
+    if (video.readyState >= 1) {
+      seekAndPlay();
+    } else {
+      video.addEventListener('loadedmetadata', seekAndPlay, { once: true });
+    }
+  }, []);
+
   // 音频进度：每 10% 或到 95% 同步一次（与视频逻辑一致，独立计数器）
   const handleAudioProgress = useCallback((percent: number) => {
     if (!user || !course || !hasStandardCourseAccess) return;
@@ -1004,6 +1024,7 @@ export default function CourseDetailPage() {
                     isCompleted={isCurrentCompleted}
                     playbackRate={playbackRate}
                     onPlaybackRateChange={handlePlaybackRateChange}
+                    onVideoSeek={handleVideoSeek}
                   />
 
                   {attachments.length > 0 && (
