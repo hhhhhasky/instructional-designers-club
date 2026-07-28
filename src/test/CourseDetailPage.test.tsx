@@ -231,6 +231,16 @@ describe('CourseDetailPage — 课程导航功能', () => {
     expect(screen.getAllByText('第一节：导入').length).toBeGreaterThanOrEqual(1);
   });
 
+  it('视频播放器可以切换倍速', async () => {
+    const user = userEvent.setup();
+    await renderAndWait('c1');
+
+    await user.click(screen.getByRole('button', { name: '播放倍速，当前 1.0×' }));
+    await user.click(screen.getByRole('menuitemradio', { name: '1.5×' }));
+
+    expect((document.querySelector('video') as HTMLVideoElement).playbackRate).toBe(1.5);
+  });
+
   it('使用阅读桌层级并暴露可访问的学习进度', async () => {
     await renderAndWait('c1');
 

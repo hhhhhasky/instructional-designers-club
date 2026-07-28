@@ -33,6 +33,11 @@ import PageMeta from '@/components/common/PageMeta';
 import MarkdownRenderer from '@/components/common/MarkdownRenderer';
 import CourseConfirmDialog from '@/components/course/CourseConfirmDialog';
 import CourseContentStack from '@/components/course/CourseContentStack';
+import CoursePlaybackRateControl, {
+  type CoursePlaybackRate,
+  readStoredCoursePlaybackRate,
+  writeStoredCoursePlaybackRate,
+} from '@/components/course/CoursePlaybackRateControl';
 import CourseCompletionDialog from '@/components/course/CourseCompletionDialog';
 import TeacherAiCatalogToc from '@/components/course/TeacherAiCatalogToc';
 import PlusCatalogToc from '@/components/course/PlusCatalogToc';
@@ -98,6 +103,7 @@ export default function CourseDetailPage() {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeLevel, setUpgradeLevel] = useState<'plus' | 'pro'>('plus');
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [playbackRate, setPlaybackRate] = useState<CoursePlaybackRate>(() => readStoredCoursePlaybackRate());
   const contentScrollRef = useRef<HTMLDivElement>(null);
   const lastSyncedProgress = useRef(0);
   const lastSyncedAudioProgress = useRef(0);
@@ -125,6 +131,16 @@ export default function CourseDetailPage() {
   const [passwordGateError, setPasswordGateError] = useState<string | null>(null);
   const [protectedContentCourseId, setProtectedContentCourseId] = useState<string | null>(null);
   const [protectedContentLoading, setProtectedContentLoading] = useState(false);
+
+  const handlePlaybackRateChange = useCallback((rate: CoursePlaybackRate) => {
+    setPlaybackRate(rate);
+    writeStoredCoursePlaybackRate(rate);
+  }, []);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) video.playbackRate = playbackRate;
+  }, [playbackRate, course?.id]);
 
   const hasStandardCourseAccess = Boolean(
     profile?.role === 'admin' || course?.is_trial || (course && canAccessCourse(accessLevel, course.membership_type)),
@@ -772,6 +788,11 @@ export default function CourseDetailPage() {
                 {/* Hero Video */}
                 <div className="relative bg-black">
                   {heroContent}
+                  {course.video_url && (
+                    <div className="absolute top-3 right-3 z-10">
+                      <CoursePlaybackRateControl value={playbackRate} onChange={handlePlaybackRateChange} />
+                    </div>
+                  )}
                   <div className="absolute top-3 left-3 flex gap-1.5 z-10">
                     {courseBadgeLabel && (
                       <Badge variant="secondary" className="bg-bc/90 backdrop-blur-sm text-tx text-xs font-medium rounded-full">
@@ -981,6 +1002,8 @@ export default function CourseDetailPage() {
                     onAudioEnded={handleAudioEnded}
                     onMarkComplete={hasStandardCourseAccess ? handleMarkComplete : undefined}
                     isCompleted={isCurrentCompleted}
+                    playbackRate={playbackRate}
+                    onPlaybackRateChange={handlePlaybackRateChange}
                   />
 
                   {attachments.length > 0 && (

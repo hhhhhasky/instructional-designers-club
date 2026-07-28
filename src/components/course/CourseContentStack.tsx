@@ -1,8 +1,9 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Headphones, CheckCircle2, Images as ImagesIcon, Video, FileText, Sparkles, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import MarkdownRenderer from '@/components/common/MarkdownRenderer';
+import CoursePlaybackRateControl, { type CoursePlaybackRate } from '@/components/course/CoursePlaybackRateControl';
 import type { Course } from '@/types/types';
 
 // 课程内容形态：用于卡片/目录上的「视频/图文/音频/精华/图集」标识。
@@ -52,14 +53,18 @@ export default function CourseContentStack({
   onAudioEnded,
   onMarkComplete,
   isCompleted = false,
+  playbackRate = 1,
+  onPlaybackRateChange,
 }: {
   course: Course;
   onAudioProgress?: (percent: number) => void;
   onAudioEnded?: () => void;
   onMarkComplete?: () => void;
   isCompleted?: boolean;
+  playbackRate?: CoursePlaybackRate;
+  onPlaybackRateChange?: (rate: CoursePlaybackRate) => void;
 }) {
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [lightbox, setLightbox] = useState<string | null>(null);
 
   const images = (course.images ?? []).filter(Boolean);
@@ -80,6 +85,15 @@ export default function CourseContentStack({
     onAudioProgress(Math.round((audio.currentTime / audio.duration) * 100));
   };
 
+  const handleAudioRef = (audio: HTMLAudioElement | null) => {
+    audioRef.current = audio;
+    if (audio) audio.playbackRate = playbackRate;
+  };
+
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.playbackRate = playbackRate;
+  }, [playbackRate]);
+
   return (
     <section className="pt-7 pb-6 border-b border-bdl space-y-7">
       {/* 音频讲解 */}
@@ -87,11 +101,18 @@ export default function CourseContentStack({
         <div>
           <h2 className="text-xl font-bold text-tx font-serif mb-3 flex items-center gap-2">
             <Headphones className="w-4 h-4 text-ac" />
-            音频讲解
+            <span className="flex-1">音频讲解</span>
+            {onPlaybackRateChange && (
+              <CoursePlaybackRateControl
+                value={playbackRate}
+                onChange={onPlaybackRateChange}
+                className="border-bdl bg-bgs text-tx hover:bg-warm"
+              />
+            )}
           </h2>
           <div className="bg-bgs rounded-ds-md p-4">
             <audio
-              ref={audioRef}
+              ref={handleAudioRef}
               src={course.audio_url ?? undefined}
               controls
               preload="metadata"
