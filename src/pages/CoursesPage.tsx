@@ -1,31 +1,32 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Badge } from '@/components/ui/badge';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import {
   AlertCircle,
+  BookOpen,
   ChevronRight,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
-import MapPreviewCard from '@/components/learning/map/MapPreviewCard';
 import PageMeta from '@/components/common/PageMeta';
+import {
+  CourseEditorialCatalogLayout,
+  CourseEditorialHero,
+  CourseEditorialVolume,
+} from '@/components/course/CourseEditorialShell';
 import { getCourseCatalogSnapshot, getCourseDetailSnapshot } from '@/db/api';
-import type { Course, PlusCourseTrackId } from '@/types/types';
+import type { Course } from '@/types/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { canAccessCourse } from '@/lib/access-control';
 import UpgradePopup from '@/components/common/UpgradePopup';
 import {
-  PLUS_PROBLEM_ENTRIES,
-  PLUS_RECOMMENDED_PATHS,
   PLUS_TRACKS,
-  buildPlusTrackUrl,
   getEffectivePlusTracks,
   getModuleCourseCount,
   getModuleIcon,
-  getRepresentativeCourses,
+  getCoursesForModule,
   getTrackCourseCount,
   type PlusTrackConfig,
 } from '@/lib/plusCourseStructure';
@@ -62,6 +63,14 @@ export default function CoursesPage() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    const hash = decodeURIComponent(window.location.hash.replace('#', ''));
+    if (!hash || isLoading) return;
+    requestAnimationFrame(() => {
+      document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, [isLoading]);
+
   const handleCourseClick = (course: Course) => {
     if (isNavigating) return;
 
@@ -79,10 +88,6 @@ export default function CoursesPage() {
     setTimeout(() => navigate(`/courses/${course.id}`), 200);
   };
 
-  const handlePlusDestination = (trackId: PlusCourseTrackId, moduleId?: string) => {
-    navigate(buildPlusTrackUrl(trackId, moduleId));
-  };
-
   return (
     <>
       <PageMeta
@@ -95,23 +100,18 @@ export default function CoursesPage() {
         <Header />
         {isNavigating && <LoadingOverlay message="正在加载课程..." />}
         <main className="flex-1 pt-20 pb-12">
-          <div className="relative overflow-hidden border-b border-bdl bg-[radial-gradient(circle_at_20%_10%,rgba(196,93,62,0.10),transparent_30%),radial-gradient(circle_at_80%_0%,rgba(42,122,110,0.12),transparent_34%),var(--bg)] px-4 py-12 md:py-16">
-            <div className="max-w-7xl mx-auto">
-              <div className="max-w-3xl">
-                <Badge className="mb-4 bg-bc/80 text-ac border border-ac/20 rounded-full px-3 py-1">
-                  Plus 专属
-                </Badge>
-                <h1 className="text-3xl md:text-5xl font-ds-black text-tx leading-tight" style={{ fontFamily: 'var(--fd)' }}>
-                  教学通识课
-                </h1>
-                <p className="mt-4 text-base md:text-lg text-txs max-w-2xl">
-                  按你的学习目标选择入口：打底层理论、练设计方法，或直接解决备课、说课、公开课这些真实任务。
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <MapPreviewCard />
+          <CourseEditorialHero
+            kicker="PLUS CATALOGUE · 教学通识课"
+            badge="PLUS 专属"
+            title="教学通识课"
+            description="从理解学习和教学的底层规律，到掌握教学设计原理，再把方法用到日常课、说课和公开课等真实任务里。"
+            audience="建议按理论篇、教学设计原理篇、场景篇的顺序学习；需要解决具体问题时，也可以直接从目录定位到对应系列课。"
+            icon={BookOpen}
+            stats={[
+              { label: '系列卷册', value: plusTracks.length },
+              { label: '已发布单课', value: plusTracks.reduce((sum, track) => sum + getTrackCourseCount(allCourses, track.id, plusTracks), 0) },
+            ]}
+          />
 
           {isLoading && (
             <div className="max-w-7xl mx-auto px-4 py-16 text-center">
@@ -133,7 +133,7 @@ export default function CoursesPage() {
           )}
 
           {!isLoading && !error && (
-            <PlusCourseMap courses={allCourses} tracks={plusTracks} onTrackOpen={handlePlusDestination} onCourseOpen={handleCourseClick} />
+            <PlusCourseMap courses={allCourses} tracks={plusTracks} onCourseOpen={handleCourseClick} />
           )}
         </main>
         <Footer />
@@ -146,177 +146,120 @@ export default function CoursesPage() {
 function PlusCourseMap({
   courses,
   tracks,
-  onTrackOpen,
   onCourseOpen,
 }: {
   courses: Course[];
   tracks: PlusTrackConfig[];
-  onTrackOpen: (trackId: PlusCourseTrackId, moduleId?: string) => void;
   onCourseOpen: (course: Course) => void;
 }) {
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 md:py-10 space-y-10">
-      <section>
-        <div className="flex items-end justify-between gap-4 mb-5">
-          <div>
-            <p className="text-sm font-semibold text-ac">三条主线</p>
-            <h2 className="text-2xl md:text-3xl font-ds-black text-tx" style={{ fontFamily: 'var(--fd)' }}>
-              教学通识课 Plus 课程地图
-            </h2>
-          </div>
-          <p className="hidden md:block text-sm text-txs max-w-md">
-            先选篇章，再进入具体系列课；也可以从下方问题入口直接开始。
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-          {tracks.map((track) => {
-            const Icon = track.icon;
-            const count = getTrackCourseCount(courses, track.id, tracks);
-            return (
-              <article key={track.id} className="bg-bc border border-bd rounded-lg overflow-hidden shadow-ds-sm hover:shadow-ds-md transition-shadow">
-                <div className={cn('h-2 bg-gradient-to-r', track.accent)} />
-                <div className="p-5">
-                  <div className="flex items-start gap-3">
-                    <div className={cn('w-12 h-12 rounded-lg bg-gradient-to-br flex items-center justify-center text-white', track.accent)}>
-                      <Icon className="w-6 h-6" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-xl font-ds-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>
-                        {track.title}
-                      </h3>
-                      <p className="text-sm text-txs mt-1">{track.subtitle}</p>
-                    </div>
-                    <Badge variant="outline" className="rounded-full">
-                      {count} 节
-                    </Badge>
-                  </div>
-
-                  <p className="mt-4 text-sm text-txs leading-relaxed">{track.description}</p>
-                  <p className="mt-2 text-xs text-txt">适合：{track.audience}</p>
-
-                  <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-2.5">
-                    {track.modules.map((module) => {
-                      const moduleCount = getModuleCourseCount(courses, track.id, module.id, tracks);
-                      const ModuleIcon = getModuleIcon(module.iconKey || module.id);
-                      return (
-                        <button
-                          key={module.id}
-                          onClick={() => onTrackOpen(track.id, module.id)}
-                          className="group rounded-lg border border-bd bg-bgs/50 px-3 py-3 text-left hover:border-ac/50 hover:bg-acl/35 transition-all"
-                        >
-                          <div className="flex items-start gap-2.5">
-                            <div className="w-8 h-8 rounded-md bg-bc border border-bd flex items-center justify-center flex-shrink-0 group-hover:border-ac/40">
-                              <ModuleIcon className="w-4 h-4 text-ac" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center justify-between gap-2">
-                                <p className="font-semibold text-sm text-tx group-hover:text-ac">
-                                  {module.shortTitle || module.title}
-                                </p>
-                                <span className="text-xs text-txs flex-shrink-0">
-                                  {moduleCount > 0 ? `${moduleCount} 节` : '规划中'}
-                                </span>
-                              </div>
-                              <p className="text-xs text-txs mt-1 line-clamp-2">{module.description}</p>
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="mt-5 space-y-2">
-                    <p className="text-xs font-semibold text-txs">可以先看</p>
-                    <div className="space-y-1.5">
-                      {track.modules.flatMap((module) => getRepresentativeCourses(courses, module, 1, tracks)).slice(0, 3).map((course) => (
-                        <button
-                          key={course.id}
-                          onClick={() => onCourseOpen(course)}
-                          onMouseEnter={() => void getCourseDetailSnapshot(course.id)}
-                          onFocus={() => void getCourseDetailSnapshot(course.id)}
-                          onTouchStart={() => void getCourseDetailSnapshot(course.id)}
-                          className="w-full flex items-center justify-between gap-3 text-left text-xs text-txs hover:text-ac transition-colors"
-                        >
-                          <span className="truncate">{course.title}</span>
-                          <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Button onClick={() => onTrackOpen(track.id)} className="w-full mt-5 btn-super-cta btn-press">
-                    进入本篇
-                    <ChevronRight className="w-4 h-4 ml-1" />
-                  </Button>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="bg-bc border border-bd rounded-lg p-5 md:p-6 shadow-ds-sm">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-5">
-          <div>
-            <p className="text-sm font-semibold text-ac">按问题找课</p>
-            <h2 className="text-2xl font-ds-black text-tx" style={{ fontFamily: 'var(--fd)' }}>
-              我现在想解决什么问题？
-            </h2>
-          </div>
-          <p className="text-sm text-txs md:max-w-md">
-            不确定从哪里开始时，可以先选一个最接近你当下任务的问题。
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
-          {PLUS_PROBLEM_ENTRIES.map((entry) => (
-            <button
-              key={entry.label}
-              onClick={() => onTrackOpen(entry.trackId, entry.moduleId)}
-              className="group min-h-[128px] rounded-lg border border-bd bg-bgs/40 p-4 text-left hover:border-ac/40 hover:bg-acl/40 transition-all"
-            >
-              <p className="font-bold text-tx leading-snug group-hover:text-ac">{entry.label}</p>
-              <p className="text-xs text-txs mt-2 leading-relaxed">{entry.description}</p>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <div className="flex items-end justify-between gap-4 mb-5">
-          <div>
-            <p className="text-sm font-semibold text-ac">推荐路径</p>
-            <h2 className="text-2xl font-ds-black text-tx" style={{ fontFamily: 'var(--fd)' }}>
-              不同任务的学习顺序
-            </h2>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          {PLUS_RECOMMENDED_PATHS.map((path) => (
-            <button
-              key={path.title}
-              onClick={() => onTrackOpen(path.trackId, path.moduleId)}
-              className="rounded-lg border border-bd bg-bc p-4 text-left hover:shadow-ds-md hover:border-ac/40 transition-all"
-            >
-              <h3 className="font-ds-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>
-                {path.title}
-              </h3>
-              <p className="text-xs text-txs mt-1">{path.description}</p>
-              <div className="mt-4 space-y-2">
-                {path.steps.map((step, index) => (
-                  <div key={step} className="flex items-center gap-2 text-sm text-tx">
-                    <span className="w-5 h-5 rounded-full bg-acl text-ac flex items-center justify-center text-xs font-bold">
-                      {index + 1}
-                    </span>
-                    <span className="truncate">{step}</span>
-                  </div>
-                ))}
-              </div>
-            </button>
-          ))}
-        </div>
-      </section>
+    <div className="max-w-7xl mx-auto px-4 py-8 md:py-10">
+      <PlusCourseCatalog courses={courses} tracks={tracks} onCourseOpen={onCourseOpen} />
     </div>
   );
+}
+
+function PlusCourseCatalog({
+  courses,
+  tracks,
+  onCourseOpen,
+}: {
+  courses: Course[];
+  tracks: PlusTrackConfig[];
+  onCourseOpen: (course: Course) => void;
+}) {
+  const renderTrack = (track: PlusTrackConfig, index: number) => (
+    <CourseEditorialVolume
+      key={track.id}
+      id={track.id}
+      index={index}
+      title={track.title}
+      count={getTrackCourseCount(courses, track.id, tracks)}
+      icon={track.icon}
+    >
+      <div className="space-y-5">
+        {track.modules.map((module) => {
+          const moduleCourses = getCoursesForModule(courses, track.id, module.id, tracks);
+          const Icon = getModuleIcon(module.iconKey || module.id);
+          return (
+            <section key={module.id} id={`${track.id}-${module.id}`} className="scroll-mt-28 rounded-ds-sm border border-bd bg-bgs/30 p-4 md:p-5">
+              <div className="mb-4 flex items-start gap-3 border-b border-dashed border-bd pb-3">
+                <span className="course-editorial-mark h-9 w-9 shrink-0"><Icon className="h-4 w-4" aria-hidden="true" /></span>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-ds-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>{module.title}</h3>
+                </div>
+                <span className="shrink-0 text-xs text-txt">{moduleCourses.length} 节</span>
+              </div>
+              {moduleCourses.length > 0 ? (
+                <CourseGrid courses={moduleCourses} onCourseOpen={onCourseOpen} />
+              ) : (
+                <p className="rounded-lg border border-dashed border-bd bg-bgs/40 p-4 text-center text-sm text-txs">该系列课程正在准备中。</p>
+              )}
+            </section>
+          );
+        })}
+      </div>
+    </CourseEditorialVolume>
+  );
+
+  return (
+    <CourseEditorialCatalogLayout
+      label="系列课"
+      countLabel={`${tracks.length} 篇`}
+      tocScrollable
+      contentScrollable
+      toc={tracks.map((track, index) => {
+        const Icon = track.icon;
+        return (
+          <div key={track.id}>
+            <a href={`#${track.id}`} className="course-editorial-toc-link">
+              <span className="font-mono text-[10px] text-txt">{String(index + 1).padStart(2, '0')}</span>
+              <Icon className="h-4 w-4 flex-shrink-0 text-ac" aria-hidden="true" />
+              <span className="flex-1 truncate">{track.title}</span>
+              <span className="text-xs text-txt">{getTrackCourseCount(courses, track.id, tracks)} 节</span>
+            </a>
+            <div className="ml-7 space-y-0.5 border-l border-dashed border-bd py-1 pl-3">
+              {track.modules.map((module) => (
+                <a
+                  key={module.id}
+                  href={`#${track.id}-${module.id}`}
+                  className="flex min-h-8 items-center justify-between gap-2 rounded-ds-sm px-2 text-xs text-txs transition-colors hover:bg-acl/30 hover:text-ac"
+                >
+                  <span className="truncate">{module.shortTitle || module.title}</span>
+                  <span className="shrink-0 text-[10px] text-txt">{getModuleCourseCount(courses, track.id, module.id, tracks)}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+      mobile={(
+        <Accordion type="multiple" defaultValue={tracks.map((track) => track.id)} className="space-y-3">
+          {tracks.map((track, index) => {
+            const Icon = track.icon;
+            return (
+            <AccordionItem key={track.id} value={track.id} className="course-editorial-volume overflow-hidden">
+              <AccordionTrigger className="min-h-16 px-4 py-3 hover:bg-[var(--proof-soft)] hover:no-underline">
+                <div className="flex w-full items-center gap-3 text-left">
+                  <span className="course-editorial-mark"><Icon className="h-5 w-5" aria-hidden="true" /></span>
+                  <span className="min-w-0 flex-1"><span className="editorial-kicker block">VOL. {String(index + 1).padStart(2, '0')}</span><strong className="block truncate text-tx">{track.title}</strong><small className="text-txs">{getTrackCourseCount(courses, track.id, tracks)} 节课程</small></span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-3 pb-3 pt-1">
+                <div className="space-y-4">{track.modules.map((module) => <div key={module.id}><h3 className="mb-1 font-ds-bold text-tx">{module.title}</h3><CourseGrid courses={getCoursesForModule(courses, track.id, module.id, tracks)} onCourseOpen={onCourseOpen} /></div>)}</div>
+              </AccordionContent>
+            </AccordionItem>
+            );
+          })}
+        </Accordion>
+      )}
+    >
+      {tracks.map(renderTrack)}
+    </CourseEditorialCatalogLayout>
+  );
+}
+
+function CourseGrid({ courses, onCourseOpen }: { courses: Course[]; onCourseOpen: (course: Course) => void }) {
+  if (courses.length === 0) return <p className="rounded-lg border border-dashed border-bd bg-bgs/40 p-4 text-center text-sm text-txs">该系列课程正在准备中。</p>;
+  return <div className="grid grid-cols-1 gap-3 md:grid-cols-2">{courses.map((course, index) => <button key={course.id} type="button" onClick={() => onCourseOpen(course)} onMouseEnter={() => void getCourseDetailSnapshot(course.id)} onFocus={() => void getCourseDetailSnapshot(course.id)} onTouchStart={() => void getCourseDetailSnapshot(course.id)} aria-label={`打开课程：${course.title}`} className="course-editorial-entry group"><span className="course-editorial-index">{String(index + 1).padStart(2, '0')}</span><div className="min-w-0 flex-1 text-left"><h3 className="font-semibold leading-snug text-tx group-hover:text-ac">{course.title}</h3><span className="mt-2 block text-xs text-txs">{course.duration ? `${course.duration}分钟 · ` : ''}Plus 单课</span></div><ChevronRight className="h-5 w-5 shrink-0 text-txs transition-all group-hover:translate-x-1 group-hover:text-ac" aria-hidden="true" /></button>)}</div>;
 }

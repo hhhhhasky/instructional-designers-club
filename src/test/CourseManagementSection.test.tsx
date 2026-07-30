@@ -407,6 +407,6 @@ describe('CourseManagementSection', () => {
     await user.selectOptions(screen.getByLabelText('筛选 Plus 篇章'), 'scenarios');
     await user.click(screen.getByRole('button', { name: '预览结构' }));
 
-    expect(window.open).toHaveBeenCalledWith('/courses/plus/scenarios', '_blank');
+    expect(window.open).toHaveBeenCalledWith('/courses#scenarios', '_blank');
   });
 });

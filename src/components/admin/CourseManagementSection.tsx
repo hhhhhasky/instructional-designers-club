@@ -363,7 +363,7 @@ export default function CourseManagementSection() {
   const handlePreviewCurrentStructure = () => {
     const url = plusTrackFilter === "all"
       ? "/courses"
-      : `/courses/plus/${plusTrackFilter}`;
+      : `/courses#${encodeURIComponent(plusTrackFilter)}`;
     window.open(url, "_blank");
   };
 

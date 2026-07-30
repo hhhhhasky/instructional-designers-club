@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import TeacherAiCoursesPage from '@/pages/TeacherAiCoursesPage';
-import PlusTrackPage from '@/pages/PlusTrackPage';
+import CoursesPage from '@/pages/CoursesPage';
 import { getCourseCatalogSnapshot } from '@/db/api';
 import { PLUS_TRACKS } from '@/lib/plusCourseStructure';
 import type { Course } from '@/types/types';
@@ -113,7 +113,7 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
     expect(screen.getAllByRole('button', { name: '打开课程：AI 导论' })).not.toHaveLength(0);
   });
 
-  it('Plus 篇章以卷册目录呈现，并标记当前篇章与单课入口', async () => {
+  it('教学通识课主页以左侧系列课目录呈现三个篇章与单课入口', async () => {
     const course = makeCourse({
       id: 'plus-1',
       title: '学习科学导论',
@@ -123,7 +123,7 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
     });
     vi.mocked(getCourseCatalogSnapshot).mockResolvedValue({
       plus_courses: [course],
-      plus_tracks: [PLUS_TRACKS[0]],
+      plus_tracks: PLUS_TRACKS,
       pro_courses: [],
       pro_categories: [],
       pro_category_tags: {},
@@ -133,20 +133,21 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
     });
 
     render(
-      <MemoryRouter initialEntries={['/courses/plus/theory']}>
-        <Routes>
-          <Route path="/courses/plus/:trackId" element={<PlusTrackPage />} />
-        </Routes>
+      <MemoryRouter initialEntries={['/courses']}>
+        <CoursesPage />
       </MemoryRouter>,
     );
 
     await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
 
-    expect(screen.getByRole('heading', { level: 1, name: '理论篇' })).toBeInTheDocument();
-    expect(screen.getByText('PLUS VOLUME · 教学通识课卷册')).toBeInTheDocument();
-    expect(screen.getByRole('navigation', { name: '教学通识课篇章' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /理论篇/ })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByRole('navigation', { name: '理论基石目录导航' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: '教学通识课' })).toBeInTheDocument();
+    expect(screen.getByText('PLUS CATALOGUE · 教学通识课')).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: '系列课导航' })).toBeInTheDocument();
+    expect(screen.getAllByText('理论篇').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('教学设计原理篇').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('场景篇').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('学习科学').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('说课篇').length).toBeGreaterThan(0);
     expect(screen.getAllByRole('button', { name: '打开课程：学习科学导论' })).not.toHaveLength(0);
   });
 });

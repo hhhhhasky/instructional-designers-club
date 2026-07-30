@@ -524,7 +524,7 @@ describe('CourseDetailPage — 课程导航功能', () => {
     expect(screen.getAllByText('说课篇02：教材分析').length).toBeGreaterThanOrEqual(1);
 
     await user.click(screen.getByText('场景篇'));
-    expect(mockNavigate).toHaveBeenCalledWith('/courses/plus/scenarios#%E8%AF%B4%E8%AF%BE%E7%AF%87');
+    expect(mockNavigate).toHaveBeenCalledWith('/courses#scenarios-%E8%AF%B4%E8%AF%BE%E7%AF%87');
   });
 
   // ============================

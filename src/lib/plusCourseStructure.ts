@@ -435,7 +435,7 @@ export function getModuleIcon(moduleId: string): LucideIcon {
 }
 
 export function buildPlusTrackUrl(trackId: PlusCourseTrackId, moduleId?: string): string {
-  return `/courses/plus/${trackId}${moduleId ? `#${encodeURIComponent(moduleId)}` : ''}`;
+  return `/courses#${encodeURIComponent(moduleId ? `${trackId}-${moduleId}` : trackId)}`;
 }
 
 export function resolvePlusCoursePlacement(

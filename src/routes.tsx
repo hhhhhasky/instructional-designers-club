@@ -5,7 +5,6 @@ const loadHomePage = () => import('./pages/HomePage');
 const loadResourcesPage = () => import('./pages/ResourcesPage');
 const loadCoursesPage = () => import('./pages/CoursesPage');
 const loadTeacherAiCoursesPage = () => import('./pages/TeacherAiCoursesPage');
-const loadPlusTrackPage = () => import('./pages/PlusTrackPage');
 const loadCourseDetailPage = () => import('./pages/CourseDetailPage');
 const loadActivityDetailPage = () => import('./pages/ActivityDetailPage');
 const loadLoginPage = () => import('./pages/LoginPage');
@@ -24,7 +23,6 @@ const HomePage = lazy(loadHomePage);
 const ResourcesPage = lazy(loadResourcesPage);
 const CoursesPage = lazy(loadCoursesPage);
 const TeacherAiCoursesPage = lazy(loadTeacherAiCoursesPage);
-const PlusTrackPage = lazy(loadPlusTrackPage);
 const CourseDetailPage = lazy(loadCourseDetailPage);
 const ActivityDetailPage = lazy(loadActivityDetailPage);
 const LoginPage = lazy(loadLoginPage);
@@ -72,9 +70,8 @@ const routes: RouteConfig[] = [
   {
     name: 'Plus篇章',
     path: '/courses/plus/:trackId',
-    element: <PlusTrackPage />,
-    visible: false,
-    preload: loadPlusTrackPage
+    element: <Navigate to="/courses" replace />,
+    visible: false
   },
   {
     name: '课程详情',
