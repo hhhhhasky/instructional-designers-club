@@ -43,6 +43,7 @@ import {
 import { normalizeHaiVoiceFormatting } from "../_shared/hai_chat/response_format.ts";
 import { evaluateResponse } from "../_shared/hai_chat/response_evaluator.ts";
 import type { IntentResult, MemorySelection } from "../_shared/hai_chat/types.ts";
+import type { HaiPromptAssembly } from "../_shared/hai_trace.ts";
 
 type ModuleRow = {
   id: string;
@@ -249,11 +250,11 @@ Deno.serve(async (request) => {
           });
 
           const draftMessages = messages;
-          if (capturePromptSnapshot) {
-            promptModelCalls.push(
-              buildPromptSnapshotCall("answer_draft", draftMessages),
-            );
-          }
+          // 每次请求都保存实际发送给模型的消息组合，管理员看板据此复盘；
+          // capturePromptSnapshot 只控制是否把同一份快照回传给当前管理员，不影响持久化 trace。
+          promptModelCalls.push(
+            buildPromptSnapshotCall("answer_draft", draftMessages),
+          );
           for await (
             const token of streamDeepSeek(messages, {
               ...completionOptions,
@@ -296,11 +297,9 @@ Deno.serve(async (request) => {
               ...recentMessages,
               { role: "user", content: text },
             ];
-            if (capturePromptSnapshot) {
-              promptModelCalls.push(
-                buildPromptSnapshotCall("answer_rewrite", finalMessages),
-              );
-            }
+            promptModelCalls.push(
+              buildPromptSnapshotCall("answer_rewrite", finalMessages),
+            );
             for await (
               const token of streamDeepSeek(finalMessages, {
                 ...completionOptions,
@@ -323,6 +322,13 @@ Deno.serve(async (request) => {
               passScore: runtime.evaluatorPassScore,
             })
             : null;
+          const promptAssembly: HaiPromptAssembly = {
+            captured_at: new Date().toISOString(),
+            final_stage: finalMessages === draftMessages
+              ? "answer_draft"
+              : "answer_rewrite",
+            model_calls: promptModelCalls,
+          };
 
           const skillTrace = buildHaiChatSkillTrace({
             skill: chatSkill,
@@ -333,6 +339,7 @@ Deno.serve(async (request) => {
             memoryLoaded: memories.length > 0,
             evaluation: finalEvaluation,
             diagnosticModule: diagnostic.diagnostic_module,
+            promptAssembly,
           });
 
           output = finalAnswer;

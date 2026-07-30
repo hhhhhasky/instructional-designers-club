@@ -42,6 +42,18 @@ export interface HaiTraceMessageRow {
   created_at: string;
 }
 
+export interface HaiPromptAssemblyModelCall {
+  stage: "semantic_router" | "answer_draft" | "answer_rewrite";
+  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
+  estimated_input_tokens: number;
+}
+
+export interface HaiPromptAssembly {
+  captured_at: string;
+  final_stage: "answer_draft" | "answer_rewrite";
+  model_calls: HaiPromptAssemblyModelCall[];
+}
+
 export interface HaiDailyUsage {
   date: string;
   label: string;
@@ -76,6 +88,16 @@ export interface HaiRecentTrace {
   support_depth: string;
   route_method: string;
   diagnostic_module: string;
+  skill: {
+    slug: string;
+    name: string;
+    version_label: string;
+    snapshot_hash: string;
+  } | null;
+  method_card_ids: string[];
+  reference_paths: string[];
+  memory_selection: Record<string, unknown>;
+  prompt_assembly: HaiPromptAssembly | null;
   score: number | null;
   passed: boolean | null;
   problems: string[];
@@ -134,11 +156,12 @@ export interface HaiDashboardData {
 
 const PAGE_SIZE = 1000;
 const MAX_EVENT_PAGES = 20;
+const MAX_TRACE_PAGES = 20;
 
 export async function getAdminHaiDashboard(rangeDays: HaiDashboardRangeDays): Promise<HaiDashboardData> {
   const now = new Date();
   const since = startOfRange(rangeDays, now).toISOString();
-  const [events, alertResult, traceResult, dailyReviews] = await Promise.all([
+  const [events, alertResult, traceMessages, dailyReviews] = await Promise.all([
     fetchUsageEvents(since),
     supabase
       .from("hai_usage_alerts")
@@ -146,27 +169,38 @@ export async function getAdminHaiDashboard(rangeDays: HaiDashboardRangeDays): Pr
       .eq("status", "open")
       .order("created_at", { ascending: false })
       .limit(50),
-    supabase
+    fetchTraceMessages(since),
+    fetchDailyReviews(),
+  ]);
+
+  if (alertResult.error) throw alertResult.error;
+  return buildHaiDashboardData(
+    events,
+    (alertResult.data as HaiUsageAlertRow[]) ?? [],
+    traceMessages,
+    rangeDays,
+    now,
+    dailyReviews,
+  );
+}
+
+async function fetchTraceMessages(since: string): Promise<HaiTraceMessageRow[]> {
+  const rows: HaiTraceMessageRow[] = [];
+  for (let page = 0; page < MAX_TRACE_PAGES; page += 1) {
+    const from = page * PAGE_SIZE;
+    const { data, error } = await supabase
       .from("hai_messages")
       .select("id, metadata, created_at")
       .eq("role", "assistant")
       .gte("created_at", since)
       .order("created_at", { ascending: false })
-      .limit(1000),
-    fetchDailyReviews(),
-  ]);
-
-  if (alertResult.error) throw alertResult.error;
-  if (traceResult.error) throw traceResult.error;
-
-  return buildHaiDashboardData(
-    events,
-    (alertResult.data as HaiUsageAlertRow[]) ?? [],
-    (traceResult.data as HaiTraceMessageRow[]) ?? [],
-    rangeDays,
-    now,
-    dailyReviews,
-  );
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    const batch = (data as HaiTraceMessageRow[]) ?? [];
+    rows.push(...batch);
+    if (batch.length < PAGE_SIZE) break;
+  }
+  return rows;
 }
 
 export async function triggerHaiDailyReview(runDate?: string) {
@@ -328,7 +362,7 @@ export function buildHaiDashboardData(
     user_rankings: userRankings,
     recent_events: events.slice(0, 30).map((event) => ({ ...event, profile: profileOf(event.profiles) })),
     alerts: alerts.map((alert) => ({ ...alert, profile: profileOf(alert.profiles) })),
-    recent_traces: traces.slice(0, 8),
+    recent_traces: traces,
     daily_reviews: dailyReviews,
   };
 }
@@ -382,6 +416,11 @@ function toTrace(message: HaiTraceMessageRow): HaiRecentTrace | null {
     support_depth: stringOf(intent?.support_depth) || "advice",
     route_method: stringOf(intent?.route_method) || "-",
     diagnostic_module: trace.diagnosticModule || "-",
+    skill: trace.skill,
+    method_card_ids: trace.methodCardIds,
+    reference_paths: trace.referencePaths,
+    memory_selection: trace.memorySelection,
+    prompt_assembly: trace.promptAssembly,
     score: numberOf(evaluation?.score),
     passed: typeof evaluation?.pass === "boolean" ? evaluation.pass : null,
     problems: Array.isArray(evaluation?.problems)
@@ -399,6 +438,11 @@ function normalizedTraceOf(metadata: Record<string, unknown>) {
       intent: recordOf(current.intent_result),
       evaluation: recordOf(current.evaluation_result),
       diagnosticModule: stringOf(current.diagnostic_module),
+      skill: skillSummaryOf(current.skill),
+      methodCardIds: stringArray(current.method_card_ids),
+      referencePaths: arrayOfRecords(current.references).map((item) => stringOf(item.path)).filter(Boolean),
+      memorySelection: recordOf(current.memory_selection) ?? {},
+      promptAssembly: normalizePromptAssembly(current.prompt_assembly),
     };
   }
   const legacySkill = recordOf(metadata.hai_skill_trace);
@@ -408,6 +452,11 @@ function normalizedTraceOf(metadata: Record<string, unknown>) {
       intent: recordOf(legacySkill.intent_result),
       evaluation: recordOf(legacySkill.evaluation_result),
       diagnosticModule: stringOf(legacySkill.diagnostic_module),
+      skill: null,
+      methodCardIds: stringArray(legacySkill.method_card_ids),
+      referencePaths: stringArray(legacySkill.reference_paths),
+      memorySelection: { loaded: legacySkill.memory_loaded === true },
+      promptAssembly: null,
     };
   }
   const legacyContext = recordOf(metadata.hai_context_trace);
@@ -417,7 +466,47 @@ function normalizedTraceOf(metadata: Record<string, unknown>) {
     intent: recordOf(legacyContext.intent_result),
     evaluation: recordOf(legacyContext.evaluation_result),
     diagnosticModule: stringOf(legacyContext.diagnostic_module),
+    skill: null,
+    methodCardIds: stringArray(legacyContext.methodology_ids ?? legacyContext.method_card_ids),
+    referencePaths: stringArray(legacyContext.reference_paths),
+    memorySelection: recordOf(legacyContext.memory_selection) ?? {},
+    promptAssembly: null,
   };
+}
+
+function skillSummaryOf(value: unknown): HaiRecentTrace["skill"] {
+  const skill = recordOf(value);
+  const version = recordOf(skill?.version);
+  if (!skill) return null;
+  return {
+    slug: stringOf(skill.slug),
+    name: stringOf(skill.name),
+    version_label: stringOf(version?.label),
+    snapshot_hash: stringOf(version?.snapshot_hash),
+  };
+}
+
+function normalizePromptAssembly(value: unknown): HaiPromptAssembly | null {
+  const record = recordOf(value);
+  if (!record || typeof record.captured_at !== "string") return null;
+  const finalStage = record.final_stage === "answer_rewrite"
+    ? "answer_rewrite"
+    : record.final_stage === "answer_draft"
+    ? "answer_draft"
+    : null;
+  if (!finalStage || !Array.isArray(record.model_calls)) return null;
+  const modelCalls = record.model_calls.map((item) => {
+    const call = recordOf(item);
+    if (!call || (call.stage !== "semantic_router" && call.stage !== "answer_draft" && call.stage !== "answer_rewrite")) return null;
+    if (typeof call.estimated_input_tokens !== "number" || !Array.isArray(call.messages)) return null;
+    const messages = call.messages.map((message) => {
+      const row = recordOf(message);
+      if (!row || (row.role !== "system" && row.role !== "user" && row.role !== "assistant") || typeof row.content !== "string") return null;
+      return { role: row.role, content: row.content };
+    }).filter((message): message is HaiPromptAssemblyModelCall["messages"][number] => message !== null);
+    return { stage: call.stage, messages, estimated_input_tokens: call.estimated_input_tokens };
+  }).filter((call): call is HaiPromptAssemblyModelCall => call !== null);
+  return { captured_at: record.captured_at, final_stage: finalStage, model_calls: modelCalls };
 }
 
 function profileOf(value: HaiProfileRelation | undefined): HaiProfile | null {
@@ -432,6 +521,16 @@ function recordOf(value: unknown): Record<string, unknown> | null {
 
 function stringOf(value: unknown) {
   return typeof value === "string" ? value : "";
+}
+
+function stringArray(value: unknown) {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function arrayOfRecords(value: unknown) {
+  return Array.isArray(value)
+    ? value.map(recordOf).filter((item): item is Record<string, unknown> => item !== null)
+    : [];
 }
 
 function numberOf(value: unknown) {

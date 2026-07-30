@@ -4,6 +4,21 @@ import type {
   ResponseEvaluation,
 } from "./hai_chat/types.ts";
 
+export type HaiPromptAssemblyModelCall = {
+  stage: "semantic_router" | "answer_draft" | "answer_rewrite";
+  messages: Array<{
+    role: "system" | "user" | "assistant";
+    content: string;
+  }>;
+  estimated_input_tokens: number;
+};
+
+export type HaiPromptAssembly = {
+  captured_at: string;
+  final_stage: "answer_draft" | "answer_rewrite";
+  model_calls: HaiPromptAssemblyModelCall[];
+};
+
 export const HAI_TRACE_VERSION = 2 as const;
 
 export type HaiTraceV2 = {
@@ -33,6 +48,7 @@ export type HaiTraceV2 = {
   };
   evaluation_result: ResponseEvaluation | null;
   diagnostic_module?: string;
+  prompt_assembly?: HaiPromptAssembly;
 };
 
 export type NormalizedHaiTrace = {
@@ -58,6 +74,7 @@ export type NormalizedHaiTrace = {
   reference_paths: string[];
   reference_hashes: string[];
   memory_selection: Record<string, unknown>;
+  prompt_assembly: HaiPromptAssembly | null;
   raw: Record<string, unknown>;
 };
 
@@ -98,6 +115,7 @@ export function readHaiTrace(metadata: unknown): NormalizedHaiTrace | null {
         textOf(reference.content_hash)
       ).filter(Boolean),
       memory_selection: recordOf(current.memory_selection) ?? {},
+      prompt_assembly: normalizePromptAssembly(current.prompt_assembly),
       raw: current,
     };
   }
@@ -129,6 +147,7 @@ export function readHaiTrace(metadata: unknown): NormalizedHaiTrace | null {
       memory_selection: {
         loaded: legacySkill.memory_loaded === true,
       },
+      prompt_assembly: null,
       raw: legacySkill,
     };
   }
@@ -150,8 +169,56 @@ export function readHaiTrace(metadata: unknown): NormalizedHaiTrace | null {
     reference_paths: stringArray(legacyContext.reference_paths),
     reference_hashes: stringArray(legacyContext.reference_hashes),
     memory_selection: recordOf(legacyContext.memory_selection) ?? {},
+    prompt_assembly: null,
     raw: legacyContext,
   };
+}
+
+function normalizePromptAssembly(value: unknown): HaiPromptAssembly | null {
+  const record = recordOf(value);
+  if (!record) return null;
+  const finalStage = record.final_stage === "answer_rewrite"
+    ? "answer_rewrite"
+    : record.final_stage === "answer_draft"
+    ? "answer_draft"
+    : null;
+  if (!finalStage || typeof record.captured_at !== "string") return null;
+  const modelCalls = Array.isArray(record.model_calls)
+    ? record.model_calls.map(normalizePromptAssemblyCall).filter(
+      (item): item is HaiPromptAssemblyModelCall => item !== null,
+    )
+    : [];
+  return {
+    captured_at: record.captured_at,
+    final_stage: finalStage,
+    model_calls: modelCalls,
+  };
+}
+
+function normalizePromptAssemblyCall(value: unknown): HaiPromptAssemblyModelCall | null {
+  const record = recordOf(value);
+  if (!record) return null;
+  const stage = record.stage === "semantic_router" || record.stage === "answer_rewrite"
+    ? record.stage
+    : record.stage === "answer_draft"
+    ? record.stage
+    : null;
+  if (!stage || typeof record.estimated_input_tokens !== "number") return null;
+  const messages = Array.isArray(record.messages)
+    ? record.messages.map((item) => {
+      const message = recordOf(item);
+      if (!message) return null;
+      const role = message.role === "system" || message.role === "assistant"
+        ? message.role
+        : message.role === "user"
+        ? message.role
+        : null;
+      return role && typeof message.content === "string"
+        ? { role, content: message.content }
+        : null;
+    }).filter((item): item is HaiPromptAssemblyModelCall["messages"][number] => item !== null)
+    : [];
+  return { stage, messages, estimated_input_tokens: record.estimated_input_tokens };
 }
 
 function recordOf(value: unknown): Record<string, unknown> | null {

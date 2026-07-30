@@ -26,6 +26,15 @@ Deno.test("readHaiTrace prefers v2 and normalizes nested Skill metadata", () => 
         content_hash: "reference-hash",
       }],
       memory_selection: { should_load_memory: false, loaded: false },
+      prompt_assembly: {
+        captured_at: "2026-07-13T10:00:01.000Z",
+        final_stage: "answer_draft",
+        model_calls: [{
+          stage: "answer_draft",
+          estimated_input_tokens: 100,
+          messages: [{ role: "system", content: "完整运行时提示词" }],
+        }],
+      },
       evaluation_result: { score: 88, pass: true },
     },
     hai_context_trace: { question: "旧 trace 不应覆盖 v2" },
@@ -36,6 +45,7 @@ Deno.test("readHaiTrace prefers v2 and normalizes nested Skill metadata", () => 
   assertEquals(trace?.skill?.version.id, "version-2");
   assertEquals(trace?.reference_paths, ["references/method.md"]);
   assertEquals(trace?.evaluation_result?.score, 88);
+  assertEquals(trace?.prompt_assembly?.model_calls[0].messages[0].content, "完整运行时提示词");
 });
 
 Deno.test("readHaiTrace supports legacy Skill and Context trace shapes", () => {

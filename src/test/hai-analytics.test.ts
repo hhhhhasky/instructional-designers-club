@@ -25,6 +25,7 @@ describe("HAI dashboard aggregation", () => {
     const traces: HaiTraceMessageRow[] = [
       traceMessage("trace-1", 80, true),
       legacyTraceMessage("trace-2", 60, false),
+      traceMessage("trace-3", null, true),
     ];
 
     const result = buildHaiDashboardData(events, alerts, traces, 7, new Date("2026-07-13T12:00:00.000Z"));
@@ -59,6 +60,14 @@ describe("HAI dashboard aggregation", () => {
       scene: "public_lesson",
       user_goal: "diagnosis",
       support_depth: "advice",
+      method_card_ids: ["design-logic-chain"],
+      reference_paths: ["references/decision-rules.md"],
+      memory_selection: { should_load_memory: true, loaded: true },
+    });
+    expect(result.recent_traces).toHaveLength(3);
+    expect(result.recent_traces[0].prompt_assembly?.model_calls[0].messages[0]).toMatchObject({
+      role: "system",
+      content: "完整运行时提示词",
     });
   });
 
@@ -90,7 +99,7 @@ function usageEvent(overrides: Partial<HaiUsageEventRow>): HaiUsageEventRow {
   };
 }
 
-function traceMessage(id: string, score: number, pass: boolean): HaiTraceMessageRow {
+function traceMessage(id: string, score: number | null, pass: boolean): HaiTraceMessageRow {
   return {
     id,
     created_at: "2026-07-13T10:00:00.000Z",
@@ -107,6 +116,23 @@ function traceMessage(id: string, score: number, pass: boolean): HaiTraceMessage
           route_method: "llm",
         },
         diagnostic_module: "showcase_lesson_diagnosis",
+        skill: {
+          name: "哈老师教学决策咨询",
+          slug: "hai-consultation",
+          version: { label: "v12", snapshot_hash: "hash-12" },
+        },
+        method_card_ids: ["design-logic-chain"],
+        references: [{ path: "references/decision-rules.md", content_hash: "ref-hash" }],
+        memory_selection: { should_load_memory: true, loaded: true, memory_types: ["current_task"] },
+        prompt_assembly: {
+          captured_at: "2026-07-13T10:00:01.000Z",
+          final_stage: "answer_draft",
+          model_calls: [{
+            stage: "answer_draft",
+            estimated_input_tokens: 100,
+            messages: [{ role: "system", content: "完整运行时提示词" }],
+          }],
+        },
         evaluation_result: { score, pass, problems: pass ? [] : ["建议不够聚焦"] },
       },
     },

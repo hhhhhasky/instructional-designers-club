@@ -73,6 +73,9 @@ Deno.test("chat skill prompt loads published instructions, method cards and memo
   if (!prompt.includes("不得猜测")) {
     throw new Error("platform safety boundary was not loaded");
   }
+  if (!prompt.includes("当前消息已经包含具体教学问题") || !prompt.includes("只有当用户没有提出具体问题")) {
+    throw new Error("opening behavior rules were not loaded");
+  }
 });
 
 Deno.test("chat skill reference config is bounded and supports opt-outs", () => {
