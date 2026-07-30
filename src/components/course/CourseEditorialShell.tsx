@@ -97,8 +97,7 @@ interface CourseEditorialCatalogLayoutProps {
   toc: ReactNode;
   children: ReactNode;
   mobile: ReactNode;
-  tocScrollable?: boolean;
-  contentScrollable?: boolean;
+  tocStatic?: boolean;
 }
 
 export function CourseEditorialCatalogLayout({
@@ -107,15 +106,14 @@ export function CourseEditorialCatalogLayout({
   toc,
   children,
   mobile,
-  tocScrollable = false,
-  contentScrollable = false,
+  tocStatic = false,
 }: CourseEditorialCatalogLayoutProps) {
   return (
     <section className="mx-auto max-w-7xl px-4 pb-16 pt-8 md:pt-10" aria-label={`${label}课程目录`}>
       <div className="hidden gap-6 lg:grid lg:grid-cols-[280px_minmax(0,1fr)]">
         <aside className={cn(
           "course-editorial-toc sticky top-24 self-start",
-          tocScrollable && "h-[calc(100vh-7rem)] overflow-y-auto overscroll-contain pr-2",
+          tocStatic && "!max-h-none !overflow-visible",
         )}>
           <div className="border-b border-dashed border-bd pb-3">
             <span className="editorial-kicker">CONTENTS · 目录</span>
@@ -129,10 +127,7 @@ export function CourseEditorialCatalogLayout({
           </nav>
         </aside>
 
-        <div className={cn(
-          "space-y-6",
-          contentScrollable && "h-[calc(100vh-7rem)] overflow-y-auto overscroll-contain pr-2",
-        )}>{children}</div>
+        <div className="space-y-6">{children}</div>
       </div>
 
       <div className="lg:hidden">{mobile}</div>

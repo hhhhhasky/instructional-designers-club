@@ -99,7 +99,7 @@ export default function CoursesPage() {
       <div className="min-h-screen bg-cream flex flex-col">
         <Header />
         {isNavigating && <LoadingOverlay message="正在加载课程..." />}
-        <main className="flex-1 pt-20 pb-12">
+        <main className="course-reading-desk flex-1 pb-12 pt-20">
           <CourseEditorialHero
             kicker="PLUS CATALOGUE · 教学通识课"
             badge="PLUS 专属"
@@ -152,11 +152,7 @@ function PlusCourseMap({
   tracks: PlusTrackConfig[];
   onCourseOpen: (course: Course) => void;
 }) {
-  return (
-    <div className="max-w-7xl mx-auto px-4 py-8 md:py-10">
-      <PlusCourseCatalog courses={courses} tracks={tracks} onCourseOpen={onCourseOpen} />
-    </div>
-  );
+  return <PlusCourseCatalog courses={courses} tracks={tracks} onCourseOpen={onCourseOpen} />;
 }
 
 function PlusCourseCatalog({
@@ -206,8 +202,7 @@ function PlusCourseCatalog({
     <CourseEditorialCatalogLayout
       label="系列课"
       countLabel={`${tracks.length} 篇`}
-      tocScrollable
-      contentScrollable
+      tocStatic
       toc={tracks.map((track, index) => {
         const Icon = track.icon;
         return (
