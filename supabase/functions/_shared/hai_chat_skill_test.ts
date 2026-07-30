@@ -18,7 +18,7 @@ const skill: HaiChatSkillRuntime = {
   version_id: "version-1",
   version_label: "v1",
   snapshot_hash: "snapshot-hash-1",
-  instructions: "先判断场景，再澄清、重构问题、选择方法，最后提出具体小追问。",
+  instructions: "先按日常课、公开课、诊断、设计、其他五类路由判断，再选择方法并给出具体动作。",
   reference_config: normalizeHaiChatSkillReferenceConfig({
     include_method_index: true,
     method_card_limit: 6,
@@ -75,6 +75,15 @@ Deno.test("chat skill prompt loads published instructions, method cards and memo
   }
   if (!prompt.includes("当前消息已经包含具体教学问题") || !prompt.includes("只有当用户没有提出具体问题")) {
     throw new Error("opening behavior rules were not loaded");
+  }
+  if (prompt.includes("HAI 教学决策规则") || prompt.includes("HAI Chat 对话表达规则")) {
+    throw new Error("retired duplicate references leaked into the prompt");
+  }
+  for (const route of ["日常课", "公开课", "诊断", "设计", "其他"]) {
+    if (!prompt.includes(route)) throw new Error(`route category missing: ${route}`);
+  }
+  if (prompt.includes("分析、设计、研发、实施")) {
+    throw new Error("retired four-stage route leaked into the prompt");
   }
 });
 

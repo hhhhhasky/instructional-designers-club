@@ -41,36 +41,12 @@ const outputPath = resolve(
 
 const references = [
   {
-    variable: "v_decision_rules",
-    delimiter: "decision_rules",
-    path: "references/decision-rules.md",
-    name: "HAI 教学决策规则",
-    description:
-      "只供内部诊断使用的信息充分性、必要性、适配性、学习机制、目标、因果与验证规则；不向用户展示检查链。",
-    loadMode: "always",
-    maxChars: 16000,
-    sortOrder: 0,
-    kind: "internal_decision_rules",
-  },
-  {
-    variable: "v_expression_rules",
-    delimiter: "expression_rules",
-    path: "references/conversation-expression.md",
-    name: "HAI Chat 对话表达规则",
-    description:
-      "按直接判断、条件判断或必要追问控制自然表达；每轮常驻加载。",
-    loadMode: "always",
-    maxChars: 12000,
-    sortOrder: 5,
-    kind: "external_expression",
-  },
-  {
     variable: "v_method_cards",
     delimiter: "method_cards",
     path: "references/method-cards.md",
     name: "35 张课程方法卡索引",
     description:
-      "四类咨询的方法卡检索索引；完整结构化方法卡仍由 HAI 运行时按题注入。",
+      "五类路由的方法卡检索索引；完整结构化方法卡仍由 HAI 运行时按题注入。",
     loadMode: "on_demand",
     maxChars: 12000,
     sortOrder: 10,
@@ -215,7 +191,7 @@ begin
   update public.hai_chat_skills
   set
     name = '哈老师教学决策咨询',
-    description = '优先直接或条件性判断教学分析、设计、研发与实施问题；只追问会改变答案的变量，完整成果转入 HAI Work。',
+    description = '优先直接或条件性判断日常课、公开课、诊断、设计与其他教学问题；只追问会改变答案的变量，完整成果转入 HAI Work。',
     source_path = ${sqlString(`/Users/apple/vibe coding project/俱乐部官网/supabase/skill-sources/hai-consultation/${versionLabel}/SKILL.md`)},
     is_enabled = true,
     updated_at = now()
@@ -280,7 +256,7 @@ ${referenceRows};
   from public.hai_chat_skill_references
   where skill_version_id = v_version_id;
 
-  if v_reference_count <> 4 then
+  if v_reference_count <> 2 then
     raise exception 'hai-consultation ${versionLabel} reference 数量异常：%', v_reference_count;
   end if;
 
