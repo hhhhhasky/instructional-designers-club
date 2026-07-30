@@ -28,7 +28,8 @@ import {
   type HaiChatSkillTrace,
   normalizeHaiChatSkillReferenceConfig,
 } from "../_shared/hai_chat_skill.ts";
-import { classifyIntent } from "../_shared/hai_chat/intent_classifier.ts";
+import { classifyIntent, resolveIntentFromPrior } from "../_shared/hai_chat/intent_classifier.ts";
+import { routeDiagnosticFramework } from "../_shared/hai_orchestrator/diagnostic_router.ts";
 import {
   hanCourseMethodCards,
   type HanMethodCard,
@@ -41,7 +42,7 @@ import {
 } from "../_shared/hai_chat/memory_selector.ts";
 import { normalizeHaiVoiceFormatting } from "../_shared/hai_chat/response_format.ts";
 import { evaluateResponse } from "../_shared/hai_chat/response_evaluator.ts";
-import type { MemorySelection } from "../_shared/hai_chat/types.ts";
+import type { IntentResult, MemorySelection } from "../_shared/hai_chat/types.ts";
 
 type ModuleRow = {
   id: string;
@@ -123,12 +124,12 @@ Deno.serve(async (request) => {
     const completionOptions = buildChatCompletionOptions({ module, runtime });
     const configSnapshot = runtimeConfigSnapshot(runtime, completionOptions);
     const methodCards = await loadMethodCards(auth.admin);
-    const skillIntent = classifyIntent(text);
+    const baseIntent = classifyIntent(text);
     const estimatedSkillPrompt = buildHaiChatSkillSystemPrompt({
       moduleName: module.name,
       question: text,
       skill: chatSkill,
-      intent: skillIntent,
+      intent: baseIntent,
       methodCards,
       memories: [],
     });
@@ -189,6 +190,18 @@ Deno.serve(async (request) => {
     if (userMessageError) throw new HttpError(500, userMessageError.message);
     await rememberExplicitTeacherFacts(auth.admin, auth.user.id, text);
 
+    // 多轮意图稳定（做法 A）：当前轮若判为 unknown（追问/澄清常见），沿用上一轮的非 unknown 意图。
+    // 需在 conversationId 确定后才能查历史，故与 token 预估（用 baseIntent）分两阶段。
+    const priorIntent = await loadLastAssistantIntent(
+      auth.admin,
+      auth.user.id,
+      conversationId,
+    );
+    const skillIntent = resolveIntentFromPrior(baseIntent, priorIntent);
+    // 诊断模块：复用 orchestrator 现成的 intent→模块映射（含 unknown→teaching_concept_qa），
+    // 接进 Skill 提示词与 trace，让每个意图都有对应的判断思路。
+    const diagnostic = routeDiagnosticFramework(skillIntent.primary_intent);
+
     const recentMessages = await loadRecentMessages(
       auth.admin,
       auth.user.id,
@@ -214,6 +227,8 @@ Deno.serve(async (request) => {
       intent: skillIntent,
       methodCards,
       memories,
+      diagnosticModule: diagnostic.diagnostic_module,
+      diagnosticFramework: diagnostic.diagnostic_framework,
     });
     const messages: ChatMessage[] = [
       { role: "system", content: systemPrompt },
@@ -273,6 +288,8 @@ Deno.serve(async (request) => {
               memories,
               evaluation,
               draftAnswer,
+              diagnosticModule: diagnostic.diagnostic_module,
+              diagnosticFramework: diagnostic.diagnostic_framework,
             });
             finalMessages = [
               { role: "system", content: rewriteSystemPrompt },
@@ -315,6 +332,7 @@ Deno.serve(async (request) => {
             memorySelection,
             memoryLoaded: memories.length > 0,
             evaluation: finalEvaluation,
+            diagnosticModule: diagnostic.diagnostic_module,
           });
 
           output = finalAnswer;
@@ -621,6 +639,29 @@ async function loadConversation(
     .maybeSingle();
   if (error) throw new HttpError(500, error.message);
   return data as ConversationRow | null;
+}
+
+async function loadLastAssistantIntent(
+  admin: { from: (table: string) => any },
+  userId: string,
+  conversationId: string,
+): Promise<IntentResult | null> {
+  // 取本会话最近一条 assistant 消息的 trace.intent_result，作为"上一轮意图"。
+  // 仅 select 1 行 metadata，成本可忽略；首次对话无历史时返回 null。
+  const { data, error } = await admin
+    .from("hai_messages")
+    .select("metadata")
+    .eq("conversation_id", conversationId)
+    .eq("user_id", userId)
+    .eq("role", "assistant")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) return null;
+  const trace = (data as
+    | { metadata?: { hai_trace?: { intent_result?: IntentResult } } }
+    | null)?.metadata?.hai_trace?.intent_result;
+  return trace ?? null;
 }
 
 async function loadRecentMessages(

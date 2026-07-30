@@ -3,6 +3,7 @@ import {
   buildHaiChatSkillTrace,
   type HaiChatSkillRuntime,
   normalizeHaiChatSkillReferenceConfig,
+  selectHaiChatSkillMethodCards,
   selectHaiChatSkillReferences,
 } from "./hai_chat_skill.ts";
 import { classifyIntent } from "./hai_chat/intent_classifier.ts";
@@ -167,5 +168,89 @@ Deno.test("chat skill trace records the exact published version and selected car
     )
   ) {
     throw new Error("skill trace did not record selected references");
+  }
+});
+
+Deno.test("method card fallback uses diagnostic module defaults when no keyword hit", () => {
+  // 空问题 → 零 bigram、零术语命中，强制走诊断模块兜底，隔离测试兜底映射本身。
+  const noopIntent = classifyIntent("");
+
+  const showcase = selectHaiChatSkillMethodCards({
+    question: "",
+    intent: noopIntent,
+    methodCards: hanCourseMethodCards,
+    referenceConfig: skill.reference_config,
+    diagnosticModule: "showcase_lesson_diagnosis",
+  });
+  if (
+    showcase.map((c) => c.id).join(",") !==
+    "design-logic-chain,public-lesson-highlight"
+  ) {
+    throw new Error(
+      `showcase fallback wrong: ${showcase.map((c) => c.id).join(",")}`,
+    );
+  }
+
+  const concept = selectHaiChatSkillMethodCards({
+    question: "",
+    intent: noopIntent,
+    methodCards: hanCourseMethodCards,
+    referenceConfig: skill.reference_config,
+    diagnosticModule: "teaching_concept_qa",
+  });
+  if (concept.length !== 0) {
+    throw new Error(
+      `concept_qa should not bind default cards: ${concept.map((c) => c.id).join(",")}`,
+    );
+  }
+
+  const daily = selectHaiChatSkillMethodCards({
+    question: "",
+    intent: noopIntent,
+    methodCards: hanCourseMethodCards,
+    referenceConfig: skill.reference_config,
+    diagnosticModule: "daily_improvement_diagnosis",
+  });
+  if (daily.map((c) => c.id).join(",") !== "three-question-pretest-errors") {
+    throw new Error(
+      `daily diagnosis fallback wrong: ${daily.map((c) => c.id).join(",")}`,
+    );
+  }
+});
+
+Deno.test("method card keyword hit takes precedence over diagnostic fallback", () => {
+  const question = "公开课的问题链怎么设计？";
+  const hit = selectHaiChatSkillMethodCards({
+    question,
+    intent: classifyIntent(question),
+    methodCards: hanCourseMethodCards,
+    referenceConfig: skill.reference_config,
+    diagnosticModule: "daily_improvement_diagnosis",
+  });
+  if (!hit.some((c) => c.id === "question-chain")) {
+    throw new Error(
+      `keyword hit should win over fallback: ${hit.map((c) => c.id).join(",")}`,
+    );
+  }
+});
+
+Deno.test("chat skill prompt injects diagnostic module and framework", () => {
+  const question = "复习课我重新讲教材学生还是不会，怎么改？";
+  const prompt = buildHaiChatSkillSystemPrompt({
+    moduleName: "问问哈老师",
+    question,
+    skill,
+    intent: classifyIntent(question),
+    methodCards: hanCourseMethodCards,
+    memories: [],
+    diagnosticModule: "daily_improvement_diagnosis",
+    diagnosticFramework:
+      "模块：日常提分诊断\n适用：用户已经有日常课做法但学习效果不理想。",
+  });
+  if (!prompt.includes("本轮诊断模块｜daily_improvement_diagnosis")) {
+    throw new Error("diagnostic module label missing in prompt");
+  }
+  if (!prompt.includes("模块：日常提分诊断")) {
+    throw new Error("diagnostic framework text missing in prompt");
   }
 });

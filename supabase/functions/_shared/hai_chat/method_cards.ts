@@ -1624,6 +1624,65 @@ export const hanCourseMethodCards: HanMethodCard[] = [
       "docs/HAI_R10_01_FEEDBACK_PROMPT_ITERATION.md",
     ],
   },
+  {
+    // 代码兜底：DB 表 hai_method_card_configs 同 id 记录为权威来源；
+    // 此处保证 DB 读失败时公开课亮点卡仍可用。内容与 migration 保持一致。
+    id: "public-lesson-highlight",
+    name: "公开课亮点（学习性优先）",
+    aliases: ["学习性亮点", "公开课创新", "亮点与形式", "有看头有讲头"],
+    course: "公开课与展示课",
+    kind: "strategy",
+    ownership: "han_course",
+    priority: 98,
+    summary:
+      "用学生在这节课上真实发生、能被所有人看见的理解变化作为公开课亮点的来源；所有形式（AI、技术、合作、情境）只有在服务目标和学情、且传统手段做不到时才成为亮点，否则是包装。",
+    useWhen: [
+      "被要求有亮点或创新但担心牺牲真实学习",
+      "把亮点等同于热闹活动、AI、闯关、小组合作或炫酷PPT",
+      "公开课活动太多、形式太重，分不清哪个是必需的",
+      "选课题纠结熟悉的还是出彩的",
+    ],
+    avoidWhen: [
+      "还没确认评审环境和用户目标（拿奖或本心）就谈亮点",
+      "教学目标和学习主线还没建立，谈亮点为时过早",
+      "日常常态课（非展示赛课），亮点不是核心目标",
+    ],
+    coreJudgement:
+      "真正的亮点是学生从原来以为到现在明白了的、能被证明的理解变化；形式本身不是亮点，只有当它推动了这个变化、且传统手段做不到时才成为亮点。",
+    moves: [
+      "先确认评审环境和用户目标，判断形式是否必须、必须到什么程度",
+      "不从形式里找亮点，先问学生从原来以为什么变成现在明白了什么",
+      "设计一个误解暴露或认知转折环节作为亮点核心",
+      "逐个活动追问它让学生发生了什么能被证明的理解变化，答不出就删或改",
+      "形式只在解决传统做不了或做不好时才加，且紧扣目标与学情",
+    ],
+    answerFocus:
+      "先帮用户重定义亮点（学习性还是形式性），再检查他最想展示的活动是否对应一个能被证明的理解变化；不替用户堆形式清单，也不否定他对评审现实的顾虑。",
+    queryTerms: [
+      "亮点",
+      "创新",
+      "出彩",
+      "有看头",
+      "AI赋能",
+      "闯关",
+      "小组合作",
+      "情境",
+      "学习性亮点",
+      "形式亮点",
+      "显得落后",
+    ],
+    intents: ["public_lesson", "teaching_design", "lesson_plan_diagnosis"],
+    related: [
+      "design-logic-chain",
+      "core-growth-evidence",
+      "backward-design",
+      "task-motivation-hook",
+    ],
+    sourceRefs: [
+      "docs/HAI语料/03-公开课与展示课.md",
+      "supabase/functions/_shared/hai_orchestrator/modules/public_lesson.md",
+    ],
+  },
 ];
 
 export const hanMethodCardIds = new Set(

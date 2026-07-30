@@ -124,18 +124,37 @@ export function selectHaiChatSkillReferences(params: {
   return selected;
 }
 
+// 诊断模块 → 默认方法卡兜底。当关键词选择（selectHanMethodCandidatesForRouter）
+// 一张卡都没命中时，按本轮诊断模块给出最通用的参考卡，避免提示词里“方法卡”一段总是空。
+// 赛课两个模块用「逻辑链 + 亮点」双柱；概念答疑不绑（太宽泛，强绑易误导）。
+const DIAGNOSTIC_DEFAULT_CARDS: Record<string, string[]> = {
+  showcase_lesson_diagnosis: ["design-logic-chain", "public-lesson-highlight"],
+  showcase_lesson_design: ["design-logic-chain", "public-lesson-highlight"],
+  daily_improvement_diagnosis: ["three-question-pretest-errors"],
+  daily_improvement_design: ["new-lesson-seven-steps"],
+  teaching_concept_qa: [],
+};
+
 export function selectHaiChatSkillMethodCards(params: {
   question: string;
   intent: IntentResult;
   methodCards: HanMethodCard[];
   referenceConfig: HaiChatSkillReferenceConfig;
+  diagnosticModule?: string;
 }) {
-  return selectHanMethodCandidatesForRouter(
+  const hit = selectHanMethodCandidatesForRouter(
     params.question,
     params.intent,
     params.referenceConfig.method_card_limit,
     params.methodCards,
   );
+  if (hit.length > 0 || !params.diagnosticModule) return hit;
+  const defaultIds = DIAGNOSTIC_DEFAULT_CARDS[params.diagnosticModule] ?? [];
+  if (defaultIds.length === 0) return hit;
+  const byId = new Map(params.methodCards.map((card) => [card.id, card]));
+  return defaultIds
+    .map((id) => byId.get(id))
+    .filter((card): card is HanMethodCard => Boolean(card));
 }
 
 export function buildHaiChatSkillSystemPrompt(params: {
@@ -147,12 +166,15 @@ export function buildHaiChatSkillSystemPrompt(params: {
   memories: Array<{ category: string; content: string }>;
   evaluation?: ResponseEvaluation | null;
   draftAnswer?: string;
+  diagnosticModule?: string;
+  diagnosticFramework?: string;
 }) {
   const selectedCards = selectHaiChatSkillMethodCards({
     question: params.question,
     intent: params.intent,
     methodCards: params.methodCards,
     referenceConfig: params.skill.reference_config,
+    diagnosticModule: params.diagnosticModule,
   });
   const methodIndex = params.skill.reference_config.include_method_index
     ? buildHanMethodIndexForRouter(params.methodCards)
@@ -194,6 +216,10 @@ export function buildHaiChatSkillSystemPrompt(params: {
     `## 本题确定性意图参考\n${
       JSON.stringify(params.intent, null, 2)
     }\n这只是轻量参考；按 Skill 自己的流程判断，不要把内部分类说给用户。`,
+    `## 本轮诊断模块｜${params.diagnosticModule ?? "未指定"}\n${
+      params.diagnosticFramework?.trim() ||
+      "（未注入诊断框架，按 Skill 通用流程判断。）"
+    }\n这是本轮的主干判断思路，先按它定位问题，再调用下面的方法卡；不要把模块名说给用户。`,
     `## 方法卡完整索引\n${methodIndex}`,
     `## 本题候选方法卡（完整字段）\n${methodDetails}\n候选用于减少阅读量，不是必须采用；选择前检查适用与不适用边界。`,
     `## 与本题相关的用户记忆\n${memoryText}\n只在确实相关时自然使用，不要复述分类或暗示后台保存了记忆。当前输入与记忆冲突时，以当前输入为准。`,
@@ -209,12 +235,14 @@ export function buildHaiChatSkillTrace(params: {
   memorySelection: MemorySelection;
   memoryLoaded: boolean;
   evaluation: ResponseEvaluation | null;
+  diagnosticModule?: string;
 }): HaiChatSkillTrace {
   const selectedCards = selectHaiChatSkillMethodCards({
     question: params.question,
     intent: params.intent,
     methodCards: params.methodCards,
     referenceConfig: params.skill.reference_config,
+    diagnosticModule: params.diagnosticModule,
   });
   const selectedReferences = selectHaiChatSkillReferences({
     question: params.question,
@@ -248,6 +276,7 @@ export function buildHaiChatSkillTrace(params: {
       loaded: params.memoryLoaded,
     },
     evaluation_result: params.evaluation,
+    diagnostic_module: params.diagnosticModule,
   };
 }
 

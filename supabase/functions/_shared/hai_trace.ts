@@ -32,6 +32,7 @@ export type HaiTraceV2 = {
     loaded: boolean;
   };
   evaluation_result: ResponseEvaluation | null;
+  diagnostic_module?: string;
 };
 
 export type NormalizedHaiTrace = {

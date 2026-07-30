@@ -1,4 +1,4 @@
-import { classifyIntent } from "./intent_classifier.ts";
+import { classifyIntent, resolveIntentFromPrior } from "./intent_classifier.ts";
 
 function assertRoute(
   question: string,
@@ -84,5 +84,38 @@ Deno.test("demonstration depth keeps the local-only delivery boundary", () => {
     fullDraftRequest.support_depth !== "demonstration"
   ) {
     throw new Error(JSON.stringify(fullDraftRequest));
+  }
+});
+
+Deno.test("resolveIntentFromPrior carries prior non-unknown intent for follow-up turns", () => {
+  const unknown = classifyIntent("质感，我理解的是感染性和熏陶。");
+  if (unknown.primary_intent !== "unknown") {
+    throw new Error(`baseline should be unknown: ${unknown.primary_intent}`);
+  }
+
+  // 当前非 unknown：直接返回当前，忽略 prior
+  const clear = classifyIntent("公开课怎么设计？");
+  const kept = resolveIntentFromPrior(clear, { ...unknown, primary_intent: "teaching_concept_qa" });
+  if (kept.primary_intent !== clear.primary_intent) {
+    throw new Error("non-unknown current must be kept as-is");
+  }
+
+  // 当前 unknown + 合法 prior：沿用 prior，并标记为 fallback
+  const prior = classifyIntent("复习课学生综合题还是不会，怎么改？");
+  const carried = resolveIntentFromPrior(unknown, prior);
+  if (carried.primary_intent !== prior.primary_intent) {
+    throw new Error(`should carry prior intent: ${carried.primary_intent}`);
+  }
+  if (carried.route_method !== "fallback") {
+    throw new Error("carried intent must be tagged as fallback");
+  }
+
+  // 当前 unknown + 无 prior：保持 unknown
+  if (resolveIntentFromPrior(unknown, null).primary_intent !== "unknown") {
+    throw new Error("no prior → must keep unknown");
+  }
+  // 当前 unknown + prior 也是 unknown：保持 unknown
+  if (resolveIntentFromPrior(unknown, unknown).primary_intent !== "unknown") {
+    throw new Error("unknown prior → must keep unknown");
   }
 });

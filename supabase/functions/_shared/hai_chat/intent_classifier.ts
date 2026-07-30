@@ -247,3 +247,21 @@ function buildRouteReason(
   }
   return `先识别场景为 ${scene}，再识别用户目的为 ${userGoal}，组合得到 ${intent}。`;
 }
+
+// 多轮意图稳定（做法 A）：当前轮若被判为 unknown（常见于对上一轮的追问/澄清），
+// 则沿用上一轮的非 unknown 意图，避免追问轮掉进兜底导致 memory 不加载、诊断模块不命中。
+// 纯函数：不依赖 DB，上一轮 intent 由调用方查历史消息后传入。
+export function resolveIntentFromPrior(
+  current: IntentResult,
+  prior?: IntentResult | null,
+): IntentResult {
+  if (current.primary_intent !== "unknown") return current;
+  if (prior && prior.primary_intent !== "unknown") {
+    return {
+      ...prior,
+      route_method: "fallback",
+      route_reason: `当前问题意图不明，沿用上一轮意图 ${prior.primary_intent}。`,
+    };
+  }
+  return current;
+}
