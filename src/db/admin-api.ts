@@ -7,6 +7,7 @@ import type {
   Faq,
   MemberProfile,
   MembershipType,
+  PlusCourseTrackRow,
   Resource,
   SiteContent,
   Testimonial,
@@ -273,6 +274,8 @@ export type AdminCourseCategory = Pick<
   "id" | "name" | "sort_order" | "is_active" | "plus_track_id"
 >;
 
+export type AdminCourseTrack = Pick<PlusCourseTrackRow, "id" | "title" | "sort_order" | "is_active">;
+
 const COURSE_CATEGORY_SELECT = "id, name, sort_order, is_active, plus_track_id";
 
 function clearPublicCourseCaches(courseId?: string): void {
@@ -392,6 +395,20 @@ export async function getAdminCourseCategories(): Promise<AdminCourseCategory[]>
   return (data as AdminCourseCategory[]) ?? [];
 }
 
+/** 管理员获取教学通识课篇章，用于维护前端篇章显示顺序。 */
+export async function getAdminCourseTracks(): Promise<AdminCourseTrack[]> {
+  const { data, error } = await supabase
+    .from("plus_course_tracks")
+    .select("id, title, sort_order, is_active")
+    .order("sort_order", { ascending: true })
+    .order("id", { ascending: true });
+  if (error) {
+    console.error("getAdminCourseTracks error:", error);
+    throw error;
+  }
+  return (data as AdminCourseTrack[]) ?? [];
+}
+
 /**
  * 管理员创建课程分类；如同名分类已存在，则复用已有分类。
  */
@@ -492,7 +509,7 @@ export async function adminCreateCourseCategory(
 
 export async function adminUpdateCourseCategory(
   categoryId: string,
-  updates: Pick<Partial<AdminCourseCategory>, "plus_track_id">
+  updates: Pick<Partial<AdminCourseCategory>, "plus_track_id" | "sort_order">
 ): Promise<AdminCourseCategory> {
   const { data, error } = await supabase
     .from("course_categories")
@@ -506,6 +523,25 @@ export async function adminUpdateCourseCategory(
   }
   clearPublicCourseCaches();
   return data as AdminCourseCategory;
+}
+
+/** 管理员修改教学通识课篇章的前端显示顺序。 */
+export async function adminUpdateCourseTrack(
+  trackId: string,
+  updates: Pick<Partial<AdminCourseTrack>, "sort_order">
+): Promise<AdminCourseTrack> {
+  const { data, error } = await supabase
+    .from("plus_course_tracks")
+    .update(updates)
+    .eq("id", trackId)
+    .select("id, title, sort_order, is_active")
+    .single();
+  if (error) {
+    console.error("adminUpdateCourseTrack error:", error);
+    throw error;
+  }
+  clearPublicCourseCaches();
+  return data as AdminCourseTrack;
 }
 
 /**

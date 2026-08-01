@@ -35,14 +35,17 @@ import {
   getAdminCourseList,
   adminCreateCourse,
   adminCreateCourseCategory,
+  adminUpdateCourseTrack,
   adminUpdateCourseCategory,
   adminUpdateCourse,
   adminArchiveCourse,
   adminDeleteCourseAttachment,
   adminSetCourseAccessPassword,
   getAdminCourseCategories,
+  getAdminCourseTracks,
   getAdminCourseAttachments,
   type AdminCourseCategory,
+  type AdminCourseTrack,
 } from "@/db/admin-api";
 import { getPlusCourseStructure } from "@/db/api";
 import { uploadCourseFile } from "@/db/course-media";
@@ -151,6 +154,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 export default function CourseManagementSection() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [structureTracks, setStructureTracks] = useState<PlusTrackConfig[]>(PLUS_TRACKS);
+  const [adminTracks, setAdminTracks] = useState<AdminCourseTrack[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -175,6 +179,7 @@ export default function CourseManagementSection() {
   const [accessPassword, setAccessPassword] = useState("");
   const [removeAccessPassword, setRemoveAccessPassword] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [savingOrderId, setSavingOrderId] = useState<string | null>(null);
 
   // Category list for dropdown
   const [categories, setCategories] = useState<AdminCourseCategory[]>([]);
@@ -206,15 +211,41 @@ export default function CourseManagementSection() {
     return map;
   }, [categories]);
 
+  const proSeriesCategories = useMemo(() => {
+    const used = new Set(
+      courses
+        .filter((course) => course.membership_type === "pro" && course.category)
+        .map((course) => course.category as string),
+    );
+    return categories
+      .filter((category) => category.is_active && used.has(category.name))
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name, "zh-Hans-CN"));
+  }, [categories, courses]);
+
+  const plusSeriesByTrack = useMemo(() => {
+    const result = new Map<string, AdminCourseCategory[]>();
+    categories
+      .filter((category) => category.is_active && category.plus_track_id)
+      .forEach((category) => {
+        const rows = result.get(category.plus_track_id!) ?? [];
+        rows.push(category);
+        result.set(category.plus_track_id!, rows);
+      });
+    result.forEach((rows) => rows.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name, "zh-Hans-CN")));
+    return result;
+  }, [categories]);
+
   const loadCourses = useCallback(async () => {
     try {
       setLoading(true);
-      const [result, structureData] = await Promise.all([
+      const [result, structureData, trackRows] = await Promise.all([
         getAdminCourseList(),
         getPlusCourseStructure(),
+        getAdminCourseTracks(),
       ]);
       setCourses(result);
       setStructureTracks(structureData.length > 0 ? structureData : PLUS_TRACKS);
+      setAdminTracks(trackRows);
     } catch {
       setError("加载课程数据失败，请刷新重试");
     } finally {
@@ -225,6 +256,43 @@ export default function CourseManagementSection() {
   useEffect(() => {
     loadCourses();
   }, [loadCourses]);
+
+  const saveTrackOrder = async (track: AdminCourseTrack, value: string) => {
+    const sortOrder = Number(value);
+    if (!Number.isInteger(sortOrder) || sortOrder < 0) {
+      toast.error("顺序号必须是大于等于 0 的整数");
+      return;
+    }
+    try {
+      setSavingOrderId(`track:${track.id}`);
+      const updated = await adminUpdateCourseTrack(track.id, { sort_order: sortOrder });
+      setAdminTracks((prev) => prev.map((item) => item.id === updated.id ? updated : item));
+      setStructureTracks((prev) => prev.map((item) => item.id === updated.id ? { ...item, order: updated.sort_order } : item));
+      toast.success("教学通识课篇章顺序已保存");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "保存篇章顺序失败"));
+    } finally {
+      setSavingOrderId(null);
+    }
+  };
+
+  const saveCategoryOrder = async (category: AdminCourseCategory, value: string) => {
+    const sortOrder = Number(value);
+    if (!Number.isInteger(sortOrder) || sortOrder < 0) {
+      toast.error("顺序号必须是大于等于 0 的整数");
+      return;
+    }
+    try {
+      setSavingOrderId(`category:${category.id}`);
+      const updated = await adminUpdateCourseCategory(category.id, { sort_order: sortOrder });
+      setCategories((prev) => prev.map((item) => item.id === updated.id ? updated : item));
+      toast.success("系列课顺序已保存");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "保存系列课顺序失败"));
+    } finally {
+      setSavingOrderId(null);
+    }
+  };
 
   useEffect(() => {
     getAdminCourseCategories().then(setCategories).catch(() => {
@@ -736,6 +804,116 @@ export default function CourseManagementSection() {
             预览结构
           </Button>
         </div>
+      </div>
+
+      {/* 前端系列课顺序 */}
+      <div className="rounded-ds-lg border border-bd bg-white p-4 shadow-ds-xs">
+        <div className="mb-4">
+          <h3 className="text-ds-base font-ds-semibold text-tx">前端系列课显示顺序</h3>
+          <p className="mt-1 text-ds-xs text-txs">
+            顺序号越小越靠前。教学通识课分别维护篇章和篇章内系列课；教师 AI 课按系列课维护。
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+          <div className="space-y-3">
+            <h4 className="text-ds-sm font-ds-semibold text-tx">教学通识课 · 篇章</h4>
+            {(adminTracks.length > 0 ? adminTracks : structureTracks.map((track) => ({
+              id: track.id,
+              title: track.title,
+              sort_order: track.order ?? 0,
+              is_active: true,
+            }))).filter((track) => track.is_active).map((track) => (
+              <div key={track.id} className="flex items-center gap-2 rounded-ds-md border border-bd bg-bgs/30 px-3 py-2">
+                <span className="min-w-0 flex-1 truncate text-ds-sm text-tx">{track.title}</span>
+                <input
+                  type="number"
+                  min={0}
+                  defaultValue={track.sort_order ?? 0}
+                  aria-label={`${track.title}篇章顺序`}
+                  className="h-9 w-20 rounded-ds-md border border-bd bg-white px-2 text-center text-ds-sm text-tx focus:border-ac focus:outline-none focus:ring-2 focus:ring-ac/20"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={savingOrderId === `track:${track.id}`}
+                  onClick={(event) => {
+                    const input = event.currentTarget.parentElement?.querySelector("input");
+                    void saveTrackOrder(track, input?.value ?? String(track.sort_order ?? 0));
+                  }}
+                >
+                  {savingOrderId === `track:${track.id}` ? "保存中" : "保存"}
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="text-ds-sm font-ds-semibold text-tx">教师 AI 课 · 系列课</h4>
+            {proSeriesCategories.length > 0 ? proSeriesCategories.map((category) => (
+              <div key={category.id} className="flex items-center gap-2 rounded-ds-md border border-bd bg-bgs/30 px-3 py-2">
+                <span className="min-w-0 flex-1 truncate text-ds-sm text-tx">{category.name}</span>
+                <input
+                  type="number"
+                  min={0}
+                  defaultValue={category.sort_order ?? 0}
+                  aria-label={`${category.name}系列课顺序`}
+                  className="h-9 w-20 rounded-ds-md border border-bd bg-white px-2 text-center text-ds-sm text-tx focus:border-ac focus:outline-none focus:ring-2 focus:ring-ac/20"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={savingOrderId === `category:${category.id}`}
+                  onClick={(event) => {
+                    const input = event.currentTarget.parentElement?.querySelector("input");
+                    void saveCategoryOrder(category, input?.value ?? String(category.sort_order ?? 0));
+                  }}
+                >
+                  {savingOrderId === `category:${category.id}` ? "保存中" : "保存"}
+                </Button>
+              </div>
+            )) : (
+              <p className="rounded-ds-md border border-dashed border-bd px-3 py-3 text-ds-xs text-txs">暂无已发布的教师 AI 系列课</p>
+            )}
+          </div>
+        </div>
+
+        {plusSeriesByTrack.size > 0 && (
+          <div className="mt-5 border-t border-bd pt-4">
+            <h4 className="mb-3 text-ds-sm font-ds-semibold text-tx">教学通识课 · 篇章内系列课</h4>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {Array.from(plusSeriesByTrack.entries()).map(([trackId, series]) => (
+                <div key={trackId} className="space-y-2 rounded-ds-md border border-bd bg-bgs/30 p-3">
+                  <p className="text-ds-xs font-ds-semibold text-txs">{plusTracks.find((track) => track.id === trackId)?.title ?? trackId}</p>
+                  {series.map((category) => (
+                    <div key={category.id} className="flex items-center gap-2">
+                      <span className="min-w-0 flex-1 truncate text-ds-xs text-tx">{category.name}</span>
+                      <input
+                        type="number"
+                        min={0}
+                        defaultValue={category.sort_order ?? 0}
+                        aria-label={`${category.name}系列课顺序`}
+                        className="h-8 w-16 rounded-ds-md border border-bd bg-white px-1 text-center text-ds-xs text-tx focus:border-ac focus:outline-none focus:ring-2 focus:ring-ac/20"
+                      />
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 px-2 text-ds-xs"
+                        disabled={savingOrderId === `category:${category.id}`}
+                        onClick={(event) => {
+                          const input = event.currentTarget.parentElement?.querySelector("input");
+                          void saveCategoryOrder(category, input?.value ?? String(category.sort_order ?? 0));
+                        }}
+                      >
+                        保存
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 表格 */}

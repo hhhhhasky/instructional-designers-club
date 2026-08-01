@@ -12,6 +12,7 @@ import {
   adminUpdateCourseCategory,
   getAdminCourseAttachments,
   getAdminCourseCategories,
+  getAdminCourseTracks,
   getAdminCourseList,
 } from '@/db/admin-api';
 import { getPlusCourseStructure } from '@/db/api';
@@ -47,6 +48,7 @@ vi.mock('@/db/admin-api', () => ({
   adminUpdateCourseCategory: vi.fn(),
   getAdminCourseAttachments: vi.fn(),
   getAdminCourseCategories: vi.fn(),
+  getAdminCourseTracks: vi.fn(),
   getAdminCourseList: vi.fn(),
 }));
 
@@ -147,6 +149,10 @@ describe('CourseManagementSection', () => {
       { id: 'cat-shuoke', name: '说课篇', sort_order: 1, is_active: true, plus_track_id: 'theory' },
       { id: 'cat-learning', name: '学习科学篇', sort_order: 2, is_active: true, plus_track_id: 'theory' },
       { id: 'cat-open', name: '公开课篇', sort_order: 3, is_active: true, plus_track_id: 'scenarios' },
+    ]);
+    vi.mocked(getAdminCourseTracks).mockResolvedValue([
+      { id: 'theory', title: '理论篇', sort_order: 1, is_active: true },
+      { id: 'scenarios', title: '场景篇', sort_order: 2, is_active: true },
     ]);
     vi.mocked(getAdminCourseAttachments).mockResolvedValue([]);
     vi.mocked(adminDeleteCourseAttachment).mockResolvedValue();
