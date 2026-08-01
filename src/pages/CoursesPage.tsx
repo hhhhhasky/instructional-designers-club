@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import {
   CourseEditorialHero,
   CourseEditorialVolume,
 } from '@/components/course/CourseEditorialShell';
-import { getCourseCatalogSnapshot, getCourseDetailSnapshot } from '@/db/api';
+import { getCourseCatalogSnapshot, getCourseDetailSnapshot, subscribeToCourseCatalogUpdates } from '@/db/api';
 import type { Course } from '@/types/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { canAccessCourse } from '@/lib/access-control';
@@ -41,27 +41,48 @@ export default function CoursesPage() {
   const [isNavigating, setIsNavigating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const lastCatalogRefreshAt = useRef(0);
 
-  useEffect(() => {
-    const loadData = async () => {
+  const loadData = useCallback(async (background = false) => {
       try {
-        setIsLoading(true);
-        setError(null);
-        const catalog = await getCourseCatalogSnapshot();
+        if (!background) {
+          setIsLoading(true);
+          setError(null);
+        }
+        const catalog = await getCourseCatalogSnapshot({ fresh: background });
         const coursesData = catalog.plus_courses;
         const structureData = catalog.plus_tracks;
         setAllCourses(coursesData);
         setPlusTracks(getEffectivePlusTracks(coursesData, structureData.length > 0 ? structureData : PLUS_TRACKS));
+        lastCatalogRefreshAt.current = Date.now();
       } catch (err) {
         console.error('加载课程数据失败:', err);
-        setError('加载课程数据失败，请刷新页面重试');
+        if (!background) setError('加载课程数据失败，请刷新页面重试');
       } finally {
-        setIsLoading(false);
+        if (!background) setIsLoading(false);
       }
-    };
-
-    loadData();
   }, []);
+
+  useEffect(() => {
+    void loadData();
+    return subscribeToCourseCatalogUpdates(() => {
+      void loadData(true);
+    });
+  }, [loadData]);
+
+  useEffect(() => {
+    const revalidateWhenFocused = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - lastCatalogRefreshAt.current < 5 * 60 * 1000) return;
+      void loadData(true);
+    };
+    window.addEventListener('focus', revalidateWhenFocused);
+    document.addEventListener('visibilitychange', revalidateWhenFocused);
+    return () => {
+      window.removeEventListener('focus', revalidateWhenFocused);
+      document.removeEventListener('visibilitychange', revalidateWhenFocused);
+    };
+  }, [loadData]);
 
   useEffect(() => {
     const hash = decodeURIComponent(window.location.hash.replace('#', ''));

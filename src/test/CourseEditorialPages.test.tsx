@@ -17,6 +17,7 @@ vi.mock('@/contexts/AuthContext', () => ({
 vi.mock('@/db/api', () => ({
   getCourseCatalogSnapshot: vi.fn(),
   getCourseDetailSnapshot: vi.fn(() => Promise.resolve(null)),
+  subscribeToCourseCatalogUpdates: vi.fn(() => () => {}),
 }));
 
 vi.mock('@/lib/access-control', () => ({

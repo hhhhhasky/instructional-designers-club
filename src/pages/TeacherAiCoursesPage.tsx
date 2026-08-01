@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
@@ -17,7 +17,7 @@ import {
   CourseEditorialVolume,
 } from '@/components/course/CourseEditorialShell';
 import { useAuth } from '@/contexts/AuthContext';
-import { getCourseCatalogSnapshot, getCourseDetailSnapshot } from '@/db/api';
+import { getCourseCatalogSnapshot, getCourseDetailSnapshot, subscribeToCourseCatalogUpdates } from '@/db/api';
 import { canAccessCourse } from '@/lib/access-control';
 import { cn } from '@/lib/utils';
 import type { Course } from '@/types/types';
@@ -37,13 +37,15 @@ export default function TeacherAiCoursesPage() {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const lastCatalogRefreshAt = useRef(0);
 
-  useEffect(() => {
-    const loadData = async () => {
+  const loadData = useCallback(async (background = false) => {
       try {
-        setIsLoading(true);
-        setError(null);
-        const catalog = await getCourseCatalogSnapshot();
+        if (!background) {
+          setIsLoading(true);
+          setError(null);
+        }
+        const catalog = await getCourseCatalogSnapshot({ fresh: background });
         const coursesData = catalog.pro_courses;
         const filteredCategories = catalog.pro_categories;
         const grouped: Record<string, Course[]> = {};
@@ -54,16 +56,35 @@ export default function TeacherAiCoursesPage() {
         setCategories(filteredCategories);
         setCoursesByCategory(grouped);
         setCategoryTags(catalog.pro_category_tags);
+        lastCatalogRefreshAt.current = Date.now();
       } catch (err) {
         console.error('加载教师 AI 课失败:', err);
-        setError('加载教师 AI 课失败，请刷新页面重试');
+        if (!background) setError('加载教师 AI 课失败，请刷新页面重试');
       } finally {
-        setIsLoading(false);
+        if (!background) setIsLoading(false);
       }
-    };
-
-    loadData();
   }, []);
+
+  useEffect(() => {
+    void loadData();
+    return subscribeToCourseCatalogUpdates(() => {
+      void loadData(true);
+    });
+  }, [loadData]);
+
+  useEffect(() => {
+    const revalidateWhenFocused = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - lastCatalogRefreshAt.current < 5 * 60 * 1000) return;
+      void loadData(true);
+    };
+    window.addEventListener('focus', revalidateWhenFocused);
+    document.addEventListener('visibilitychange', revalidateWhenFocused);
+    return () => {
+      window.removeEventListener('focus', revalidateWhenFocused);
+      document.removeEventListener('visibilitychange', revalidateWhenFocused);
+    };
+  }, [loadData]);
 
   const handleCourseClick = (course: Course) => {
     if (isNavigating) return;

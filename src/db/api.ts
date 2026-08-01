@@ -1055,6 +1055,47 @@ const courseCatalogSnapshotCache = createAsyncCache<CourseCatalogSnapshot>({
   },
 });
 
+const COURSE_CATALOG_UPDATE_KEY = 'club.courseCatalogUpdatedAt';
+const courseCatalogUpdateListeners = new Set<() => void>();
+let courseCatalogUpdateListenerAttached = false;
+
+function clearCourseCatalogRelatedCaches(): void {
+  courseCatalogSnapshotCache.clear();
+  clearCourseDetailCache();
+  clearHomePageSnapshotCache();
+}
+
+function handleCourseCatalogUpdated(): void {
+  clearCourseCatalogRelatedCaches();
+  courseCatalogUpdateListeners.forEach((listener) => listener());
+}
+
+function attachCourseCatalogUpdateListener(): void {
+  if (courseCatalogUpdateListenerAttached || typeof window === 'undefined') return;
+  courseCatalogUpdateListenerAttached = true;
+  window.addEventListener('storage', (event) => {
+    if (event.key === COURSE_CATALOG_UPDATE_KEY) handleCourseCatalogUpdated();
+  });
+}
+
+/** 订阅课程目录更新，供已打开的课程页面静默重新读取目录。 */
+export function subscribeToCourseCatalogUpdates(listener: () => void): () => void {
+  attachCourseCatalogUpdateListener();
+  courseCatalogUpdateListeners.add(listener);
+  return () => courseCatalogUpdateListeners.delete(listener);
+}
+
+/** 清除课程相关缓存并通知其他标签页。 */
+export function notifyCourseCatalogUpdated(): void {
+  handleCourseCatalogUpdated();
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(COURSE_CATALOG_UPDATE_KEY, String(Date.now()));
+  } catch {
+    // 某些嵌入式浏览器禁用 localStorage；当前标签页的缓存仍已清除。
+  }
+}
+
 export function clearCourseCatalogCache(): void {
   courseCatalogSnapshotCache.clear();
 }

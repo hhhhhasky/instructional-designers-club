@@ -10,6 +10,7 @@ vi.mock('@/db/api', () => ({
   clearHomePageSnapshotCache: vi.fn(),
   clearResourcesCache: vi.fn(),
   getCourseProtectedContent: vi.fn(),
+  notifyCourseCatalogUpdated: vi.fn(),
 }));
 
 vi.mock('@/db/supabase', () => ({

@@ -14,11 +14,10 @@ import type {
 } from "@/types/types";
 import {
   clearAllLearningDataCaches,
-  clearCourseCatalogCache,
-  clearCourseDetailCache,
   clearHomePageSnapshotCache,
   clearResourcesCache,
   getCourseProtectedContent,
+  notifyCourseCatalogUpdated,
 } from "./api";
 import { supabase } from "./supabase";
 
@@ -278,10 +277,8 @@ export type AdminCourseTrack = Pick<PlusCourseTrackRow, "id" | "title" | "sort_o
 
 const COURSE_CATEGORY_SELECT = "id, name, sort_order, is_active, plus_track_id";
 
-function clearPublicCourseCaches(courseId?: string): void {
-  clearCourseCatalogCache();
-  clearCourseDetailCache(courseId);
-  clearHomePageSnapshotCache();
+function clearPublicCourseCaches(_courseId?: string): void {
+  notifyCourseCatalogUpdated();
 }
 
 type CourseWritePayload = Omit<Course, "id" | "view_count" | "created_at" | "updated_at">;
