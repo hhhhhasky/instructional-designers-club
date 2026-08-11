@@ -37,9 +37,7 @@ import {
 } from "@/db/hai-api";
 import {
   HAI_PUBLIC_LESSON_STAGES,
-  HAI_STAGES,
   publicLessonSubjectsForStage,
-  workSubjectsForStage,
 } from "@/lib/hai-subject-options";
 import { cn } from "@/lib/utils";
 
@@ -91,11 +89,11 @@ export const HAI_WORK_TOOL_CONFIG: Record<HaiWorkToolSlug, HaiWorkToolVisualConf
 const WORK_INTRO: Record<HaiWorkToolSlug, { title: string; subtitle: string }> = {
   "lesson-diagnosis": {
     title: "先把这份教案交给 HAI",
-    subtitle: "粘贴或上传完整教案，信息越具体，诊断越能切中真实问题。HAI 会从七个教学设计要素与四组系统关系给出评分、证据和优先修改建议。",
+    subtitle: "先按年级、教材、单元和课题选择本课，再粘贴或上传完整教案。HAI 会结合内置教材背景，从七个教学设计要素与四组系统关系给出评分、证据和优先修改建议。",
   },
   "segment-optimization": {
     title: "先把这一环节交给 HAI",
-    subtitle: "聚焦导入、问题链、练习、评价等单个环节。粘贴当前环节设计或直接上传材料（二选一即可），再说明希望达成的效果，HAI 会给出可直接替换的优化稿。",
+    subtitle: "先按年级、教材、单元和课题定位本课，再聚焦导入、问题链、练习、评价等单个环节。HAI 会结合教材背景，给出可直接替换的优化稿。",
   },
   "subject-lesson-design": {
     title: "先把本课信息交给 HAI",
@@ -103,7 +101,7 @@ const WORK_INTRO: Record<HaiWorkToolSlug, { title: string; subtitle: string }> =
   },
   "teaching-design": {
     title: "先把设计目标交给 HAI",
-    subtitle: "说明学段、学科、预期成果与课时范围，HAI 会用逆向设计方法生成完整方案——先定预期结果，再定评估证据，最后排学习活动，对齐核心素养与教-学-评一致性。",
+    subtitle: "先按年级、教材、单元和课题定位内容，再说明预期成果与课时范围。HAI 会结合教材背景生成完整方案，对齐核心素养与教-学-评一致性。",
   },
 };
 
@@ -307,10 +305,10 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
   const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
   const [catalog, setCatalog] = useState<HaiTextbookCatalogEntry[]>([]);
-  const [catalogLoading, setCatalogLoading] = useState(toolSlug === "subject-lesson-design");
+  const [catalogLoading, setCatalogLoading] = useState(Boolean(form.stage && form.subject));
 
   useEffect(() => {
-    if (toolSlug !== "subject-lesson-design" || !form.stage || form.stage.startsWith("其他")) {
+    if (!form.stage || !form.subject || form.stage.startsWith("其他")) {
       setCatalog([]);
       setCatalogLoading(false);
       return;
@@ -326,7 +324,7 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
       if (!cancelled) setCatalogLoading(false);
     });
     return () => { cancelled = true; };
-  }, [form.stage, form.subject, toolSlug]);
+  }, [form.stage, form.subject]);
 
   const gradeOptions = useMemo(() => unique(catalog.map((item) => item.grade_label)), [catalog]);
   const gradeCatalog = useMemo(
@@ -355,11 +353,11 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
     [form.topic, unitCatalog],
   );
   const frameOptions = useMemo(
-    () => unique(topicCatalog.map((item) => `${item.frame_label} ${item.frame_title}`)),
+    () => unique(topicCatalog.map((item) => `${item.frame_label} ${item.frame_title}`.trim())),
     [topicCatalog],
   );
   const selectedEdition = topicCatalog[0] ?? volumeCatalog[0];
-  const requiresTeacherTextbook = toolSlug === "subject-lesson-design" && !catalogLoading && catalog.length === 0;
+  const requiresTeacherTextbook = Boolean(form.stage && form.subject) && !catalogLoading && catalog.length === 0;
 
   function update(key: string, value: string) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -446,64 +444,47 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
         <p className="mt-2 text-sm leading-6 text-txs">{WORK_INTRO[toolSlug].subtitle}</p>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          {toolSlug === "subject-lesson-design" ? (
-            <SelectField label="学段" value={form.stage} options={HAI_PUBLIC_LESSON_STAGES} onChange={(value) => {
-              const nextSubjects = publicLessonSubjectsForStage(value);
-              setForm((current) => ({
-                ...current,
-                stage: value,
-                subject: nextSubjects.includes(current.subject) ? current.subject : nextSubjects[0] || "",
-                grade: "",
-                volume: "",
-                unit: "",
-                topic: "",
-                frame: "",
-                textbook_content: "",
-              }));
-              setError("");
-            }} />
-          ) : (
-            <SelectField label="学段" value={form.stage} options={HAI_STAGES} onChange={(value) => {
-              update("stage", value);
-              if (form.subject && !workSubjectsForStage(value).includes(form.subject)) {
-                update("subject", "");
-              }
-            }} />
-          )}
-          {toolSlug === "subject-lesson-design" ? (
-            <SelectField label="学科" value={form.subject} options={publicLessonSubjectsForStage(form.stage)} onChange={(value) => {
-              update("subject", value);
-              updateTextbookField("grade", "");
-            }} />
-          ) : (
-            <SelectField label="学科" value={form.subject} options={workSubjectsForStage(form.stage)} onChange={(value) => update("subject", value)} />
-          )}
-          {toolSlug === "subject-lesson-design" ? (
+          <SelectField label="学段" value={form.stage} options={HAI_PUBLIC_LESSON_STAGES} onChange={(value) => {
+            const nextSubjects = publicLessonSubjectsForStage(value);
+            setForm((current) => ({
+              ...current,
+              stage: value,
+              subject: nextSubjects.includes(current.subject) ? current.subject : nextSubjects[0] || "",
+              grade: "",
+              volume: "",
+              unit: "",
+              topic: "",
+              frame: "",
+              textbook_content: "",
+            }));
+            setError("");
+          }} />
+          <SelectField label="学科" value={form.subject} options={publicLessonSubjectsForStage(form.stage)} onChange={(value) => {
+            update("subject", value);
+            updateTextbookField("grade", "");
+          }} />
+          {requiresTeacherTextbook ? (
             <>
-              {requiresTeacherTextbook ? (
-                <>
-                  <TextField label="年级" value={form.grade} placeholder="例如：中职一年级、高职二年级" onChange={(value) => update("grade", value)} />
-                  <TextField label="册次 / 教材" value={form.volume} placeholder="填写教材名称或册次" onChange={(value) => update("volume", value)} />
-                  <TextField label="单元" value={form.unit} placeholder="填写单元名称" onChange={(value) => update("unit", value)} />
-                  <TextField label="课题" value={form.topic} placeholder="填写本节课题" onChange={(value) => update("topic", value)} />
-                  <TextField label="框题（可选）" value={form.frame} placeholder="如有框题请填写" onChange={(value) => update("frame", value)} />
-                </>
-              ) : (
-                <>
-                  <SelectField label="年级" value={form.grade} options={gradeOptions} onChange={(value) => updateTextbookField("grade", value)} />
-                  <SelectField label="册次 / 教材" value={form.volume} options={volumeOptions} onChange={(value) => updateTextbookField("volume", value)} />
-                  <SelectField label="单元" value={form.unit} options={unitOptions} onChange={(value) => updateTextbookField("unit", value)} />
-                  <SelectField label="课题" value={form.topic} options={topicOptions} onChange={(value) => updateTextbookField("topic", value)} />
-                  <SelectField label="框题（可选；不选则读取全课）" value={form.frame} options={frameOptions} onChange={(value) => updateTextbookField("frame", value)} />
-                </>
-              )}
-              <TeachingModeField value={form.teaching_mode} onChange={(value) => update("teaching_mode", value)} />
+              <TextField label="年级" value={form.grade} placeholder="填写年级" onChange={(value) => update("grade", value)} />
+              <TextField label="册次 / 教材" value={form.volume} placeholder="填写教材名称或册次" onChange={(value) => update("volume", value)} />
+              <TextField label="单元" value={form.unit} placeholder="填写单元名称" onChange={(value) => update("unit", value)} />
+              <TextField label="课题" value={form.topic} placeholder="填写本节课题" onChange={(value) => update("topic", value)} />
+              <TextField label="框题（可选）" value={form.frame} placeholder="如有框题请填写" onChange={(value) => update("frame", value)} />
             </>
+          ) : (
+            <>
+              <SelectField label="年级" value={form.grade} options={gradeOptions} onChange={(value) => updateTextbookField("grade", value)} />
+              <SelectField label="册次 / 教材" value={form.volume} options={volumeOptions} onChange={(value) => updateTextbookField("volume", value)} />
+              <SelectField label="单元" value={form.unit} options={unitOptions} onChange={(value) => updateTextbookField("unit", value)} />
+              <SelectField label="课题" value={form.topic} options={topicOptions} onChange={(value) => updateTextbookField("topic", value)} />
+              <SelectField label="框题（可选；不选则读取全课）" value={form.frame} options={frameOptions} onChange={(value) => updateTextbookField("frame", value)} />
+            </>
+          )}
+          {toolSlug === "subject-lesson-design" ? (
+            <TeachingModeField value={form.teaching_mode} onChange={(value) => update("teaching_mode", value)} />
           ) : toolSlug === "teaching-design" ? (
             <>
               <DesignTypeField value={form.design_type} onChange={(value) => update("design_type", value)} />
-              <TextField label="年级（可选）" value={form.grade} placeholder="例如：八年级、高一" onChange={(value) => update("grade", value)} />
-              <TextField label="主题 / 课题（可选）" value={form.topic} placeholder="本单元或本课的主题" onChange={(value) => update("topic", value)} />
               <TextField label="课时 / 范围" value={form.unit_duration} placeholder="例如：6 课时、一学期、1 课时（45 分钟）" onChange={(value) => update("unit_duration", value)} />
               <div className="sm:col-span-2">
                 <TextAreaField label="预期成果 / 任务说明" value={form.desired_outcomes} placeholder="学生应理解/知道/能做什么，或本次设计的核心目标。越具体越好，尽量对齐核心素养。" minRows={5} onChange={(value) => update("desired_outcomes", value)} />
@@ -511,7 +492,6 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
             </>
           ) : (
             <>
-              <TextField label="课题" value={form.topic} placeholder="输入本节课题" onChange={(value) => update("topic", value)} />
               {toolSlug === "segment-optimization" && (
                 <SelectField label="要优化的环节" value={form.segment_type} options={segmentTypes} onChange={(value) => update("segment_type", value)} />
               )}
@@ -519,16 +499,16 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
           )}
           <TextField label="课时与班级约束（可选）" value={form.constraints} placeholder="例如：40 分钟、48 人、不能使用平板" onChange={(value) => update("constraints", value)} />
         </div>
-        {toolSlug === "subject-lesson-design" && catalogLoading && !error && (
+        {catalogLoading && !error && (
           <p className="mt-4 text-xs text-txs">正在读取教材目录…</p>
         )}
-        {toolSlug === "subject-lesson-design" && selectedEdition && (
+        {selectedEdition && (
           <div className={`mt-4 rounded-[16px] border px-4 py-3 text-xs leading-5 ${selectedEdition.requires_confirmation ? "border-amber-300 bg-amber-50 text-amber-900" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}>
             当前版本：{selectedEdition.edition_label}。内置内容为知识点梳理，不是教材逐字原文。
             {selectedEdition.requires_confirmation ? " 该册标记为待纸质教材复核，生成结果会同步提醒核对。" : ""}
           </div>
         )}
-        {toolSlug === "subject-lesson-design" && requiresTeacherTextbook && (
+        {requiresTeacherTextbook && (
           <div className="mt-4 rounded-[16px] border border-amber-300 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
             当前学段与学科暂未收录内置教材。请填写教材层级，并在下方粘贴教材内容或上传教材文件，HAI 才会开始生成；其他学科资料不会被当作本课教材事实。
           </div>
@@ -553,9 +533,7 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
             <TextAreaField label="希望优化后达成什么效果" value={form.desired_outcome} placeholder="例如：让导入真正暴露学生前概念，并自然进入核心问题。" minRows={4} onChange={(value) => update("desired_outcome", value)} />
           </>
         )}
-        {toolSlug === "subject-lesson-design" && (
-          <TextAreaField label={requiresTeacherTextbook ? "教材内容（必填其一）" : "补充教材内容（可选）"} value={form.textbook_content} placeholder={requiresTeacherTextbook ? "请粘贴本课教材正文、知识点梳理或清晰转写内容；也可以改为上传文件。" : "如教材版本与内置知识点不同，可粘贴本课原文或上传文件；用户补充内容优先，二选一即可。"} minRows={6} onChange={(value) => update("textbook_content", value)} />
-        )}
+        <TextAreaField label={requiresTeacherTextbook ? "教材内容（必填其一）" : "补充教材内容（可选）"} value={form.textbook_content} placeholder={requiresTeacherTextbook ? "请粘贴本课教材正文、知识点梳理或清晰转写内容；也可以改为上传文件。" : "如教材版本与内置知识点不同，可粘贴本课原文；用户补充内容会与内置教材一起提供给 HAI。"} minRows={6} onChange={(value) => update("textbook_content", value)} />
 
         <label className="mt-4 flex cursor-pointer items-center justify-between gap-4 rounded-ds-xl border border-dashed border-[var(--paper-rule)] bg-[var(--paper-deep)] p-4 transition hover:border-ac hover:bg-[var(--proof-soft)]">
           <span className="flex min-w-0 items-center gap-3">
@@ -784,8 +762,8 @@ function WorkLocked({ reason }: { reason?: string }) {
 
 function initialForm(toolSlug: HaiWorkToolSlug) {
   return {
-    stage: toolSlug === "subject-lesson-design" ? "初中" : "",
-    subject: toolSlug === "subject-lesson-design" ? "道德与法治" : "",
+    stage: "初中",
+    subject: "道德与法治",
     grade: "",
     volume: "",
     unit: "",
@@ -809,7 +787,10 @@ function initialForm(toolSlug: HaiWorkToolSlug) {
 function validateForm(toolSlug: HaiWorkToolSlug, form: Record<string, string>, fileCount: number, requiresTeacherTextbook = false) {
   if (!form.stage) return "请选择学段。";
   if (!form.subject.trim()) return "请选择学科。";
-  if (toolSlug !== "teaching-design" && !form.topic.trim()) return "请填写课题。";
+  if (!form.grade) return requiresTeacherTextbook ? "请填写年级。" : "请选择年级。";
+  if (!form.volume) return requiresTeacherTextbook ? "请填写册次或教材名称。" : "请选择册次。";
+  if (!form.unit) return requiresTeacherTextbook ? "请填写单元。" : "请选择单元。";
+  if (!form.topic.trim()) return requiresTeacherTextbook ? "请填写课题。" : "请选择课题。";
   if (toolSlug === "teaching-design") {
     if (!form.design_type) return "请选择设计类型。";
     if (!form.desired_outcomes.trim()) return "请填写预期成果或任务说明。";
@@ -822,12 +803,9 @@ function validateForm(toolSlug: HaiWorkToolSlug, form: Record<string, string>, f
     if (!form.desired_outcome.trim()) return "请说明希望优化后达成的效果。";
   }
   if (toolSlug === "subject-lesson-design") {
-    if (!form.grade) return requiresTeacherTextbook ? "请填写年级。" : "请选择年级。";
-    if (!form.volume) return requiresTeacherTextbook ? "请填写册次或教材名称。" : "请选择册次。";
-    if (!form.unit) return requiresTeacherTextbook ? "请填写单元。" : "请选择单元。";
     if (!form.teaching_mode) return "请选择案例式、任务式或议题式教学模式。";
-    if (requiresTeacherTextbook && !form.textbook_content.trim() && fileCount === 0) return "当前学科暂无内置教材，请粘贴教材内容或上传教材文件。";
   }
+  if (requiresTeacherTextbook && !form.textbook_content.trim() && fileCount === 0) return "当前学科暂无内置教材，请粘贴教材内容或上传教材文件。";
   return "";
 }
 

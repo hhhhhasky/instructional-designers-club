@@ -129,11 +129,38 @@ Deno.test("subject lesson design requires structured textbook routing fields", (
   }, 0);
 });
 
+Deno.test("every Work tool requires the structured textbook route", () => {
+  const textbookRoute = {
+    stage: "初中",
+    subject: "语文",
+    grade: "7年级",
+    volume: "上册",
+    unit: "第一单元",
+    topic: "第一课",
+  };
+  assertThrows(() => validateWorkInput("lesson-diagnosis", {
+    stage: "初中",
+    subject: "语文",
+    topic: "第一课",
+    lesson_plan: "教案正文",
+  }, 0), "年级");
+  validateWorkInput("lesson-diagnosis", { ...textbookRoute, lesson_plan: "教案正文" }, 0);
+  validateWorkInput("teaching-design", {
+    ...textbookRoute,
+    design_type: "backwards-design",
+    desired_outcomes: "形成单元理解",
+    unit_duration: "6课时",
+  }, 0);
+});
+
 Deno.test("segment-optimization allows current_design or material upload (either-or)", () => {
   const base = {
     stage: "初中",
     subject: "语文",
-    topic: "春",
+    grade: "7年级",
+    volume: "上册",
+    unit: "第一单元",
+    topic: "第一课 春",
     segment_type: "课程导入",
     desired_outcome: "让学生暴露前概念",
   };

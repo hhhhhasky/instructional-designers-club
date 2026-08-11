@@ -128,14 +128,11 @@ Deno.serve(async (request) => {
       materialIds,
       buildMaterialQuery(input),
     );
-    const textbook = toolSlug === "subject-lesson-design"
-      ? await loadTextbookContext(auth.admin, input)
-      : { context: "", sources: [] as TextbookSource[] };
+    const textbook = await loadTextbookContext(auth.admin, input);
     const politicsCases = toolSlug === "subject-lesson-design"
       ? await loadPoliticsCaseContext(auth.admin, input)
       : { context: "", sources: [] as PoliticsCaseSource[] };
     if (
-      toolSlug === "subject-lesson-design" &&
       !textbook.context &&
       !materialContext &&
       !String(input.textbook_content ?? "").trim()
@@ -753,7 +750,7 @@ function buildMaterialQuery(input: Record<string, unknown>) {
 
 function evidenceStatus(materials: any[], context: string, textbookSources: TextbookSource[], caseSources: PoliticsCaseSource[]) {
   const parts: string[] = [];
-  if (textbookSources.length > 0) parts.push(`已精确读取 ${textbookSources.length} 个教材框题`);
+  if (textbookSources.length > 0) parts.push(`已精确读取 ${textbookSources.length} 个教材分段`);
   if (caseSources.length > 0) parts.push(`已检索 ${caseSources.length} 个案例候选`);
   if (materials.length > 0 && context) parts.push(`已读取 ${materials.length} 份用户补充材料`);
   if (materials.length > 0 && !context) parts.push(`已校验 ${materials.length} 份材料，但未提取到可用文本`);

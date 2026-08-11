@@ -96,28 +96,21 @@ export function validateWorkInput(
   input: Record<string, unknown>,
   materialCount: number,
 ) {
+  const textbookRouteFields = ["stage", "subject", "grade", "volume", "unit", "topic"];
   const requiredByTool: Record<HaiWorkToolSlug, string[]> = {
-    "lesson-diagnosis": ["stage", "subject", "topic"],
+    "lesson-diagnosis": textbookRouteFields,
     "segment-optimization": [
-      "stage",
-      "subject",
-      "topic",
+      ...textbookRouteFields,
       "segment_type",
       "desired_outcome",
     ],
     "subject-lesson-design": [
-      "stage",
-      "subject",
-      "grade",
-      "volume",
-      "unit",
-      "topic",
+      ...textbookRouteFields,
       "teaching_mode",
       "lesson_type",
     ],
     "teaching-design": [
-      "stage",
-      "subject",
+      ...textbookRouteFields,
       "design_type",
       "desired_outcomes",
       "unit_duration",

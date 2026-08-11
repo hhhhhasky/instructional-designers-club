@@ -19,6 +19,7 @@ const { stableUser, tools } = vi.hoisted(() => ({
       is_enabled: true,
       surface_mode: "work",
     },
+    { slug: "teaching-design", name: "研发教学方案", is_enabled: true, surface_mode: "work" },
   ] as HaiFeatureModule[],
 }));
 vi.mock("@/contexts/AuthContext", () => ({
@@ -74,12 +75,13 @@ describe("HAI Work workbench", () => {
     vi.clearAllMocks();
   });
 
-  it("shows all three enabled work tools", async () => {
+  it("shows all four enabled work tools", async () => {
     renderAt("/hai/work");
 
     expect((await screen.findAllByRole("link", { name: /教案诊断/ })).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /环节优化/ }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /公开课设计/ }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /研发教学方案/ }).length).toBeGreaterThan(0);
     expect(screen.getByText("覆盖不同学科的公开课设计入口")).toBeInTheDocument();
   });
 
@@ -166,15 +168,26 @@ describe("HAI Work workbench", () => {
     renderAt("/hai/work/lesson-diagnosis");
 
     await screen.findByText("先把这份教案交给 HAI");
-    await user.selectOptions(screen.getByRole("combobox", { name: /学段/ }), "初中");
     await user.selectOptions(screen.getByRole("combobox", { name: /学科/ }), "语文");
-    await user.type(screen.getByRole("textbox", { name: /课题/ }), "背影");
+    await user.selectOptions(await screen.findByRole("combobox", { name: "年级" }), "7年级");
+    await user.selectOptions(screen.getByRole("combobox", { name: "册次 / 教材" }), "上册");
+    await user.selectOptions(screen.getByRole("combobox", { name: "单元" }), "第一单元 少年有梦");
+    await user.selectOptions(screen.getByRole("combobox", { name: "课题" }), "第一课 开启初中生活");
     await user.type(screen.getByRole("textbox", { name: /教案正文/ }), "教学目标：理解父爱。教学环节：教师讲解。教学评价：课堂提问。");
     await user.click(screen.getByRole("button", { name: "开始教案诊断" }));
 
     expect(await screen.findByTestId("task-page")).toBeInTheDocument();
     expect(streamHaiWork).toHaveBeenCalledWith(
-      expect.objectContaining({ toolSlug: "lesson-diagnosis", materialIds: [] }),
+      expect.objectContaining({
+        toolSlug: "lesson-diagnosis",
+        materialIds: [],
+        input: expect.objectContaining({
+          grade: "7年级",
+          volume: "上册",
+          unit: "第一单元 少年有梦",
+          topic: "第一课 开启初中生活",
+        }),
+      }),
       expect.any(Object),
     );
   });
@@ -207,13 +220,45 @@ describe("HAI Work workbench", () => {
     renderAt("/hai/work/segment-optimization");
 
     await screen.findByText("先把这一环节交给 HAI");
-    await user.selectOptions(screen.getByRole("combobox", { name: /学段/ }), "初中");
     await user.selectOptions(screen.getByRole("combobox", { name: /学科/ }), "语文");
-    await user.type(screen.getByRole("textbox", { name: /课题/ }), "背影");
+    await user.selectOptions(await screen.findByRole("combobox", { name: "年级" }), "7年级");
+    await user.selectOptions(screen.getByRole("combobox", { name: "册次 / 教材" }), "上册");
+    await user.selectOptions(screen.getByRole("combobox", { name: "单元" }), "第一单元 少年有梦");
+    await user.selectOptions(screen.getByRole("combobox", { name: "课题" }), "第一课 开启初中生活");
     await user.selectOptions(screen.getByRole("combobox", { name: /要优化的环节/ }), "课程导入");
     await user.type(screen.getByRole("textbox", { name: /希望优化后达成什么效果/ }), "暴露前概念");
     await user.click(screen.getByRole("button", { name: /开始环节优化/ }));
 
     expect(await screen.findByText("请粘贴当前环节设计，或上传环节设计文件。")).toBeInTheDocument();
+  });
+
+  it("uses the same textbook hierarchy for teaching design", async () => {
+    const user = userEvent.setup();
+    renderAt("/hai/work/teaching-design");
+
+    await screen.findByText("先把设计目标交给 HAI");
+    await user.selectOptions(await screen.findByRole("combobox", { name: "年级" }), "7年级");
+    await user.selectOptions(screen.getByRole("combobox", { name: "册次 / 教材" }), "上册");
+    await user.selectOptions(screen.getByRole("combobox", { name: "单元" }), "第一单元 少年有梦");
+    await user.selectOptions(screen.getByRole("combobox", { name: "课题" }), "第一课 开启初中生活");
+    expect(screen.getByRole("combobox", { name: /框题（可选/ })).toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: /单元逆向规划/ }));
+    await user.type(screen.getByRole("textbox", { name: /课时 \/ 范围/ }), "6课时");
+    await user.type(screen.getByRole("textbox", { name: /预期成果 \/ 任务说明/ }), "学生能够解释单元核心概念并迁移应用。 ");
+    await user.click(screen.getByRole("button", { name: "开始研发教学方案" }));
+
+    expect(streamHaiWork).toHaveBeenCalledWith(
+      expect.objectContaining({
+        toolSlug: "teaching-design",
+        input: expect.objectContaining({
+          grade: "7年级",
+          volume: "上册",
+          unit: "第一单元 少年有梦",
+          topic: "第一课 开启初中生活",
+          design_type: "backwards-design",
+        }),
+      }),
+      expect.any(Object),
+    );
   });
 });
