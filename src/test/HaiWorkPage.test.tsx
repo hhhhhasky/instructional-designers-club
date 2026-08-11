@@ -30,27 +30,27 @@ vi.mock("@/db/hai-api", () => ({
   getHaiWorkTools: vi.fn().mockResolvedValue(tools),
   getHaiWorkTasks: vi.fn().mockResolvedValue([]),
   getArchivedHaiWorkTasks: vi.fn().mockResolvedValue([]),
-  getHaiTextbookCatalog: vi.fn().mockImplementation((_stage: string, subject: string) => Promise.resolve(subject === "数学" ? [] : [{
-      collection_slug: "junior-politics-grade-7-volume-1-2024",
-      collection_title: "七年级上册",
+  getHaiTextbookCatalog: vi.fn().mockImplementation((_stage: string, subject: string) => Promise.resolve([{
+      collection_slug: subject === "数学" ? "junior-math-grade-7-volume-1" : "junior-politics-grade-7-volume-1-2024",
+      collection_title: subject === "数学" ? "数学七年级上册" : "道德与法治七年级上册",
       stage: "初中",
-      subject: "道德与法治",
+      subject,
       grade_level: 7,
       grade_label: "7年级",
       volume: "上册",
-      edition_label: "2024年秋统编新版",
+      edition_label: subject === "数学" ? "人教版" : "2024年秋统编新版",
       publication_status: "current",
       verification_status: "source_declared_current",
       requires_confirmation: false,
       unit_number: 1,
       unit_label: "第一单元",
-      unit_title: "少年有梦",
+      unit_title: subject === "数学" ? "有理数" : "少年有梦",
       lesson_number: 1,
       lesson_label: "第一课",
-      lesson_title: "开启初中生活",
-      frame_number: 1,
-      frame_label: "第一框",
-      frame_title: "奏响中学序曲",
+      lesson_title: subject === "数学" ? "正数和负数" : "开启初中生活",
+      frame_number: subject === "数学" ? 0 : 1,
+      frame_label: subject === "数学" ? "" : "第一框",
+      frame_title: subject === "数学" ? "" : "奏响中学序曲",
     }])),
   uploadHaiMaterial: vi.fn(),
   streamHaiWork: vi.fn(),
@@ -101,6 +101,13 @@ describe("HAI Work workbench", () => {
     expect(screen.getByRole("option", { name: "小学" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "高中" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "其他（中职/高职/高校等）" })).toBeInTheDocument();
+    const subjectSelect = screen.getByRole("combobox", { name: "学科" }) as HTMLSelectElement;
+    expect(Array.from(subjectSelect.options).map((option) => option.textContent)).toEqual([
+      "请选择",
+      "数学",
+      "语文",
+      "道德与法治",
+    ]);
     await user.selectOptions(await screen.findByRole("combobox", { name: "年级" }), "7年级");
     await user.selectOptions(screen.getByRole("combobox", { name: "册次 / 教材" }), "上册");
     await user.selectOptions(screen.getByRole("combobox", { name: "单元" }), "第一单元 少年有梦");
@@ -124,19 +131,17 @@ describe("HAI Work workbench", () => {
     );
   });
 
-  it("supports a general subject with teacher-provided textbook content", async () => {
+  it("supports mathematics from the built-in textbook catalog", async () => {
     const user = userEvent.setup();
     renderAt("/hai/work/subject-lesson-design");
 
     await screen.findByText("先把本课信息交给 HAI");
     await user.selectOptions(screen.getByRole("combobox", { name: "学科" }), "数学");
-    expect(await screen.findByText(/当前学段与学科暂未收录内置教材/)).toBeInTheDocument();
-    await user.type(screen.getByRole("textbox", { name: "年级" }), "八年级");
-    await user.type(screen.getByRole("textbox", { name: "册次 / 教材" }), "数学八年级上册");
-    await user.type(screen.getByRole("textbox", { name: "单元" }), "一次函数");
-    await user.type(screen.getByRole("textbox", { name: "课题" }), "函数的图象");
+    await user.selectOptions(await screen.findByRole("combobox", { name: "年级" }), "7年级");
+    await user.selectOptions(screen.getByRole("combobox", { name: "册次 / 教材" }), "上册");
+    await user.selectOptions(screen.getByRole("combobox", { name: "单元" }), "第一单元 有理数");
+    await user.selectOptions(screen.getByRole("combobox", { name: "课题" }), "第一课 正数和负数");
     await user.click(screen.getByRole("radio", { name: /任务式/ }));
-    await user.type(screen.getByRole("textbox", { name: "教材内容（必填其一）" }), "通过列表、描点、连线认识一次函数图象的变化规律。");
     await user.click(screen.getByRole("button", { name: "开始公开课设计" }));
 
     expect(streamHaiWork).toHaveBeenCalledWith(
@@ -145,7 +150,7 @@ describe("HAI Work workbench", () => {
         input: expect.objectContaining({
           stage: "初中",
           subject: "数学",
-          topic: "函数的图象",
+          topic: "第一课 正数和负数",
           teaching_mode: "任务式",
         }),
       }),
@@ -174,16 +179,27 @@ describe("HAI Work workbench", () => {
     );
   });
 
-  it("switches subject options to kindergarten domains when stage is 幼儿园", async () => {
+  it("shows only subjects backed by textbooks for each Work stage", async () => {
     const user = userEvent.setup();
     renderAt("/hai/work/lesson-diagnosis");
 
     await screen.findByText("先把这份教案交给 HAI");
-    await user.selectOptions(screen.getByRole("combobox", { name: /学段/ }), "幼儿园");
+    await user.selectOptions(screen.getByRole("combobox", { name: /学段/ }), "小学");
     const subjectSelect = screen.getByRole("combobox", { name: /学科/ }) as HTMLSelectElement;
-    const optionTexts = Array.from(subjectSelect.options).map((option) => option.textContent);
-    expect(optionTexts).toContain("语言");
-    expect(optionTexts).not.toContain("语文");
+    expect(Array.from(subjectSelect.options).map((option) => option.textContent)).toEqual([
+      "请选择",
+      "数学",
+      "语文",
+      "道德与法治",
+      "科学",
+    ]);
+    expect(screen.queryByRole("option", { name: "英语" })).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByRole("combobox", { name: /学段/ }), "高中");
+    expect(Array.from(subjectSelect.options).map((option) => option.textContent)).toEqual([
+      "请选择",
+      "思想政治",
+    ]);
   });
 
   it("rejects segment-optimization when current design and files are both empty", async () => {

@@ -39,7 +39,7 @@ import {
   HAI_PUBLIC_LESSON_STAGES,
   HAI_STAGES,
   publicLessonSubjectsForStage,
-  subjectsForStage,
+  workSubjectsForStage,
 } from "@/lib/hai-subject-options";
 import { cn } from "@/lib/utils";
 
@@ -465,7 +465,7 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
           ) : (
             <SelectField label="学段" value={form.stage} options={HAI_STAGES} onChange={(value) => {
               update("stage", value);
-              if (form.subject && !subjectsForStage(value).includes(form.subject)) {
+              if (form.subject && !workSubjectsForStage(value).includes(form.subject)) {
                 update("subject", "");
               }
             }} />
@@ -476,7 +476,7 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
               updateTextbookField("grade", "");
             }} />
           ) : (
-            <SelectField label="学科" value={form.subject} options={subjectsForStage(form.stage)} onChange={(value) => update("subject", value)} />
+            <SelectField label="学科" value={form.subject} options={workSubjectsForStage(form.stage)} onChange={(value) => update("subject", value)} />
           )}
           {toolSlug === "subject-lesson-design" ? (
             <>

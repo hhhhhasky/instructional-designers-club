@@ -1,9 +1,8 @@
 /**
  * HAI 统一的学段与学科选项。
  *
- * Work 工具表单（HaiWorkPage）与 onboarding 任课信息采集（HaiProfileOnboardingDialog）
- * 共用此处的常量与联动函数，避免学段/学科列表在多处各写各的、彼此漂移。
- * 新增需要采集学段/学科的功能时，统一从这里取值。
+ * Work 工具表单（HaiWorkPage）使用教材覆盖映射；onboarding 任课信息采集
+ * （HaiProfileOnboardingDialog）保留通用学科列表。两套口径集中维护在此处。
  */
 
 export const HAI_STAGES = [
@@ -17,7 +16,7 @@ export const HAI_STAGES = [
   "其他",
 ] as const;
 
-/** 公开课设计学段：内置教材按学段/学科动态匹配，未覆盖时由教师提供教材证据。 */
+/** 公开课设计暂保留既有学段入口；没有教材的学段不会显示学科选项。 */
 export const HAI_PUBLIC_LESSON_STAGES = [
   "小学",
   "初中",
@@ -49,20 +48,19 @@ export const HAI_GENERAL_SUBJECTS = [
   "其他 / 专业课",
 ] as const;
 
-/**
- * 公开课设计使用通用学科列表，同时保留数据库中道法/思想政治的精确学科名。
- * 这样已有思政教材可以直接命中，数学等尚未入库的学科也能先由教师提供教材。
- */
-export function publicLessonSubjectsForStage(stage: string): readonly string[] {
-  const politicsSubjects = stage === "高中"
-    ? ["思想政治"]
-    : stage === "小学" || stage === "初中"
-      ? ["道德与法治"]
-      : ["思想政治", "道德与法治", "其他思政课程"];
-  return HAI_GENERAL_SUBJECTS.flatMap((subject) =>
-    subject === "政治 / 道法" ? politicsSubjects : [subject]
-  );
+/** HAI Work 只显示当前后端已有教材目录的学段/学科。 */
+export const HAI_WORK_SUBJECTS_BY_STAGE: Readonly<Record<string, readonly string[]>> = {
+  小学: ["数学", "语文", "道德与法治", "科学"],
+  初中: ["数学", "语文", "道德与法治"],
+  高中: ["思想政治"],
+};
+
+export function workSubjectsForStage(stage: string): readonly string[] {
+  return HAI_WORK_SUBJECTS_BY_STAGE[stage] ?? [];
 }
+
+/** 保留公开课设计原调用名，实际与全部 HAI Work 工具共用同一教材覆盖映射。 */
+export const publicLessonSubjectsForStage = workSubjectsForStage;
 
 /** 幼儿园五大领域 + 综合主题活动。 */
 export const HAI_KINDERGARTEN_SUBJECTS = [

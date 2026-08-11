@@ -38,6 +38,48 @@ export type WorkSkillReference = {
   metadata: Record<string, unknown>;
 };
 
+type TextbookRouteSource = {
+  section_path: string;
+  content_type: string;
+};
+
+/**
+ * The catalog sends exact labels, while the legacy match RPC also supports
+ * fuzzy search. Work must not let a fuzzy neighbor become textbook evidence;
+ * retain only the selected unit/lesson and its linked parent context.
+ */
+export function filterExactTextbookSources<T extends TextbookRouteSource>(
+  sources: T[],
+  input: Record<string, unknown>,
+): T[] {
+  const unitNeedle = textbookRouteNeedle(input.unit, "unit");
+  const lessonNeedle = textbookRouteNeedle(input.topic, "lesson");
+  const frameNeedle = textbookRouteNeedle(input.frame, "frame");
+  return sources.filter((source) => {
+    const path = normalizeTextbookRoute(source.section_path);
+    const unitPath = normalizeTextbookRoute(source.section_path.split(/[\\/|]/u)[0]).replace(/^\d+/u, "");
+    if (unitNeedle && unitPath !== unitNeedle) return false;
+    const isUnitContext = source.content_type === "unit_context";
+    const isLessonContext = source.content_type === "lesson_summary";
+    if (lessonNeedle && !isUnitContext && !path.includes(lessonNeedle)) return false;
+    if (frameNeedle && !isUnitContext && !isLessonContext && !path.includes(frameNeedle)) return false;
+    return true;
+  });
+}
+
+function textbookRouteNeedle(value: unknown, level: "unit" | "lesson" | "frame") {
+  let text = String(value ?? "").trim();
+  if (!text) return "";
+  const labelPattern = level === "unit" ? "(?:单元|章)" : level === "lesson" ? "课" : "(?:框|节)";
+  text = text.replace(new RegExp(`^第\\s*[一二三四五六七八九十\\d]+\\s*${labelPattern}\\s*`, "u"), "");
+  if (level === "lesson") text = text.replace(/^\d+[.、：:\s]*/u, "");
+  return normalizeTextbookRoute(text);
+}
+
+function normalizeTextbookRoute(value: string) {
+  return value.toLocaleLowerCase().replace(/[\s·/|：:，,。、“”"'《》()（）—–-]/gu, "");
+}
+
 const toolSlugs = new Set<HaiWorkToolSlug>([
   "lesson-diagnosis",
   "segment-optimization",

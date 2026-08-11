@@ -17,6 +17,7 @@ import {
 import {
   assertWorkSkillRuntimeReady,
   buildWorkPrompt,
+  filterExactTextbookSources,
   isHaiWorkToolSlug,
   selectWorkSkillReferences,
   selectWorkSkill,
@@ -463,7 +464,7 @@ async function loadTextbookContext(admin: any, input: Record<string, unknown>) {
     p_match_count: 16,
   });
   if (error) throw new HttpError(500, `读取教材知识库失败：${error.message}`);
-  const sources = (data ?? []) as TextbookSource[];
+  const sources = filterExactTextbookSources((data ?? []) as TextbookSource[], input);
   const collectionSlugs = new Set(sources.map((item) => item.collection_slug));
   if (collectionSlugs.size > 1) {
     throw new HttpError(409, "教材版本命中不唯一，请重新选择年级、册次、单元和课题。");

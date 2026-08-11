@@ -2,6 +2,7 @@ import {
   applyWorkOutputRuntimeTrace,
   assertWorkSkillRuntimeReady,
   buildWorkPrompt,
+  filterExactTextbookSources,
   parseWorkJson,
   renderWorkMarkdown,
   selectWorkSkillReferences,
@@ -58,6 +59,23 @@ Deno.test("selectWorkSkill prefers the most specific published skill", () => {
     }),
   ], { subject: "高中思想政治", lesson_type: "公开课", teaching_mode: "案例式" });
   assertEquals(selected?.slug, "politics");
+});
+
+Deno.test("filterExactTextbookSources keeps the selected lesson and its unit context", () => {
+  const sources = [
+    { section_path: "1 有理数 / 单元背景", content_type: "unit_context" },
+    { section_path: "1 有理数 / 1 1 正数和负数", content_type: "lesson_summary" },
+    { section_path: "2 有理数的运算 / 单元背景", content_type: "unit_context" },
+    { section_path: "2 有理数的运算 / 1 1 有理数的加法与减法", content_type: "lesson_summary" },
+  ];
+  const selected = filterExactTextbookSources(sources, {
+    unit: "第1单元 有理数",
+    topic: "第1课 1 正数和负数",
+  });
+  assertEquals(selected.map((item) => item.section_path), [
+    "1 有理数 / 单元背景",
+    "1 有理数 / 1 1 正数和负数",
+  ]);
 });
 
 Deno.test("selectWorkSkill falls back when no specialist matches", () => {

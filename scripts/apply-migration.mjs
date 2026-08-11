@@ -1,4 +1,7 @@
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+loadEnv(".env");
 
 const ACCESS_TOKEN = process.env.SUPABASE_ACCESS_TOKEN;
 const PROJECT_REF = "isjflmyhbvdlmcsaewbq";
@@ -8,7 +11,8 @@ if (!ACCESS_TOKEN) {
   process.exit(1);
 }
 
-const sql = readFileSync("supabase/migrations/20260705224000_manual_credits.sql", "utf-8");
+const migrationPath = process.argv[2] || "supabase/migrations/20260705224000_manual_credits.sql";
+const sql = readFileSync(migrationPath, "utf-8");
 
 // Strip comment lines (ones starting with --)
 function stripComments(stmt) {
@@ -83,10 +87,15 @@ async function runQuery(query) {
 }
 
 const statements = splitStatements(sql);
+console.log(`📋 Applying ${migrationPath}`);
 console.log(`📋 Found ${statements.length} SQL statements to execute\n`);
 
 for (let i = 0; i < statements.length; i++) {
   const stmt = statements[i];
+  if (/^(begin|commit)\s*;?$/i.test(stripComments(stmt))) {
+    console.log(`⏭️  [${i + 1}/${statements.length}] ${stripComments(stmt)}`);
+    continue;
+  }
   // Show first line of statement for progress
   const firstLine = stmt.split("\n")[0].trim().slice(0, 80);
   try {
@@ -100,3 +109,15 @@ for (let i = 0; i < statements.length; i++) {
 }
 
 console.log(`\n🎉 Migration applied successfully!`);
+
+function loadEnv(file) {
+  try {
+    for (const line of readFileSync(join(process.cwd(), file), "utf8").split(/\r?\n/)) {
+      const match = line.trim().match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+      if (!match || process.env[match[1]]) continue;
+      process.env[match[1]] = match[2].replace(/^['"]|['"]$/g, "");
+    }
+  } catch {
+    // Optional env file; CI may provide the token directly.
+  }
+}
