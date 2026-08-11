@@ -272,6 +272,7 @@ export function buildWorkPrompt(params: {
   skill: WorkSkillCandidate;
   materialContext: string;
   textbookContext?: string;
+  caseContext?: string;
   previousMarkdown?: string;
   revisionInstruction?: string;
 }) {
@@ -289,6 +290,9 @@ export function buildWorkPrompt(params: {
     params.textbookContext
       ? "精确命中的内置教材知识点梳理可作为本次设计的教材事实依据，无需再要求用户上传教材；它不是教材逐字原文。必须按版本、单元、课题和框题使用；若标注待复核，须在产物中显式提醒。用户补充的教材原文与内置梳理冲突时，以用户补充内容为准。"
       : "没有命中的内置教材内容时，不得依据课名猜测教材事实。",
+    params.caseContext
+      ? "以下案例库候选由后端按本课教材层级检索，仅用于帮助选择教学载体和问题化方向，不是可直接宣读的事实定稿。必须保留案例的核验状态；涉及时间、数据、人物或政策细节时，先要求教师核验或在产物中标注待核实，不得把案例库的候选描述当作教材结论。"
+      : "本次没有命中案例库候选，不得凭空补写案例事实。",
     selectedReferences.length > 0
       ? `用户已选择“${String(params.input.teaching_mode ?? "")}”作为唯一主导模式。只执行对应 V3 模板，不得混用另外两套主流程。`
       : "当前 Skill 没有加载模式 reference，不得声称使用了对应 V3 模板。",
@@ -303,6 +307,7 @@ export function buildWorkPrompt(params: {
     JSON.stringify(params.input, null, 2),
     referenceContext ? `## Skill 版本化参考资料\n${referenceContext}` : "",
     params.textbookContext ? `## 内置教材知识库（精确命中）\n${params.textbookContext}` : "",
+    params.caseContext ? `## 思政公开课案例库候选（后端检索）\n${params.caseContext}` : "",
     params.materialContext ? `## 用户指定材料\n${params.materialContext}` : "",
     params.previousMarkdown ? `## 上一版产物\n${params.previousMarkdown}` : "",
     params.revisionInstruction ? `## 本轮追改要求\n${params.revisionInstruction}` : "",

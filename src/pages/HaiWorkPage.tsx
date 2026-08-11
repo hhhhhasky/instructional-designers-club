@@ -35,7 +35,12 @@ import {
   streamHaiWork,
   uploadHaiMaterial,
 } from "@/db/hai-api";
-import { HAI_STAGES, subjectsForStage } from "@/lib/hai-subject-options";
+import {
+  HAI_PUBLIC_LESSON_STAGES,
+  HAI_STAGES,
+  publicLessonSubjectsForStage,
+  subjectsForStage,
+} from "@/lib/hai-subject-options";
 import { cn } from "@/lib/utils";
 
 export type HaiWorkToolVisualConfig = {
@@ -65,10 +70,10 @@ export const HAI_WORK_TOOL_CONFIG: Record<HaiWorkToolSlug, HaiWorkToolVisualConf
     accent: "var(--annotation)",
   },
   "subject-lesson-design": {
-    name: "思政公开课设计",
-    eyebrow: "议题 · 价值 · 证据",
-    description: "按年级、册次、单元、课题和框题精确读取内置教材知识，再匹配思政 Skill，形成价值议题、学习任务、课堂活动与评价证据的完整闭环。",
-    promise: "交付可追改的思政公开课完整教案",
+    name: "公开课设计",
+    eyebrow: "课题 · 学习 · 证据",
+    description: "选择学段与学科；已有教材可按年级、册次、单元和课题精确读取，暂未收录的教材由教师补充，生成学习任务、课堂活动与评价证据完整对齐的公开课教案。",
+    promise: "交付可追改的完整公开课教案",
     icon: NotebookPen,
     accent: "var(--am)",
   },
@@ -94,7 +99,7 @@ const WORK_INTRO: Record<HaiWorkToolSlug, { title: string; subtitle: string }> =
   },
   "subject-lesson-design": {
     title: "先把本课信息交给 HAI",
-    subtitle: "按年级、册次、单元、课题精确选择内置教材目录，无需手动上传教材。HAI 会读取对应知识点、匹配思政 Skill，生成价值议题、学习任务与评价证据的完整公开课教案。",
+    subtitle: "先选择学段与学科。已有内置教材时可按年级、册次、单元和课题直接选择；暂未收录时，填写教材信息并粘贴或上传本课内容。HAI 会据此生成学习任务、课堂活动与评价证据完整对齐的公开课教案。",
   },
   "teaching-design": {
     title: "先把设计目标交给 HAI",
@@ -302,17 +307,26 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
   const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
   const [catalog, setCatalog] = useState<HaiTextbookCatalogEntry[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(toolSlug === "subject-lesson-design");
 
   useEffect(() => {
-    if (toolSlug !== "subject-lesson-design") return;
+    if (toolSlug !== "subject-lesson-design" || !form.stage || form.stage.startsWith("其他")) {
+      setCatalog([]);
+      setCatalogLoading(false);
+      return;
+    }
     let cancelled = false;
-    getHaiTextbookCatalog().then((items) => {
+    setCatalog([]);
+    setCatalogLoading(true);
+    getHaiTextbookCatalog(form.stage, form.subject).then((items) => {
       if (!cancelled) setCatalog(items);
     }).catch((nextError) => {
       if (!cancelled) setError(nextError instanceof Error ? nextError.message : "教材目录加载失败。");
+    }).finally(() => {
+      if (!cancelled) setCatalogLoading(false);
     });
     return () => { cancelled = true; };
-  }, [toolSlug]);
+  }, [form.stage, form.subject, toolSlug]);
 
   const gradeOptions = useMemo(() => unique(catalog.map((item) => item.grade_label)), [catalog]);
   const gradeCatalog = useMemo(
@@ -345,6 +359,7 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
     [topicCatalog],
   );
   const selectedEdition = topicCatalog[0] ?? volumeCatalog[0];
+  const requiresTeacherTextbook = toolSlug === "subject-lesson-design" && !catalogLoading && catalog.length === 0;
 
   function update(key: string, value: string) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -382,7 +397,7 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
 
   async function submit() {
     if (!user || busy) return;
-    const validation = validateForm(toolSlug, form, files.length);
+    const validation = validateForm(toolSlug, form, files.length, requiresTeacherTextbook);
     if (validation) {
       setError(validation);
       return;
@@ -432,7 +447,21 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           {toolSlug === "subject-lesson-design" ? (
-            <FixedField label="学段" value="初中" />
+            <SelectField label="学段" value={form.stage} options={HAI_PUBLIC_LESSON_STAGES} onChange={(value) => {
+              const nextSubjects = publicLessonSubjectsForStage(value);
+              setForm((current) => ({
+                ...current,
+                stage: value,
+                subject: nextSubjects.includes(current.subject) ? current.subject : nextSubjects[0] || "",
+                grade: "",
+                volume: "",
+                unit: "",
+                topic: "",
+                frame: "",
+                textbook_content: "",
+              }));
+              setError("");
+            }} />
           ) : (
             <SelectField label="学段" value={form.stage} options={HAI_STAGES} onChange={(value) => {
               update("stage", value);
@@ -442,17 +471,32 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
             }} />
           )}
           {toolSlug === "subject-lesson-design" ? (
-            <FixedField label="学科与课型" value="道德与法治 · 公开课" />
+            <SelectField label="学科" value={form.subject} options={publicLessonSubjectsForStage(form.stage)} onChange={(value) => {
+              update("subject", value);
+              updateTextbookField("grade", "");
+            }} />
           ) : (
             <SelectField label="学科" value={form.subject} options={subjectsForStage(form.stage)} onChange={(value) => update("subject", value)} />
           )}
           {toolSlug === "subject-lesson-design" ? (
             <>
-              <SelectField label="年级" value={form.grade} options={gradeOptions} onChange={(value) => updateTextbookField("grade", value)} />
-              <SelectField label="册次" value={form.volume} options={volumeOptions} onChange={(value) => updateTextbookField("volume", value)} />
-              <SelectField label="单元" value={form.unit} options={unitOptions} onChange={(value) => updateTextbookField("unit", value)} />
-              <SelectField label="课题" value={form.topic} options={topicOptions} onChange={(value) => updateTextbookField("topic", value)} />
-              <SelectField label="框题（可选；不选则读取全课）" value={form.frame} options={frameOptions} onChange={(value) => updateTextbookField("frame", value)} />
+              {requiresTeacherTextbook ? (
+                <>
+                  <TextField label="年级" value={form.grade} placeholder="例如：中职一年级、高职二年级" onChange={(value) => update("grade", value)} />
+                  <TextField label="册次 / 教材" value={form.volume} placeholder="填写教材名称或册次" onChange={(value) => update("volume", value)} />
+                  <TextField label="单元" value={form.unit} placeholder="填写单元名称" onChange={(value) => update("unit", value)} />
+                  <TextField label="课题" value={form.topic} placeholder="填写本节课题" onChange={(value) => update("topic", value)} />
+                  <TextField label="框题（可选）" value={form.frame} placeholder="如有框题请填写" onChange={(value) => update("frame", value)} />
+                </>
+              ) : (
+                <>
+                  <SelectField label="年级" value={form.grade} options={gradeOptions} onChange={(value) => updateTextbookField("grade", value)} />
+                  <SelectField label="册次 / 教材" value={form.volume} options={volumeOptions} onChange={(value) => updateTextbookField("volume", value)} />
+                  <SelectField label="单元" value={form.unit} options={unitOptions} onChange={(value) => updateTextbookField("unit", value)} />
+                  <SelectField label="课题" value={form.topic} options={topicOptions} onChange={(value) => updateTextbookField("topic", value)} />
+                  <SelectField label="框题（可选；不选则读取全课）" value={form.frame} options={frameOptions} onChange={(value) => updateTextbookField("frame", value)} />
+                </>
+              )}
               <TeachingModeField value={form.teaching_mode} onChange={(value) => update("teaching_mode", value)} />
             </>
           ) : toolSlug === "teaching-design" ? (
@@ -475,13 +519,18 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
           )}
           <TextField label="课时与班级约束（可选）" value={form.constraints} placeholder="例如：40 分钟、48 人、不能使用平板" onChange={(value) => update("constraints", value)} />
         </div>
-        {toolSlug === "subject-lesson-design" && catalog.length === 0 && !error && (
+        {toolSlug === "subject-lesson-design" && catalogLoading && !error && (
           <p className="mt-4 text-xs text-txs">正在读取教材目录…</p>
         )}
         {toolSlug === "subject-lesson-design" && selectedEdition && (
           <div className={`mt-4 rounded-[16px] border px-4 py-3 text-xs leading-5 ${selectedEdition.requires_confirmation ? "border-amber-300 bg-amber-50 text-amber-900" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}>
             当前版本：{selectedEdition.edition_label}。内置内容为知识点梳理，不是教材逐字原文。
             {selectedEdition.requires_confirmation ? " 该册标记为待纸质教材复核，生成结果会同步提醒核对。" : ""}
+          </div>
+        )}
+        {toolSlug === "subject-lesson-design" && requiresTeacherTextbook && (
+          <div className="mt-4 rounded-[16px] border border-amber-300 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
+            当前学段与学科暂未收录内置教材。请填写教材层级，并在下方粘贴教材内容或上传教材文件，HAI 才会开始生成；其他学科资料不会被当作本课教材事实。
           </div>
         )}
       </div>
@@ -505,7 +554,7 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
           </>
         )}
         {toolSlug === "subject-lesson-design" && (
-          <TextAreaField label="补充教材内容（可选）" value={form.textbook_content} placeholder="如教材版本与内置知识点不同，可粘贴本课原文或上传文件；用户补充内容优先，二选一即可。" minRows={6} onChange={(value) => update("textbook_content", value)} />
+          <TextAreaField label={requiresTeacherTextbook ? "教材内容（必填其一）" : "补充教材内容（可选）"} value={form.textbook_content} placeholder={requiresTeacherTextbook ? "请粘贴本课教材正文、知识点梳理或清晰转写内容；也可以改为上传文件。" : "如教材版本与内置知识点不同，可粘贴本课原文或上传文件；用户补充内容优先，二选一即可。"} minRows={6} onChange={(value) => update("textbook_content", value)} />
         )}
 
         <label className="mt-4 flex cursor-pointer items-center justify-between gap-4 rounded-ds-xl border border-dashed border-[var(--paper-rule)] bg-[var(--paper-deep)] p-4 transition hover:border-ac hover:bg-[var(--proof-soft)]">
@@ -665,15 +714,6 @@ function SelectField({ label, value, options, onChange }: { label: string; value
   );
 }
 
-function FixedField({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-ds-md border border-bd bg-[var(--paper-deep)] px-3 py-2.5" aria-label={label}>
-      <p className="text-[10px] font-bold tracking-[0.12em] text-[var(--proof)]">{label}</p>
-      <p className="mt-1 text-sm font-black text-tx">{value}</p>
-    </div>
-  );
-}
-
 function DesignTypeField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   return (
     <fieldset className="sm:col-span-2">
@@ -766,7 +806,7 @@ function initialForm(toolSlug: HaiWorkToolSlug) {
   };
 }
 
-function validateForm(toolSlug: HaiWorkToolSlug, form: Record<string, string>, fileCount: number) {
+function validateForm(toolSlug: HaiWorkToolSlug, form: Record<string, string>, fileCount: number, requiresTeacherTextbook = false) {
   if (!form.stage) return "请选择学段。";
   if (!form.subject.trim()) return "请选择学科。";
   if (toolSlug !== "teaching-design" && !form.topic.trim()) return "请填写课题。";
@@ -782,10 +822,11 @@ function validateForm(toolSlug: HaiWorkToolSlug, form: Record<string, string>, f
     if (!form.desired_outcome.trim()) return "请说明希望优化后达成的效果。";
   }
   if (toolSlug === "subject-lesson-design") {
-    if (!form.grade) return "请选择年级。";
-    if (!form.volume) return "请选择册次。";
-    if (!form.unit) return "请选择单元。";
+    if (!form.grade) return requiresTeacherTextbook ? "请填写年级。" : "请选择年级。";
+    if (!form.volume) return requiresTeacherTextbook ? "请填写册次或教材名称。" : "请选择册次。";
+    if (!form.unit) return requiresTeacherTextbook ? "请填写单元。" : "请选择单元。";
     if (!form.teaching_mode) return "请选择案例式、任务式或议题式教学模式。";
+    if (requiresTeacherTextbook && !form.textbook_content.trim() && fileCount === 0) return "当前学科暂无内置教材，请粘贴教材内容或上传教材文件。";
   }
   return "";
 }
@@ -807,10 +848,11 @@ function isWorkToolSlug(value: string | undefined): value is HaiWorkToolSlug {
 
 export function resolveWorkToolConfig(slug: HaiWorkToolSlug, module?: HaiFeatureModule): HaiWorkToolVisualConfig {
   const fallback = HAI_WORK_TOOL_CONFIG[slug];
+  const hasLegacyPublicLessonCopy = slug === "subject-lesson-design" && module?.name?.trim() === "思政公开课设计";
   return {
     ...fallback,
-    name: module?.name?.trim() || fallback.name,
-    description: module?.description?.trim() || fallback.description,
+    name: hasLegacyPublicLessonCopy ? fallback.name : module?.name?.trim() || fallback.name,
+    description: hasLegacyPublicLessonCopy ? fallback.description : module?.description?.trim() || fallback.description,
   };
 }
 

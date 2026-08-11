@@ -247,6 +247,22 @@ Deno.test("work prompt separates built-in textbook knowledge from user materials
   assertEquals(prompt.system.includes("不是教材逐字原文"), true);
 });
 
+Deno.test("politics work prompt injects retrieved case candidates with verification boundary", () => {
+  const skill = candidate({ slug: "politics-public-lesson" });
+  skill.version.references = [];
+  const prompt = buildWorkPrompt({
+    toolSlug: "subject-lesson-design",
+    input: { topic: "高质量发展", teaching_mode: "案例式" },
+    skill,
+    materialContext: "",
+    textbookContext: "教材知识点",
+    caseContext: "### 雄安新区从一张图到一座城\n核验状态：source_declared_requires_fact_check",
+  });
+  assertEquals(prompt.user.includes("## 思政公开课案例库候选（后端检索）"), true);
+  assertEquals(prompt.user.includes("雄安新区从一张图到一座城"), true);
+  assertEquals(prompt.system.includes("不是可直接宣读的事实定稿"), true);
+});
+
 Deno.test("segment-optimization prompt injects segment methodology and markdown directive", () => {
   const prompt = buildWorkPrompt({
     toolSlug: "segment-optimization",

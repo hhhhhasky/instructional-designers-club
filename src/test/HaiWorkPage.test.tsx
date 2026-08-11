@@ -14,8 +14,8 @@ const { stableUser, tools } = vi.hoisted(() => ({
     { slug: "segment-optimization", name: "环节优化", is_enabled: true, surface_mode: "work" },
     {
       slug: "subject-lesson-design",
-      name: "思政公开课设计",
-      description: "后台维护的思政公开课入口说明",
+      name: "公开课设计",
+      description: "覆盖不同学科的公开课设计入口",
       is_enabled: true,
       surface_mode: "work",
     },
@@ -30,8 +30,7 @@ vi.mock("@/db/hai-api", () => ({
   getHaiWorkTools: vi.fn().mockResolvedValue(tools),
   getHaiWorkTasks: vi.fn().mockResolvedValue([]),
   getArchivedHaiWorkTasks: vi.fn().mockResolvedValue([]),
-  getHaiTextbookCatalog: vi.fn().mockResolvedValue([
-    {
+  getHaiTextbookCatalog: vi.fn().mockImplementation((_stage: string, subject: string) => Promise.resolve(subject === "数学" ? [] : [{
       collection_slug: "junior-politics-grade-7-volume-1-2024",
       collection_title: "七年级上册",
       stage: "初中",
@@ -52,8 +51,7 @@ vi.mock("@/db/hai-api", () => ({
       frame_number: 1,
       frame_label: "第一框",
       frame_title: "奏响中学序曲",
-    },
-  ]),
+    }])),
   uploadHaiMaterial: vi.fn(),
   streamHaiWork: vi.fn(),
 }));
@@ -81,8 +79,8 @@ describe("HAI Work workbench", () => {
 
     expect((await screen.findAllByRole("link", { name: /教案诊断/ })).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /环节优化/ }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("link", { name: /思政公开课设计/ }).length).toBeGreaterThan(0);
-    expect(screen.getByText("后台维护的思政公开课入口说明")).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /公开课设计/ }).length).toBeGreaterThan(0);
+    expect(screen.getByText("覆盖不同学科的公开课设计入口")).toBeInTheDocument();
   });
 
   it("removes a tool entry when the backend module is disabled", async () => {
@@ -99,13 +97,16 @@ describe("HAI Work workbench", () => {
 
     await screen.findByText("先把本课信息交给 HAI");
     expect(screen.getByLabelText("学段")).toHaveTextContent("初中");
-    expect(screen.getByLabelText("学科与课型")).toHaveTextContent("道德与法治 · 公开课");
+    expect(screen.getByLabelText("学科")).toHaveTextContent("道德与法治");
+    expect(screen.getByRole("option", { name: "小学" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "高中" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "其他（中职/高职/高校等）" })).toBeInTheDocument();
     await user.selectOptions(await screen.findByRole("combobox", { name: "年级" }), "7年级");
-    await user.selectOptions(screen.getByRole("combobox", { name: "册次" }), "上册");
+    await user.selectOptions(screen.getByRole("combobox", { name: "册次 / 教材" }), "上册");
     await user.selectOptions(screen.getByRole("combobox", { name: "单元" }), "第一单元 少年有梦");
     await user.selectOptions(screen.getByRole("combobox", { name: "课题" }), "第一课 开启初中生活");
     await user.click(screen.getByRole("radio", { name: /案例式/ }));
-    await user.click(screen.getByRole("button", { name: "开始思政公开课设计" }));
+    await user.click(screen.getByRole("button", { name: "开始公开课设计" }));
 
     expect(streamHaiWork).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -117,6 +118,35 @@ describe("HAI Work workbench", () => {
           unit: "第一单元 少年有梦",
           topic: "第一课 开启初中生活",
           teaching_mode: "案例式",
+        }),
+      }),
+      expect.any(Object),
+    );
+  });
+
+  it("supports a general subject with teacher-provided textbook content", async () => {
+    const user = userEvent.setup();
+    renderAt("/hai/work/subject-lesson-design");
+
+    await screen.findByText("先把本课信息交给 HAI");
+    await user.selectOptions(screen.getByRole("combobox", { name: "学科" }), "数学");
+    expect(await screen.findByText(/当前学段与学科暂未收录内置教材/)).toBeInTheDocument();
+    await user.type(screen.getByRole("textbox", { name: "年级" }), "八年级");
+    await user.type(screen.getByRole("textbox", { name: "册次 / 教材" }), "数学八年级上册");
+    await user.type(screen.getByRole("textbox", { name: "单元" }), "一次函数");
+    await user.type(screen.getByRole("textbox", { name: "课题" }), "函数的图象");
+    await user.click(screen.getByRole("radio", { name: /任务式/ }));
+    await user.type(screen.getByRole("textbox", { name: "教材内容（必填其一）" }), "通过列表、描点、连线认识一次函数图象的变化规律。");
+    await user.click(screen.getByRole("button", { name: "开始公开课设计" }));
+
+    expect(streamHaiWork).toHaveBeenCalledWith(
+      expect.objectContaining({
+        toolSlug: "subject-lesson-design",
+        input: expect.objectContaining({
+          stage: "初中",
+          subject: "数学",
+          topic: "函数的图象",
+          teaching_mode: "任务式",
         }),
       }),
       expect.any(Object),

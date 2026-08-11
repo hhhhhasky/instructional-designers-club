@@ -63,6 +63,23 @@ type TextbookSource = {
   content_hash: string;
 };
 
+type PoliticsCaseSource = {
+  case_id: string;
+  source_slug: string;
+  source_file_name: string;
+  title: string;
+  topic_direction: string;
+  event_date: string;
+  summary: string;
+  classroom_question: string;
+  concepts: string[];
+  source_urls: string[];
+  content_markdown: string;
+  content_hash: string;
+  verification_status: string;
+  score: number;
+};
+
 const maxMaterialCount = 5;
 const maxMaterialContextChars = 48_000;
 const maxInputTextChars = 120_000;
@@ -113,6 +130,9 @@ Deno.serve(async (request) => {
     const textbook = toolSlug === "subject-lesson-design"
       ? await loadTextbookContext(auth.admin, input)
       : { context: "", sources: [] as TextbookSource[] };
+    const politicsCases = toolSlug === "subject-lesson-design"
+      ? await loadPoliticsCaseContext(auth.admin, input)
+      : { context: "", sources: [] as PoliticsCaseSource[] };
     if (
       toolSlug === "subject-lesson-design" &&
       !textbook.context &&
@@ -140,6 +160,7 @@ Deno.serve(async (request) => {
       skill,
       materialContext,
       textbookContext: textbook.context,
+      caseContext: politicsCases.context,
       previousMarkdown: parentArtifact?.content_markdown,
       revisionInstruction,
     });
@@ -159,6 +180,7 @@ Deno.serve(async (request) => {
       input,
       materialIds,
       textbookSources: textbook.sources,
+      caseSources: politicsCases.sources,
       revisionInstruction,
     });
 
@@ -206,7 +228,7 @@ Deno.serve(async (request) => {
           sendSse(controller, encoder, {
             type: "progress",
             stage: "material",
-            message: evidenceStatus(materials, materialContext, textbook.sources),
+            message: evidenceStatus(materials, materialContext, textbook.sources, politicsCases.sources),
           });
           sendSse(controller, encoder, { type: "progress", stage: "generating", message: "HAI 正在形成第一版工作产物" });
 
@@ -464,14 +486,55 @@ async function loadTextbookContext(admin: any, input: Record<string, unknown>) {
   return { context: sections.join("\n\n"), sources };
 }
 
+async function loadPoliticsCaseContext(admin: any, input: Record<string, unknown>) {
+  const { data, error } = await admin.rpc("hai_match_politics_cases", {
+    p_stage: String(input.stage ?? "").trim(),
+    p_subject: normalizePoliticsSubject(input.subject),
+    p_grade_level: parseGradeLevel(input.grade),
+    p_unit_query: String(input.unit ?? "").trim() || null,
+    p_lesson_query: String(input.topic ?? "").trim() || null,
+    p_frame_query: String(input.frame ?? "").trim() || null,
+    p_teaching_mode: String(input.teaching_mode ?? "").trim() || null,
+    p_match_count: 6,
+  });
+  if (error) throw new HttpError(500, `读取思政案例库失败：${error.message}`);
+  const sources = (data ?? []) as PoliticsCaseSource[];
+  let length = 0;
+  const sections: string[] = [];
+  for (const item of sources) {
+    const section = [
+      `### ${item.title}`,
+      `来源文件：${item.source_file_name}；适配方向：${item.topic_direction}；时间：${item.event_date || "未提供"}`,
+      `核验状态：${item.verification_status}`,
+      item.content_markdown,
+    ].join("\n");
+    if (length + section.length > 24_000) break;
+    sections.push(section);
+    length += section.length;
+  }
+  return { context: sections.join("\n\n"), sources };
+}
+
 function parseGradeLevel(value: unknown) {
-  const match = String(value ?? "").match(/([7-9])/);
-  return match ? Number(match[1]) : null;
+  const text = String(value ?? "");
+  const chinese = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 } as Record<string, number>;
+  const chineseMatch = text.match(/[一二三四五六七八九]年级/);
+  if (chineseMatch) return chinese[chineseMatch[0][0]];
+  if (/高[一１]/.test(text)) return 10;
+  if (/高[二２]/.test(text)) return 11;
+  if (/高[三３]/.test(text)) return 12;
+  const match = text.match(/(?:^|\D)(1[0-2]|[1-9])(?:年级)?(?:$|\D)/);
+  return match ? Number(match[1]) : /高中/.test(text) ? 10 : null;
 }
 
 function normalizeTextbookSubject(value: unknown) {
   const subject = String(value ?? "").trim();
-  return subject === "思想政治" || subject === "思政" ? "道德与法治" : subject;
+  return subject === "思政" ? "思想政治" : subject;
+}
+
+function normalizePoliticsSubject(value: unknown) {
+  const subject = String(value ?? "").trim();
+  return subject === "思政" ? "思想政治" : subject;
 }
 
 function textbookSourceSnapshot(item: TextbookSource) {
@@ -487,6 +550,21 @@ function textbookSourceSnapshot(item: TextbookSource) {
     content_type: item.content_type,
     source_hash: item.source_hash,
     content_hash: item.content_hash,
+  };
+}
+
+function politicsCaseSourceSnapshot(item: PoliticsCaseSource) {
+  return {
+    case_id: item.case_id,
+    source_slug: item.source_slug,
+    source_file_name: item.source_file_name,
+    title: item.title,
+    topic_direction: item.topic_direction,
+    event_date: item.event_date,
+    concepts: item.concepts,
+    source_urls: item.source_urls,
+    content_hash: item.content_hash,
+    verification_status: item.verification_status,
   };
 }
 
@@ -536,6 +614,7 @@ async function createRun(admin: any, params: {
   input: Record<string, unknown>;
   materialIds: string[];
   textbookSources: TextbookSource[];
+  caseSources: PoliticsCaseSource[];
   revisionInstruction: string;
 }) {
   const { data, error } = await admin.from("hai_work_runs").insert({
@@ -549,6 +628,7 @@ async function createRun(admin: any, params: {
       ...params.input,
       material_ids: params.materialIds,
       textbook_sources: params.textbookSources.map(textbookSourceSnapshot),
+      case_sources: params.caseSources.map(politicsCaseSourceSnapshot),
     },
     skill_snapshot: {
       slug: params.skill.slug,
@@ -560,6 +640,7 @@ async function createRun(admin: any, params: {
       reference_paths: selectWorkSkillReferences(params.skill, params.input).map((item) => item.path),
       reference_hashes: selectWorkSkillReferences(params.skill, params.input).map((item) => item.content_hash),
       textbook_sources: params.textbookSources.map(textbookSourceSnapshot),
+      case_sources: params.caseSources.map(politicsCaseSourceSnapshot),
     },
     revision_instruction: params.revisionInstruction || null,
   }).select("id").single();
@@ -669,9 +750,10 @@ function buildMaterialQuery(input: Record<string, unknown>) {
     .map((item) => String(item ?? "").trim()).filter(Boolean).join(" ") || "教学设计";
 }
 
-function evidenceStatus(materials: any[], context: string, textbookSources: TextbookSource[]) {
+function evidenceStatus(materials: any[], context: string, textbookSources: TextbookSource[], caseSources: PoliticsCaseSource[]) {
   const parts: string[] = [];
   if (textbookSources.length > 0) parts.push(`已精确读取 ${textbookSources.length} 个教材框题`);
+  if (caseSources.length > 0) parts.push(`已检索 ${caseSources.length} 个案例候选`);
   if (materials.length > 0 && context) parts.push(`已读取 ${materials.length} 份用户补充材料`);
   if (materials.length > 0 && !context) parts.push(`已校验 ${materials.length} 份材料，但未提取到可用文本`);
   return parts.join("；") || "已读取粘贴内容";

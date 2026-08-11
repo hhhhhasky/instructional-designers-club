@@ -17,6 +17,14 @@ export const HAI_STAGES = [
   "其他",
 ] as const;
 
+/** 公开课设计学段：内置教材按学段/学科动态匹配，未覆盖时由教师提供教材证据。 */
+export const HAI_PUBLIC_LESSON_STAGES = [
+  "小学",
+  "初中",
+  "高中",
+  "其他（中职/高职/高校等）",
+] as const;
+
 /**
  * 中小学及高校通用学科：覆盖主流考试学科，以及心理健康、体育、综合实践等
  * 非考试学科与「其他 / 专业课」（供专业课教师选用）。
@@ -40,6 +48,21 @@ export const HAI_GENERAL_SUBJECTS = [
   "综合实践",
   "其他 / 专业课",
 ] as const;
+
+/**
+ * 公开课设计使用通用学科列表，同时保留数据库中道法/思想政治的精确学科名。
+ * 这样已有思政教材可以直接命中，数学等尚未入库的学科也能先由教师提供教材。
+ */
+export function publicLessonSubjectsForStage(stage: string): readonly string[] {
+  const politicsSubjects = stage === "高中"
+    ? ["思想政治"]
+    : stage === "小学" || stage === "初中"
+      ? ["道德与法治"]
+      : ["思想政治", "道德与法治", "其他思政课程"];
+  return HAI_GENERAL_SUBJECTS.flatMap((subject) =>
+    subject === "政治 / 道法" ? politicsSubjects : [subject]
+  );
+}
 
 /** 幼儿园五大领域 + 综合主题活动。 */
 export const HAI_KINDERGARTEN_SUBJECTS = [

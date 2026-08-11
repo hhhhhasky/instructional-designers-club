@@ -10,6 +10,7 @@ const outputPath = join(
   repoRoot,
   "supabase/seed-data/sizheng-public-lesson-design-work-skill.json",
 );
+const versionLabel = String(process.argv[3] || "v1.2.0").trim();
 
 const referenceConfigs = [
   ["references/mode-selection.md", "三种模式判断表", "共同模式判断规则", "always", 10],
@@ -59,7 +60,7 @@ const snapshotMaterial = JSON.stringify({
 const payload = {
   skill_slug: "politics-public-lesson",
   source_skill_name: "sizheng-public-lesson-design",
-  version_label: "v1.1.0",
+  version_label: versionLabel,
   snapshot_hash: sha256(snapshotMaterial),
   instructions,
   input_contract: {
