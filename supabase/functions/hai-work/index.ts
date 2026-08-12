@@ -17,7 +17,6 @@ import {
 import {
   assertWorkSkillRuntimeReady,
   buildWorkPrompt,
-  filterExactTextbookSources,
   isHaiWorkToolSlug,
   selectWorkSkillReferences,
   selectWorkSkill,
@@ -518,22 +517,42 @@ async function loadMaterialContext(
 }
 
 async function loadTextbookContext(admin: any, input: Record<string, unknown>) {
-  const gradeLevel = parseGradeLevel(input.grade);
-  const { data, error } = await admin.rpc("hai_match_textbook_sections", {
-    p_stage: String(input.stage ?? "").trim(),
-    p_subject: normalizeTextbookSubject(input.subject),
-    p_grade_level: gradeLevel,
-    p_volume: String(input.volume ?? "").trim(),
-    p_unit_query: String(input.unit ?? "").trim(),
-    p_lesson_query: String(input.topic ?? "").trim(),
-    p_frame_query: String(input.frame ?? "").trim() || null,
-    p_match_count: 16,
+  const collectionSlug = String(input.collection_slug ?? "").trim();
+  const unitNumber = parseRouteNumber(input.unit_route_number);
+  const lessonNumber = parseRouteNumber(input.lesson_route_number);
+  const frameNumber = parseRouteNumber(input.frame_route_number);
+  const hasAnyFixedRouteId = Boolean(collectionSlug || unitNumber || lessonNumber || frameNumber);
+  if (!hasAnyFixedRouteId) {
+    const { data: catalog, error: catalogError } = await admin.rpc("hai_list_textbook_catalog", {
+      p_stage: String(input.stage ?? "").trim(),
+      p_subject: normalizeTextbookSubject(input.subject),
+    });
+    if (catalogError) throw new HttpError(500, `读取教材目录失败：${catalogError.message}`);
+    if ((catalog ?? []).length > 0) {
+      throw new HttpError(400, "请选择内置教材目录中的年级、册次、单元和课题，不要手工填写已收录教材。");
+    }
+    return { context: "", sources: [] as TextbookSource[] };
+  }
+  if (!collectionSlug || !unitNumber || !lessonNumber) {
+    throw new HttpError(400, "内置教材编号不完整，请重新选择教材、单元和课题。");
+  }
+  if (String(input.frame ?? "").trim() && !frameNumber) {
+    throw new HttpError(400, "框题编号缺失，请重新选择框题。");
+  }
+  const { data, error } = await admin.rpc("hai_get_textbook_sections_by_route", {
+    p_collection_slug: collectionSlug,
+    p_unit_number: unitNumber,
+    p_lesson_number: lessonNumber,
+    p_frame_number: frameNumber || null,
   });
   if (error) throw new HttpError(500, `读取教材知识库失败：${error.message}`);
-  const sources = filterExactTextbookSources((data ?? []) as TextbookSource[], input);
+  const sources = (data ?? []) as TextbookSource[];
+  if (sources.length === 0) {
+    throw new HttpError(422, "所选教材编号不存在或层级关系不一致，请重新选择教材、单元和课题。");
+  }
   const collectionSlugs = new Set(sources.map((item) => item.collection_slug));
-  if (collectionSlugs.size > 1) {
-    throw new HttpError(409, "教材版本命中不唯一，请重新选择年级、册次、单元和课题。");
+  if (collectionSlugs.size !== 1 || collectionSlugs.has(collectionSlug) === false) {
+    throw new HttpError(409, "所选教材编号与教材版本不一致，请重新选择教材路径。");
   }
   let length = 0;
   const sections: string[] = [];
@@ -551,6 +570,11 @@ async function loadTextbookContext(admin: any, input: Record<string, unknown>) {
     length += section.length;
   }
   return { context: sections.join("\n\n"), sources };
+}
+
+function parseRouteNumber(value: unknown) {
+  const number = Number.parseInt(String(value ?? "").trim(), 10);
+  return Number.isInteger(number) && number > 0 ? number : null;
 }
 
 async function loadPoliticsCaseContext(admin: any, input: Record<string, unknown>) {

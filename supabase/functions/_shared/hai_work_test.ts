@@ -240,6 +240,27 @@ Deno.test("every Work tool requires the structured textbook route", () => {
   }, 0);
 });
 
+Deno.test("fixed textbook route IDs are required as a complete set when present", () => {
+  const route = {
+    stage: "小学",
+    subject: "道德与法治",
+    grade: "四年级",
+    volume: "下册",
+    unit: "第2单元 做聪明的消费者",
+    topic: "第5课 合理消费",
+    lesson_plan: "教案正文",
+    collection_slug: "primary-daode-fazhi-4-lower",
+    unit_route_number: "2",
+    lesson_route_number: "5",
+    frame: "第1框 那些我想要的东西",
+  };
+  assertThrows(() => validateWorkInput("lesson-diagnosis", route, 0), "框题编号缺失");
+  validateWorkInput("lesson-diagnosis", {
+    ...route,
+    frame_route_number: "1",
+  }, 0);
+});
+
 Deno.test("segment-optimization allows current_design or material upload (either-or)", () => {
   const base = {
     stage: "初中",

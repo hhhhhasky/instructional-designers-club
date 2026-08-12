@@ -371,10 +371,53 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
       topic: ["frame"],
       frame: [],
     };
+    const nextCatalog = key === "volume"
+      ? gradeCatalog.find((item) => item.volume === value)
+      : key === "unit"
+      ? volumeCatalog.find((item) => `${item.unit_label} ${item.unit_title}` === value)
+      : key === "topic"
+      ? unitCatalog.find((item) => `${item.lesson_label} ${item.lesson_title}` === value)
+      : key === "frame"
+      ? topicCatalog.find((item) => `${item.frame_label} ${item.frame_title}`.trim() === value)
+      : undefined;
     setForm((current) => ({
       ...current,
       [key]: value,
+      ...(key === "volume" ? {
+        collection_slug: nextCatalog?.collection_slug || "",
+      } : {}),
+      ...(key === "unit" ? {
+        collection_slug: nextCatalog?.collection_slug || current.collection_slug || "",
+        unit_route_number: String(nextCatalog?.unit_route_number ?? ""),
+      } : {}),
+      ...(key === "topic" ? {
+        collection_slug: nextCatalog?.collection_slug || current.collection_slug || "",
+        unit_route_number: String(nextCatalog?.unit_route_number ?? current.unit_route_number ?? ""),
+        lesson_route_number: String(nextCatalog?.lesson_route_number ?? ""),
+      } : {}),
+      ...(key === "frame" ? {
+        collection_slug: nextCatalog?.collection_slug || current.collection_slug || "",
+        unit_route_number: String(nextCatalog?.unit_route_number ?? current.unit_route_number ?? ""),
+        lesson_route_number: String(nextCatalog?.lesson_route_number ?? current.lesson_route_number ?? ""),
+        frame_route_number: String(nextCatalog?.frame_route_number ?? ""),
+      } : {}),
       ...Object.fromEntries(resetAfter[key].map((field) => [field, ""])),
+      ...(key === "grade" ? {
+        collection_slug: "",
+        unit_route_number: "",
+        lesson_route_number: "",
+        frame_route_number: "",
+      } : {}),
+      ...(key === "volume" ? {
+        unit_route_number: "",
+        lesson_route_number: "",
+        frame_route_number: "",
+      } : {}),
+      ...(key === "unit" ? {
+        lesson_route_number: "",
+        frame_route_number: "",
+      } : {}),
+      ...(key === "topic" ? { frame_route_number: "" } : {}),
     }));
   }
 
@@ -450,6 +493,10 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
               ...current,
               stage: value,
               subject: nextSubjects.includes(current.subject) ? current.subject : nextSubjects[0] || "",
+              collection_slug: "",
+              unit_route_number: "",
+              lesson_route_number: "",
+              frame_route_number: "",
               grade: "",
               volume: "",
               unit: "",
@@ -764,6 +811,10 @@ function initialForm(toolSlug: HaiWorkToolSlug) {
   return {
     stage: "初中",
     subject: "道德与法治",
+    collection_slug: "",
+    unit_route_number: "",
+    lesson_route_number: "",
+    frame_route_number: "",
     grade: "",
     volume: "",
     unit: "",
@@ -791,6 +842,10 @@ function validateForm(toolSlug: HaiWorkToolSlug, form: Record<string, string>, f
   if (!form.volume) return requiresTeacherTextbook ? "请填写册次或教材名称。" : "请选择册次。";
   if (!form.unit) return requiresTeacherTextbook ? "请填写单元。" : "请选择单元。";
   if (!form.topic.trim()) return requiresTeacherTextbook ? "请填写课题。" : "请选择课题。";
+  if (!requiresTeacherTextbook) {
+    if (!form.collection_slug || !form.unit_route_number || !form.lesson_route_number) return "教材目录编号缺失，请重新选择教材、单元和课题。";
+    if (form.frame.trim() && !form.frame_route_number) return "框题编号缺失，请重新选择框题。";
+  }
   if (toolSlug === "teaching-design") {
     if (!form.design_type) return "请选择设计类型。";
     if (!form.desired_outcomes.trim()) return "请填写预期成果或任务说明。";

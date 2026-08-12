@@ -104,6 +104,9 @@ export interface HaiTextbookCatalogEntry {
   frame_number: number;
   frame_label: string;
   frame_title: string;
+  unit_route_number: number;
+  lesson_route_number: number;
+  frame_route_number: number | null;
 }
 
 export interface HaiWorkTask {

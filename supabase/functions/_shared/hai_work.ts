@@ -168,6 +168,19 @@ export function validateWorkInput(
     }
   }
 
+  const fixedRouteFields = ["collection_slug", "unit_route_number", "lesson_route_number"];
+  const hasFixedRoute = fixedRouteFields.some((key) => String(input[key] ?? "").trim());
+  if (hasFixedRoute) {
+    for (const key of fixedRouteFields) {
+      if (!String(input[key] ?? "").trim()) {
+        throw new Error("内置教材编号不完整，请重新选择教材、单元和课题。");
+      }
+    }
+    if (String(input.frame ?? "").trim() && !String(input.frame_route_number ?? "").trim()) {
+      throw new Error("框题编号缺失，请重新选择框题。");
+    }
+  }
+
   if (
     toolSlug === "lesson-diagnosis" &&
     !String(input.lesson_plan ?? "").trim() &&
