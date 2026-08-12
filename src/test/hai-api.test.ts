@@ -125,6 +125,34 @@ describe("HAI Chat module boundary", () => {
       mode: "chat",
     });
   });
+
+  it("consumes incremental tokens and answer replacement events", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response([
+      'data: {"type":"ready","conversationId":"conversation-1","moduleSlug":"hai-chat"}\n\n',
+      'data: {"type":"token","token":"草稿"}\n\n',
+      'data: {"type":"replace","content":""}\n\n',
+      'data: {"type":"token","token":"最终答案"}\n\n',
+      'data: {"type":"done","conversationId":"conversation-1","messageId":"message-1"}\n\n',
+    ].join(""), {
+      status: 200,
+      headers: { "content-type": "text/event-stream" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    const onEvent = vi.fn();
+
+    await streamHaiChat(
+      { conversationId: null, message: "这节课应该先改哪里？" },
+      { onEvent },
+    );
+
+    expect(onEvent.mock.calls.map(([event]) => event)).toEqual([
+      { type: "ready", conversationId: "conversation-1", moduleSlug: "hai-chat" },
+      { type: "token", token: "草稿" },
+      { type: "replace", content: "" },
+      { type: "token", token: "最终答案" },
+      { type: "done", conversationId: "conversation-1", messageId: "message-1" },
+    ]);
+  });
 });
 
 describe("HAI Work task detail reliability", () => {

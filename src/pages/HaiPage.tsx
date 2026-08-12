@@ -257,6 +257,7 @@ export default function HaiPage() {
     setMessages((current) => [...current, userMessage, assistantMessage]);
 
     let nextConversationId = activeConversationId;
+    let completedMessageId: string | null = null;
     try {
       await streamHaiChat(
         {
@@ -267,7 +268,6 @@ export default function HaiPage() {
           onEvent: (event) => {
             if (event.type === "ready") {
               nextConversationId = event.conversationId;
-              setActiveConversationId(event.conversationId);
               return;
             }
             if (event.type === "token") {
@@ -276,13 +276,24 @@ export default function HaiPage() {
               )));
               return;
             }
+            if (event.type === "replace") {
+              setMessages((current) => current.map((item) => (
+                item.id === assistantId ? { ...item, content: event.content } : item
+              )));
+              return;
+            }
             if (event.type === "error") {
               setStatus(event.message);
               return;
             }
             if (event.type === "done") {
+              completedMessageId = event.messageId;
               setMessages((current) => current.map((item) => (
-                item.id === assistantId || item.id === userMessage.id ? { ...item, pending: false } : item
+                item.id === assistantId
+                  ? { ...item, id: event.messageId, pending: false }
+                  : item.id === userMessage.id
+                  ? { ...item, pending: false }
+                  : item
               )));
             }
           },
@@ -295,7 +306,10 @@ export default function HaiPage() {
       setUsage(accessPayload.usage);
       if (nextConversationId) {
         const rows = await getHaiMessages(nextConversationId);
-        setMessages(rows);
+        // 如果数据库读模型暂时落后，不要用不完整的历史记录覆盖已经显示的答案。
+        if (!completedMessageId || rows.some((row) => row.id === completedMessageId)) {
+          setMessages(rows);
+        }
         const feedbackRows = await getHaiMessageFeedback(
           rows.filter((message) => message.role === "assistant").map((message) => message.id),
         );

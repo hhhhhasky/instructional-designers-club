@@ -259,6 +259,7 @@ export interface HaiPromptSnapshot {
 export type HaiStreamEvent =
   | { type: "ready"; conversationId: string; moduleSlug: string; mode?: "chat" | "roundtable" }
   | { type: "token"; token: string }
+  | { type: "replace"; content: string }
   | { type: "done"; conversationId: string; messageId: string; usage?: { inputTokens: number; outputTokens: number; totalTokens: number }; promptSnapshot?: HaiPromptSnapshot }
   | { type: "error"; message: string };
 

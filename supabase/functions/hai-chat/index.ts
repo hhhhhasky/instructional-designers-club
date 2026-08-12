@@ -28,7 +28,10 @@ import {
   type HaiChatSkillTrace,
   normalizeHaiChatSkillReferenceConfig,
 } from "../_shared/hai_chat_skill.ts";
-import { classifyIntent, resolveIntentFromPrior } from "../_shared/hai_chat/intent_classifier.ts";
+import {
+  classifyIntent,
+  resolveIntentFromPrior,
+} from "../_shared/hai_chat/intent_classifier.ts";
 import { routeDiagnosticFramework } from "../_shared/hai_orchestrator/diagnostic_router.ts";
 import {
   hanCourseMethodCards,
@@ -42,7 +45,10 @@ import {
 } from "../_shared/hai_chat/memory_selector.ts";
 import { normalizeHaiVoiceFormatting } from "../_shared/hai_chat/response_format.ts";
 import { evaluateResponse } from "../_shared/hai_chat/response_evaluator.ts";
-import type { IntentResult, MemorySelection } from "../_shared/hai_chat/types.ts";
+import type {
+  IntentResult,
+  MemorySelection,
+} from "../_shared/hai_chat/types.ts";
 import type { HaiPromptAssembly } from "../_shared/hai_trace.ts";
 
 type ModuleRow = {
@@ -264,6 +270,9 @@ Deno.serve(async (request) => {
             })
           ) {
             output += token;
+            // 先把模型草稿实时推给前端，评估器在后台继续完成；若之后需要重写，
+            // 再通过 replace 事件让前端清空草稿并显示最终答案。
+            sendSse(controller, encoder, { type: "token", token });
           }
 
           const evaluation = runtime.evaluatorEnabled
@@ -300,6 +309,7 @@ Deno.serve(async (request) => {
             promptModelCalls.push(
               buildPromptSnapshotCall("answer_rewrite", finalMessages),
             );
+            sendSse(controller, encoder, { type: "replace", content: "" });
             for await (
               const token of streamDeepSeek(finalMessages, {
                 ...completionOptions,
@@ -313,10 +323,15 @@ Deno.serve(async (request) => {
             }
           } else {
             finalAnswer = normalizeHaiVoiceFormatting(finalAnswer);
-            sendSse(controller, encoder, { type: "token", token: finalAnswer });
           }
 
           finalAnswer = normalizeHaiVoiceFormatting(finalAnswer);
+          // 流式阶段展示原始片段；最终清洗后再做一次轻量替换，确保前端显示内容
+          // 与落库答案完全一致（不会重新等待模型生成）。
+          sendSse(controller, encoder, {
+            type: "replace",
+            content: finalAnswer,
+          });
           const finalEvaluation = runtime.evaluatorEnabled
             ? evaluateResponse(finalAnswer, undefined, {
               passScore: runtime.evaluatorPassScore,
