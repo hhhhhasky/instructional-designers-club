@@ -72,6 +72,9 @@ const dashboardFixture: HaiDashboardData = {
     quality_average: 84,
     quality_pass_rate: 88.9,
     open_alerts: 0,
+    work_request_count: 0,
+    work_success_rate: 0,
+    work_revision_count: 0,
   },
   daily_usage: [{ date: "2026-07-13", label: "7/13", requests: 18, users: 3, tokens: 24000, input_tokens: 16000, output_tokens: 8000, failed: 1 }],
   user_rankings: [{
@@ -133,5 +136,6 @@ const dashboardFixture: HaiDashboardData = {
     problems: [],
     created_at: "2026-07-13T10:00:00.000Z",
   }],
+  recent_work_traces: [],
   daily_reviews: [],
 };

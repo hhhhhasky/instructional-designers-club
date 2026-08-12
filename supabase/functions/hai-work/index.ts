@@ -59,6 +59,13 @@ type TextbookSource = {
   requires_confirmation: boolean;
   section_path: string;
   content_type: string;
+  section_level?: string | null;
+  unit_label?: string | null;
+  unit_title?: string | null;
+  lesson_label?: string | null;
+  lesson_title?: string | null;
+  frame_label?: string | null;
+  frame_title?: string | null;
   content_markdown: string;
   source_hash: string;
   content_hash: string;
@@ -181,6 +188,29 @@ Deno.serve(async (request) => {
       caseSources: politicsCases.sources,
       revisionInstruction,
     });
+    const selectedReferences = selectWorkSkillReferences(skill, input);
+    const debugTrace = createDebugTrace({
+      toolSlug,
+      taskId,
+      runId: run.id,
+      userId: auth.user.id,
+      clientRequestId,
+      parentArtifactId: parentArtifact?.id ?? null,
+      revisionInstruction,
+      input,
+      materialIds,
+      materials,
+      materialContext,
+      textbook,
+      politicsCases,
+      module,
+      completionOptions,
+      skill,
+      selectedReferences,
+      prompt,
+      estimatedInputTokens,
+    });
+    await saveRunDebugTrace(auth.admin, run.id, debugTrace);
 
     try {
       await reserveUsage({
@@ -202,6 +232,12 @@ Deno.serve(async (request) => {
       });
     } catch (error) {
       await markRunFailed(auth.admin, run.id, error instanceof Error ? error.message : "额度预占失败。");
+      await appendDebugEvent(auth.admin, run.id, debugTrace, {
+        stage: "quota_reservation_failed",
+        at: new Date().toISOString(),
+        status: "failed",
+        error: error instanceof Error ? error.message : "额度预占失败。",
+      });
       throw error;
     }
 
@@ -223,6 +259,11 @@ Deno.serve(async (request) => {
             skillVersion: skill.version.version_label,
             fallback: skill.is_fallback,
           });
+          await appendDebugEvent(auth.admin, run.id, debugTrace, {
+            stage: "run_started",
+            at: new Date().toISOString(),
+            status: "running",
+          });
           sendSse(controller, encoder, {
             type: "progress",
             stage: "material",
@@ -230,7 +271,7 @@ Deno.serve(async (request) => {
           });
           sendSse(controller, encoder, { type: "progress", stage: "generating", message: "HAI 正在形成第一版工作产物" });
 
-          rawOutput = await collectModelOutput({
+          const firstAttempt = await collectModelOutput({
             system: prompt.system,
             user: prompt.user,
             module,
@@ -238,6 +279,9 @@ Deno.serve(async (request) => {
             userId: auth.user.id,
             admin: auth.admin,
           });
+          rawOutput = firstAttempt.output;
+          await appendDebugAttempt(auth.admin, run.id, debugTrace, firstAttempt, "initial");
+          if (firstAttempt.error) throw new Error(firstAttempt.error);
           // 去掉模型可能包裹的 Markdown 代码围栏
           let markdown = rawOutput
             .replace(/^```(?:markdown|md)?\s*\n?/, "")
@@ -255,7 +299,7 @@ Deno.serve(async (request) => {
           if (!markdown) {
             // 空输出重试一次
             sendSse(controller, encoder, { type: "progress", stage: "repairing", message: "产物为空，正在重试" });
-            rawOutput = await collectModelOutput({
+            const repairAttempt = await collectModelOutput({
               system: prompt.system,
               user: prompt.user,
               module,
@@ -263,6 +307,9 @@ Deno.serve(async (request) => {
               userId: auth.user.id,
               admin: auth.admin,
             });
+            rawOutput = repairAttempt.output;
+            await appendDebugAttempt(auth.admin, run.id, debugTrace, repairAttempt, "empty_output_repair");
+            if (repairAttempt.error) throw new Error(repairAttempt.error);
             markdown = rawOutput
               .replace(/^```(?:markdown|md)?\s*\n?/, "")
               .replace(/\n?```\s*$/, "")
@@ -275,6 +322,14 @@ Deno.serve(async (request) => {
 
           if (!markdown) throw new Error("AI 未返回任何内容，请重试。");
           const versionNumber = await nextVersionNumber(auth.admin, taskId);
+          await appendDebugEvent(auth.admin, run.id, debugTrace, {
+            stage: "output_normalized",
+            at: new Date().toISOString(),
+            raw_output_chars: rawOutput.length,
+            normalized_output_chars: markdown.length,
+            normalized_output: markdown,
+            removed_code_fence: rawOutput.trim() !== markdown,
+          });
           const { data: artifact, error: artifactError } = await auth.admin
             .from("hai_work_artifacts")
             .insert({
@@ -308,6 +363,13 @@ Deno.serve(async (request) => {
               updated_at: new Date().toISOString(),
             }).eq("id", taskId),
           ]);
+          await appendDebugEvent(auth.admin, run.id, debugTrace, {
+            stage: "artifact_persisted",
+            at: new Date().toISOString(),
+            artifact_id: artifact.id,
+            version_number: artifact.version_number,
+            status: "completed",
+          });
           await finalizeUsage({
             userClient: auth.userClient,
             requestId: clientRequestId,
@@ -345,6 +407,13 @@ Deno.serve(async (request) => {
           const message = error instanceof Error ? error.message : "HAI Work 执行失败。";
           const durationMs = Date.now() - startedAt;
           await markRunFailed(auth.admin, run.id, message, durationMs);
+          await appendDebugEvent(auth.admin, run.id, debugTrace, {
+            stage: "run_failed",
+            at: new Date().toISOString(),
+            status: "failed",
+            error: message.slice(0, 2000),
+            duration_ms: durationMs,
+          });
           await finalizeUsage({
             userClient: auth.userClient,
             requestId: clientRequestId,
@@ -646,6 +715,136 @@ async function createRun(admin: any, params: {
   return data as { id: string };
 }
 
+type WorkDebugTrace = Record<string, unknown> & {
+  events: Array<Record<string, unknown>>;
+  model_attempts: Array<Record<string, unknown>>;
+};
+
+function createDebugTrace(params: {
+  toolSlug: string;
+  taskId: string;
+  runId: string;
+  userId: string;
+  clientRequestId: string;
+  parentArtifactId: string | null;
+  revisionInstruction: string;
+  input: Record<string, unknown>;
+  materialIds: string[];
+  materials: any[];
+  materialContext: string;
+  textbook: { context: string; sources: TextbookSource[] };
+  politicsCases: { context: string; sources: PoliticsCaseSource[] };
+  module: ModuleRow;
+  completionOptions: ReturnType<typeof buildChatCompletionOptions>;
+  skill: WorkSkillCandidate;
+  selectedReferences: ReturnType<typeof selectWorkSkillReferences>;
+  prompt: { system: string; user: string };
+  estimatedInputTokens: number;
+}): WorkDebugTrace {
+  return {
+    trace_version: 1,
+    kind: "hai_work_generation",
+    captured_at: new Date().toISOString(),
+    request: {
+      tool_slug: params.toolSlug,
+      task_id: params.taskId,
+      run_id: params.runId,
+      user_id: params.userId,
+      client_request_id: params.clientRequestId,
+      parent_artifact_id: params.parentArtifactId,
+      revision_instruction: params.revisionInstruction,
+    },
+    input: params.input,
+    materials: {
+      selected_ids: params.materialIds,
+      records: params.materials,
+      retrieved_context: params.materialContext,
+    },
+    textbook: {
+      source_records: params.textbook.sources.map(textbookSourceSnapshot),
+      retrieved_context: params.textbook.context,
+    },
+    case_library: {
+      source_records: params.politicsCases.sources.map(politicsCaseSourceSnapshot),
+      retrieved_context: params.politicsCases.context,
+    },
+    module: {
+      slug: params.module.slug,
+      model: params.module.default_model,
+      temperature: params.completionOptions.temperature,
+      max_output_tokens: params.completionOptions.maxTokens,
+      thinking_enabled: false,
+      top_p: params.completionOptions.topP,
+      reasoning_effort: params.completionOptions.reasoningEffort,
+      response_format: params.completionOptions.responseFormat,
+      stop_sequences: params.completionOptions.stopSequences,
+      model_provider_id: params.module.model_provider_id,
+    },
+    skill: {
+      slug: params.skill.slug,
+      name: params.skill.name,
+      version: params.skill.version.version_label,
+      version_id: params.skill.version.id,
+      snapshot_hash: params.skill.version.snapshot_hash || "",
+      fallback: params.skill.is_fallback,
+      prompt_template: params.skill.version.prompt_template,
+      input_contract: params.skill.version.input_contract,
+      output_contract: params.skill.version.output_contract,
+      references: params.selectedReferences.map((reference) => ({
+        path: reference.path,
+        name: reference.name,
+        load_mode: reference.load_mode,
+        max_chars: reference.max_chars,
+        content_hash: reference.content_hash,
+        content: reference.content,
+      })),
+    },
+    prompt: {
+      system: params.prompt.system,
+      user: params.prompt.user,
+      estimated_input_tokens: params.estimatedInputTokens,
+    },
+    events: [{ stage: "prompt_assembled", at: new Date().toISOString() }],
+    model_attempts: [],
+  };
+}
+
+async function saveRunDebugTrace(admin: any, runId: string, trace: WorkDebugTrace) {
+  const request = trace.request as Record<string, unknown>;
+  const { error } = await admin.from("hai_work_debug_traces").upsert({
+    run_id: runId,
+    user_id: String(request.user_id ?? ""),
+    debug_trace: trace,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "run_id" });
+  if (error) throw new HttpError(500, `保存 HAI Work debug trace 失败：${error.message}`);
+}
+
+async function appendDebugEvent(admin: any, runId: string, trace: WorkDebugTrace, event: Record<string, unknown>) {
+  trace.events.push(event);
+  await saveRunDebugTrace(admin, runId, trace);
+}
+
+async function appendDebugAttempt(
+  admin: any,
+  runId: string,
+  trace: WorkDebugTrace,
+  attempt: { output: string; started_at: string; completed_at: string; duration_ms: number; error?: string },
+  purpose: string,
+) {
+  trace.model_attempts.push({
+    attempt: trace.model_attempts.length + 1,
+    purpose,
+    started_at: attempt.started_at,
+    completed_at: attempt.completed_at,
+    duration_ms: attempt.duration_ms,
+    raw_output: attempt.output,
+    output_chars: attempt.output.length,
+    error: attempt.error ?? null,
+  });
+  await saveRunDebugTrace(admin, runId, trace);
+}
+
 async function nextVersionNumber(admin: any, taskId: string) {
   const { data, error } = await admin.from("hai_work_artifacts").select("version_number")
     .eq("task_id", taskId).order("version_number", { ascending: false }).limit(1).maybeSingle();
@@ -661,21 +860,39 @@ async function collectModelOutput(params: {
   userId: string;
   admin: any;
 }) {
+  const startedAt = new Date();
   const model = params.completionOptions.model;
   console.log("[hai-work] calling DeepSeek with model:", model, "providerId:", params.module.model_provider_id, "moduleSlug:", params.module.slug);
   let output = "";
   // 强制关闭 thinking — Markdown 产出不需要推理步骤。
   const workOptions = { ...params.completionOptions, thinkingEnabled: false };
-  for await (const token of streamDeepSeek([
-    { role: "system", content: params.system },
-    { role: "user", content: params.user },
-  ], {
-    ...workOptions,
-    userId: params.userId,
-    admin: params.admin,
-    modelProviderId: params.module.model_provider_id,
-  })) output += token;
-  return output;
+  try {
+    for await (const token of streamDeepSeek([
+      { role: "system", content: params.system },
+      { role: "user", content: params.user },
+    ], {
+      ...workOptions,
+      userId: params.userId,
+      admin: params.admin,
+      modelProviderId: params.module.model_provider_id,
+    })) output += token;
+    const finishedAt = new Date();
+    return {
+      output,
+      started_at: startedAt.toISOString(),
+      completed_at: finishedAt.toISOString(),
+      duration_ms: finishedAt.getTime() - startedAt.getTime(),
+    };
+  } catch (error) {
+    const failedAt = new Date();
+    return {
+      output,
+      started_at: startedAt.toISOString(),
+      completed_at: failedAt.toISOString(),
+      duration_ms: failedAt.getTime() - startedAt.getTime(),
+      error: error instanceof Error ? error.message : "模型调用失败。",
+    };
+  }
 }
 
 async function loadIdempotentRun(admin: any, userId: string, requestId: string) {

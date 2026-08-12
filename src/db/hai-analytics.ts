@@ -42,6 +42,27 @@ export interface HaiTraceMessageRow {
   created_at: string;
 }
 
+export interface HaiWorkDebugTraceRow {
+  id: string;
+  task_id: string;
+  user_id: string;
+  status: "queued" | "running" | "completed" | "failed";
+  input_tokens: number | null;
+  output_tokens: number | null;
+  duration_ms: number | null;
+  error_message: string | null;
+  skill_snapshot: Record<string, unknown>;
+  input_snapshot: Record<string, unknown>;
+  debug_trace: Record<string, unknown> | null;
+  parent_artifact_id: string | null;
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  task_title: string;
+  module_slug: string;
+  profile: HaiProfile | null;
+}
+
 export interface HaiPromptAssemblyModelCall {
   stage: "semantic_router" | "answer_draft" | "answer_rewrite";
   messages: Array<{ role: "system" | "user" | "assistant"; content: string }>;
@@ -151,17 +172,19 @@ export interface HaiDashboardData {
   recent_events: Array<HaiUsageEventRow & { profile: HaiProfile | null }>;
   alerts: Array<HaiUsageAlertRow & { profile: HaiProfile | null }>;
   recent_traces: HaiRecentTrace[];
+  recent_work_traces: HaiWorkDebugTraceRow[];
   daily_reviews: HaiDailyReviewRun[];
 }
 
 const PAGE_SIZE = 1000;
 const MAX_EVENT_PAGES = 20;
 const MAX_TRACE_PAGES = 20;
+const MAX_WORK_TRACE_PAGES = 20;
 
 export async function getAdminHaiDashboard(rangeDays: HaiDashboardRangeDays): Promise<HaiDashboardData> {
   const now = new Date();
   const since = startOfRange(rangeDays, now).toISOString();
-  const [events, alertResult, traceMessages, dailyReviews] = await Promise.all([
+  const [events, alertResult, traceMessages, workTraces, dailyReviews] = await Promise.all([
     fetchUsageEvents(since),
     supabase
       .from("hai_usage_alerts")
@@ -170,6 +193,7 @@ export async function getAdminHaiDashboard(rangeDays: HaiDashboardRangeDays): Pr
       .order("created_at", { ascending: false })
       .limit(50),
     fetchTraceMessages(since),
+    fetchWorkDebugTraces(since),
     fetchDailyReviews(),
   ]);
 
@@ -181,7 +205,39 @@ export async function getAdminHaiDashboard(rangeDays: HaiDashboardRangeDays): Pr
     rangeDays,
     now,
     dailyReviews,
+    workTraces,
   );
+}
+
+async function fetchWorkDebugTraces(since: string): Promise<HaiWorkDebugTraceRow[]> {
+  const rows: HaiWorkDebugTraceRow[] = [];
+  for (let page = 0; page < MAX_WORK_TRACE_PAGES; page += 1) {
+    const from = page * PAGE_SIZE;
+    const { data, error } = await supabase
+      .from("hai_work_runs")
+      .select("id, task_id, user_id, status, input_tokens, output_tokens, duration_ms, error_message, skill_snapshot, input_snapshot, parent_artifact_id, created_at, started_at, completed_at, profiles!user_id(nickname, phone, access_level), hai_work_tasks!inner(title, module_slug), hai_work_debug_traces(debug_trace)")
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    const batch = ((data ?? []) as unknown[]).map((row) => {
+      const item = row as Record<string, unknown>;
+      const task = Array.isArray(item.hai_work_tasks) ? item.hai_work_tasks[0] : item.hai_work_tasks;
+      const debug = Array.isArray(item.hai_work_debug_traces) ? item.hai_work_debug_traces[0] : item.hai_work_debug_traces;
+      return {
+        ...item,
+        task_title: (task as Record<string, unknown> | null)?.title ?? "未命名任务",
+        module_slug: (task as Record<string, unknown> | null)?.module_slug ?? "-",
+        profile: profileOf(item.profiles as HaiProfileRelation | undefined),
+        skill_snapshot: recordOf(item.skill_snapshot) ?? {},
+        input_snapshot: recordOf(item.input_snapshot) ?? {},
+        debug_trace: recordOf((debug as Record<string, unknown> | null)?.debug_trace),
+      } as HaiWorkDebugTraceRow;
+    });
+    rows.push(...batch);
+    if (batch.length < PAGE_SIZE) break;
+  }
+  return rows;
 }
 
 async function fetchTraceMessages(since: string): Promise<HaiTraceMessageRow[]> {
@@ -259,6 +315,7 @@ export function buildHaiDashboardData(
   rangeDays: HaiDashboardRangeDays,
   now = new Date(),
   dailyReviews: HaiDailyReviewRun[] = [],
+  workTraces: HaiWorkDebugTraceRow[] = [],
 ): HaiDashboardData {
   const dailyMap = createDailyBuckets(rangeDays, now);
   const rankings = new Map<string, HaiUserRanking>();
@@ -363,6 +420,7 @@ export function buildHaiDashboardData(
     recent_events: events.slice(0, 30).map((event) => ({ ...event, profile: profileOf(event.profiles) })),
     alerts: alerts.map((alert) => ({ ...alert, profile: profileOf(alert.profiles) })),
     recent_traces: traces,
+    recent_work_traces: workTraces,
     daily_reviews: dailyReviews,
   };
 }

@@ -30,6 +30,7 @@ import {
   triggerHaiDailyReview,
   type HaiDashboardData,
   type HaiDashboardRangeDays,
+  type HaiWorkDebugTraceRow,
 } from "@/db/hai-analytics";
 import {
   haiIntentLabel,
@@ -431,8 +432,120 @@ export default function HaiDashboardSection() {
           )}
         </div>
       </section>
+
+      <section className="rounded-ds-lg border border-bd bg-white p-4 shadow-ds-xs md:p-6">
+        <SectionTitle
+          title="HAI Work 教案生成全量追溯"
+          description={`当前周期共 ${(data.recent_work_traces ?? []).length} 次运行；展开后查看输入、教材/材料检索、Skill references、完整 prompt、模型原文、清洗和产物落盘时间线`}
+        />
+        <div className="mt-4 space-y-3">
+          {(data.recent_work_traces ?? []).map((run) => (
+            <details key={run.id} className="group rounded-ds-md border border-bd bg-bg p-3">
+              <summary className="cursor-pointer list-none">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Badge variant="outline">{workToolLabel(run.module_slug)}</Badge>
+                      <Badge variant="outline" className={run.status === "failed" ? "border-red-200 text-red-600" : "border-tl/30 text-tl"}>{workStatusLabel(run.status)}</Badge>
+                      <span className="text-[11px] text-txs">{formatDateTime(run.created_at)}</span>
+                    </div>
+                    <p className="mt-2 text-ds-sm font-ds-bold text-tx">{run.task_title}</p>
+                    <p className="mt-1 text-[11px] text-txs">
+                      {run.profile?.nickname ?? "未知用户"} · 输入 {formatNumber(run.input_tokens ?? 0)} · 输出 {formatNumber(run.output_tokens ?? 0)} · 耗时 {formatDuration(run.duration_ms ?? 0)}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-ds-xs text-txs transition group-open:rotate-180">⌄</span>
+                </div>
+              </summary>
+              <div className="mt-4 space-y-4 border-t border-bd pt-4">
+                {run.debug_trace ? <WorkTraceDetails trace={run.debug_trace} run={run} /> : (
+                  <p className="rounded-ds-md border border-amber-200 bg-amber-50 p-3 text-ds-xs leading-relaxed text-amber-800">
+                    这条是历史运行，创建时尚未保存完整 HAI Work debug trace；仍可参考下方输入快照、Skill 快照、状态、Token 和错误信息。新运行会保存完整生成过程。
+                  </p>
+                )}
+                <div className="grid gap-3 lg:grid-cols-2">
+                  <TraceDetail title="运行元数据">
+                    <JsonBlock value={{ status: run.status, task_id: run.task_id, run_id: run.id, parent_artifact_id: run.parent_artifact_id, started_at: run.started_at, completed_at: run.completed_at, error: run.error_message }} />
+                  </TraceDetail>
+                  <TraceDetail title="历史输入 / Skill 快照">
+                    <JsonBlock value={{ input_snapshot: run.input_snapshot, skill_snapshot: run.skill_snapshot }} />
+                  </TraceDetail>
+                </div>
+              </div>
+            </details>
+          ))}
+          {(data.recent_work_traces ?? []).length === 0 && (
+            <p className="rounded-ds-md bg-bg px-4 py-10 text-center text-ds-sm text-txs">当前周期暂无 HAI Work 运行记录</p>
+          )}
+        </div>
+      </section>
     </div>
   );
+}
+
+function WorkTraceDetails({ trace, run }: { trace: Record<string, unknown>; run: HaiWorkDebugTraceRow }) {
+  const events = arrayOfRecords(trace.events);
+  const attempts = arrayOfRecords(trace.model_attempts);
+  const prompt = recordOf(trace.prompt);
+  const skill = recordOf(trace.skill);
+  const textbook = recordOf(trace.textbook);
+  const materials = recordOf(trace.materials);
+  const cases = recordOf(trace.case_library);
+  return (
+    <div className="grid gap-3 lg:grid-cols-2">
+      <TraceDetail title="生成链路与模型参数">
+        <JsonBlock value={{ request: trace.request, module: trace.module, captured_at: trace.captured_at }} />
+      </TraceDetail>
+      <TraceDetail title="Skill 与实际加载 References">
+        <JsonBlock value={skill} />
+      </TraceDetail>
+      <TraceDetail title="教材、案例与用户材料实际送入内容">
+        <div className="space-y-2">
+          <JsonBlock value={{ textbook, case_library: cases, materials }} />
+          <p className="text-[11px] text-txs">本次运行用户：{run.profile?.nickname ?? "未知用户"}</p>
+        </div>
+      </TraceDetail>
+      <TraceDetail title="最终发送给模型的完整 Prompt">
+        <JsonBlock value={prompt} />
+      </TraceDetail>
+      <div className="lg:col-span-2">
+        <TraceDetail title={`模型原文与清洗结果 · ${attempts.length} 次调用`}>
+          <div className="space-y-2">
+            {attempts.map((attempt, index) => (
+              <details key={`${run.id}-attempt-${index}`} className="rounded-ds-md border border-bd bg-white p-3">
+                <summary className="cursor-pointer text-ds-xs font-ds-bold text-tx">
+                  第 {Number(attempt.attempt ?? index + 1)} 次 · {String(attempt.purpose ?? "model_call")} · {String(attempt.output_chars ?? 0)} 字 · {formatDuration(Number(attempt.duration_ms ?? 0))}
+                </summary>
+                <pre className="mt-3 max-h-[32rem] overflow-auto whitespace-pre-wrap break-words rounded-ds-sm bg-bg p-3 text-[11px] leading-relaxed text-tx">{String(attempt.raw_output ?? "")}</pre>
+              </details>
+            ))}
+            {attempts.length === 0 && <p className="text-ds-xs text-txs">尚未记录模型返回原文。</p>}
+          </div>
+        </TraceDetail>
+      </div>
+      <div className="lg:col-span-2">
+        <TraceDetail title={`阶段时间线 · ${events.length} 个事件`}>
+          <JsonBlock value={events} />
+        </TraceDetail>
+      </div>
+    </div>
+  );
+}
+
+function workToolLabel(slug: string) {
+  return { "lesson-diagnosis": "教案诊断", "segment-optimization": "环节优化", "subject-lesson-design": "公开课设计", "teaching-design": "研发教学方案" }[slug] ?? slug;
+}
+
+function workStatusLabel(status: string) {
+  return { queued: "排队中", running: "运行中", completed: "已完成", failed: "失败" }[status] ?? status;
+}
+
+function recordOf(value: unknown): Record<string, unknown> | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function arrayOfRecords(value: unknown): Array<Record<string, unknown>> {
+  return Array.isArray(value) ? value.map(recordOf).filter((item): item is Record<string, unknown> => item !== null) : [];
 }
 
 function HeroMetric({ icon: Icon, label, value, suffix }: { icon: typeof Activity; label: string; value: string; suffix: string }) {

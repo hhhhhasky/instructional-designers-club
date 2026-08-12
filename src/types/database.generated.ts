@@ -2252,6 +2252,48 @@ export type Database = {
           },
         ]
       }
+      hai_work_debug_traces: {
+        Row: {
+          created_at: string
+          debug_trace: Json
+          id: string
+          run_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          debug_trace?: Json
+          id?: string
+          run_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          debug_trace?: Json
+          id?: string
+          run_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hai_work_debug_traces_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "hai_work_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hai_work_debug_traces_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hai_work_runs: {
         Row: {
           client_request_id: string

@@ -69,6 +69,7 @@ describe("HAI dashboard aggregation", () => {
       role: "system",
       content: "完整运行时提示词",
     });
+    expect(result.recent_work_traces).toEqual([]);
   });
 
   it("returns stable zero-state metrics when no one has used HAI", () => {
