@@ -41,6 +41,13 @@ export type WorkSkillReference = {
 type TextbookRouteSource = {
   section_path: string;
   content_type: string;
+  section_level?: string | null;
+  unit_label?: string | null;
+  unit_title?: string | null;
+  lesson_label?: string | null;
+  lesson_title?: string | null;
+  frame_label?: string | null;
+  frame_title?: string | null;
 };
 
 /**
@@ -56,23 +63,61 @@ export function filterExactTextbookSources<T extends TextbookRouteSource>(
   const lessonNeedle = textbookRouteNeedle(input.topic, "lesson");
   const frameNeedle = textbookRouteNeedle(input.frame, "frame");
   return sources.filter((source) => {
-    const path = normalizeTextbookRoute(source.section_path);
-    const unitPath = normalizeTextbookRoute(source.section_path.split(/[\\/|]/u)[0]).replace(/^\d+/u, "");
-    if (unitNeedle && unitPath !== unitNeedle) return false;
-    const isUnitContext = source.content_type === "unit_context";
-    const isLessonContext = source.content_type === "lesson_summary";
-    if (lessonNeedle && !isUnitContext && !path.includes(lessonNeedle)) return false;
-    if (frameNeedle && !isUnitContext && !isLessonContext && !path.includes(frameNeedle)) return false;
+    if (unitNeedle && !matchesTextbookRoute(source, unitNeedle, "unit")) return false;
+    const hasLessonRoute = Boolean(source.lesson_label || source.lesson_title);
+    const hasFrameRoute = Boolean(source.frame_label || source.frame_title);
+    const isUnitContext = source.content_type === "unit_context" || source.section_level === "unit" || (!hasLessonRoute && !hasFrameRoute);
+    const isLessonContext = source.content_type === "lesson_summary" || source.section_level === "lesson" || (hasLessonRoute && !hasFrameRoute);
+    if (lessonNeedle && !isUnitContext && !matchesTextbookRoute(source, lessonNeedle, "lesson")) return false;
+    if (frameNeedle && !isUnitContext && !isLessonContext && !matchesTextbookRoute(source, frameNeedle, "frame")) return false;
     return true;
   });
+}
+
+function matchesTextbookRoute(source: TextbookRouteSource, needle: string, level: "unit" | "lesson" | "frame") {
+  const structuredValue = textbookRouteNeedle(
+    [
+      source[`${level}_label`],
+      source[`${level}_title`],
+    ].filter(Boolean).join(" "),
+    level,
+  );
+  if (structuredValue) return routeTextsMatch(structuredValue, needle);
+
+  const segments = source.section_path.split(/[\\/|]/u).map((segment) => segment.trim()).filter(Boolean);
+  const levelSegments = segments.filter((segment) => routeSegmentHasLevel(segment, level));
+  const fallbackIndex = level === "unit" ? 0 : level === "lesson" ? 1 : 2;
+  const fallbackSegments = levelSegments.length === 0 && segments[fallbackIndex]
+    ? [segments[fallbackIndex]]
+    : levelSegments;
+  return fallbackSegments
+    .some((segment) => routeTextsMatch(textbookRouteNeedle(segment, level), needle));
+}
+
+function routeTextsMatch(sourceValue: string, selectedValue: string) {
+  return sourceValue === selectedValue;
+}
+
+function routeSegmentHasLevel(segment: string, level: "unit" | "lesson" | "frame") {
+  const number = "[一二三四五六七八九十百千万零〇\\d]+";
+  if (level === "unit") return new RegExp(`(?:第\\s*${number}|${number})\\s*(?:单元|章)`, "u").test(segment);
+  if (level === "lesson") return new RegExp(`(?:第\\s*${number}|${number})\\s*课`, "u").test(segment);
+  return new RegExp(`(?:第\\s*${number}|${number})\\s*(?:框|节)`, "u").test(segment);
 }
 
 function textbookRouteNeedle(value: unknown, level: "unit" | "lesson" | "frame") {
   let text = String(value ?? "").trim();
   if (!text) return "";
+  const numberPattern = "[一二三四五六七八九十百千万零〇\\d]+";
   const labelPattern = level === "unit" ? "(?:单元|章)" : level === "lesson" ? "课" : "(?:框|节)";
-  text = text.replace(new RegExp(`^第\\s*[一二三四五六七八九十\\d]+\\s*${labelPattern}\\s*`, "u"), "");
-  if (level === "lesson") text = text.replace(/^\d+[.、：:\s]*/u, "");
+  const hadExplicitLevel = new RegExp(`^(?:第\\s*${numberPattern}\\s*${labelPattern}|${labelPattern}\\s*${numberPattern})`, "u").test(text);
+  text = text
+    .replace(new RegExp(`^第\\s*${numberPattern}\\s*${labelPattern}\\s*`, "u"), "")
+    .replace(new RegExp(`^${labelPattern}\\s*${numberPattern}\\s*[、.．：:\\s]*`, "u"), "")
+    .replace(/[（(]\s*第?\s*\d+\s*(?:[-—~～至到]\s*\d+\s*)?页\s*[）)]/gu, "");
+  if (!hadExplicitLevel) {
+    text = text.replace(/^[一二三四五六七八九十百千万零〇\d]+[、.．：:\s]+/u, "");
+  }
   return normalizeTextbookRoute(text);
 }
 

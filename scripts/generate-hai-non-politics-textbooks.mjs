@@ -10,6 +10,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { completeTextbookPayload, validateHaiTextbookPayload } from "./hai-textbook-payload.mjs";
 
 const vaultRoot = "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程";
 const mathRoot = path.join(vaultRoot, "数学教材");
@@ -410,14 +411,15 @@ function build() {
   const filteredSections = sections.filter((section) => collectionSlugs.has(section.collection_slug));
   const sectionKeys = new Set(filteredSections.map((section) => section.section_key));
   const filteredLinks = links.filter((link) => sectionKeys.has(link.section_key) && sectionKeys.has(link.linked_section_key));
-  const payload = {
-    schema_version: "non-politics-unit-lesson-v1",
+  const payload = completeTextbookPayload({
+    schemaVersion: "hai-textbook-v2",
     generated_at: new Date().toISOString(),
     excluded_scopes: ["初中思政教材", "小学道法教材解析", "高中思想政治教材", "新课标（2022）", "小学英语课堂活动清单.md"],
     collections: dedupCollections,
     sections: filteredSections,
     links: filteredLinks,
-  };
+  });
+  validateHaiTextbookPayload(payload, { source: outputPath });
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
   const counts = {};

@@ -3,6 +3,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { completeTextbookPayload, validateHaiTextbookPayload } from "./hai-textbook-payload.mjs";
 
 const defaultKnowledgeRoot = "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/思政知识库";
 const knowledgeRoot = path.resolve(process.argv[2] || defaultKnowledgeRoot);
@@ -124,6 +125,7 @@ function sectionFromBlock({ collection, unit, lesson, frame, body, sourceFileNam
   return {
     section_key: `${collection.slug}__u${unit.number}__l${lesson.number}__f${frame.number}`,
     collection_slug: collection.slug,
+    section_level: "frame",
     unit_number: unit.number,
     unit_label: unit.label,
     unit_title: unit.title,
@@ -201,7 +203,7 @@ function parseTextbookFile(filePath, context) {
     const lesson = { number: 1, label: "全课", title: context.lessonFallback || fileName.replace(/\.md$/, "") };
     sections.push(sectionFromBlock({
       collection: context.collection,
-      unit: currentUnit,
+      unit: unitFromFile,
       lesson,
       frame: { number: 1, label: "全课内容", title: "全课内容" },
       body: raw,
@@ -305,7 +307,13 @@ function buildTextbooks() {
   for (const collection of collections.values()) {
     collection.source_hash = sha256((collectionSourceHashes.get(collection.slug) || []).sort().join("\n"));
   }
-  return { collections: [...collections.values()], sections };
+  const payload = completeTextbookPayload({
+    schemaVersion: "hai-textbook-v2",
+    collections: [...collections.values()],
+    sections,
+  });
+  validateHaiTextbookPayload(payload, { source: "hai-sizheng-textbooks.json" });
+  return payload;
 }
 
 function stripMarkdown(value) {

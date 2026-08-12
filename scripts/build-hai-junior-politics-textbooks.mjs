@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
+import { completeTextbookPayload, validateHaiTextbookPayload } from "./hai-textbook-payload.mjs";
 
 const sourceDir = resolve(process.argv[2] || "/Users/apple/Downloads/初中思政教材");
 const repoRoot = resolve(import.meta.dirname, "..");
@@ -133,6 +134,7 @@ function parseBook(config) {
     sections.push({
       section_key: sectionKey,
       collection_slug: config.slug,
+      section_level: "frame",
       unit_number: unit.number,
       unit_label: unit.label,
       unit_title: unit.title,
@@ -228,11 +230,14 @@ function parseBook(config) {
 
 const parsed = bookConfigs.map(parseBook);
 const payload = {
-  generated_at: new Date().toISOString(),
-  schema_version: "junior-politics-v1",
-  collections: parsed.map((item) => item.collection),
-  sections: parsed.flatMap((item) => item.sections),
+  ...completeTextbookPayload({
+    generatedAt: new Date().toISOString(),
+    schemaVersion: "hai-textbook-v2",
+    collections: parsed.map((item) => item.collection),
+    sections: parsed.flatMap((item) => item.sections),
+  }),
 };
+validateHaiTextbookPayload(payload, { source: dataPath });
 
 const unitCount = new Set(payload.sections.map((item) => `${item.collection_slug}:u${item.unit_number}`)).size;
 const lessonCount = new Set(payload.sections.map((item) => `${item.collection_slug}:u${item.unit_number}:l${item.lesson_number}`)).size;

@@ -78,6 +78,93 @@ Deno.test("filterExactTextbookSources keeps the selected lesson and its unit con
   ]);
 });
 
+Deno.test("filterExactTextbookSources matches structured fields when the path starts with a textbook volume", () => {
+  const pathPrefix = "小学道德与法治 四年级下册 / ";
+  const sources = [
+    {
+      section_path: `${pathPrefix}第2单元 做聪明的消费者 / 单元背景`,
+      content_type: "unit_context",
+      section_level: "unit",
+      unit_label: "第2单元",
+      unit_title: "做聪明的消费者",
+    },
+    {
+      section_path: `${pathPrefix}第2单元 做聪明的消费者 / 第5课 合理消费（第36-43页） / 第1框 那些我想要的东西（第36-38页）`,
+      content_type: "knowledge_summary",
+      unit_label: "第2单元",
+      unit_title: "做聪明的消费者",
+      lesson_label: "第5课",
+      lesson_title: "合理消费（第36-43页）",
+      frame_label: "第1框",
+      frame_title: "那些我想要的东西（第36-38页）",
+    },
+    {
+      section_path: `${pathPrefix}第2单元 做聪明的消费者 / 第6课 有多少浪费本可避免 / 第1框 餐桌上的浪费`,
+      content_type: "knowledge_summary",
+      unit_label: "第2单元",
+      unit_title: "做聪明的消费者",
+      lesson_label: "第6课",
+      lesson_title: "有多少浪费本可避免",
+      frame_label: "第1框",
+      frame_title: "餐桌上的浪费",
+    },
+  ];
+  const selected = filterExactTextbookSources(sources, {
+    unit: "第2单元 做聪明的消费者",
+    topic: "第5课 合理消费（第36-43页）",
+    frame: "第1框 那些我想要的东西（第36-38页）",
+  });
+  assertEquals(selected.map((item) => item.frame_title ?? item.content_type), [
+    "unit_context",
+    "那些我想要的东西（第36-38页）",
+  ]);
+});
+
+Deno.test("filterExactTextbookSources treats a structured unit-only summary as parent context", () => {
+  const selected = filterExactTextbookSources([
+    {
+      section_path: "四年级下册 / 第2单元 做聪明的消费者 / 单元背景",
+      content_type: "knowledge_summary",
+      unit_label: "第2单元",
+      unit_title: "做聪明的消费者",
+    },
+    {
+      section_path: "四年级下册 / 第2单元 做聪明的消费者 / 第5课 合理消费",
+      content_type: "knowledge_summary",
+      unit_label: "第2单元",
+      unit_title: "做聪明的消费者",
+      lesson_label: "第5课",
+      lesson_title: "合理消费",
+    },
+  ], {
+    unit: "第2单元 做聪明的消费者",
+    topic: "第5课 合理消费",
+  });
+  assertEquals(selected.map((item) => item.section_path), [
+    "四年级下册 / 第2单元 做聪明的消费者 / 单元背景",
+    "四年级下册 / 第2单元 做聪明的消费者 / 第5课 合理消费",
+  ]);
+});
+
+Deno.test("filterExactTextbookSources parses the unit segment instead of the volume segment for legacy records", () => {
+  const selected = filterExactTextbookSources([
+    {
+      section_path: "小学道德与法治 四年级下册 / 第2单元 做聪明的消费者 / 第5课 合理消费",
+      content_type: "knowledge_summary",
+    },
+    {
+      section_path: "小学道德与法治 四年级下册 / 第3单元 美好生活哪里来 / 第7课 我们的衣食之源",
+      content_type: "knowledge_summary",
+    },
+  ], {
+    unit: "第2单元 做聪明的消费者",
+    topic: "第5课 合理消费",
+  });
+  assertEquals(selected.map((item) => item.section_path), [
+    "小学道德与法治 四年级下册 / 第2单元 做聪明的消费者 / 第5课 合理消费",
+  ]);
+});
+
 Deno.test("selectWorkSkill falls back when no specialist matches", () => {
   const selected = selectWorkSkill([
     candidate({ slug: "fallback" }),
