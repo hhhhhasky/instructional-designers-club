@@ -224,7 +224,7 @@ describe("HAI Work workbench", () => {
     await user.type(gradeField, "八年级");
     await user.type(screen.getByRole("textbox", { name: "册次 / 教材" }), "上册");
     await user.type(screen.getByRole("textbox", { name: "单元" }), "Unit 1");
-    await user.type(screen.getByRole("textbox", { name: "课题" }), "My school");
+    await user.type(screen.getByRole("textbox", { name: /课题/ }), "My school");
     await user.type(screen.getByRole("textbox", { name: /教材内容/ }), "本课教材内容");
     await user.click(screen.getByRole("button", { name: "开始公开课设计" }));
 
@@ -329,7 +329,7 @@ describe("HAI Work workbench", () => {
     await user.type(screen.getByRole("textbox", { name: "年级" }), "四年级");
     await user.type(screen.getByRole("textbox", { name: "册次 / 教材" }), "上册");
     await user.type(screen.getByRole("textbox", { name: "单元" }), "Unit 1");
-    await user.type(screen.getByRole("textbox", { name: "课题" }), "My school");
+    await user.type(screen.getByRole("textbox", { name: /课题/ }), "My school");
     await user.type(screen.getByRole("textbox", { name: /教材内容/ }), "本课教材内容");
     await user.type(screen.getByRole("textbox", { name: /教案正文/ }), "教学目标：理解并运用本课词汇。");
     await user.click(screen.getByRole("button", { name: "开始教案诊断" }));

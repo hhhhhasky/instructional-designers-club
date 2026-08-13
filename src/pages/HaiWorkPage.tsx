@@ -39,6 +39,7 @@ import {
   HAI_PUBLIC_LESSON_STAGES,
   workSubjectsForStage,
 } from "@/lib/hai-subject-options";
+import { getHaiTextbookHierarchy, type HaiTextbookHierarchy } from "@/lib/hai-textbook-hierarchy";
 import { cn } from "@/lib/utils";
 
 export type HaiWorkToolVisualConfig = {
@@ -114,6 +115,10 @@ const teachingModes = [
 
 function isPoliticsSubject(subject: string) {
   return subject === "道德与法治" || subject === "思想政治";
+}
+
+function isEnglishSubject(subject: string) {
+  return subject === "英语";
 }
 
 function subjectsForWorkForm(stage: string) {
@@ -366,6 +371,11 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
     [topicCatalog],
   );
   const selectedEdition = topicCatalog[0] ?? volumeCatalog[0];
+  const englishCatalog = isEnglishSubject(form.subject);
+  const hierarchyLabels = useMemo(
+    () => getHaiTextbookHierarchy(form.subject, catalog),
+    [catalog, form.subject],
+  );
   const requiresTeacherTextbook = Boolean(form.stage && form.subject) && !catalogLoading && catalog.length === 0;
 
   function update(key: string, value: string) {
@@ -447,7 +457,7 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
 
   async function submit() {
     if (!user || busy) return;
-    const validation = validateForm(toolSlug, form, files.length, requiresTeacherTextbook);
+    const validation = validateForm(toolSlug, form, files.length, requiresTeacherTextbook, hierarchyLabels);
     if (validation) {
       setError(validation);
       return;
@@ -530,17 +540,21 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
             <>
               <TextField label="年级" value={form.grade} placeholder="填写年级" onChange={(value) => update("grade", value)} />
               <TextField label="册次 / 教材" value={form.volume} placeholder="填写教材名称或册次" onChange={(value) => update("volume", value)} />
-              <TextField label="单元" value={form.unit} placeholder="填写单元名称" onChange={(value) => update("unit", value)} />
-              <TextField label="课题" value={form.topic} placeholder="填写本节课题" onChange={(value) => update("topic", value)} />
-              <TextField label="框题（可选）" value={form.frame} placeholder="如有框题请填写" onChange={(value) => update("frame", value)} />
+              <TextField label={hierarchyLabels.top} value={form.unit} placeholder={`填写${hierarchyLabels.top}名称`} onChange={(value) => update("unit", value)} />
+              <TextField label={hierarchyLabels.middle} value={form.topic} placeholder={`填写${hierarchyLabels.middle}`} onChange={(value) => update("topic", value)} />
+              {hierarchyLabels.hasThirdLevel && (
+                <TextField label={`${hierarchyLabels.bottom}（可选）`} value={form.frame} placeholder={`如有${hierarchyLabels.bottom}请填写`} onChange={(value) => update("frame", value)} />
+              )}
             </>
           ) : (
             <>
               <SelectField label="年级" value={form.grade} options={gradeOptions} onChange={(value) => updateTextbookField("grade", value)} />
               <SelectField label="册次 / 教材" value={form.volume} options={volumeOptions} onChange={(value) => updateTextbookField("volume", value)} />
-              <SelectField label="单元" value={form.unit} options={unitOptions} onChange={(value) => updateTextbookField("unit", value)} />
-              <SelectField label="课题" value={form.topic} options={topicOptions} onChange={(value) => updateTextbookField("topic", value)} />
-              <SelectField label="框题（可选；不选则读取全课）" value={form.frame} options={frameOptions} onChange={(value) => updateTextbookField("frame", value)} />
+              <SelectField label={hierarchyLabels.top} value={form.unit} options={unitOptions} onChange={(value) => updateTextbookField("unit", value)} />
+              <SelectField label={hierarchyLabels.middle} value={form.topic} options={topicOptions} onChange={(value) => updateTextbookField("topic", value)} />
+              {hierarchyLabels.hasThirdLevel && (
+                <SelectField label={`${hierarchyLabels.bottom}（可选；不选则读取完整二级内容）`} value={form.frame} options={frameOptions} onChange={(value) => updateTextbookField("frame", value)} />
+              )}
             </>
           )}
           {toolSlug === "subject-lesson-design" && isPoliticsSubject(form.subject) ? (
@@ -562,6 +576,10 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
           )}
           <TextField label="课时与班级约束（可选）" value={form.constraints} placeholder="例如：40 分钟、48 人、不能使用平板" onChange={(value) => update("constraints", value)} />
         </div>
+        <div data-testid="textbook-hierarchy-guide" className="mt-5 rounded-[16px] border border-[var(--paper-rule)] bg-[var(--paper-deep)] px-4 py-3 text-xs leading-5 text-txs">
+          <p className="font-black text-tx">教材目录怎么理解</p>
+          <p className="mt-1">{hierarchyLabels.guide}</p>
+        </div>
         {catalogLoading && !error && (
           <p className="mt-4 text-xs text-txs">正在读取教材目录…</p>
         )}
@@ -569,6 +587,11 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
           <div className={`mt-4 rounded-[16px] border px-4 py-3 text-xs leading-5 ${selectedEdition.requires_confirmation ? "border-amber-300 bg-amber-50 text-amber-900" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}>
             当前版本：{selectedEdition.edition_label}。内置内容为知识点梳理，不是教材逐字原文。
             {selectedEdition.requires_confirmation ? " 该册标记为待纸质教材复核，生成结果会同步提醒核对。" : ""}
+          </div>
+        )}
+        {englishCatalog && !requiresTeacherTextbook && (
+          <div className="mt-4 rounded-[16px] border border-sky-200 bg-sky-50 px-4 py-3 text-xs leading-5 text-sky-900">
+            英语教材已按可授课的 Session 课时整理。请选择“听说课、阅读课、读写课或综合实践课”等课时；具体 Section、Part 和活动编号会作为本课教材证据一起读取，不再按单页或单个活动选择。
           </div>
         )}
         {requiresTeacherTextbook && (
@@ -850,16 +873,22 @@ function initialForm(toolSlug: HaiWorkToolSlug) {
   };
 }
 
-function validateForm(toolSlug: HaiWorkToolSlug, form: Record<string, string>, fileCount: number, requiresTeacherTextbook = false) {
+function validateForm(
+  toolSlug: HaiWorkToolSlug,
+  form: Record<string, string>,
+  fileCount: number,
+  requiresTeacherTextbook = false,
+  hierarchyLabels: HaiTextbookHierarchy = getHaiTextbookHierarchy(form.subject),
+) {
   if (!form.stage) return "请选择学段。";
   if (!form.subject.trim()) return "请选择学科。";
   if (!form.grade) return requiresTeacherTextbook ? "请填写年级。" : "请选择年级。";
   if (!form.volume) return requiresTeacherTextbook ? "请填写册次或教材名称。" : "请选择册次。";
-  if (!form.unit) return requiresTeacherTextbook ? "请填写单元。" : "请选择单元。";
-  if (!form.topic.trim()) return requiresTeacherTextbook ? "请填写课题。" : "请选择课题。";
+  if (!form.unit) return requiresTeacherTextbook ? `请填写${hierarchyLabels.top}。` : `请选择${hierarchyLabels.top}。`;
+  if (!form.topic.trim()) return requiresTeacherTextbook ? `请填写${hierarchyLabels.middle}。` : `请选择${hierarchyLabels.middle}。`;
   if (!requiresTeacherTextbook) {
-    if (!form.collection_slug || !form.unit_route_number || !form.lesson_route_number) return "教材目录编号缺失，请重新选择教材、单元和课题。";
-    if (form.frame.trim() && !form.frame_route_number) return "框题编号缺失，请重新选择框题。";
+    if (!form.collection_slug || !form.unit_route_number || !form.lesson_route_number) return `教材目录编号缺失，请重新选择${hierarchyLabels.top}、${hierarchyLabels.middle}。`;
+    if (form.frame.trim() && !form.frame_route_number) return `${hierarchyLabels.bottom}编号缺失，请重新选择${hierarchyLabels.bottom}。`;
   }
   if (toolSlug === "teaching-design") {
     if (!form.design_type) return "请选择设计类型。";
