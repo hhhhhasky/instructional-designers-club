@@ -524,6 +524,7 @@ function matchesCriteria(criteria: Record<string, unknown>, input: Record<string
     ["lesson_types", "lesson_type"],
     ["teaching_modes", "teaching_mode"],
     ["design_types", "design_type"],
+    ["segment_types", "segment_type"],
   ];
   return mappings.every(([criteriaKey, inputKey]) => {
     const allowed = Array.isArray(criteria[criteriaKey])
@@ -537,7 +538,7 @@ function matchesCriteria(criteria: Record<string, unknown>, input: Record<string
 }
 
 function criteriaSpecificity(criteria: Record<string, unknown>) {
-  return ["stages", "subjects", "lesson_types", "teaching_modes", "design_types"]
+  return ["stages", "subjects", "lesson_types", "teaching_modes", "design_types", "segment_types"]
     .filter((key) => Array.isArray(criteria[key]) && (criteria[key] as unknown[]).length > 0)
     .length;
 }

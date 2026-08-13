@@ -224,6 +224,7 @@ Deno.test("subject lesson design keeps lesson type internal and clears modes for
     unit: "第一单元 少年有梦",
     topic: "第一课 开启初中生活",
     teaching_mode: "任务式",
+    lesson_type: "",
   };
   validateWorkInput("subject-lesson-design", politicsInput, 0);
   assertEquals(politicsInput.lesson_type, "公开课");
