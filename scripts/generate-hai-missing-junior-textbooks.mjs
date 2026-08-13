@@ -16,12 +16,23 @@ const n = (value) => { const s = String(value); if (/^\d+$/u.test(s)) return Num
 const sources = {
   biology: {
     subject: "生物", publisher: "人民教育出版社", edition: "人教版义务教育教科书·生物学（官方目录摘要）",
-    urls: ["https://www.pep.com.cn/products/jc/czjks/201510/t20151026_1250811.shtml", "https://www.pep.com.cn/products/jc/czjks/201510/t20151026_1250710.shtml", "https://www.pep.com.cn/products/jc/czjks/201510/t20151026_1250820.shtml", "https://www.pep.com.cn/products/jc/czjks/201510/t20151026_1250709.shtml"],
+    urls: ["https://www.pep.com.cn/xw/zt/hd/12/xjcjs/cz/202409/t20240914_1995532.html", "https://www.pep.com.cn/bks/kcjcjf/xszh/202503/W020250407382131634362.pdf", "https://www.renjiaoshe.com/jiaocai/3467.html", "https://www.renjiaoshe.com/jiaocai/3468.html", "https://www.renjiaoshe.com/jiaocai/3469.html", "https://www.sohu.com/a/1053101410_120904083"],
     books: [
-      [7, "上册", [["第一单元 生物和生物圈", ["第一章 认识生物｜第一节 生物的特征", "第一章 认识生物｜第二节 调查周边环境中的生物", "第二章 了解生物圈｜第一节 生物与环境的关系", "第二章 了解生物圈｜第二节 生物与环境组成生态系统", "第二章 了解生物圈｜第三节 生物圈是最大的生态系统"]], ["第二单元 生物体的结构层次", ["第一章 细胞是生命活动的基本单位｜第一节 练习使用显微镜", "第一章 细胞是生命活动的基本单位｜第二节 植物细胞", "第一章 细胞是生命活动的基本单位｜第三节 动物细胞", "第一章 细胞是生命活动的基本单位｜第四节 细胞的生活", "第二章 细胞怎样构成生物体｜第一节 细胞通过分裂产生新细胞", "第二章 细胞怎样构成生物体｜第二节 动物体的结构层次", "第二章 细胞怎样构成生物体｜第三节 植物体的结构层次", "第二章 细胞怎样构成生物体｜第四节 单细胞生物"]], ["第三单元 生物圈中的绿色植物", ["第一章 生物圈中有哪些绿色植物｜第一节 藻类、苔藓和蕨类植物", "第一章 生物圈中有哪些绿色植物｜第二节 种子植物", "第二章 被子植物的一生｜第一节 种子的萌发", "第二章 被子植物的一生｜第二节 植株的生长", "第二章 被子植物的一生｜第三节 开花和结果", "第三章 绿色植物与生物圈的水循环", "第四章 绿色植物是生物圈中有机物的制造者", "第五章 绿色植物与生物圈中碳—氧平衡", "第六章 爱护植被，绿化祖国"]]]],
-      [7, "下册", [["第四单元 生物圈中的人", ["第一章 人的由来｜第一节 人类的起源和发展", "第一章 人的由来｜第二节 人的生殖", "第一章 人的由来｜第三节 青春期", "第二章 人体的营养｜第一节 食物中的营养物质", "第二章 人体的营养｜第二节 消化和吸收", "第二章 人体的营养｜第三节 合理营养与食品安全", "第三章 人体的呼吸｜第一节 呼吸道对空气的处理", "第三章 人体的呼吸｜第二节 发生在肺内的气体交换", "第四章 人体内物质的运输｜第一节 流动的组织——血液", "第四章 人体内物质的运输｜第二节 血流的管道——血管", "第四章 人体内物质的运输｜第三节 输送血液的泵——心脏", "第四章 人体内物质的运输｜第四节 输血与血型", "第五章 人体内废物的排出", "第六章 人体生命活动的调节｜第一节 人体对外界环境的感知", "第六章 人体生命活动的调节｜第二节 神经系统的组成", "第六章 人体生命活动的调节｜第三节 神经调节的基本方式", "第六章 人体生命活动的调节｜第四节 激素调节", "第七章 人类活动对生物圈的影响｜第一节 分析人类活动对生态环境的影响", "第七章 人类活动对生物圈的影响｜第二节 探究环境污染对生物的影响", "第七章 人类活动对生物圈的影响｜第三节 拟定保护生态环境的计划"]]]],
-      [8, "上册", [["第五单元 生物圈中的其他生物", ["第一章 动物的主要类群｜第一节 腔肠动物和扁形动物", "第一章 动物的主要类群｜第二节 线形动物和环节动物", "第一章 动物的主要类群｜第三节 软体动物和节肢动物", "第一章 动物的主要类群｜第四节 鱼", "第一章 动物的主要类群｜第五节 两栖动物和爬行动物", "第一章 动物的主要类群｜第六节 鸟", "第一章 动物的主要类群｜第七节 哺乳动物", "第二章 动物的运动和行为｜第一节 动物的运动", "第二章 动物的运动和行为｜第二节 先天性行为和学习行为", "第二章 动物的运动和行为｜第三节 社会行为", "第三章 动物在生物圈中的作用", "第四章 细菌和真菌｜第一节 细菌和真菌的分布", "第四章 细菌和真菌｜第二节 细菌", "第四章 细菌和真菌｜第三节 真菌", "第四章 细菌和真菌｜第四节 细菌和真菌在自然界中的作用", "第四章 细菌和真菌｜第五节 人类对细菌和真菌的作用", "第五章 病毒"]], ["第六单元 生物的多样性及其保护", ["第一章 根据生物的特征进行分类｜第一节 尝试对生物进行分类", "第一章 根据生物的特征进行分类｜第二节 从种到界", "第二章 认识生物的多样性", "第三章 保护生物的多样性"]]]],
-      [8, "下册", [["第七单元 生物圈中生命的延续和发展", ["第一章 生物的生殖和发育｜第一节 植物的生殖", "第一章 生物的生殖和发育｜第二节 昆虫的生殖和发育", "第一章 生物的生殖和发育｜第三节 两栖动物的生殖和发育", "第一章 生物的生殖和发育｜第四节 鸟的生殖和发育", "第二章 生物的遗传和变异｜第一节 基因控制生物的性状", "第二章 生物的遗传和变异｜第二节 基因在亲子代间的传递", "第二章 生物的遗传和变异｜第三节 基因的显性和隐性", "第二章 生物的遗传和变异｜第四节 人的性别遗传", "第二章 生物的遗传和变异｜第五节 生物的变异", "第三章 生命起源和生物进化｜第一节 地球上生命的起源", "第三章 生命起源和生物进化｜第二节 生物进化的历程", "第三章 生命起源和生物进化｜第三节 生物进化的原因"]], ["第八单元 健康地生活", ["第一章 传染病和免疫｜第一节 传染病及其预防", "第一章 传染病和免疫｜第二节 免疫与计划免疫", "第二章 用药和急救", "第三章 选择健康的生活方式"]]]],
+      [7, "上册", [
+        [1, "生物和细胞", [["认识生物", ["观察周边环境中的生物", "生物的特征"]], ["认识细胞", ["学习使用显微镜", "植物细胞", "动物细胞", "细胞的生活"]], ["从细胞到生物体", ["细胞通过分裂产生新细胞", "动物体的结构层次", "植物体的结构层次", "单细胞生物"]]]],
+        [2, "多种多样的生物", [["植物的类群", ["藻类、苔藓植物和蕨类植物", "种子植物"]], ["动物的类群", ["无脊椎动物", "脊椎动物"]], ["微生物", ["微生物的分布", "细菌", "真菌", "病毒"]], ["生物分类的方法", ["尝试对生物进行分类", "从种到界"]]]],
+      ]],
+      [7, "下册", [
+        [3, "植物的生活", [["被子植物的一生", ["种子的萌发", "植株的生长", "开花和结果"]], ["植物体内的物质与能量变化", ["水的利用与散失", "光合作用", "呼吸作用", "植物在自然界中的作用"]]]],
+        [4, "人体生理与健康（一）", [["人的生殖和发育", ["人的生殖", "青春期"]], ["人体的营养", ["食物中的营养物质", "消化和吸收", "合理营养与食品安全"]], ["人体的呼吸", ["呼吸道对空气的处理", "发生在肺内的气体交换"]], ["人体内物质的运输", ["流动的组织——血液", "血流的管道——血管", "输送血液的泵——心脏"]], ["人体内废物的排出", []]]],
+      ]],
+      [8, "上册", [
+        [4, "人体生理与健康（二）", [["人体生命活动的调节", ["人体对外界环境的感知", "神经调节", "神经系统支配下的运动", "激素调节"]], ["健康地生活", ["传染病及其预防", "免疫与免疫规划", "用药与急救", "选择健康的生活方式"]]]],
+        [5, "生物与环境", [["生态系统", ["生物与环境的相互作用", "生态系统的结构和功能", "生物圈"]], ["生态安全", ["分析人类活动对生态环境的影响", "维护生态安全"]]]],
+      ]],
+      [8, "下册", [
+        [6, "生命的延续和发展", [["生物的生殖", ["无性生殖", "有性生殖"]], ["生物的遗传与变异", ["基因与生物性状的关系", "基因在亲子代间的传递", "基因的显性和隐性", "人的性别决定", "生物的变异"]], ["生物的进化", ["地球上生命的起源", "生物进化的历程", "生物进化的原因", "人类的起源"]], ["生物多样性及其保护", ["进化与生物多样性", "人与自然和谐共生"]]]],
+      ]],
     ],
   },
   geography: {
@@ -55,26 +66,52 @@ function makeBook(source, grade, volume, units) {
   const sections = [];
   const links = [];
   for (let unitIndex = 0; unitIndex < units.length; unitIndex += 1) {
-    const [unitTitle, lessonTitles] = units[unitIndex];
-    const unitNumber = unitIndex + 1;
+    const unitDefinition = units[unitIndex];
+    const isBiologyHierarchy = source.subject === "生物" && Array.isArray(unitDefinition[2]);
+    const unitNumber = isBiologyHierarchy ? unitDefinition[0] : unitIndex + 1;
+    const unitTitle = isBiologyHierarchy ? unitDefinition[1] : unitDefinition[0];
     const unitKey = `${slug}::u${unitNumber}`;
     const unitContent = `# 第${unitNumber}单元 ${unitTitle}\n\n本单元以“${unitTitle}”为内容边界。目录来源为人民教育出版社公开书目信息；具体教材表述、图片、活动和数据需以当册教材核对。`;
     sections.push(section({ slug, level: "unit", unitNumber, unitTitle, content: unitContent, sort: unitNumber * 1000, source }));
-    markdown.push(`### 第${unitNumber}单元 ${unitTitle}`, "", ...lessonTitles.map((title, index) => `${index + 1}. ${title}`), "");
-    for (let lessonIndex = 0; lessonIndex < lessonTitles.length; lessonIndex += 1) {
+    if (!isBiologyHierarchy) {
+      const lessonTitles = unitDefinition[1];
+      markdown.push(`### 第${unitNumber}单元 ${unitTitle}`, "", ...lessonTitles.map((title, index) => `${index + 1}. ${title}`), "");
+      for (let lessonIndex = 0; lessonIndex < lessonTitles.length; lessonIndex += 1) {
+        const lessonNumber = lessonIndex + 1;
+        const [chapter, lessonTitle = chapter] = lessonTitles[lessonIndex].split("｜");
+        const lessonKey = `${slug}::u${unitNumber}::l${lessonNumber}`;
+        const content = `## ${lessonTitles[lessonIndex]}\n\n学科定位：本课属于“${unitTitle}”单元。课堂设计应从教材事实、学科关键概念或学科实践出发，形成可观察的解释、证据、方法或作品；目录本身不替代教材正文。`;
+        sections.push(section({ slug, level: "lesson", unitNumber, unitTitle, lessonNumber, lessonTitle: lessonTitle.trim(), content, sort: unitNumber * 1000 + lessonNumber, source }));
+        links.push({ section_key: unitKey, linked_section_key: lessonKey, relation_type: "unit_to_lesson" }, { section_key: lessonKey, linked_section_key: unitKey, relation_type: "lesson_to_unit" });
+      }
+      continue;
+    }
+    const lessonDefinitions = unitDefinition[2];
+    markdown.push(`### 第${unitNumber}单元 ${unitTitle}`, "", ...lessonDefinitions.map(([chapterTitle, frameTitles], index) => `${index + 1}. ${chapterTitle}${frameTitles.length ? `：${frameTitles.join("、")}` : ""}`), "");
+    for (let lessonIndex = 0; lessonIndex < lessonDefinitions.length; lessonIndex += 1) {
       const lessonNumber = lessonIndex + 1;
-      const [chapter, lessonTitle = chapter] = lessonTitles[lessonIndex].split("｜");
+      const [lessonTitle, frameTitles] = lessonDefinitions[lessonIndex];
       const lessonKey = `${slug}::u${unitNumber}::l${lessonNumber}`;
-      const content = `## ${lessonTitles[lessonIndex]}\n\n学科定位：本课属于“${unitTitle}”单元。课堂设计应从教材事实、学科关键概念或学科实践出发，形成可观察的解释、证据、方法或作品；目录本身不替代教材正文。`;
-      sections.push(section({ slug, level: "lesson", unitNumber, unitTitle, lessonNumber, lessonTitle: lessonTitle.trim(), content, sort: unitNumber * 1000 + lessonNumber, source }));
+      const chapterLabel = `第${lessonNumber}章`;
+      const content = `## ${chapterLabel} ${lessonTitle}\n\n学科定位：本章属于“${unitTitle}”单元。课堂设计应从教材事实、学科关键概念或学科实践出发，形成可观察的解释、证据、方法或作品；目录本身不替代教材正文。`;
+      sections.push(section({ slug, level: "lesson", unitNumber, unitTitle, lessonNumber, lessonTitle: lessonTitle.trim(), lessonLabel: chapterLabel, content, sort: unitNumber * 1000 + lessonNumber * 10, source }));
       links.push({ section_key: unitKey, linked_section_key: lessonKey, relation_type: "unit_to_lesson" }, { section_key: lessonKey, linked_section_key: unitKey, relation_type: "lesson_to_unit" });
+      for (let frameIndex = 0; frameIndex < frameTitles.length; frameIndex += 1) {
+        const frameNumber = frameIndex + 1;
+        const frameTitle = frameTitles[frameIndex];
+        const frameKey = `${slug}::u${unitNumber}::l${lessonNumber}::f${frameNumber}`;
+        const frameLabel = `第${frameNumber}节`;
+        const frameContent = `### ${frameLabel} ${frameTitle}\n\n本节属于“${lessonTitle}”。目录来源为人民教育出版社公开书目信息；具体教材表述、图片、活动和数据需以当册教材核对。`;
+        sections.push(section({ slug, level: "frame", unitNumber, unitTitle, lessonNumber, lessonTitle: lessonTitle.trim(), lessonLabel: chapterLabel, frameNumber, frameTitle: frameTitle.trim(), frameLabel, content: frameContent, sort: unitNumber * 1000 + lessonNumber * 10 + frameNumber, source }));
+        links.push({ section_key: lessonKey, linked_section_key: frameKey, relation_type: "lesson_to_frame" }, { section_key: frameKey, linked_section_key: lessonKey, relation_type: "frame_to_lesson" });
+      }
     }
   }
   const sourceText = markdown.join("\n");
   return { slug, markdown: sourceText, sections, links, collection: { slug, title: `人教版${source.subject}${grade}年级${volume}官方目录摘要`, stage: "初中", subject: source.subject, publisher: source.publisher, edition_family: source.subject === "历史" ? "统编版" : "人教版", edition_label: source.edition, grade_level: grade, grade_label: `${grade}年级`, volume, publication_status: "catalogue_summary", verification_status: "official_publisher_catalogue", requires_confirmation: true, content_type: "official_catalogue_summary", source_type: "official_public_catalogue", source_file_name: `教材课标知识库/初中生物地理历史教材/${source.subject}${grade}年级${volume}_官方目录摘要.md`, source_note: "官方公开目录摘要，不是教材逐字正文；生物/地理/历史课程标准与新修订教材版本需要教师按当前在用版本复核。", source_hash: sha256(sourceText), metadata: { official_sources: source.urls, parser: "official-catalogue-summary-v1", copyright_boundary: "目录标题与原创学科定位摘要；不含教材正文" } } };
 }
 
-function section({ slug, level, unitNumber, unitTitle, lessonNumber = 0, lessonTitle = "", content, sort, source }) { const text = content.trim(); return { section_key: level === "unit" ? `${slug}::u${unitNumber}` : `${slug}::u${unitNumber}::l${lessonNumber}`, collection_slug: slug, section_level: level, unit_number: unitNumber, unit_label: `第${unitNumber}单元`, unit_title: unitTitle, lesson_number: lessonNumber, lesson_label: lessonNumber ? `第${lessonNumber}课` : "", lesson_title: lessonNumber ? lessonTitle : "", frame_number: 0, frame_label: "", frame_title: "", section_path: `${unitNumber} ${unitTitle}${lessonNumber ? ` / ${lessonNumber} ${lessonTitle}` : " / 单元背景"}`, content_type: level === "unit" ? "unit_context" : "lesson_summary", content_markdown: text, content_text: text.replace(/[#>*`|_]/gu, " ").replace(/\s+/gu, " ").trim(), knowledge_point_count: 1, char_count: text.length, sort_order: sort, content_hash: sha256(text), verification_status: "official_catalogue_summary", metadata: { official_source_subject: source.subject, parser: "official-catalogue-summary-v1" } }; }
+function section({ slug, level, unitNumber, unitTitle, lessonNumber = 0, lessonLabel = "", lessonTitle = "", frameNumber = 0, frameLabel = "", frameTitle = "", content, sort, source }) { const text = content.trim(); return { section_key: level === "unit" ? `${slug}::u${unitNumber}` : level === "lesson" ? `${slug}::u${unitNumber}::l${lessonNumber}` : `${slug}::u${unitNumber}::l${lessonNumber}::f${frameNumber}`, collection_slug: slug, section_level: level, unit_number: unitNumber, unit_label: `第${unitNumber}单元`, unit_title: unitTitle, lesson_number: lessonNumber, lesson_label: lessonNumber ? lessonLabel || `第${lessonNumber}课` : "", lesson_title: lessonNumber ? lessonTitle : "", frame_number: frameNumber, frame_label: frameNumber ? frameLabel : "", frame_title: frameNumber ? frameTitle : "", section_path: `${unitNumber} ${unitTitle}${lessonNumber ? ` / ${lessonLabel || `第${lessonNumber}课`} ${lessonTitle}` : " / 单元背景"}${frameNumber ? ` / ${frameLabel} ${frameTitle}` : ""}`, content_type: level === "unit" ? "unit_context" : level === "lesson" ? "lesson_summary" : "knowledge_point", content_markdown: text, content_text: text.replace(/[#>*`|_]/gu, " ").replace(/\s+/gu, " ").trim(), knowledge_point_count: 1, char_count: text.length, sort_order: sort, content_hash: sha256(text), verification_status: "official_catalogue_summary", metadata: { official_source_subject: source.subject, parser: source.subject === "生物" ? "official-catalogue-hierarchy-v2" : "official-catalogue-summary-v1" } }; }
 
 function main() {
   const collections = []; const sections = []; const links = [];

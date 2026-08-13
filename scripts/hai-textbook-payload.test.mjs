@@ -84,8 +84,31 @@ test("checked-in textbook payloads follow the same contract", () => {
     "hai-sizheng-textbooks.json",
     "hai-non-politics-textbooks.json",
     "hai-junior-politics-textbooks.json",
+    "hai-missing-junior-textbooks.json",
   ]) {
     const payload = JSON.parse(readFileSync(resolve("supabase/seed-data", file), "utf8"));
     assert.equal(validateHaiTextbookPayload(payload, { source: file }), true);
   }
+});
+
+test("biology payload keeps textbook unit-chapter-section hierarchy", () => {
+  const payload = JSON.parse(readFileSync(resolve("supabase/seed-data", "hai-missing-junior-textbooks.json"), "utf8"));
+  const book = payload.collections.find((item) => item.slug === "official-catalog-biology-7-2");
+  assert.ok(book);
+  const sections = payload.sections.filter((item) => item.collection_slug === book.slug);
+  assert.deepEqual(
+    sections.filter((item) => item.section_level === "unit").map((item) => item.unit_title),
+    ["植物的生活", "人体生理与健康（一）"],
+  );
+  assert.deepEqual(
+    sections.filter((item) => item.unit_number === 3 && item.section_level === "lesson").map((item) => item.lesson_title),
+    ["被子植物的一生", "植物体内的物质与能量变化"],
+  );
+  assert.deepEqual(
+    sections.filter((item) => item.unit_number === 3 && item.section_level === "frame").map((item) => item.frame_title),
+    ["种子的萌发", "植株的生长", "开花和结果", "水的利用与散失", "光合作用", "呼吸作用", "植物在自然界中的作用"],
+  );
+  const wasteChapter = sections.find((item) => item.lesson_title === "人体内废物的排出");
+  assert.equal(wasteChapter?.section_level, "lesson");
+  assert.equal(sections.some((item) => item.lesson_title === "人体内废物的排出" && item.section_level === "frame"), false);
 });

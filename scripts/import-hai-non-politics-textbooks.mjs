@@ -10,7 +10,10 @@ const serviceRoleKey = process.env.SUPABASE_SECRET_KEY;
 const payloadPath = process.argv[2] || "supabase/seed-data/hai-non-politics-textbooks.json";
 const batchSizeArg = process.argv.find((arg) => arg.startsWith("--batch-size="));
 const batchSize = Number.parseInt(batchSizeArg?.split("=")[1] || "0", 10);
-const payload = JSON.parse(readFileSync(payloadPath, "utf8"));
+const subjectArg = process.argv.find((arg) => arg.startsWith("--subject="));
+const subject = subjectArg?.split("=")[1]?.trim() || "";
+const sourcePayload = JSON.parse(readFileSync(payloadPath, "utf8"));
+const payload = subject ? filterPayloadBySubject(sourcePayload, subject) : sourcePayload;
 validateHaiTextbookPayload(payload, { source: payloadPath });
 if (!supabaseUrl || !serviceRoleKey) {
   throw new Error("缺少 VITE_SUPABASE_URL/SUPABASE_URL 或 SUPABASE_SECRET_KEY。只使用服务端密钥运行此脚本。 ");
@@ -70,6 +73,16 @@ function splitPayloadByCollection(source, size) {
     });
   }
   return batches;
+}
+
+function filterPayloadBySubject(source, expectedSubject) {
+  const collections = source.collections.filter((collection) => collection.subject === expectedSubject);
+  const slugs = new Set(collections.map((collection) => collection.slug));
+  const sections = source.sections.filter((section) => slugs.has(section.collection_slug));
+  const sectionKeys = new Set(sections.map((section) => section.section_key));
+  const links = source.links.filter((link) => sectionKeys.has(link.section_key) && sectionKeys.has(link.linked_section_key));
+  if (collections.length === 0) throw new Error(`教材 payload 中没有学科“${expectedSubject}”。`);
+  return { ...source, collections, sections, links };
 }
 
 function loadEnv(file) {
