@@ -457,7 +457,10 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
         materialIds.push(material.id);
       }
       setProgress("HAI 正在创建工作任务");
-      await streamHaiWork({ toolSlug, input: form, materialIds }, {
+      const input = toolSlug === "subject-lesson-design"
+        ? { ...form, lesson_type: form.lesson_type.trim() || "公开课" }
+        : form;
+      await streamHaiWork({ toolSlug, input, materialIds }, {
         onEvent: (event) => {
           if (event.type === "progress") setProgress(event.message);
           if (event.type === "error") setError(event.message);

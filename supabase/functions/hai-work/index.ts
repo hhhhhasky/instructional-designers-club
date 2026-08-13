@@ -103,6 +103,9 @@ Deno.serve(async (request) => {
     const toolSlug = String(body.toolSlug ?? "").trim();
     if (!isHaiWorkToolSlug(toolSlug)) throw new HttpError(400, "未知的 HAI Work 功能。");
     const input = normalizeRecord(body.input);
+    if (toolSlug === "subject-lesson-design" && !String(input.lesson_type ?? "").trim()) {
+      input.lesson_type = "公开课";
+    }
     const materialIds = normalizeMaterialIds(body.materialIds);
     if (body.parentArtifactId && !body.taskId) {
       throw new HttpError(400, "追改产物时必须同时提供原任务。");

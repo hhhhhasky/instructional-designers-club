@@ -261,6 +261,22 @@ Deno.test("fixed textbook route IDs are required as a complete set when present"
   }, 0);
 });
 
+Deno.test("subject lesson design accepts the implicit public lesson type", () => {
+  const input = {
+    stage: "初中",
+    subject: "数学",
+    grade: "七年级",
+    volume: "上册",
+    unit: "第1单元",
+    topic: "第1课",
+    collection_slug: "junior-math-grade-7-volume-1",
+    unit_route_number: "1",
+    lesson_route_number: "1",
+    teaching_mode: "任务式",
+  };
+  validateWorkInput("subject-lesson-design", input, 0);
+});
+
 Deno.test("segment-optimization allows current_design or material upload (either-or)", () => {
   const base = {
     stage: "初中",

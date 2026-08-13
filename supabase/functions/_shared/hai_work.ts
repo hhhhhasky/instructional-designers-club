@@ -162,6 +162,10 @@ export function validateWorkInput(
     ],
   };
 
+  if (toolSlug === "subject-lesson-design" && !String(input.lesson_type ?? "").trim()) {
+    input.lesson_type = "公开课";
+  }
+
   for (const key of requiredByTool[toolSlug]) {
     if (!String(input[key] ?? "").trim()) {
       throw new Error(`请填写${fieldLabel(key)}。`);
