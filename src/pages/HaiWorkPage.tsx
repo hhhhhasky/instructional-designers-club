@@ -38,6 +38,7 @@ import {
 import {
   HAI_PUBLIC_LESSON_STAGES,
   publicLessonSubjectsForStage,
+  workSubjectsForStage,
 } from "@/lib/hai-subject-options";
 import { cn } from "@/lib/utils";
 
@@ -114,6 +115,12 @@ const teachingModes = [
 
 function isPoliticsSubject(subject: string) {
   return subject === "道德与法治" || subject === "思想政治";
+}
+
+function subjectsForWorkForm(stage: string, toolSlug: HaiWorkToolSlug) {
+  return toolSlug === "subject-lesson-design"
+    ? publicLessonSubjectsForStage(stage)
+    : workSubjectsForStage(stage);
 }
 
 export const HAI_DESIGN_TYPES = [
@@ -498,7 +505,7 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           <SelectField label="学段" value={form.stage} options={HAI_PUBLIC_LESSON_STAGES} onChange={(value) => {
-            const nextSubjects = publicLessonSubjectsForStage(value);
+            const nextSubjects = subjectsForWorkForm(value, toolSlug);
             setForm((current) => ({
               ...current,
               stage: value,
@@ -516,7 +523,7 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
             }));
             setError("");
           }} />
-          <SelectField label="学科" value={form.subject} options={publicLessonSubjectsForStage(form.stage)} onChange={(value) => {
+          <SelectField label="学科" value={form.subject} options={subjectsForWorkForm(form.stage, toolSlug)} onChange={(value) => {
             update("subject", value);
             update("teaching_mode", isPoliticsSubject(value) ? form.teaching_mode : "");
             updateTextbookField("grade", "");

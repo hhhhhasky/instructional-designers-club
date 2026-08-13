@@ -437,6 +437,23 @@ Deno.test("work prompt separates built-in textbook knowledge from user materials
   assertEquals(prompt.system.includes("不是教材逐字原文"), true);
 });
 
+Deno.test("empty subject skill shell remains usable and explains the pending specialization", () => {
+  const prompt = buildWorkPrompt({
+    toolSlug: "subject-lesson-design",
+    input: { stage: "初中", subject: "英语", topic: "My school", teaching_mode: "" },
+    skill: candidate({
+      slug: "subject-lesson-design-english",
+      is_fallback: false,
+      match_criteria: { subjects: ["英语"], lesson_types: ["公开课"] },
+      version: { ...candidate({}).version, prompt_template: "" },
+    }),
+    materialContext: "教材内容",
+  });
+  assertEquals(prompt.system.includes("Skill 壳"), true);
+  assertEquals(prompt.system.includes("不要因为 Skill 为空而报错"), true);
+  assertEquals(prompt.system.includes("Markdown 教案"), true);
+});
+
 Deno.test("politics work prompt injects retrieved case candidates with verification boundary", () => {
   const skill = candidate({ slug: "politics-public-lesson" });
   skill.version.references = [];

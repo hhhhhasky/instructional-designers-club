@@ -379,9 +379,12 @@ export function buildWorkPrompt(params: {
   const referenceContext = selectedReferences.map((reference) =>
     `### ${reference.path}\n${reference.content.slice(0, reference.max_chars)}`
   ).join("\n\n");
+  const skillInstructions = params.skill.version.prompt_template.trim();
   const fallbackNotice = params.skill.is_fallback
     ? "当前使用通用 Skill。不得把一般知识伪装成教材中的具体事实。"
-    : "当前已匹配专属 Skill。仍须遵守教材事实边界。";
+    : skillInstructions
+    ? "当前已匹配专属 Skill。仍须遵守教材事实边界。"
+    : "当前已匹配该学科的 Skill 壳，但具体提示词尚未补充。请依据任务输入、教材证据和通用输出要求完成生成，不要因为 Skill 为空而报错，也不要声称使用了尚未提供的学科方法。";
   const segmentType = String(params.input.segment_type ?? "").trim();
   const system = [
     params.skill.version.prompt_template,
@@ -394,7 +397,9 @@ export function buildWorkPrompt(params: {
       : "本次没有命中案例库候选，不得凭空补写案例事实。",
     selectedReferences.length > 0
       ? `用户已选择“${String(params.input.teaching_mode ?? "")}”作为唯一主导模式。只执行对应 V3 模板，不得混用另外两套主流程。`
-      : "当前 Skill 没有加载模式 reference，不得声称使用了对应 V3 模板。",
+      : skillInstructions
+      ? "当前 Skill 没有加载模式 reference，不得声称使用了对应 V3 模板。"
+      : "当前学科 Skill 壳没有 reference；后续补充 Skill 内容后才会增加学科专属方法。",
     params.toolSlug === "segment-optimization" && segmentType
       ? `本次要优化的环节类型是「${segmentType}」。该类型的优化要点：\n${SEGMENT_METHODOLOGY[segmentType] ?? SEGMENT_METHODOLOGY["其他"]}`
       : "",

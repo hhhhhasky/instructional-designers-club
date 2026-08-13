@@ -2,7 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getHaiWorkTools, type HaiFeatureModule, streamHaiWork } from "@/db/hai-api";
+import { getHaiTextbookCatalog, getHaiWorkTools, type HaiFeatureModule, streamHaiWork } from "@/db/hai-api";
 import HaiWorkPage from "@/pages/HaiWorkPage";
 
 vi.mock("@/components/layout/Header", () => ({ default: () => <div data-testid="global-header" /> }));
@@ -109,9 +109,21 @@ describe("HAI Work workbench", () => {
     const subjectSelect = screen.getByRole("combobox", { name: "学科" }) as HTMLSelectElement;
     expect(Array.from(subjectSelect.options).map((option) => option.textContent)).toEqual([
       "请选择",
-      "数学",
       "语文",
+      "数学",
+      "英语",
+      "物理",
+      "化学",
+      "生物",
+      "地理",
+      "历史",
       "道德与法治",
+      "信息科技",
+      "心理健康",
+      "音乐",
+      "美术",
+      "体育",
+      "综合实践",
     ]);
     await user.selectOptions(await screen.findByRole("combobox", { name: "年级" }), "7年级");
     await user.selectOptions(screen.getByRole("combobox", { name: "册次 / 教材" }), "上册");
@@ -170,6 +182,56 @@ describe("HAI Work workbench", () => {
       expect.any(Object),
     );
     expect(vi.mocked(streamHaiWork).mock.calls[0]?.[0].input).not.toHaveProperty("lesson_type");
+  });
+
+  it("lets an uncovered public-lesson subject use the manual textbook path", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getHaiTextbookCatalog).mockImplementation((stage, subject) =>
+      subject === "英语" ? Promise.resolve([]) : Promise.resolve([{
+        collection_slug: "junior-politics-grade-7-volume-1-2024",
+        collection_title: "道德与法治七年级上册",
+        stage: String(stage ?? ""),
+        subject: String(subject ?? ""),
+        grade_level: 7,
+        grade_label: "7年级",
+        volume: "上册",
+        edition_label: "2024年秋统编新版",
+        publication_status: "current",
+        verification_status: "source_declared_current",
+        requires_confirmation: false,
+        unit_number: 1,
+        unit_label: "第一单元",
+        unit_title: "少年有梦",
+        lesson_number: 1,
+        lesson_label: "第一课",
+        lesson_title: "开启初中生活",
+        frame_number: 1,
+        frame_label: "第一框",
+        frame_title: "奏响中学序曲",
+        unit_route_number: 1,
+        lesson_route_number: 1,
+        frame_route_number: 1,
+      }]));
+    renderAt("/hai/work/subject-lesson-design");
+
+    await screen.findByText("先把本课信息交给 HAI");
+    await user.selectOptions(screen.getByRole("combobox", { name: "学科" }), "英语");
+    const gradeField = await screen.findByRole("textbox", { name: "年级" });
+    expect(screen.getByText(/当前学段与学科暂未收录内置教材/)).toBeInTheDocument();
+    await user.type(gradeField, "八年级");
+    await user.type(screen.getByRole("textbox", { name: "册次 / 教材" }), "上册");
+    await user.type(screen.getByRole("textbox", { name: "单元" }), "Unit 1");
+    await user.type(screen.getByRole("textbox", { name: "课题" }), "My school");
+    await user.type(screen.getByRole("textbox", { name: /教材内容/ }), "本课教材内容");
+    await user.click(screen.getByRole("button", { name: "开始公开课设计" }));
+
+    expect(streamHaiWork).toHaveBeenCalledWith(
+      expect.objectContaining({
+        toolSlug: "subject-lesson-design",
+        input: expect.objectContaining({ subject: "英语", grade: "八年级", topic: "My school", teaching_mode: "" }),
+      }),
+      expect.any(Object),
+    );
   });
 
   it("submits a pasted lesson plan and opens the durable task", async () => {

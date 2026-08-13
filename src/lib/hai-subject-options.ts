@@ -16,7 +16,7 @@ export const HAI_STAGES = [
   "其他",
 ] as const;
 
-/** 公开课设计暂保留既有学段入口；没有教材的学段不会显示学科选项。 */
+/** 公开课设计的学科入口先覆盖主要学科；是否有教材目录由表单运行时另行判断。 */
 export const HAI_PUBLIC_LESSON_STAGES = [
   "小学",
   "初中",
@@ -55,12 +55,25 @@ export const HAI_WORK_SUBJECTS_BY_STAGE: Readonly<Record<string, readonly string
   高中: ["思想政治"],
 };
 
+/**
+ * 公开课设计允许先为没有内置教材的学科建立任务。没有目录的学科会在
+ * 表单中要求教师手填教材层级并粘贴或上传本课材料，不能因此被误判为
+ * “没有对应能力”。
+ */
+export const HAI_PUBLIC_LESSON_SUBJECTS_BY_STAGE: Readonly<Record<string, readonly string[]>> = {
+  小学: ["语文", "数学", "英语", "道德与法治", "科学", "信息科技", "心理健康", "音乐", "美术", "体育", "综合实践"],
+  初中: ["语文", "数学", "英语", "物理", "化学", "生物", "地理", "历史", "道德与法治", "信息科技", "心理健康", "音乐", "美术", "体育", "综合实践"],
+  高中: ["语文", "数学", "英语", "物理", "化学", "生物", "地理", "历史", "思想政治", "信息科技", "心理健康", "音乐", "美术", "体育", "综合实践", "通用技术"],
+  "其他（中职/高职/高校等）": ["语文", "数学", "英语", "物理", "化学", "生物", "地理", "历史", "思想政治", "信息科技", "心理健康", "音乐", "美术", "体育", "综合实践", "通用技术", "其他 / 专业课"],
+};
+
 export function workSubjectsForStage(stage: string): readonly string[] {
   return HAI_WORK_SUBJECTS_BY_STAGE[stage] ?? [];
 }
 
-/** 保留公开课设计原调用名，实际与全部 HAI Work 工具共用同一教材覆盖映射。 */
-export const publicLessonSubjectsForStage = workSubjectsForStage;
+export function publicLessonSubjectsForStage(stage: string): readonly string[] {
+  return HAI_PUBLIC_LESSON_SUBJECTS_BY_STAGE[stage] ?? [];
+}
 
 /** 幼儿园五大领域 + 综合主题活动。 */
 export const HAI_KINDERGARTEN_SUBJECTS = [
