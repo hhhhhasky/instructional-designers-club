@@ -112,6 +112,10 @@ const teachingModes = [
   { value: "议题式", description: "围绕真实判断空间，用证据回应异议并形成有边界的结论。" },
 ];
 
+function isPoliticsSubject(subject: string) {
+  return subject === "道德与法治" || subject === "思想政治";
+}
+
 export const HAI_DESIGN_TYPES = [
   { value: "backwards-design", name: "单元逆向规划", description: "先定目标→评估证据→学习活动，大概念统领单元" },
   { value: "scope-sequence", name: "学期课程序列", description: "跨年级/学段的纵向衔接与横向协调" },
@@ -458,7 +462,10 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
       }
       setProgress("HAI 正在创建工作任务");
       const input = toolSlug === "subject-lesson-design"
-        ? { ...form, lesson_type: form.lesson_type.trim() || "公开课" }
+        ? {
+            ...form,
+            teaching_mode: isPoliticsSubject(form.subject) ? form.teaching_mode.trim() : "",
+          }
         : form;
       await streamHaiWork({ toolSlug, input, materialIds }, {
         onEvent: (event) => {
@@ -511,6 +518,7 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
           }} />
           <SelectField label="学科" value={form.subject} options={publicLessonSubjectsForStage(form.stage)} onChange={(value) => {
             update("subject", value);
+            update("teaching_mode", isPoliticsSubject(value) ? form.teaching_mode : "");
             updateTextbookField("grade", "");
           }} />
           {requiresTeacherTextbook ? (
@@ -530,7 +538,7 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
               <SelectField label="框题（可选；不选则读取全课）" value={form.frame} options={frameOptions} onChange={(value) => updateTextbookField("frame", value)} />
             </>
           )}
-          {toolSlug === "subject-lesson-design" ? (
+          {toolSlug === "subject-lesson-design" && isPoliticsSubject(form.subject) ? (
             <TeachingModeField value={form.teaching_mode} onChange={(value) => update("teaching_mode", value)} />
           ) : toolSlug === "teaching-design" ? (
             <>
@@ -764,7 +772,7 @@ function DesignTypeField({ value, onChange }: { value: string; onChange: (value:
 function TeachingModeField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   return (
     <fieldset className="sm:col-span-2">
-      <legend className="text-xs font-bold text-txs">教学模式</legend>
+      <legend className="text-xs font-bold text-txs">教学模式（可选）</legend>
       <div className="mt-2 grid gap-2 md:grid-cols-3">
         {teachingModes.map((mode) => (
           <label key={mode.value} className={`cursor-pointer rounded-ds-lg border p-3 transition ${value === mode.value ? "border-am bg-am-light ring-2 ring-am/10" : "border-bd bg-[var(--paper)] hover:border-am/50"}`}>
@@ -824,7 +832,6 @@ function initialForm(toolSlug: HaiWorkToolSlug) {
     topic: "",
     frame: "",
     teaching_mode: "",
-    lesson_type: toolSlug === "subject-lesson-design" ? "公开课" : "",
     segment_type: "",
     current_design: "",
     desired_outcome: "",
@@ -859,9 +866,6 @@ function validateForm(toolSlug: HaiWorkToolSlug, form: Record<string, string>, f
     if (!form.segment_type) return "请选择要优化的环节。";
     if (!form.current_design.trim() && fileCount === 0) return "请粘贴当前环节设计，或上传环节设计文件。";
     if (!form.desired_outcome.trim()) return "请说明希望优化后达成的效果。";
-  }
-  if (toolSlug === "subject-lesson-design") {
-    if (!form.teaching_mode) return "请选择案例式、任务式或议题式教学模式。";
   }
   if (requiresTeacherTextbook && !form.textbook_content.trim() && fileCount === 0) return "当前学科暂无内置教材，请粘贴教材内容或上传教材文件。";
   return "";

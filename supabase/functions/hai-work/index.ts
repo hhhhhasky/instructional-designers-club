@@ -103,7 +103,10 @@ Deno.serve(async (request) => {
     const toolSlug = String(body.toolSlug ?? "").trim();
     if (!isHaiWorkToolSlug(toolSlug)) throw new HttpError(400, "未知的 HAI Work 功能。");
     const input = normalizeRecord(body.input);
-    if (toolSlug === "subject-lesson-design" && !String(input.lesson_type ?? "").trim()) {
+    if (toolSlug === "subject-lesson-design") {
+      const subject = String(input.subject ?? "").trim();
+      const isPoliticsSubject = subject === "道德与法治" || subject === "思想政治";
+      input.teaching_mode = isPoliticsSubject ? String(input.teaching_mode ?? "").trim() : "";
       input.lesson_type = "公开课";
     }
     const materialIds = normalizeMaterialIds(body.materialIds);

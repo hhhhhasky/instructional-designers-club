@@ -133,11 +133,11 @@ describe("HAI Work workbench", () => {
           unit_route_number: "1",
           lesson_route_number: "1",
           teaching_mode: "案例式",
-          lesson_type: "公开课",
         }),
       }),
       expect.any(Object),
     );
+    expect(vi.mocked(streamHaiWork).mock.calls[0]?.[0].input).not.toHaveProperty("lesson_type");
   });
 
   it("supports mathematics from the built-in textbook catalog", async () => {
@@ -150,7 +150,7 @@ describe("HAI Work workbench", () => {
     await user.selectOptions(screen.getByRole("combobox", { name: "册次 / 教材" }), "上册");
     await user.selectOptions(screen.getByRole("combobox", { name: "单元" }), "第一单元 有理数");
     await user.selectOptions(screen.getByRole("combobox", { name: "课题" }), "第一课 正数和负数");
-    await user.click(screen.getByRole("radio", { name: /任务式/ }));
+    expect(screen.queryByRole("radio", { name: /任务式/ })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "开始公开课设计" }));
 
     expect(streamHaiWork).toHaveBeenCalledWith(
@@ -164,12 +164,12 @@ describe("HAI Work workbench", () => {
           unit_route_number: "1",
           lesson_route_number: "1",
           frame_route_number: "",
-          teaching_mode: "任务式",
-          lesson_type: "公开课",
+          teaching_mode: "",
         }),
       }),
       expect.any(Object),
     );
+    expect(vi.mocked(streamHaiWork).mock.calls[0]?.[0].input).not.toHaveProperty("lesson_type");
   });
 
   it("submits a pasted lesson plan and opens the durable task", async () => {

@@ -151,7 +151,6 @@ export function validateWorkInput(
     ],
     "subject-lesson-design": [
       ...textbookRouteFields,
-      "teaching_mode",
       "lesson_type",
     ],
     "teaching-design": [
@@ -162,7 +161,10 @@ export function validateWorkInput(
     ],
   };
 
-  if (toolSlug === "subject-lesson-design" && !String(input.lesson_type ?? "").trim()) {
+  if (toolSlug === "subject-lesson-design") {
+    const subject = String(input.subject ?? "").trim();
+    const isPoliticsSubject = subject === "道德与法治" || subject === "思想政治";
+    input.teaching_mode = isPoliticsSubject ? String(input.teaching_mode ?? "").trim() : "";
     input.lesson_type = "公开课";
   }
 

@@ -200,7 +200,6 @@ Deno.test("subject lesson design requires structured textbook routing fields", (
       subject: "道德与法治",
       unit: "第一单元",
       topic: "课题",
-      lesson_type: "公开课",
     }, 0),
     "年级",
   );
@@ -212,8 +211,30 @@ Deno.test("subject lesson design requires structured textbook routing fields", (
     unit: "第一单元 少年有梦",
     topic: "第一课 开启初中生活",
     teaching_mode: "案例式",
-    lesson_type: "公开课",
   }, 0);
+});
+
+Deno.test("subject lesson design keeps lesson type internal and clears modes for other subjects", () => {
+  const politicsInput = {
+    stage: "初中",
+    subject: "道德与法治",
+    grade: "7年级",
+    volume: "上册",
+    unit: "第一单元 少年有梦",
+    topic: "第一课 开启初中生活",
+    teaching_mode: "任务式",
+  };
+  validateWorkInput("subject-lesson-design", politicsInput, 0);
+  assertEquals(politicsInput.lesson_type, "公开课");
+
+  const generalInput = {
+    ...politicsInput,
+    subject: "数学",
+    teaching_mode: "议题式",
+  };
+  validateWorkInput("subject-lesson-design", generalInput, 0);
+  assertEquals(generalInput.teaching_mode, "");
+  assertEquals(generalInput.lesson_type, "公开课");
 });
 
 Deno.test("every Work tool requires the structured textbook route", () => {
