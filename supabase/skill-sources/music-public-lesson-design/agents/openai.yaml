@@ -1,0 +1,4 @@
+interface:
+  display_name: "音乐公开课设计"
+  short_description: "以聆听证据、音乐表现和创造修订设计分学段音乐公开课"
+  default_prompt: "请依据教材与音响证据设计以音乐实践为核心的完整公开课。"

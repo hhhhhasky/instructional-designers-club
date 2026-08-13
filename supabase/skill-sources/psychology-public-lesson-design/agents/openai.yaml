@@ -1,0 +1,4 @@
+interface:
+  display_name: "心理健康公开课设计"
+  short_description: "以安全体验、策略练习、真实选择权和求助边界设计心理健康公开课"
+  default_prompt: "请依据学段、教材与学校转介规则，设计安全、非诊断、可实施的心理健康公开课。"

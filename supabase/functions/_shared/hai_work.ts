@@ -361,7 +361,7 @@ const MARKDOWN_DIRECTIVE: Record<HaiWorkToolSlug, string> = {
   "segment-optimization":
     "请直接输出 Markdown 环节优化方案，不要输出 JSON。结构依次为：核心问题、优化原则（要点列表）、优化后的环节（可直接替换使用的完整改写稿）、教师行动（列表）、学生行动（列表）、时间安排、学习证据（列表）、为什么这样改（理由）、使用提醒（列表）。优化后的环节必须让教学目标、学生行动与学习证据三者一致。",
   "subject-lesson-design":
-    "请直接输出完整的 Markdown 教案，按教学设计的自然结构组织内容，根据课题特点灵活调整篇幅和各部分格式，不必拘泥于统一模板，每个部分根据实际需要决定详略。",
+    "请直接输出完整的 Markdown 教案，不要输出 JSON。若已加载学科输出模板，必须保留其完整章节与必要字段，并根据课题特点调整各部分详略；没有学科模板时按教学设计的自然结构组织。",
   "teaching-design":
     "请直接输出 Markdown 单元/课程设计方案，不要输出 JSON。按所选设计方法的自然结构组织：先确定预期结果（学生应理解/知道/能做什么）与评估证据，再排列学习活动，确保教-学-评一致并对齐核心素养。",
 };
@@ -420,10 +420,14 @@ export function buildWorkPrompt(params: {
     params.caseContext
       ? "以下案例库候选由后端按本课教材层级检索，仅用于帮助选择教学载体和问题化方向，不是可直接宣读的事实定稿。必须保留案例的核验状态；涉及时间、数据、人物或政策细节时，先要求教师核验或在产物中标注待核实，不得把案例库的候选描述当作教材结论。"
       : "本次没有命中案例库候选，不得凭空补写案例事实。",
-    selectedReferences.length > 0
-      ? `用户已选择“${String(params.input.teaching_mode ?? "")}”作为唯一主导模式。只执行对应 V3 模板，不得混用另外两套主流程。`
+    params.skill.version.output_contract.format === "sizheng_public_lesson_v2"
+      ? selectedReferences.length > 0
+        ? `用户已选择“${String(params.input.teaching_mode ?? "")}”作为唯一主导模式。只执行对应 V3 模板，不得混用另外两套主流程。`
+        : "当前思政 Skill 没有加载模式 reference，不得声称使用了对应 V3 模板。"
+      : selectedReferences.length > 0
+      ? "当前已加载与本学科、学段匹配的版本化 Reference。按主 Skill 的选择规则使用模板、模式和对应学段样例；样例只作结构参照，不得冒充本课教材事实。"
       : skillInstructions
-      ? "当前 Skill 没有加载模式 reference，不得声称使用了对应 V3 模板。"
+      ? "当前专属 Skill 没有可加载的学科 Reference；只执行主 Skill，并保持教材事实边界。"
       : "当前学科 Skill 壳没有 reference；后续补充 Skill 内容后才会增加学科专属方法。",
     params.toolSlug === "segment-optimization" && segmentType
       ? `本次要优化的环节类型是「${segmentType}」。该类型的优化要点：\n${SEGMENT_METHODOLOGY[segmentType] ?? SEGMENT_METHODOLOGY["其他"]}`
@@ -458,9 +462,28 @@ export function selectWorkSkillReferences(
   } as Record<string, WorkSkillReference["load_mode"]>)[String(input.teaching_mode ?? "").trim()];
   return [...(skill.version.references ?? [])]
     .filter((reference) =>
-      reference.load_mode === "always" || (mode && reference.load_mode === mode)
+      referenceMatchesInput(reference, input) &&
+      (reference.load_mode === "always" || (mode && reference.load_mode === mode))
     )
     .sort((a, b) => a.sort_order - b.sort_order);
+}
+
+function referenceMatchesInput(
+  reference: WorkSkillReference,
+  input: Record<string, unknown>,
+) {
+  const mappings: Array<[string, string]> = [
+    ["stages", "stage"],
+    ["subjects", "subject"],
+  ];
+  return mappings.every(([metadataKey, inputKey]) => {
+    const configured = Array.isArray(reference.metadata?.[metadataKey])
+      ? (reference.metadata[metadataKey] as unknown[]).map(normalizeMatchText).filter(Boolean)
+      : [];
+    if (configured.length === 0) return true;
+    const actual = normalizeMatchText(input[inputKey]);
+    return Boolean(actual) && configured.some((item) => actual.includes(item) || item.includes(actual));
+  });
 }
 
 export function assertWorkSkillRuntimeReady(

@@ -1,0 +1,4 @@
+interface:
+  display_name: "其他与专业课公开课设计"
+  short_description: "按专业标准、岗位任务和学术类型生成可实施、可评价的完整公开课"
+  default_prompt: "请依据已核验的专业、课程、标准、学习者与实训条件，设计一节完整专业课公开课。"

@@ -1,0 +1,4 @@
+interface:
+  display_name: "体育与健康公开课设计"
+  short_description: "以结构化运动技能、学练赛评、负荷安全和个体进步设计体育公开课"
+  default_prompt: "请依据教材、学生健康与场地器材条件设计安全可实施的体育与健康公开课。"

@@ -1,0 +1,4 @@
+interface:
+  display_name: "美术公开课设计"
+  short_description: "以视觉证据、材料探索、表达意图和作品修订设计分学段美术公开课"
+  default_prompt: "请依据教材、作品图像与材料条件设计完整美术公开课。"

@@ -1,0 +1,4 @@
+interface:
+  display_name: "综合实践活动公开课设计"
+  short_description: "以真实问题、亲历实践、公共成果和过程证据设计综合实践公开课"
+  default_prompt: "请依据学校课程方案、真实场域与安全条件设计完整综合实践活动公开课。"

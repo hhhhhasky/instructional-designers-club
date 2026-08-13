@@ -1,0 +1,4 @@
+interface:
+  display_name: "通用技术公开课设计"
+  short_description: "以真实技术需求、约束、原型测试和迭代生成完整高中通用技术公开课"
+  default_prompt: "请依据已核验教材、设施与安全条件，设计一节证据完整的通用技术公开课。"

@@ -1,0 +1,4 @@
+interface:
+  display_name: "信息科技公开课设计"
+  short_description: "基于真实数字问题设计数据、算法、系统与责任证据闭环"
+  default_prompt: "请依据教材证据和本 Skill 设计完整信息科技公开课。"

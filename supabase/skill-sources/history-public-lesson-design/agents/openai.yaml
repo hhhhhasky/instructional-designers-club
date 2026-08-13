@@ -1,0 +1,4 @@
+interface:
+  display_name: "历史公开课设计"
+  short_description: "依据时空框架、可信史料和证据论证生成完整公开课教案"
+  default_prompt: "请依据准确教材和可信史料，为初中历史公开课生成可实施、可评价的完整教案。"

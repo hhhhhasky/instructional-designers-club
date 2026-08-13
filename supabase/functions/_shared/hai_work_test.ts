@@ -458,6 +458,561 @@ Deno.test("empty subject skill shell remains usable and explains the pending spe
   assertEquals(prompt.system.includes("Markdown 教案"), true);
 });
 
+Deno.test("mathematics references load the shared method and only the matching stage example", () => {
+  const skill = candidate({
+    slug: "subject-lesson-design-mathematics",
+    is_fallback: false,
+    version: {
+      ...candidate({}).version,
+      prompt_template: "数学公开课专属 Skill",
+      references: [
+        {
+          id: "models", path: "references/mainstream-models.md", name: "模式", description: "",
+          media_type: "text/markdown", content: "六类数学模式", content_hash: "models",
+          load_mode: "always", max_chars: 1000, sort_order: 10, metadata: {},
+        },
+        {
+          id: "primary", path: "references/excellent-example-primary.md", name: "小学样例", description: "",
+          media_type: "text/markdown", content: "小学面积样例", content_hash: "primary",
+          load_mode: "always", max_chars: 1000, sort_order: 30, metadata: { stages: ["小学"] },
+        },
+        {
+          id: "junior", path: "references/excellent-example-junior.md", name: "初中样例", description: "",
+          media_type: "text/markdown", content: "初中全等样例", content_hash: "junior",
+          load_mode: "always", max_chars: 1000, sort_order: 40, metadata: { stages: ["初中"] },
+        },
+      ],
+    },
+  });
+  const selected = selectWorkSkillReferences(skill, { stage: "小学", subject: "数学" });
+  assertEquals(selected.map((item) => item.path), [
+    "references/mainstream-models.md",
+    "references/excellent-example-primary.md",
+  ]);
+  const prompt = buildWorkPrompt({
+    toolSlug: "subject-lesson-design",
+    input: { stage: "小学", subject: "数学", topic: "平行四边形的面积" },
+    skill,
+    materialContext: "",
+    textbookContext: "精确命中的教材梳理",
+  });
+  assertEquals(prompt.user.includes("小学面积样例"), true);
+  assertEquals(prompt.user.includes("初中全等样例"), false);
+  assertEquals(prompt.system.includes("学科、学段匹配"), true);
+  assertEquals(prompt.system.includes("对应 V3 模板"), false);
+});
+
+Deno.test("chinese references load only the matching stage example and retain language-practice guidance", () => {
+  const skill = candidate({
+    slug: "subject-lesson-design-chinese",
+    is_fallback: false,
+    version: {
+      ...candidate({}).version,
+      prompt_template: "语文公开课专属 Skill：让学生读、说、写、评、改。",
+      output_contract: { format: "chinese_public_lesson_markdown_v1" },
+      references: [
+        {
+          id: "models", path: "references/mainstream-models.md", name: "模式", description: "",
+          media_type: "text/markdown", content: "八类语文实践模式", content_hash: "models",
+          load_mode: "always", max_chars: 1000, sort_order: 10, metadata: {},
+        },
+        {
+          id: "primary", path: "references/excellent-example-primary.md", name: "小学样例", description: "",
+          media_type: "text/markdown", content: "荷叶圆圆朗读与仿说样例", content_hash: "primary",
+          load_mode: "always", max_chars: 1000, sort_order: 30, metadata: { stages: ["小学"] },
+        },
+        {
+          id: "junior", path: "references/excellent-example-junior.md", name: "初中样例", description: "",
+          media_type: "text/markdown", content: "故乡叙述视角样例", content_hash: "junior",
+          load_mode: "always", max_chars: 1000, sort_order: 40, metadata: { stages: ["初中"] },
+        },
+      ],
+    },
+  });
+  const primary = selectWorkSkillReferences(skill, { stage: "小学", subject: "语文" });
+  const junior = selectWorkSkillReferences(skill, { stage: "初中", subject: "语文" });
+  assertEquals(primary.map((item) => item.path), [
+    "references/mainstream-models.md",
+    "references/excellent-example-primary.md",
+  ]);
+  assertEquals(junior.map((item) => item.path), [
+    "references/mainstream-models.md",
+    "references/excellent-example-junior.md",
+  ]);
+  const prompt = buildWorkPrompt({
+    toolSlug: "subject-lesson-design",
+    input: { stage: "初中", subject: "语文", topic: "故乡" },
+    skill,
+    materialContext: "",
+    textbookContext: "精确命中的课文与单元梳理",
+  });
+  assertEquals(prompt.user.includes("故乡叙述视角样例"), true);
+  assertEquals(prompt.user.includes("荷叶圆圆朗读与仿说样例"), false);
+  assertEquals(prompt.system.includes("读、说、写、评、改"), true);
+  assertEquals(prompt.system.includes("样例只作结构参照"), true);
+});
+
+Deno.test("science references load for primary school and preserve evidence and safety guidance", () => {
+  const skill = candidate({
+    slug: "subject-lesson-design-science",
+    is_fallback: false,
+    version: {
+      ...candidate({}).version,
+      prompt_template: "小学科学公开课 Skill：保留原始证据、安全与异常结果。",
+      output_contract: { format: "science_public_lesson_markdown_v1" },
+      references: [
+        {
+          id: "models", path: "references/mainstream-models.md", name: "模式", description: "",
+          media_type: "text/markdown", content: "六类科学实践模式", content_hash: "models",
+          load_mode: "always", max_chars: 1000, sort_order: 10, metadata: {},
+        },
+        {
+          id: "primary", path: "references/excellent-example-primary.md", name: "小学样例", description: "",
+          media_type: "text/markdown", content: "显微镜下的细胞样例", content_hash: "primary",
+          load_mode: "always", max_chars: 1000, sort_order: 30, metadata: { stages: ["小学"] },
+        },
+      ],
+    },
+  });
+  assertEquals(
+    selectWorkSkillReferences(skill, { stage: "小学", subject: "科学" }).map((item) => item.path),
+    ["references/mainstream-models.md", "references/excellent-example-primary.md"],
+  );
+  assertEquals(
+    selectWorkSkillReferences(skill, { stage: "初中", subject: "科学" }).map((item) => item.path),
+    ["references/mainstream-models.md"],
+  );
+  const prompt = buildWorkPrompt({
+    toolSlug: "subject-lesson-design",
+    input: { stage: "小学", subject: "科学", topic: "显微镜下的细胞" },
+    skill,
+    materialContext: "",
+    textbookContext: "精确命中的小学科学教材梳理",
+  });
+  assertEquals(prompt.user.includes("显微镜下的细胞样例"), true);
+  assertEquals(prompt.system.includes("原始证据、安全与异常结果"), true);
+  assertEquals(prompt.system.includes("对应 V3 模板"), false);
+});
+
+Deno.test("english references load only the matching stage example and retain discourse activity guidance", () => {
+  const skill = candidate({
+    slug: "subject-lesson-design-english",
+    is_fallback: false,
+    version: {
+      ...candidate({}).version,
+      prompt_template: "英语公开课 Skill：围绕主题和语篇组织学习理解、应用实践、迁移创新。",
+      output_contract: { format: "english_public_lesson_markdown_v1" },
+      references: [
+        {
+          id: "models", path: "references/mainstream-models.md", name: "模式", description: "",
+          media_type: "text/markdown", content: "七类英语课型模式", content_hash: "models",
+          load_mode: "always", max_chars: 1000, sort_order: 10, metadata: {},
+        },
+        {
+          id: "primary", path: "references/excellent-example-primary.md", name: "小学样例", description: "",
+          media_type: "text/markdown", content: "My feelings 信息差协商样例", content_hash: "primary",
+          load_mode: "always", max_chars: 1000, sort_order: 30, metadata: { stages: ["小学"] },
+        },
+        {
+          id: "junior", path: "references/excellent-example-junior.md", name: "初中样例", description: "",
+          media_type: "text/markdown", content: "新闻语篇证据阅读样例", content_hash: "junior",
+          load_mode: "always", max_chars: 1000, sort_order: 40, metadata: { stages: ["初中"] },
+        },
+      ],
+    },
+  });
+  assertEquals(
+    selectWorkSkillReferences(skill, { stage: "小学", subject: "英语" }).map((item) => item.path),
+    ["references/mainstream-models.md", "references/excellent-example-primary.md"],
+  );
+  assertEquals(
+    selectWorkSkillReferences(skill, { stage: "初中", subject: "英语" }).map((item) => item.path),
+    ["references/mainstream-models.md", "references/excellent-example-junior.md"],
+  );
+  const prompt = buildWorkPrompt({
+    toolSlug: "subject-lesson-design",
+    input: { stage: "小学", subject: "英语", topic: "My feelings" },
+    skill,
+    materialContext: "",
+    textbookContext: "精确命中的英语 Unit 与 Session 教材梳理",
+  });
+  assertEquals(prompt.user.includes("My feelings 信息差协商样例"), true);
+  assertEquals(prompt.user.includes("新闻语篇证据阅读样例"), false);
+  assertEquals(prompt.system.includes("学习理解、应用实践、迁移创新"), true);
+  assertEquals(prompt.system.includes("样例只作结构参照"), true);
+});
+
+Deno.test("physics references load only for junior school and retain evidence and safety guidance", () => {
+  const skill = candidate({
+    slug: "subject-lesson-design-physics",
+    is_fallback: false,
+    version: {
+      ...candidate({}).version,
+      prompt_template: "物理公开课 Skill：保留变量、原始数据、异常、安全与规律条件。",
+      output_contract: { format: "physics_public_lesson_markdown_v1" },
+      references: [
+        {
+          id: "models", path: "references/mainstream-models.md", name: "模式", description: "",
+          media_type: "text/markdown", content: "六类物理模式", content_hash: "models",
+          load_mode: "always", max_chars: 1000, sort_order: 10, metadata: {},
+        },
+        {
+          id: "junior", path: "references/excellent-example-junior.md", name: "初中样例", description: "",
+          media_type: "text/markdown", content: "电流与电压关系实验样例", content_hash: "junior",
+          load_mode: "always", max_chars: 1000, sort_order: 30, metadata: { stages: ["初中"] },
+        },
+      ],
+    },
+  });
+  assertEquals(
+    selectWorkSkillReferences(skill, { stage: "初中", subject: "物理" }).map((item) => item.path),
+    ["references/mainstream-models.md", "references/excellent-example-junior.md"],
+  );
+  assertEquals(
+    selectWorkSkillReferences(skill, { stage: "小学", subject: "物理" }).map((item) => item.path),
+    ["references/mainstream-models.md"],
+  );
+  const prompt = buildWorkPrompt({
+    toolSlug: "subject-lesson-design",
+    input: { stage: "初中", subject: "物理", topic: "电流与电压的关系" },
+    skill,
+    materialContext: "",
+    textbookContext: "精确命中的物理教材和实验资料",
+  });
+  assertEquals(prompt.user.includes("电流与电压关系实验样例"), true);
+  assertEquals(prompt.system.includes("原始数据、异常、安全与规律条件"), true);
+  assertEquals(prompt.system.includes("样例只作结构参照"), true);
+});
+
+Deno.test("chemistry references load only for junior school and retain macroscopic microscopic symbolic guidance", () => {
+  const skill = candidate({
+    slug: "subject-lesson-design-chemistry",
+    is_fallback: false,
+    version: {
+      ...candidate({}).version,
+      prompt_template: "化学公开课 Skill：保留宏观—微观—符号、原始证据、安全绿色与体系边界。",
+      output_contract: { format: "chemistry_public_lesson_markdown_v1" },
+      references: [
+        {
+          id: "models", path: "references/mainstream-models.md", name: "模式", description: "",
+          media_type: "text/markdown", content: "六类化学模式", content_hash: "models",
+          load_mode: "always", max_chars: 1000, sort_order: 10, metadata: {},
+        },
+        {
+          id: "junior", path: "references/excellent-example-junior.md", name: "初中样例", description: "",
+          media_type: "text/markdown", content: "质量守恒体系边界样例", content_hash: "junior",
+          load_mode: "always", max_chars: 1000, sort_order: 30, metadata: { stages: ["初中"] },
+        },
+      ],
+    },
+  });
+  assertEquals(
+    selectWorkSkillReferences(skill, { stage: "初中", subject: "化学" }).map((item) => item.path),
+    ["references/mainstream-models.md", "references/excellent-example-junior.md"],
+  );
+  assertEquals(
+    selectWorkSkillReferences(skill, { stage: "小学", subject: "化学" }).map((item) => item.path),
+    ["references/mainstream-models.md"],
+  );
+  const prompt = buildWorkPrompt({
+    toolSlug: "subject-lesson-design",
+    input: { stage: "初中", subject: "化学", topic: "质量守恒定律" },
+    skill,
+    materialContext: "",
+    textbookContext: "精确命中的化学教材实验与微观解释资料",
+  });
+  assertEquals(prompt.user.includes("质量守恒体系边界样例"), true);
+  assertEquals(prompt.system.includes("宏观—微观—符号"), true);
+  assertEquals(prompt.system.includes("样例只作结构参照"), true);
+});
+
+Deno.test("biology references load only for junior school and retain model and evidence gate guidance", () => {
+  const skill = candidate({
+    slug: "subject-lesson-design-biology",
+    is_fallback: false,
+    version: {
+      ...candidate({}).version,
+      prompt_template: "生物学公开课 Skill：目录摘要不替代正文，保留生命观念、模型修订、伦理和外推边界。",
+      output_contract: { format: "biology_public_lesson_markdown_v1" },
+      references: [
+        {
+          id: "models", path: "references/mainstream-models.md", name: "模式", description: "",
+          media_type: "text/markdown", content: "七类生物学模式", content_hash: "models",
+          load_mode: "always", max_chars: 1000, sort_order: 10, metadata: {},
+        },
+        {
+          id: "junior", path: "references/excellent-example-junior.md", name: "初中样例", description: "",
+          media_type: "text/markdown", content: "尿液形成模型修订样例", content_hash: "junior",
+          load_mode: "always", max_chars: 1000, sort_order: 30, metadata: { stages: ["初中"] },
+        },
+      ],
+    },
+  });
+  assertEquals(
+    selectWorkSkillReferences(skill, { stage: "初中", subject: "生物" }).map((item) => item.path),
+    ["references/mainstream-models.md", "references/excellent-example-junior.md"],
+  );
+  assertEquals(
+    selectWorkSkillReferences(skill, { stage: "小学", subject: "生物" }).map((item) => item.path),
+    ["references/mainstream-models.md"],
+  );
+  const prompt = buildWorkPrompt({
+    toolSlug: "subject-lesson-design",
+    input: { stage: "初中", subject: "生物", topic: "尿液的形成过程" },
+    skill,
+    materialContext: "用户补充的教材正文与数据",
+    textbookContext: "官方目录摘要",
+  });
+  assertEquals(prompt.user.includes("尿液形成模型修订样例"), true);
+  assertEquals(prompt.system.includes("目录摘要不替代正文"), true);
+  assertEquals(prompt.system.includes("样例只作结构参照"), true);
+});
+
+Deno.test("geography references load only for junior school and retain map and scale evidence gate", () => {
+  const skill = candidate({
+    slug: "subject-lesson-design-geography",
+    is_fallback: false,
+    version: {
+      ...candidate({}).version,
+      prompt_template: "地理公开课 Skill：目录不替代地图，保留尺度、来源、区域综合与标准地图边界。",
+      output_contract: { format: "geography_public_lesson_markdown_v1" },
+      references: [
+        { id: "models", path: "references/mainstream-models.md", name: "模式", description: "", media_type: "text/markdown", content: "六类地理模式", content_hash: "models", load_mode: "always", max_chars: 1000, sort_order: 10, metadata: {} },
+        { id: "junior", path: "references/excellent-example-junior.md", name: "初中样例", description: "", media_type: "text/markdown", content: "山区铁路选线样例", content_hash: "junior", load_mode: "always", max_chars: 1000, sort_order: 30, metadata: { stages: ["初中"] } },
+      ],
+    },
+  });
+  assertEquals(selectWorkSkillReferences(skill, { stage: "初中", subject: "地理" }).map((item) => item.path), ["references/mainstream-models.md", "references/excellent-example-junior.md"]);
+  assertEquals(selectWorkSkillReferences(skill, { stage: "小学", subject: "地理" }).map((item) => item.path), ["references/mainstream-models.md"]);
+  const prompt = buildWorkPrompt({ toolSlug: "subject-lesson-design", input: { stage: "初中", subject: "地理", topic: "山区铁路选线" }, skill, materialContext: "经核地图数据", textbookContext: "官方目录摘要" });
+  assertEquals(prompt.user.includes("山区铁路选线样例"), true);
+  assertEquals(prompt.system.includes("目录不替代地图"), true);
+  assertEquals(prompt.system.includes("样例只作结构参照"), true);
+});
+
+Deno.test("history references load only for junior school and retain source provenance evidence gate", () => {
+  const skill = candidate({
+    slug: "subject-lesson-design-history",
+    is_fallback: false,
+    version: {
+      ...candidate({}).version,
+      prompt_template: "历史公开课 Skill：目录不替代教材与史料，保留时空、来源语境、互证和解释边界。",
+      output_contract: { format: "history_public_lesson_markdown_v1" },
+      references: [
+        { id: "models", path: "references/mainstream-models.md", name: "模式", description: "", media_type: "text/markdown", content: "七类历史模式", content_hash: "models", load_mode: "always", max_chars: 1000, sort_order: 10, metadata: {} },
+        { id: "junior", path: "references/excellent-example-junior.md", name: "初中样例", description: "", media_type: "text/markdown", content: "考古史料互证样例", content_hash: "junior", load_mode: "always", max_chars: 1000, sort_order: 30, metadata: { stages: ["初中"] } },
+      ],
+    },
+  });
+  assertEquals(selectWorkSkillReferences(skill, { stage: "初中", subject: "历史" }).map((item) => item.path), ["references/mainstream-models.md", "references/excellent-example-junior.md"]);
+  assertEquals(selectWorkSkillReferences(skill, { stage: "小学", subject: "历史" }).map((item) => item.path), ["references/mainstream-models.md"]);
+  const prompt = buildWorkPrompt({ toolSlug: "subject-lesson-design", input: { stage: "初中", subject: "历史", topic: "从考古发现看中华文明的起源" }, skill, materialContext: "经核史料包", textbookContext: "官方目录摘要" });
+  assertEquals(prompt.user.includes("考古史料互证样例"), true);
+  assertEquals(prompt.system.includes("目录不替代教材与史料"), true);
+  assertEquals(prompt.system.includes("样例只作结构参照"), true);
+});
+
+Deno.test("information technology references load only the matching stage example and retain testing and safety guidance", () => {
+  const skill = candidate({
+    slug: "subject-lesson-design-information-technology",
+    is_fallback: false,
+    version: {
+      ...candidate({}).version,
+      prompt_template: "信息科技公开课 Skill：教材和技术资料不足时停止完整生成，保留原理、测试调试、设备公平和隐私安全。",
+      output_contract: { format: "information_technology_public_lesson_markdown_v1" },
+      references: [
+        { id: "models", path: "references/mainstream-models.md", name: "模式", description: "", media_type: "text/markdown", content: "七类信息科技模式", content_hash: "models", load_mode: "always", max_chars: 1000, sort_order: 10, metadata: {} },
+        { id: "primary", path: "references/excellent-example-primary.md", name: "小学样例", description: "", media_type: "text/markdown", content: "分类算法多例测试样例", content_hash: "primary", load_mode: "always", max_chars: 1000, sort_order: 30, metadata: { stages: ["小学"] } },
+        { id: "junior", path: "references/excellent-example-junior.md", name: "初中样例", description: "", media_type: "text/markdown", content: "物联系统故障诊断样例", content_hash: "junior", load_mode: "always", max_chars: 1000, sort_order: 40, metadata: { stages: ["初中"] } },
+        { id: "senior", path: "references/excellent-example-senior.md", name: "高中样例", description: "", media_type: "text/markdown", content: "查找算法公平效率比较样例", content_hash: "senior", load_mode: "always", max_chars: 1000, sort_order: 50, metadata: { stages: ["高中"] } },
+      ],
+    },
+  });
+  assertEquals(selectWorkSkillReferences(skill, { stage: "小学", subject: "信息科技" }).map((item) => item.path), ["references/mainstream-models.md", "references/excellent-example-primary.md"]);
+  assertEquals(selectWorkSkillReferences(skill, { stage: "初中", subject: "信息科技" }).map((item) => item.path), ["references/mainstream-models.md", "references/excellent-example-junior.md"]);
+  assertEquals(selectWorkSkillReferences(skill, { stage: "高中", subject: "信息科技" }).map((item) => item.path), ["references/mainstream-models.md", "references/excellent-example-senior.md"]);
+  const prompt = buildWorkPrompt({ toolSlug: "subject-lesson-design", input: { stage: "高中", subject: "信息科技", topic: "顺序查找与二分查找" }, skill, materialContext: "经核教材和代码", textbookContext: "" });
+  assertEquals(prompt.user.includes("查找算法公平效率比较样例"), true);
+  assertEquals(prompt.user.includes("物联系统故障诊断样例"), false);
+  assertEquals(prompt.system.includes("测试调试、设备公平和隐私安全"), true);
+  assertEquals(prompt.system.includes("样例只作结构参照"), true);
+});
+
+Deno.test("psychology references load only the matching stage example and retain non-diagnostic safeguarding guidance", () => {
+  const skill = candidate({
+    slug: "subject-lesson-design-psychology",
+    is_fallback: false,
+    version: {
+      ...candidate({}).version,
+      prompt_template: "心理健康公开课 Skill：必须非诊断、自愿可退出、最少披露，并使用学校核准的危机转介路径。",
+      output_contract: { format: "psychology_public_lesson_markdown_v1" },
+      references: [
+        { id: "models", path: "references/mainstream-models.md", name: "模式", description: "", media_type: "text/markdown", content: "七类心理健康模式", content_hash: "models", load_mode: "always", max_chars: 1000, sort_order: 10, metadata: {} },
+        { id: "primary", path: "references/excellent-example-primary.md", name: "小学样例", description: "", media_type: "text/markdown", content: "情绪识别和求助样例", content_hash: "primary", load_mode: "always", max_chars: 1000, sort_order: 30, metadata: { stages: ["小学"] } },
+        { id: "junior", path: "references/excellent-example-junior.md", name: "初中样例", description: "", media_type: "text/markdown", content: "边界与反欺凌求助样例", content_hash: "junior", load_mode: "always", max_chars: 1000, sort_order: 40, metadata: { stages: ["初中"] } },
+        { id: "senior", path: "references/excellent-example-senior.md", name: "高中样例", description: "", media_type: "text/markdown", content: "压力行动与求助阈值样例", content_hash: "senior", load_mode: "always", max_chars: 1000, sort_order: 50, metadata: { stages: ["高中"] } },
+      ],
+    },
+  });
+  assertEquals(selectWorkSkillReferences(skill, { stage: "小学", subject: "心理健康" }).map((item) => item.path), ["references/mainstream-models.md", "references/excellent-example-primary.md"]);
+  assertEquals(selectWorkSkillReferences(skill, { stage: "初中", subject: "心理健康" }).map((item) => item.path), ["references/mainstream-models.md", "references/excellent-example-junior.md"]);
+  assertEquals(selectWorkSkillReferences(skill, { stage: "高中", subject: "心理健康" }).map((item) => item.path), ["references/mainstream-models.md", "references/excellent-example-senior.md"]);
+  const prompt = buildWorkPrompt({ toolSlug: "subject-lesson-design", input: { stage: "初中", subject: "心理健康", topic: "边界与求助" }, skill, materialContext: "经核教材和学校转介流程", textbookContext: "" });
+  assertEquals(prompt.user.includes("边界与反欺凌求助样例"), true);
+  assertEquals(prompt.user.includes("压力行动与求助阈值样例"), false);
+  assertEquals(prompt.system.includes("非诊断、自愿可退出、最少披露"), true);
+  assertEquals(prompt.system.includes("样例只作结构参照"), true);
+});
+
+Deno.test("music references load only the matching stage example and retain listening rehearsal and copyright guidance", () => {
+  const skill = candidate({
+    slug: "subject-lesson-design-music",
+    is_fallback: false,
+    version: {
+      ...candidate({}).version,
+      prompt_template: "音乐公开课 Skill：从音响出发，保留个体听辨、音乐表现/创造、反馈复演、文化来源和版权安全。",
+      output_contract: { format: "music_public_lesson_markdown_v1" },
+      references: [
+        { id: "models", path: "references/mainstream-models.md", name: "模式", description: "", media_type: "text/markdown", content: "七类音乐模式", content_hash: "models", load_mode: "always", max_chars: 1000, sort_order: 10, metadata: {} },
+        { id: "primary", path: "references/excellent-example-primary.md", name: "小学样例", description: "", media_type: "text/markdown", content: "速度听辨与复演样例", content_hash: "primary", load_mode: "always", max_chars: 1000, sort_order: 30, metadata: { stages: ["小学"] } },
+        { id: "junior", path: "references/excellent-example-junior.md", name: "初中样例", description: "", media_type: "text/markdown", content: "期待变化与音响证据样例", content_hash: "junior", load_mode: "always", max_chars: 1000, sort_order: 40, metadata: { stages: ["初中"] } },
+        { id: "senior", path: "references/excellent-example-senior.md", name: "高中样例", description: "", media_type: "text/markdown", content: "调式调性听觉探究样例", content_hash: "senior", load_mode: "always", max_chars: 1000, sort_order: 50, metadata: { stages: ["高中"] } },
+      ],
+    },
+  });
+  assertEquals(selectWorkSkillReferences(skill, { stage: "小学", subject: "音乐" }).map((item) => item.path), ["references/mainstream-models.md", "references/excellent-example-primary.md"]);
+  assertEquals(selectWorkSkillReferences(skill, { stage: "初中", subject: "音乐" }).map((item) => item.path), ["references/mainstream-models.md", "references/excellent-example-junior.md"]);
+  assertEquals(selectWorkSkillReferences(skill, { stage: "高中", subject: "音乐" }).map((item) => item.path), ["references/mainstream-models.md", "references/excellent-example-senior.md"]);
+  const prompt = buildWorkPrompt({ toolSlug: "subject-lesson-design", input: { stage: "小学", subject: "音乐", topic: "感知音乐中的速度" }, skill, materialContext: "经核教材、谱例和音源", textbookContext: "" });
+  assertEquals(prompt.user.includes("速度听辨与复演样例"), true);
+  assertEquals(prompt.user.includes("调式调性听觉探究样例"), false);
+  assertEquals(prompt.system.includes("个体听辨、音乐表现/创造、反馈复演"), true);
+  assertEquals(prompt.system.includes("样例只作结构参照"), true);
+});
+
+Deno.test("art references load only the matching stage example and retain visual evidence material trial and revision guidance", () => {
+  const skill = candidate({
+    slug: "subject-lesson-design-art",
+    is_fallback: false,
+    version: {
+      ...candidate({}).version,
+      prompt_template: "美术公开课 Skill：先慢看与视觉指证，再材料试验、多构想、制作、观看反馈和作品修订，保留文化版权安全边界。",
+      output_contract: { format: "art_public_lesson_markdown_v1" },
+      references: [
+        { id: "models", path: "references/mainstream-models.md", name: "模式", description: "", media_type: "text/markdown", content: "七类美术模式", content_hash: "models", load_mode: "always", max_chars: 1000, sort_order: 10, metadata: {} },
+        { id: "primary", path: "references/excellent-example-primary.md", name: "小学样例", description: "", media_type: "text/markdown", content: "标识用户测试样例", content_hash: "primary", load_mode: "always", max_chars: 1000, sort_order: 30, metadata: { stages: ["小学"] } },
+        { id: "junior", path: "references/excellent-example-junior.md", name: "初中样例", description: "", media_type: "text/markdown", content: "剪纸材料文化样例", content_hash: "junior", load_mode: "always", max_chars: 1000, sort_order: 40, metadata: { stages: ["初中"] } },
+        { id: "senior", path: "references/excellent-example-senior.md", name: "高中样例", description: "", media_type: "text/markdown", content: "城市图像证据评述样例", content_hash: "senior", load_mode: "always", max_chars: 1000, sort_order: 50, metadata: { stages: ["高中"] } },
+      ],
+    },
+  });
+  assertEquals(selectWorkSkillReferences(skill, { stage: "小学", subject: "美术" }).map((item) => item.path), ["references/mainstream-models.md", "references/excellent-example-primary.md"]);
+  assertEquals(selectWorkSkillReferences(skill, { stage: "初中", subject: "美术" }).map((item) => item.path), ["references/mainstream-models.md", "references/excellent-example-junior.md"]);
+  assertEquals(selectWorkSkillReferences(skill, { stage: "高中", subject: "美术" }).map((item) => item.path), ["references/mainstream-models.md", "references/excellent-example-senior.md"]);
+  const prompt = buildWorkPrompt({ toolSlug: "subject-lesson-design", input: { stage: "高中", subject: "美术", topic: "城市图像的观看与解释" }, skill, materialContext: "经核教材、高清图像和元数据", textbookContext: "" });
+  assertEquals(prompt.user.includes("城市图像证据评述样例"), true);
+  assertEquals(prompt.user.includes("标识用户测试样例"), false);
+  assertEquals(prompt.system.includes("材料试验、多构想、制作、观看反馈和作品修订"), true);
+  assertEquals(prompt.system.includes("样例只作结构参照"), true);
+});
+
+Deno.test("physical education references load only the matching stage example and retain structured practice load and emergency guidance", () => {
+  const skill = candidate({
+    slug: "subject-lesson-design-physical-education",
+    is_fallback: false,
+    version: {
+      ...candidate({}).version,
+      prompt_template: "体育与健康公开课 Skill：必须结构化技能、学练赛评、全员练习、个体负荷、相对进步，并核验健康场地器材天气和急救SOP。",
+      output_contract: { format: "physical_education_public_lesson_markdown_v1" },
+      references: [
+        { id: "models", path: "references/mainstream-models.md", name: "模式", description: "", media_type: "text/markdown", content: "七类体育健康模式", content_hash: "models", load_mode: "always", max_chars: 1000, sort_order: 10, metadata: {} },
+        { id: "primary", path: "references/excellent-example-primary.md", name: "小学样例", description: "", media_type: "text/markdown", content: "直线运球游戏样例", content_hash: "primary", load_mode: "always", max_chars: 1000, sort_order: 30, metadata: { stages: ["小学"] } },
+        { id: "junior", path: "references/excellent-example-junior.md", name: "初中样例", description: "", media_type: "text/markdown", content: "篮球传切小场比赛样例", content_hash: "junior", load_mode: "always", max_chars: 1000, sort_order: 40, metadata: { stages: ["初中"] } },
+        { id: "senior", path: "references/excellent-example-senior.md", name: "高中样例", description: "", media_type: "text/markdown", content: "间歇跑个体负荷样例", content_hash: "senior", load_mode: "always", max_chars: 1000, sort_order: 50, metadata: { stages: ["高中"] } },
+      ],
+    },
+  });
+  assertEquals(selectWorkSkillReferences(skill, { stage: "小学", subject: "体育" }).map((item) => item.path), ["references/mainstream-models.md", "references/excellent-example-primary.md"]);
+  assertEquals(selectWorkSkillReferences(skill, { stage: "初中", subject: "体育" }).map((item) => item.path), ["references/mainstream-models.md", "references/excellent-example-junior.md"]);
+  assertEquals(selectWorkSkillReferences(skill, { stage: "高中", subject: "体育" }).map((item) => item.path), ["references/mainstream-models.md", "references/excellent-example-senior.md"]);
+  const prompt = buildWorkPrompt({ toolSlug: "subject-lesson-design", input: { stage: "初中", subject: "体育", topic: "篮球传切配合" }, skill, materialContext: "经核教材、班情、场地器材和SOP", textbookContext: "" });
+  assertEquals(prompt.user.includes("篮球传切小场比赛样例"), true);
+  assertEquals(prompt.user.includes("间歇跑个体负荷样例"), false);
+  assertEquals(prompt.system.includes("健康场地器材天气和急救SOP"), true);
+  assertEquals(prompt.system.includes("样例只作结构参照"), true);
+});
+
+Deno.test("integrated practice references load only the matching stage example and retain long-cycle evidence ethics and stakeholder guidance", () => {
+  const skill = candidate({
+    slug: "subject-lesson-design-integrated-practice",
+    is_fallback: false,
+    version: {
+      ...candidate({}).version,
+      prompt_template: "综合实践活动公开课 Skill：必须定位长周期关键课时，保留真实前序证据、亲历实践、个人贡献、利益相关者反馈、伦理审批和安全。",
+      output_contract: { format: "integrated_practice_public_lesson_markdown_v1" },
+      references: [
+        { id: "models", path: "references/mainstream-models.md", name: "模式", description: "", media_type: "text/markdown", content: "五类综合实践模式", content_hash: "models", load_mode: "always", max_chars: 1000, sort_order: 10, metadata: {} },
+        { id: "primary", path: "references/excellent-example-primary.md", name: "小学样例", description: "", media_type: "text/markdown", content: "观察工具试测样例", content_hash: "primary", load_mode: "always", max_chars: 1000, sort_order: 30, metadata: { stages: ["小学"] } },
+        { id: "junior", path: "references/excellent-example-junior.md", name: "初中样例", description: "", media_type: "text/markdown", content: "社会服务需求核验样例", content_hash: "junior", load_mode: "always", max_chars: 1000, sort_order: 40, metadata: { stages: ["初中"] } },
+        { id: "senior", path: "references/excellent-example-senior.md", name: "高中样例", description: "", media_type: "text/markdown", content: "职业体验互证样例", content_hash: "senior", load_mode: "always", max_chars: 1000, sort_order: 50, metadata: { stages: ["高中"] } },
+      ],
+    },
+  });
+  assertEquals(selectWorkSkillReferences(skill, { stage: "小学", subject: "综合实践" }).map((item) => item.path), ["references/mainstream-models.md", "references/excellent-example-primary.md"]);
+  assertEquals(selectWorkSkillReferences(skill, { stage: "初中", subject: "综合实践" }).map((item) => item.path), ["references/mainstream-models.md", "references/excellent-example-junior.md"]);
+  assertEquals(selectWorkSkillReferences(skill, { stage: "高中", subject: "综合实践" }).map((item) => item.path), ["references/mainstream-models.md", "references/excellent-example-senior.md"]);
+  const prompt = buildWorkPrompt({ toolSlug: "subject-lesson-design", input: { stage: "小学", subject: "综合实践", topic: "校园饮水观察" }, skill, materialContext: "经核学校方案、学生前序档案和审批", textbookContext: "" });
+  assertEquals(prompt.user.includes("观察工具试测样例"), true);
+  assertEquals(prompt.user.includes("职业体验互证样例"), false);
+  assertEquals(prompt.system.includes("定位长周期关键课时"), true);
+  assertEquals(prompt.system.includes("样例只作结构参照"), true);
+});
+
+Deno.test("general technology loads the senior example only for senior stage and retains authentic testing iteration and safety guidance", () => {
+  const skill = candidate({
+    slug: "subject-lesson-design-general-technology",
+    is_fallback: false,
+    version: {
+      ...candidate({}).version,
+      prompt_template: "通用技术公开课 Skill：从真实需求与约束出发，保留多方案、规范表达、事前试验、原始失败、单变量优化、同条件复测、安全标准与生命周期权衡。",
+      output_contract: { format: "general_technology_public_lesson_markdown_v1" },
+      references: [
+        { id: "models", path: "references/mainstream-models.md", name: "模式", description: "", media_type: "text/markdown", content: "七类通用技术模式", content_hash: "models", load_mode: "always", max_chars: 1000, sort_order: 10, metadata: {} },
+        { id: "senior", path: "references/excellent-example-senior.md", name: "高中样例", description: "", media_type: "text/markdown", content: "承重纸桥公平试验与优化样例", content_hash: "senior", load_mode: "always", max_chars: 1000, sort_order: 30, metadata: { stages: ["高中"] } },
+      ],
+    },
+  });
+  assertEquals(selectWorkSkillReferences(skill, { stage: "高中", subject: "通用技术" }).map((item) => item.path), ["references/mainstream-models.md", "references/excellent-example-senior.md"]);
+  assertEquals(selectWorkSkillReferences(skill, { stage: "其他（中职/高职/高校等）", subject: "通用技术" }).map((item) => item.path), ["references/mainstream-models.md"]);
+  const prompt = buildWorkPrompt({ toolSlug: "subject-lesson-design", input: { stage: "高中", subject: "通用技术", topic: "技术标准及试验" }, skill, materialContext: "经核教材、设施、材料参数、设备说明和SOP", textbookContext: "" });
+  assertEquals(prompt.user.includes("承重纸桥公平试验与优化样例"), true);
+  assertEquals(prompt.system.includes("事前试验、原始失败、单变量优化、同条件复测"), true);
+  assertEquals(prompt.system.includes("样例只作结构参照"), true);
+});
+
+Deno.test("professional umbrella skill loads the other-stage example and retains exact-course gate and non-generic evidence guidance", () => {
+  const skill = candidate({
+    slug: "subject-lesson-design-professional",
+    is_fallback: false,
+    version: {
+      ...candidate({}).version,
+      prompt_template: "其他 / 专业课元 Skill：先识别办学层次、专业课程和标准，不把所有专业课写成通用小组讨论；保留个体V1、外部标准、错误异常、反馈重做、模拟边界、安全伦理。",
+      output_contract: { format: "professional_public_lesson_markdown_v1" },
+      references: [
+        { id: "models", path: "references/mainstream-models.md", name: "模式", description: "", media_type: "text/markdown", content: "八类非同构专业课模式", content_hash: "models", load_mode: "always", max_chars: 1000, sort_order: 10, metadata: {} },
+        { id: "other", path: "references/excellent-example-other.md", name: "其他样例", description: "", media_type: "text/markdown", content: "高职物流合成数据约束审计样例", content_hash: "other", load_mode: "always", max_chars: 1000, sort_order: 30, metadata: { stages: ["其他（中职/高职/高校等）"] } },
+      ],
+    },
+  });
+  assertEquals(selectWorkSkillReferences(skill, { stage: "其他（中职/高职/高校等）", subject: "其他 / 专业课" }).map((item) => item.path), ["references/mainstream-models.md", "references/excellent-example-other.md"]);
+  assertEquals(selectWorkSkillReferences(skill, { stage: "高中", subject: "其他 / 专业课" }).map((item) => item.path), ["references/mainstream-models.md"]);
+  const prompt = buildWorkPrompt({ toolSlug: "subject-lesson-design", input: { stage: "其他（中职/高职/高校等）", subject: "其他 / 专业课", topic: "多约束配送线路优化" }, skill, materialContext: "经核高职专业、课程标准、教材、合成数据和软件条件", textbookContext: "" });
+  assertEquals(prompt.user.includes("高职物流合成数据约束审计样例"), true);
+  assertEquals(prompt.system.includes("先识别办学层次、专业课程和标准"), true);
+  assertEquals(prompt.system.includes("个体V1、外部标准、错误异常、反馈重做"), true);
+  assertEquals(prompt.system.includes("样例只作结构参照"), true);
+});
+
 Deno.test("runtime empty skill has no published-version dependency", () => {
   const skill = createEmptyWorkSkill("teaching-design");
   assertEquals(skill.is_fallback, true);

@@ -1,0 +1,4 @@
+interface:
+  display_name: "地理公开课设计"
+  short_description: "依据地图资料、区域比较和人地关系生成完整公开课教案"
+  default_prompt: "请依据准确教材和地图资料，为初中地理公开课生成可实施、可评价的完整教案。"

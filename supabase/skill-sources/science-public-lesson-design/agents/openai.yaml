@@ -1,0 +1,4 @@
+interface:
+  display_name: "小学科学公开课设计"
+  short_description: "按探究与工程类型选择模式，生成证据、安全和迭代完整的科学公开课"
+  default_prompt: "使用 $science-public-lesson-design，依据指定教材内容设计一节完整的小学科学公开课。"
