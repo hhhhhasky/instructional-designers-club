@@ -43,7 +43,6 @@ import {
   memoryCategoryMatchesTypes,
   selectMemory,
 } from "../_shared/hai_chat/memory_selector.ts";
-import { normalizeHaiVoiceFormatting } from "../_shared/hai_chat/response_format.ts";
 import { evaluateResponse } from "../_shared/hai_chat/response_evaluator.ts";
 import type {
   IntentResult,
@@ -321,13 +320,10 @@ Deno.serve(async (request) => {
               finalAnswer += token;
               sendSse(controller, encoder, { type: "token", token });
             }
-          } else {
-            finalAnswer = normalizeHaiVoiceFormatting(finalAnswer);
           }
 
-          finalAnswer = normalizeHaiVoiceFormatting(finalAnswer);
-          // 流式阶段展示原始片段；最终清洗后再做一次轻量替换，确保前端显示内容
-          // 与落库答案完全一致（不会重新等待模型生成）。
+          // 流式阶段展示模型草稿；最终答案（包括必要的重写结果）再做一次替换，
+          // 确保前端显示内容与落库答案完全一致，同时保留 Markdown 结构。
           sendSse(controller, encoder, {
             type: "replace",
             content: finalAnswer,

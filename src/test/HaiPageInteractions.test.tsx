@@ -289,6 +289,25 @@ describe("HAI assistant message actions", () => {
     expect(screen.queryByRole("button", { name: "把这轮问答生成分享图" })).not.toBeInTheDocument();
   });
 
+  it("keeps Markdown formatting after an answer is complete", () => {
+    render(
+      <MessageBubble
+        message={{
+          id: "assistant-markdown",
+          role: "assistant",
+          content: "## 判断\n\n- **先看目标**\n- 再看活动",
+          created_at: "2026-07-13T08:00:00.000Z",
+          pending: false,
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "判断", level: 2 })).toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+    expect(screen.getAllByRole("listitem")[0]).toHaveTextContent("先看目标");
+    expect(screen.getByText("先看目标").tagName).toBe("STRONG");
+  });
+
   it("records whether an assistant answer was helpful", async () => {
     const user = userEvent.setup();
     const onFeedback = vi.fn();

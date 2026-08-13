@@ -18,7 +18,7 @@ const skill: HaiChatSkillRuntime = {
   version_id: "version-1",
   version_label: "v1",
   snapshot_hash: "snapshot-hash-1",
-  instructions: "先按日常课、公开课、诊断、设计、其他五类路由判断，再选择方法并给出具体动作。",
+  instructions: "先按日常课、公开课、诊断、设计、其他五类路由判断，再选择方法并给出具体动作。最终回答保留必要的 Markdown 结构。",
   reference_config: normalizeHaiChatSkillReferenceConfig({
     include_method_index: true,
     method_card_limit: 6,
@@ -60,6 +60,9 @@ Deno.test("chat skill prompt loads published instructions, method cards and memo
   }
   if (!prompt.includes(skill.instructions)) {
     throw new Error("published skill instructions were not loaded");
+  }
+  if (!prompt.includes("最终回答保留必要的 Markdown 结构")) {
+    throw new Error("Markdown output rule was not loaded");
   }
   if (!prompt.includes("question-chain")) {
     throw new Error("relevant method card was not loaded");
