@@ -2,6 +2,7 @@ import {
   applyWorkOutputRuntimeTrace,
   assertWorkSkillRuntimeReady,
   buildWorkPrompt,
+  createEmptyWorkSkill,
   filterExactTextbookSources,
   parseWorkJson,
   renderWorkMarkdown,
@@ -425,12 +426,14 @@ Deno.test("work prompt separates built-in textbook knowledge from user materials
   }];
   const prompt = buildWorkPrompt({
     toolSlug: "subject-lesson-design",
-    input: { topic: "开启初中生活", teaching_mode: "案例式" },
+    input: { topic: "开启初中生活", teaching_mode: "案例式", textbook_content: "用户粘贴的教材原文" },
     skill,
     textbookContext: "第一框 奏响中学序曲",
     materialContext: "教师补充教材原文",
   });
   assertEquals(prompt.user.includes("## 内置教材知识库（精确命中）"), true);
+  assertEquals(prompt.user.includes("## 用户粘贴的教材内容"), true);
+  assertEquals(prompt.user.includes("用户粘贴的教材原文"), true);
   assertEquals(prompt.user.includes("## 用户指定材料"), true);
   assertEquals(prompt.user.includes("### references/case-mode-v3.md"), true);
   assertEquals(prompt.user.includes("材料—问题—分析—归纳"), true);
@@ -452,6 +455,19 @@ Deno.test("empty subject skill shell remains usable and explains the pending spe
   assertEquals(prompt.system.includes("Skill 壳"), true);
   assertEquals(prompt.system.includes("不要因为 Skill 为空而报错"), true);
   assertEquals(prompt.system.includes("Markdown 教案"), true);
+});
+
+Deno.test("runtime empty skill has no published-version dependency", () => {
+  const skill = createEmptyWorkSkill("teaching-design");
+  assertEquals(skill.is_fallback, true);
+  assertEquals(skill.version.prompt_template, "");
+  assertEquals(skill.version.output_contract, {});
+});
+
+Deno.test("skill selection returns no candidate only before the runtime empty fallback is applied", () => {
+  assertEquals(selectWorkSkill([], { subject: "英语", lesson_type: "公开课" }), null);
+  const fallback = createEmptyWorkSkill("subject-lesson-design");
+  assertEquals(fallback.version.version_label, "empty-runtime-v1");
 });
 
 Deno.test("politics work prompt injects retrieved case candidates with verification boundary", () => {

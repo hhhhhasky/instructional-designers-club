@@ -38,6 +38,29 @@ export type WorkSkillReference = {
   metadata: Record<string, unknown>;
 };
 
+/**
+ * Skill 配置允许在开发期暂时不完整。持久化空壳优先，运行时空 Skill
+ * 是最后一道兜底，避免没有 published Skill 时把整个 Work 请求打成 503。
+ */
+export function createEmptyWorkSkill(moduleSlug: string): WorkSkillCandidate {
+  return {
+    id: `runtime-empty-${moduleSlug}`,
+    slug: `${moduleSlug}-empty-runtime`,
+    name: `${moduleSlug} 空 Skill`,
+    description: "当前没有可用的专属 Skill 提示词，使用通用生成约束继续执行。",
+    match_criteria: {},
+    priority: -10000,
+    is_fallback: true,
+    version: {
+      id: "",
+      version_label: "empty-runtime-v1",
+      prompt_template: "",
+      input_contract: {},
+      output_contract: {},
+    },
+  };
+}
+
 type TextbookRouteSource = {
   section_path: string;
   content_type: string;
@@ -380,11 +403,13 @@ export function buildWorkPrompt(params: {
     `### ${reference.path}\n${reference.content.slice(0, reference.max_chars)}`
   ).join("\n\n");
   const skillInstructions = params.skill.version.prompt_template.trim();
-  const fallbackNotice = params.skill.is_fallback
+  const fallbackNotice = !skillInstructions
+    ? "当前使用的是空 Skill 壳，具体学科/功能提示词尚未补充。请依据任务输入、教材证据和通用输出要求继续生成，不要因为 Skill 为空而报错，也不要声称使用了尚未提供的方法。"
+    : params.skill.is_fallback
     ? "当前使用通用 Skill。不得把一般知识伪装成教材中的具体事实。"
     : skillInstructions
     ? "当前已匹配专属 Skill。仍须遵守教材事实边界。"
-    : "当前已匹配该学科的 Skill 壳，但具体提示词尚未补充。请依据任务输入、教材证据和通用输出要求完成生成，不要因为 Skill 为空而报错，也不要声称使用了尚未提供的学科方法。";
+    : "";
   const segmentType = String(params.input.segment_type ?? "").trim();
   const system = [
     params.skill.version.prompt_template,
@@ -411,6 +436,9 @@ export function buildWorkPrompt(params: {
     JSON.stringify(params.input, null, 2),
     referenceContext ? `## Skill 版本化参考资料\n${referenceContext}` : "",
     params.textbookContext ? `## 内置教材知识库（精确命中）\n${params.textbookContext}` : "",
+    String(params.input.textbook_content ?? "").trim()
+      ? `## 用户粘贴的教材内容\n${String(params.input.textbook_content).trim()}`
+      : "",
     params.caseContext ? `## 思政公开课案例库候选（后端检索）\n${params.caseContext}` : "",
     params.materialContext ? `## 用户指定材料\n${params.materialContext}` : "",
     params.previousMarkdown ? `## 上一版产物\n${params.previousMarkdown}` : "",

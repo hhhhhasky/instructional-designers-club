@@ -17,6 +17,7 @@ import {
 import {
   assertWorkSkillRuntimeReady,
   buildWorkPrompt,
+  createEmptyWorkSkill,
   isHaiWorkToolSlug,
   selectWorkSkillReferences,
   selectWorkSkill,
@@ -472,16 +473,19 @@ async function loadSelectedSkill(admin: any, moduleSlug: string, input: Record<s
     return version ? [{ ...skill, version } as WorkSkillCandidate] : [];
   });
   const selected = selectWorkSkill(candidates, input);
-  if (!selected) throw new HttpError(503, "该功能还没有已发布的 Work Skill。");
-  const { data: references, error: referencesError } = await admin
-    .from("hai_work_skill_references")
-    .select("id, path, name, description, media_type, content, content_hash, load_mode, max_chars, sort_order, metadata")
-    .eq("skill_version_id", selected.version.id)
-    .order("sort_order", { ascending: true });
+  const resolvedSkill = selected ?? createEmptyWorkSkill(moduleSlug);
+  if (!selected) console.warn(`[hai-work] ${moduleSlug} 没有可用的已发布 Skill，使用运行时空 Skill。`);
+  const { data: references, error: referencesError } = resolvedSkill.version.id
+    ? await admin
+      .from("hai_work_skill_references")
+      .select("id, path, name, description, media_type, content, content_hash, load_mode, max_chars, sort_order, metadata")
+      .eq("skill_version_id", resolvedSkill.version.id)
+      .order("sort_order", { ascending: true })
+    : { data: [], error: null };
   if (referencesError) throw new HttpError(500, `Work Skill references 加载失败：${referencesError.message}`);
   return {
-    ...selected,
-    version: { ...selected.version, references: references ?? [] },
+    ...resolvedSkill,
+    version: { ...resolvedSkill.version, references: references ?? [] },
   } as WorkSkillCandidate;
 }
 
@@ -717,7 +721,7 @@ async function createRun(admin: any, params: {
   const { data, error } = await admin.from("hai_work_runs").insert({
     task_id: params.taskId,
     user_id: params.userId,
-    skill_version_id: params.skill.version.id,
+    skill_version_id: params.skill.version.id || null,
     parent_artifact_id: params.parentArtifactId,
     client_request_id: params.clientRequestId,
     status: "queued",

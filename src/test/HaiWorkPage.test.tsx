@@ -60,6 +60,8 @@ vi.mock("@/db/hai-api", () => ({
   streamHaiWork: vi.fn(),
 }));
 
+const defaultGetHaiTextbookCatalog = vi.mocked(getHaiTextbookCatalog).getMockImplementation()!;
+
 function renderAt(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
@@ -76,6 +78,7 @@ describe("HAI Work workbench", () => {
   beforeEach(() => {
     cleanup();
     vi.clearAllMocks();
+    vi.mocked(getHaiTextbookCatalog).mockImplementation(defaultGetHaiTextbookCatalog);
   });
 
   it("shows all four enabled work tools", async () => {
@@ -269,7 +272,7 @@ describe("HAI Work workbench", () => {
     );
   });
 
-  it("shows only subjects backed by textbooks for each Work stage", async () => {
+  it("shows the shared Work subject list even when a textbook is not yet catalogued", async () => {
     const user = userEvent.setup();
     renderAt("/hai/work/lesson-diagnosis");
 
@@ -278,18 +281,66 @@ describe("HAI Work workbench", () => {
     const subjectSelect = screen.getByRole("combobox", { name: /学科/ }) as HTMLSelectElement;
     expect(Array.from(subjectSelect.options).map((option) => option.textContent)).toEqual([
       "请选择",
-      "数学",
       "语文",
+      "数学",
+      "英语",
       "道德与法治",
       "科学",
+      "信息科技",
+      "心理健康",
+      "音乐",
+      "美术",
+      "体育",
+      "综合实践",
     ]);
-    expect(screen.queryByRole("option", { name: "英语" })).not.toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "英语" })).toBeInTheDocument();
 
     await user.selectOptions(screen.getByRole("combobox", { name: /学段/ }), "高中");
     expect(Array.from(subjectSelect.options).map((option) => option.textContent)).toEqual([
       "请选择",
+      "语文",
+      "数学",
+      "英语",
+      "物理",
+      "化学",
+      "生物",
+      "地理",
+      "历史",
       "思想政治",
+      "信息科技",
+      "心理健康",
+      "音乐",
+      "美术",
+      "体育",
+      "综合实践",
+      "通用技术",
     ]);
+  });
+
+  it("lets an uncovered lesson-diagnosis subject use the shared manual textbook path", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getHaiTextbookCatalog).mockResolvedValue([]);
+    renderAt("/hai/work/lesson-diagnosis");
+
+    await screen.findByText("先把这份教案交给 HAI");
+    await user.selectOptions(screen.getByRole("combobox", { name: /学段/ }), "小学");
+    await user.selectOptions(screen.getByRole("combobox", { name: /学科/ }), "英语");
+    expect(await screen.findByText(/当前学段与学科暂未收录内置教材/)).toBeInTheDocument();
+    await user.type(screen.getByRole("textbox", { name: "年级" }), "四年级");
+    await user.type(screen.getByRole("textbox", { name: "册次 / 教材" }), "上册");
+    await user.type(screen.getByRole("textbox", { name: "单元" }), "Unit 1");
+    await user.type(screen.getByRole("textbox", { name: "课题" }), "My school");
+    await user.type(screen.getByRole("textbox", { name: /教材内容/ }), "本课教材内容");
+    await user.type(screen.getByRole("textbox", { name: /教案正文/ }), "教学目标：理解并运用本课词汇。");
+    await user.click(screen.getByRole("button", { name: "开始教案诊断" }));
+
+    expect(streamHaiWork).toHaveBeenCalledWith(
+      expect.objectContaining({
+        toolSlug: "lesson-diagnosis",
+        input: expect.objectContaining({ subject: "英语", grade: "四年级", textbook_content: "本课教材内容" }),
+      }),
+      expect.any(Object),
+    );
   });
 
   it("rejects segment-optimization when current design and files are both empty", async () => {
