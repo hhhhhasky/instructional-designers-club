@@ -360,6 +360,23 @@ describe("HAI Work workbench", () => {
     expect(await screen.findByText("请粘贴当前环节设计，或上传环节设计文件。")).toBeInTheDocument();
   });
 
+  it("only exposes the four currently supported segment types", async () => {
+    renderAt("/hai/work/segment-optimization");
+
+    const segmentSelect = await screen.findByRole("combobox", { name: /要优化的环节/ });
+    expect(Array.from(segmentSelect.querySelectorAll("option")).map((option) => option.textContent).filter((label) => label !== "请选择")).toEqual([
+      "课程导入",
+      "问题链",
+      "任务活动",
+      "评价反馈",
+    ]);
+    expect(screen.queryByRole("option", { name: "教师讲解" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "合作探究" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "练习迁移" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "课堂总结" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "其他" })).not.toBeInTheDocument();
+  });
+
   it("uses the same textbook hierarchy for teaching design", async () => {
     const user = userEvent.setup();
     renderAt("/hai/work/teaching-design");

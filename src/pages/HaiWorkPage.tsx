@@ -63,7 +63,7 @@ export const HAI_WORK_TOOL_CONFIG: Record<HaiWorkToolSlug, HaiWorkToolVisualConf
   "segment-optimization": {
     name: "环节优化",
     eyebrow: "拆解 · 改写",
-    description: "聚焦导入、探究、练习、评价等单个环节，诊断断点并给出可直接替换的版本。",
+    description: "聚焦课程导入、问题链、任务活动和评价反馈，诊断断点并给出可直接替换的版本。",
     promise: "交付优化稿、师生活动和学习证据",
     icon: WandSparkles,
     accent: "var(--annotation)",
@@ -94,7 +94,7 @@ const WORK_INTRO: Record<HaiWorkToolSlug, { title: string; subtitle: string }> =
   },
   "segment-optimization": {
     title: "先把这一环节交给 HAI",
-    subtitle: "先按年级、教材、单元和课题定位本课，再聚焦导入、问题链、练习、评价等单个环节。HAI 会结合教材背景，给出可直接替换的优化稿。",
+    subtitle: "先按年级、教材、单元和课题定位本课，再聚焦课程导入、问题链、任务活动或评价反馈。HAI 会结合教材背景，给出可直接替换的优化稿。",
   },
   "subject-lesson-design": {
     title: "先把本课信息交给 HAI",
@@ -106,7 +106,8 @@ const WORK_INTRO: Record<HaiWorkToolSlug, { title: string; subtitle: string }> =
   },
 };
 
-const segmentTypes = ["课程导入", "问题链", "任务活动", "教师讲解", "合作探究", "练习迁移", "评价反馈", "课堂总结", "其他"];
+// 当前前端只开放教师暂时最常用的四类环节；数据库中的其他 Skill 和匹配条件暂不删除。
+const segmentTypes = ["课程导入", "问题链", "任务活动", "评价反馈"];
 const teachingModes = [
   { value: "案例式", description: "围绕一个核心案例，引导学生分析、解释并归纳教材知识。" },
   { value: "任务式", description: "让学生为特定对象解决问题，形成可展示、可评价的成果。" },
