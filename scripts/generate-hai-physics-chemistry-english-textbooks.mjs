@@ -140,7 +140,7 @@ function makeSection({ slug, level, unitNumber, unitTitle, lessonNumber = 0, les
     content_markdown: normalized || `# ${unitTitle}`,
     content_text: plain(normalized) || unitTitle,
     knowledge_point_count: Math.max(1, (normalized.match(/(?:^|\n)\s*[-*]\s+/gmu) ?? []).length),
-    char_count: normalized.length,
+    char_count: (plain(normalized) || unitTitle).length,
     sort_order: sort,
     content_hash: sha256(normalized),
     verification_status: "source_declared_user_provided_summary",

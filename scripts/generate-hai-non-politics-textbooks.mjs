@@ -128,7 +128,7 @@ function makeSection({ collectionSlug, unit, lessonNumber, lessonTitle, level, c
     content_markdown: normalized,
     content_text: plainText(normalized),
     knowledge_point_count: Math.max(1, (normalized.match(/(?:^|\n)\s*[-*]\s+/g) ?? []).length),
-    char_count: normalized.length,
+    char_count: plainText(normalized).length,
     sort_order: sortOrder,
     content_hash: sha256(normalized),
     verification_status: "source_declared_user_provided_summary",

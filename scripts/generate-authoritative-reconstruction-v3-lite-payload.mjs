@@ -119,7 +119,7 @@ for (const source of payloads) {
       content_type: section.section_level === "unit" ? "unit_context" : "lesson_summary",
       content_markdown: contentMarkdown,
       content_text: contentText,
-      char_count: [...contentText].length,
+      char_count: contentText.length,
       content_hash: sha256(contentMarkdown),
       sort_order: section.unit_number * 10000 + section.lesson_number * 100,
       native_node_type: section.section_level === "unit"
@@ -233,7 +233,7 @@ function validate(payload) {
     if (keys.has(section.section_key)) errors.push(`duplicate key ${section.section_key}`);
     if (!slugs.has(section.collection_slug)) errors.push(`unknown collection ${section.collection_slug}`);
     if (sha256(section.content_markdown) !== section.content_hash) errors.push(`hash mismatch ${section.section_key}`);
-    if (section.char_count !== [...section.content_text].length) errors.push(`char mismatch ${section.section_key}`);
+    if (section.char_count !== section.content_text.length) errors.push(`char mismatch ${section.section_key}`);
     if (section.sort_order !== section.unit_number * 10000 + section.lesson_number * 100 + section.frame_number) errors.push(`sort mismatch ${section.section_key}`);
     keys.add(section.section_key);
   }

@@ -208,7 +208,7 @@ function makeParentSection(child, level, sections, collection) {
     content_markdown: contentMarkdown,
     content_text: contentMarkdown.replace(/[#>*`|_]/g, " ").replace(/\s+/g, " ").trim(),
     knowledge_point_count: 0,
-    char_count: [...contentMarkdown].length,
+    char_count: contentMarkdown.replace(/#>*`|_|/g, " ").replace(/\s+/g, " ").trim().length,
     sort_order: Math.max(0, Number(child.sort_order || 0) - (isUnit ? 2 : 1)),
     content_hash: sha256(contentMarkdown),
     verification_status: child.verification_status,
