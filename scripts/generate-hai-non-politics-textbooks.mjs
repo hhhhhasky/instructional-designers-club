@@ -280,10 +280,29 @@ function parsePrimaryMath(filePath, collectionSlug) {
   const markdown = read(filePath);
   const unit = parseUnitTitle(path.basename(filePath));
   const { headings } = headingParts(markdown);
-  const candidates = headings.filter((heading) =>
-    (heading.level === 2 && /^(?:\d+[.、\s]|[一二三四五六七八九十]+、)/u.test(heading.title))
-      || (heading.level === 3 && /^(?:例题|例\s*\d|活动|探究|复习活动|[一二三四五六七八九十]+、)/u.test(heading.title))
+  // 数学单元文件存在两种课题边界：
+  // 1) 二级标题（"## 1. 平均分的认识"、"## 例题1：……"、"## 单元总结：……"），
+  //    其下所有例题/探究三级内容应合并进这一课（二年级下册等册采用此结构）。
+  // 2) 没有上述二级标题时，三级标题（"### 探究一/例题1/活动1/一、……"）本身才是课
+  //    （五年级下册、三年级等册采用此结构）。
+  const structured = headings.filter((heading) =>
+    heading.level === 2 && /^(?:\d+[.、．\s]|[一二三四五六七八九十]+、|例题|例\s*\d|探究|活动|单元总结)/u.test(heading.title)
   );
+  const fallback = headings.filter((heading) =>
+    heading.level === 3 && /^(?:例题|例\s*\d|活动|复习活动|探究\s*(?:\d|[一二三四五六七八九十])|[一二三四五六七八九十]+、)/u.test(heading.title)
+  );
+  // “# 复习建议 / 评估建议 / 结论与法则 / 评估与练习 / 情境与真实问题 /
+  // 单元关系 / 新课标 / 教学建议”等一级栏目下的标题（知识梳理、查漏补缺、
+  // 活动建议……）是栏目说明，不是真实课题。
+  const underExcludedParent = (heading) => {
+    let parent = null;
+    for (const candidate of headings) {
+      if (candidate.index >= heading.index) break;
+      if (candidate.level < heading.level) parent = candidate;
+    }
+    return parent?.level === 1 && /复习建议|评估建议|结论与法则|评估与练习|情境与真实问题|单元关系|新课标|教学建议/u.test(parent.title);
+  };
+  const candidates = (structured.length ? structured : fallback).filter((heading) => !underExcludedParent(heading));
   const lessonCandidates = candidates
     .filter((heading) => !/单元知识结构|结论与法则|评估与练习|情境与真实问题|单元关系|新课标|教学建议/u.test(heading.title));
   const blocks = lessonCandidates

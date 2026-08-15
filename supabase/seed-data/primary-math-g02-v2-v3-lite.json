@@ -1,0 +1,3844 @@
+{
+  "schema_version": "hai-textbook-v3-lite",
+  "generated_at": "2026-08-15T04:37:15.123Z",
+  "expected_book_count": 1,
+  "expected_unit_count": 11,
+  "expected_lesson_count": 74,
+  "expected_frame_count": 0,
+  "expected_section_count": 85,
+  "expected_link_count": 148,
+  "collections": [
+    {
+      "slug": "primary-math-pep-legacy-g02-v2",
+      "title": "人教版小学数学2年级下册教材分析",
+      "stage": "小学",
+      "subject": "数学",
+      "publisher": "人民教育出版社",
+      "edition_family": "人教版",
+      "edition_label": "人教版（用户知识库整理版）",
+      "grade_level": 2,
+      "grade_label": "2年级",
+      "volume": "下册",
+      "effective_from": "2013-09-01",
+      "publication_status": "current",
+      "verification_status": "source_declared_user_provided_summary",
+      "requires_confirmation": true,
+      "content_type": "knowledge_summary",
+      "source_type": "user_provided_teacher_summary",
+      "source_file_name": "01-数据收集和整理.md; 02-表内除法（一）.md; 03-图形的运动（一）.md; 04-表内除法（二）.md; 05-混合运算.md; 06-有余数的除法.md; 07-万以内数的认识.md; 08-克和千克.md; 09-小小设计师.md; 10-数学广角——推理.md; 11-总复习.md",
+      "source_note": "来自用户指定知识库的结构化教材整理，不是教材逐字原文；生成教案时仍需以教师手中当册教材核对版本和具体措辞。",
+      "source_hash": "4ec55ecb0df53eed7c08df68b943195b315618305502f8950cc06d7e407ed6a1",
+      "metadata": {
+        "source_scope": "user_vault_non_politics_textbooks",
+        "source_files": [
+          "01-数据收集和整理.md",
+          "02-表内除法（一）.md",
+          "03-图形的运动（一）.md",
+          "04-表内除法（二）.md",
+          "05-混合运算.md",
+          "06-有余数的除法.md",
+          "07-万以内数的认识.md",
+          "08-克和千克.md",
+          "09-小小设计师.md",
+          "10-数学广角——推理.md",
+          "11-总复习.md"
+        ],
+        "ingestion_version": "non-politics-unit-lesson-v1",
+        "section_levels": [
+          "unit",
+          "lesson"
+        ],
+        "legacy_slug": "primary-math-grade-2-volume-2",
+        "v3_lite": true,
+        "fix": "merged_example_level_lessons_into_lesson"
+      },
+      "edition_year": 2013,
+      "lifecycle_status": "current",
+      "is_default": true,
+      "text_fidelity": "teacher_summary",
+      "structure_profile": "primary-math-unit-lesson-v2"
+    }
+  ],
+  "sections": [
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "unit",
+      "unit_number": 1,
+      "unit_label": "第1单元",
+      "unit_title": "数据收集和整理",
+      "lesson_number": 0,
+      "lesson_label": "",
+      "lesson_title": "",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "1 数据收集和整理 / 单元背景",
+      "content_type": "unit_context",
+      "content_markdown": "# 单元知识结构\n\n```\n数据收集和整理\n├── 数据收集方法\n│   ├── 调查法\n│   │   ├── 确定调查对象（全班同学）\n│   │   ├── 确定调查规则（全员参与、每人选一项）\n│   │   └── 实施调查（举手、投票）\n│   └── 记录方法\n│       ├── 举手计数\n│       ├── 正字记录\n│       └── 其他符号记录\n├── 数据整理方法\n│   ├── 统计表\n│   │   ├── 表头设计（项目名称、数量）\n│   │   └── 数据填写\n│   └── 数据分析\n│       ├── 读取数据（最多、最少、具体数值）\n│       ├── 计算总数\n│       └── 比较数据\n└── 数据应用\n    ├── 决策支持（选择班牌颜色）\n    ├── 问题解决（合理购买水果）\n    └── 发现规律（天气情况、图书统计）\n```\n\n# 核心探究过程",
+      "content_text": "单元知识结构 核心探究过程",
+      "knowledge_point_count": 1,
+      "char_count": 13,
+      "sort_order": 10000,
+      "content_hash": "7221a19503fd63bcc35c5c772322326acadb275183721e9a8bdccb74435214ea",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/01-数据收集和整理.md"
+        ],
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "unit",
+      "native_label": "第1单元",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01::l01",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 1,
+      "unit_label": "第1单元",
+      "unit_title": "数据收集和整理",
+      "lesson_number": 1,
+      "lesson_label": "第1课",
+      "lesson_title": "例题1：班牌颜色调查（单元导入）",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "1 数据收集和整理 / 1 例题1：班牌颜色调查（单元导入）",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 例题1：班牌颜色调查（单元导入）\n\n### 问题情境\n二（1）班准备制作班牌，要从四种颜色（红、黄、蓝、白）中选大家最喜欢的一种作为班牌的底色。\n\n**核心问题**：怎么知道哪种颜色是大多数同学最喜欢的呢？\n\n### 分析思路\n教材通过人物对话引导学生思考调查方法：\n\n1. **女孩**：可以对班里的同学进行调查。\n2. **男孩**：调查时可以先说一种颜色，请最喜欢这种颜色的人举手……\n3. **机器人**：请注意，班里每名同学都要参加调查，并且每人只能选一种颜色。\n\n### 调查实施与结果呈现\n\n**调查结果统计表**：\n\n| 颜色 | 红 | 黄 | 蓝 | 白 |\n|------|----|----|----|----|\n| 人数 | 5  | 4  | 26 | 3  |\n\n**机器人说明**：这是统计表，可以用来呈现统计数据。\n\n### 数据分析与解答\n\n1. 全班共有（**38**）人。最喜欢（**蓝**）色的人数最多。\n2. 这个班制作班牌，选择（**蓝**）色最合适。\n3. 如果你们班制作班牌，结果会是怎样的？试着调查一下。\n\n**教学要点**：\n- 渗透民主决策思想（少数服从多数）\n- 理解统计表的意义（呈现数据、便于分析）\n- 培养数据意识（用数据说话）\n\n---",
+      "content_text": "例题1：班牌颜色调查（单元导入） 问题情境 二（1）班准备制作班牌，要从四种颜色（红、黄、蓝、白）中选大家最喜欢的一种作为班牌的底色。 核心问题：怎么知道哪种颜色是大多数同学最喜欢的呢？ 分析思路 教材通过人物对话引导学生思考调查方法： 1. 女孩：可以对班里的同学进行调查。 2. 男孩：调查时可以先说一种颜色，请最喜欢这种颜色的人举手…… 3. 机器人：请注意，班里每名同学都要参加调查，并且每人只能选一种颜色。 调查实施与结果呈现 调查结果统计表： 颜色 | 红 | 黄 | 蓝 | 白 | 人数 | 5 | 4 | 26 | 3 | 机器人说明：这是统计表，可以用来呈现统计数据。 数据分析与解答 1. 全班共有（38）人。最喜欢（蓝）色的人数最多。 2. 这个班制作班牌，选择（蓝）色最合适。 3. 如果你们班制作班牌，结果会是怎样的？试着调查一下。 教学要点： 渗透民主决策思想（少数服从多数） 理解统计表的意义（呈现数据、便于分析） 培养数据意识（用数据说话）",
+      "knowledge_point_count": 3,
+      "char_count": 437,
+      "sort_order": 10100,
+      "content_hash": "3c6e17b802234e4504559efa03e2adb10e3799f97cc80336541e673748b2620d",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/01-数据收集和整理.md"
+        ],
+        "source_heading": "例题1：班牌颜色调查（单元导入）",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第1课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01::l02",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 1,
+      "unit_label": "第1单元",
+      "unit_title": "数据收集和整理",
+      "lesson_number": 2,
+      "lesson_label": "第2课",
+      "lesson_title": "例题2：讲故事比赛投票",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "1 数据收集和整理 / 2 例题2：讲故事比赛投票",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 例题2：讲故事比赛投票\n\n### 问题情境\n学校举行讲故事大赛。二（1）班要从小刚、小雨两名同学中选一名参加比赛。\n\n**核心问题**：可以用什么方法来决定谁参加比赛？\n\n### 探究过程\n学生提出可以用投票的方法。教材展示了两种记录方法：\n\n**方法1**：直接记录票数（画勾、画圈等）\n**方法2**：用\"正\"字记录（每笔代表一票）\n\n### 投票记录统计\n\n| 姓名 | 小刚 | 小雨 |\n|------|------|------|\n| 票数 |  （填票数）  |  （填票数）  |\n\n### 深度思考题\n**（2）有两名同学因缺勤没参加投票，如果他们投票，结果可能怎样？**\n\n**分析**：这是一个开放性问题，旨在引导学生思考：\n- 缺勤同学可能支持任一方\n- 结果可能改变（如果票数接近）\n- 结果可能不变（如果一方票数领先很多）\n- 渗透样本代表性的思想\n\n---",
+      "content_text": "例题2：讲故事比赛投票 问题情境 学校举行讲故事大赛。二（1）班要从小刚、小雨两名同学中选一名参加比赛。 核心问题：可以用什么方法来决定谁参加比赛？ 探究过程 学生提出可以用投票的方法。教材展示了两种记录方法： 方法1：直接记录票数（画勾、画圈等） 方法2：用\"正\"字记录（每笔代表一票） 投票记录统计 姓名 | 小刚 | 小雨 | 票数 | （填票数） | （填票数） | 深度思考题 （2）有两名同学因缺勤没参加投票，如果他们投票，结果可能怎样？ 分析：这是一个开放性问题，旨在引导学生思考： 缺勤同学可能支持任一方 结果可能改变（如果票数接近） 结果可能不变（如果一方票数领先很多） 渗透样本代表性的思想",
+      "knowledge_point_count": 4,
+      "char_count": 305,
+      "sort_order": 10200,
+      "content_hash": "025bb41dff8daeec088b7dcadd2e7fe6cd597a6c7c103ad31a9903c76af73d80",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/01-数据收集和整理.md"
+        ],
+        "source_heading": "例题2：讲故事比赛投票",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第2课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01::l03",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 1,
+      "unit_label": "第1单元",
+      "unit_title": "数据收集和整理",
+      "lesson_number": 3,
+      "lesson_label": "第3课",
+      "lesson_title": "例题3：季节喜好调查",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "1 数据收集和整理 / 3 例题3：季节喜好调查",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 例题3：季节喜好调查\n\n### 问题情境\n调查本班同学最喜欢哪个季节，把结果填入下表。\n\n| 季节 | 春 | 夏 | 秋 | 冬 |\n|------|----|----|----|----|\n| 人数 |    |    |    |    |\n\n### 数据分析问题\n1. 最喜欢哪个季节的人数最多？\n2. 你还能提出其他数学问题并解答吗？\n\n**教学要点**：\n- 引导学生自主提出问题\n- 培养问题意识\n- 巩固数据分析方法\n\n---",
+      "content_text": "例题3：季节喜好调查 问题情境 调查本班同学最喜欢哪个季节，把结果填入下表。 季节 | 春 | 夏 | 秋 | 冬 | 人数 | | | | | 数据分析问题 1. 最喜欢哪个季节的人数最多？ 2. 你还能提出其他数学问题并解答吗？ 教学要点： 引导学生自主提出问题 培养问题意识 巩固数据分析方法",
+      "knowledge_point_count": 3,
+      "char_count": 149,
+      "sort_order": 10300,
+      "content_hash": "007f7646587c8702b33bd4aacf178d06ebc802c6c76e304b6fab722c9dfca74f",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/01-数据收集和整理.md"
+        ],
+        "source_heading": "例题3：季节喜好调查",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第3课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01::l04",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 1,
+      "unit_label": "第1单元",
+      "unit_title": "数据收集和整理",
+      "lesson_number": 4,
+      "lesson_label": "第4课",
+      "lesson_title": "例题4：天气情况统计",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "1 数据收集和整理 / 4 例题4：天气情况统计",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 例题4：天气情况统计\n\n### 问题情境\n小明记录了一个月的天气情况（用符号记录）。\n\n| 天气 | 晴 | 阴 | 雪 |\n|------|----|----|----|\n| 天数 |    |    |    |\n\n### 数据分析问题\n1. 把小明记录的结果填在下表中\n2. 这个月共有多少天？\n3. 阴天比雪天多几天？\n\n**教学要点**：\n- 符号记录转表格数据\n- 简单的数据计算（加法、减法）\n- 跨学科联系（科学、气象）\n\n---",
+      "content_text": "例题4：天气情况统计 问题情境 小明记录了一个月的天气情况（用符号记录）。 天气 | 晴 | 阴 | 雪 | 天数 | | | | 数据分析问题 1. 把小明记录的结果填在下表中 2. 这个月共有多少天？ 3. 阴天比雪天多几天？ 教学要点： 符号记录转表格数据 简单的数据计算（加法、减法） 跨学科联系（科学、气象）",
+      "knowledge_point_count": 3,
+      "char_count": 159,
+      "sort_order": 10400,
+      "content_hash": "bce49459bca616c3bdd8ed143800713838fb6dbe8eef8633833addf1c713d39e",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/01-数据收集和整理.md"
+        ],
+        "source_heading": "例题4：天气情况统计",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第4课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01::l05",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 1,
+      "unit_label": "第1单元",
+      "unit_title": "数据收集和整理",
+      "lesson_number": 5,
+      "lesson_label": "第5课",
+      "lesson_title": "例题5：路口车辆统计",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "1 数据收集和整理 / 5 例题5：路口车辆统计",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 例题5：路口车辆统计\n\n### 问题情境\n同学们统计了一个路口10分钟内经过的各种车的数量。记录结果如下：\n\n**货车**：正\n**大巴车**：正 正\n**小轿车**：正 正 正 正 正\n**摩托车**：正 正 正\n\n### 统计表填写\n\n| 车的种类 | 货车 | 大巴车 | 小轿车 | 摩托车 |\n|----------|------|--------|--------|--------|\n| 辆数     |   5   |   10   |   25   |   15   |\n\n### 数据分析问题\n1. 根据统计结果，这个路口10分钟内经过的哪种车最多？哪种车最少？\n2. 图书角中哪一类图书最多？\n3. 如果要新添一些图书，你建议添加哪一类？\n\n**教学要点**：\n- 正字记录法的应用\n- 读取统计表中的最多、最少\n- 数据驱动决策（添购图书建议）\n\n---",
+      "content_text": "例题5：路口车辆统计 问题情境 同学们统计了一个路口10分钟内经过的各种车的数量。记录结果如下： 货车：正 大巴车：正 正 小轿车：正 正 正 正 正 摩托车：正 正 正 统计表填写 车的种类 | 货车 | 大巴车 | 小轿车 | 摩托车 | 辆数 | 5 | 10 | 25 | 15 | 数据分析问题 1. 根据统计结果，这个路口10分钟内经过的哪种车最多？哪种车最少？ 2. 图书角中哪一类图书最多？ 3. 如果要新添一些图书，你建议添加哪一类？ 教学要点： 正字记录法的应用 读取统计表中的最多、最少 数据驱动决策（添购图书建议）",
+      "knowledge_point_count": 3,
+      "char_count": 269,
+      "sort_order": 10500,
+      "content_hash": "cfe9e8c388f92e0cd9d91516f3e453b2a9a6ba26a6e4a8bd518d29057335d753",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/01-数据收集和整理.md"
+        ],
+        "source_heading": "例题5：路口车辆统计",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第5课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01::l06",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 1,
+      "unit_label": "第1单元",
+      "unit_title": "数据收集和整理",
+      "lesson_number": 6,
+      "lesson_label": "第6课",
+      "lesson_title": "例题6：图书角图书统计",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "1 数据收集和整理 / 6 例题6：图书角图书统计",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 例题6：图书角图书统计\n\n### 记录结果\n**文学类**：正 正 正 正 正 正 正 正 正（45本）\n**历史类**：正 正 正（15本）\n**科学类**：正 正 正 正 正 正 正（35本）\n\n### 统计表\n\n| 图书种类 | 文学类 | 历史类 | 科学类 |\n|----------|--------|--------|--------|\n| 本数     |   45   |   15   |   35   |\n\n### 数据分析\n1. 图书角中哪一类图书最多？（文学类）\n2. 如果要新添一些图书，你建议添加哪一类？（历史类，因为最少）\n\n**教学要点**：\n- 真实生活情境（班级图书管理）\n- 培养解决实际问题的能力\n\n---",
+      "content_text": "例题6：图书角图书统计 记录结果 文学类：正 正 正 正 正 正 正 正 正（45本） 历史类：正 正 正（15本） 科学类：正 正 正 正 正 正 正（35本） 统计表 图书种类 | 文学类 | 历史类 | 科学类 | 本数 | 45 | 15 | 35 | 数据分析 1. 图书角中哪一类图书最多？（文学类） 2. 如果要新添一些图书，你建议添加哪一类？（历史类，因为最少） 教学要点： 真实生活情境（班级图书管理） 培养解决实际问题的能力",
+      "knowledge_point_count": 2,
+      "char_count": 222,
+      "sort_order": 10600,
+      "content_hash": "2a7e1b2693dff138185585c7b841894434f23f9f599a71515dbddb9807d21864",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/01-数据收集和整理.md"
+        ],
+        "source_heading": "例题6：图书角图书统计",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第6课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01::l07",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 1,
+      "unit_label": "第1单元",
+      "unit_title": "数据收集和整理",
+      "lesson_number": 7,
+      "lesson_label": "第7课",
+      "lesson_title": "例题7：喜好水果调查",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "1 数据收集和整理 / 7 例题7：喜好水果调查",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 例题7：喜好水果调查\n\n### 问题情境\n调查本班同学最喜欢吃哪种水果。\n\n| 水果 | A | B | C | D |\n|------|---|---|---|---|\n| 人数 |   |   |   |   |\n\n### 数据分析\n1. 最喜欢吃（ ）的人数最多，最喜欢吃（ ）的人数最少。\n2. 你最喜欢吃哪种水果？全班最喜欢吃这种水果的人有多少？\n3. 班里要开联欢会，根据调查结果，怎样买水果更合理？\n\n**教学要点**：\n- 联系实际生活（联欢会购买水果）\n- 综合运用（考虑人数、喜好、预算）\n\n---",
+      "content_text": "例题7：喜好水果调查 问题情境 调查本班同学最喜欢吃哪种水果。 水果 | A | B | C | D | 人数 | | | | | 数据分析 1. 最喜欢吃（ ）的人数最多，最喜欢吃（ ）的人数最少。 2. 你最喜欢吃哪种水果？全班最喜欢吃这种水果的人有多少？ 3. 班里要开联欢会，根据调查结果，怎样买水果更合理？ 教学要点： 联系实际生活（联欢会购买水果） 综合运用（考虑人数、喜好、预算）",
+      "knowledge_point_count": 2,
+      "char_count": 197,
+      "sort_order": 10700,
+      "content_hash": "72139ec14ae5747b449ec553ba4c002678abe2de3d9a1a8a3452ae9fe269be61",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/01-数据收集和整理.md"
+        ],
+        "source_heading": "例题7：喜好水果调查",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第7课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01::l08",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 1,
+      "unit_label": "第1单元",
+      "unit_title": "数据收集和整理",
+      "lesson_number": 8,
+      "lesson_label": "第8课",
+      "lesson_title": "例题8：磁铁实验数据（跨学科）",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "1 数据收集和整理 / 8 例题8：磁铁实验数据（跨学科）",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 例题8：磁铁实验数据（跨学科）\n\n### 问题情境\n条形磁铁各部位吸附大头针数量的情况。\n\n**图示**：条形磁铁，标注A、B、C、D四个部位\n**每个**◎**表示1个大头针**\n\n### 数据分析\n1. 哪些部位吸附的大头针比较多？哪个部位吸附的大头针最少？\n2. 你还能得出什么结论？\n\n**教学要点**：\n- 跨学科整合（科学与数学）\n- 非常规数据记录方法（用符号表示数量）\n- 探索磁铁的性质（两端磁性强）\n\n---",
+      "content_text": "例题8：磁铁实验数据（跨学科） 问题情境 条形磁铁各部位吸附大头针数量的情况。 图示：条形磁铁，标注A、B、C、D四个部位 每个◎表示1个大头针 数据分析 1. 哪些部位吸附的大头针比较多？哪个部位吸附的大头针最少？ 2. 你还能得出什么结论？ 教学要点： 跨学科整合（科学与数学） 非常规数据记录方法（用符号表示数量） 探索磁铁的性质（两端磁性强）",
+      "knowledge_point_count": 3,
+      "char_count": 175,
+      "sort_order": 10800,
+      "content_hash": "d7640f3d59188f5baa9b2149f66a81d6de742fe8914ca3840ad3a01e0d3f73a3",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/01-数据收集和整理.md"
+        ],
+        "source_heading": "例题8：磁铁实验数据（跨学科）",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第8课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01::l09",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 1,
+      "unit_label": "第1单元",
+      "unit_title": "数据收集和整理",
+      "lesson_number": 9,
+      "lesson_label": "第9课",
+      "lesson_title": "单元总结：成长小档案",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "1 数据收集和整理 / 9 单元总结：成长小档案",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 单元总结：成长小档案\n\n### 学生反思\n- **我学会了**：通过调查收集数据\n- **我发现**：用\"正\"字记录数据很方便\n\n### 教学价值\n- 培养元认知能力（反思学习过程）\n- 总结学习方法\n- 感受统计的价值\n\n# 结论与法则",
+      "content_text": "单元总结：成长小档案 学生反思 我学会了：通过调查收集数据 我发现：用\"正\"字记录数据很方便 教学价值 培养元认知能力（反思学习过程） 总结学习方法 感受统计的价值 结论与法则",
+      "knowledge_point_count": 5,
+      "char_count": 88,
+      "sort_order": 10900,
+      "content_hash": "93845bf60a60ee1cae19463920008474fca72abffa554b26b504e6cb06e3c09f",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/01-数据收集和整理.md"
+        ],
+        "source_heading": "单元总结：成长小档案",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第9课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "unit",
+      "unit_number": 2,
+      "unit_label": "第2单元",
+      "unit_title": "表内除法（一）",
+      "lesson_number": 0,
+      "lesson_label": "",
+      "lesson_title": "",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "2 表内除法（一） / 单元背景",
+      "content_type": "unit_context",
+      "content_markdown": "# 单元知识结构\n\n```\n表内除法（一）\n├── 平均分（概念基础）\n│   ├── 认识平均分\n│   │   ├── 定义：每份分得同样多\n│   │   └── 判断：哪些是平均分\n│   ├── 平均分的两种情况\n│   │   ├── 等分（分成若干份，求每份多少）\n│   │   └── 包含（按每份多少，能分几份）\n│   └── 平均分的方法\n│       ├── 一个一个地分\n│       ├── 每次放几个\n│       └── 圈一圈、分一分\n├── 除法的初步认识\n│   ├── 除法的意义\n│   │   ├── 平均分可以用除法表示\n│   │   └── 除法与平均分的关系\n│   ├── 除法算式的认识\n│   │   ├── 除号（÷）\n│   │   ├── 被除数、除数、商\n│   │   └── 除法算式的读写\n│   └── 除法的两种意义\n│       ├── 等分：总数÷份数=每份数\n│       └── 包含：总数÷每份数=份数\n├── 用2-6的乘法口诀求商\n│   ├── 口诀求商的方法\n│   │   ├── 想除数和几相乘得被除数\n│   │   └── 乘法口诀逆运算\n│   ├── 两种求商思路\n│   │   ├── 商×除数=被除数\n│   │   └── 被除数÷商=除数\n│   └── 解决实际问题\n│       ├── 乘除法对照\n│       └── 乘除法互逆关系\n└── 解决问题\n    ├── 两步除法问题\n    ├── 乘除混合问题\n    └── 实际应用\n```\n\n# 核心探究过程",
+      "content_text": "单元知识结构 核心探究过程",
+      "knowledge_point_count": 1,
+      "char_count": 13,
+      "sort_order": 20000,
+      "content_hash": "462aa9e661bd3cf4ec5d9a7be510df6db381359673068d5a4ed5c79ac23798d1",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/02-表内除法（一）.md"
+        ],
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "unit",
+      "native_label": "第2单元",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l01",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 2,
+      "unit_label": "第2单元",
+      "unit_title": "表内除法（一）",
+      "lesson_number": 1,
+      "lesson_label": "第1课",
+      "lesson_title": "1. 平均分的认识（概念导入）",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "2 表内除法（一） / 1 1. 平均分的认识（概念导入）",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 1. 平均分的认识（概念导入）\n\n### 例题1：什么是平均分？\n\n**情境**：出示不同分法的图片\n\n**核心问题**：哪些分法是平均分？\n\n**分析过程**：\n- 展示几种不同的分法\n- 引导学生观察：哪种分法每份同样多\n- 给出定义：**每份分得同样多，叫平均分**\n\n**练习**：把6块★分成3份，判断哪些是平均分\n\n---",
+      "content_text": "1. 平均分的认识（概念导入） 例题1：什么是平均分？ 情境：出示不同分法的图片 核心问题：哪些分法是平均分？ 分析过程： 展示几种不同的分法 引导学生观察：哪种分法每份同样多 给出定义：每份分得同样多，叫平均分 练习：把6块★分成3份，判断哪些是平均分",
+      "knowledge_point_count": 3,
+      "char_count": 127,
+      "sort_order": 20100,
+      "content_hash": "b792b2d065991347b7c95301b30e1c4943a068ae30a57aff34b560fb02abdb66",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/02-表内除法（一）.md"
+        ],
+        "source_heading": "1. 平均分的认识（概念导入）",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第1课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l02",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 2,
+      "unit_label": "第2单元",
+      "unit_title": "表内除法（一）",
+      "lesson_number": 2,
+      "lesson_label": "第2课",
+      "lesson_title": "2. 平均分的操作（等分类型）",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "2 表内除法（一） / 2 2. 平均分的操作（等分类型）",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 2. 平均分的操作（等分类型）\n\n### 例题2：把18个橘子平均分成6份\n\n**情境**：出示18个橘子\n\n**核心问题**：把18个橘子平均分成6份，每份几个？\n\n**探究方法**：\n\n**方法1**：可以1个1个地分\n- 先每人分1个，再分1个……直到分完\n\n**方法2**：可以先每份放2个，再……\n- 每份先分2个，看看还剩多少\n- 再继续分，直到分完\n\n**结果**：把18个橘子平均分成6份，每份（**3**）个\n\n---\n\n### 例题3：把10盒酸奶平均分成2份\n\n**情境**：出示10盒酸奶\n\n**操作要求**：把10盒酸奶平均分成2份，每份（ ）盒。\n\n**思考**：\n- 可以1个1个地分\n- 也可以先每份放2个，再……\n\n**结果**：每份**5**盒\n\n---",
+      "content_text": "2. 平均分的操作（等分类型） 例题2：把18个橘子平均分成6份 情境：出示18个橘子 核心问题：把18个橘子平均分成6份，每份几个？ 探究方法： 方法1：可以1个1个地分 先每人分1个，再分1个……直到分完 方法2：可以先每份放2个，再…… 每份先分2个，看看还剩多少 再继续分，直到分完 结果：把18个橘子平均分成6份，每份（3）个 例题3：把10盒酸奶平均分成2份 情境：出示10盒酸奶 操作要求：把10盒酸奶平均分成2份，每份（ ）盒。 思考： 可以1个1个地分 也可以先每份放2个，再…… 结果：每份5盒",
+      "knowledge_point_count": 5,
+      "char_count": 257,
+      "sort_order": 20200,
+      "content_hash": "9916e924c62ac42003b1db9510ba92176805ac85f4b180b76e327aa86df3e5b2",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/02-表内除法（一）.md"
+        ],
+        "source_heading": "2. 平均分的操作（等分类型）",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第2课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l03",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 2,
+      "unit_label": "第2单元",
+      "unit_title": "表内除法（一）",
+      "lesson_number": 3,
+      "lesson_label": "第3课",
+      "lesson_title": "3. 平均分的操作（包含类型）",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "2 表内除法（一） / 3 3. 平均分的操作（包含类型）",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 3. 平均分的操作（包含类型）\n\n### 例题4：8袋饼干，每2袋一份\n\n**情境**：8袋饼干\n\n**核心问题**：每2袋一份，能分成几份？\n\n**操作方法**：圈一圈\n\n**思考过程**：\n- 2袋一份，圈出第一份\n- 再圈2袋，第二份\n- 继续圈，直到分完\n\n**结果**：8袋饼干，每2袋一份，能分成（**4**）份\n\n---\n\n### 例题5：12根小棒，每2根一份\n\n**操作**：\n- （1）12根☆，每2根一份，能分成（**6**）份\n- （2）12根☆，每6根一份，能分成（**2**）份\n\n**观察**：\n- 每份的数越少，分的份数越多\n- 每份的数越多，分的份数越少\n\n---\n\n### 例题6：16个杯子装盒\n\n**情境**：16个杯子要装进盒子\n\n**问题**：\n- 每2个装一盒，可以装（**8**）盒\n- 每4个装一盒，可以装（**4**）盒\n- 每8个装一盒，可以装（**2**）盒\n\n**发现规律**：\n- 总数不变，每份越多，份数越少\n\n---",
+      "content_text": "3. 平均分的操作（包含类型） 例题4：8袋饼干，每2袋一份 情境：8袋饼干 核心问题：每2袋一份，能分成几份？ 操作方法：圈一圈 思考过程： 2袋一份，圈出第一份 再圈2袋，第二份 继续圈，直到分完 结果：8袋饼干，每2袋一份，能分成（4）份 例题5：12根小棒，每2根一份 操作： （1）12根☆，每2根一份，能分成（6）份 （2）12根☆，每6根一份，能分成（2）份 观察： 每份的数越少，分的份数越多 每份的数越多，分的份数越少 例题6：16个杯子装盒 情境：16个杯子要装进盒子 问题： 每2个装一盒，可以装（8）盒 每4个装一盒，可以装（4）盒 每8个装一盒，可以装（2）盒 发现规律： 总数不变，每份越多，份数越少",
+      "knowledge_point_count": 11,
+      "char_count": 314,
+      "sort_order": 20300,
+      "content_hash": "764af47dc4d650d9fa6440fc52a11c6dd0eaf9cf5c03bbba1b34aefaf5b190aa",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/02-表内除法（一）.md"
+        ],
+        "source_heading": "3. 平均分的操作（包含类型）",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第3课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l04",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 2,
+      "unit_label": "第2单元",
+      "unit_title": "表内除法（一）",
+      "lesson_number": 4,
+      "lesson_label": "第4课",
+      "lesson_title": "4. 综合练习：香蕉平均分",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "2 表内除法（一） / 4 4. 综合练习：香蕉平均分",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 4. 综合练习：香蕉平均分\n\n### 例题7：把15根香蕉平均分\n\n**情境**：出示15根香蕉\n\n**操作要求**：用小棒代替香蕉分一分\n\n**问题**：\n（1）平均分给3只小猴，每只小猴分到（**5**）根\n（2）平均分给5只小猴，每只小猴分到（**3**）根\n\n**对比发现**：\n- 平均分的份数越多，每份越少\n- 平均分的份数越少，每份越多\n\n---",
+      "content_text": "4. 综合练习：香蕉平均分 例题7：把15根香蕉平均分 情境：出示15根香蕉 操作要求：用小棒代替香蕉分一分 问题： （1）平均分给3只小猴，每只小猴分到（5）根 （2）平均分给5只小猴，每只小猴分到（3）根 对比发现： 平均分的份数越多，每份越少 平均分的份数越少，每份越多",
+      "knowledge_point_count": 2,
+      "char_count": 138,
+      "sort_order": 20400,
+      "content_hash": "221410bb97f3c0c379b2b149ff6e48a31b5b2ff27152e2ed6343cd1faa672bd2",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/02-表内除法（一）.md"
+        ],
+        "source_heading": "4. 综合练习：香蕉平均分",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第4课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l05",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 2,
+      "unit_label": "第2单元",
+      "unit_title": "表内除法（一）",
+      "lesson_number": 5,
+      "lesson_label": "第5课",
+      "lesson_title": "5. 除法的初步认识（从平均分到除法）",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "2 表内除法（一） / 5 5. 除法的初步认识（从平均分到除法）",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 5. 除法的初步认识（从平均分到除法）\n\n### 例题8：12个竹笋平均放在4个盘子里\n\n**情境**：12个竹笋，4个盘子\n\n**核心问题**：把12个竹笋平均放在4个盘子里，每盘放几个？\n\n**操作思考**：\n- 平均分 → 每盘同样多\n- 分一分，每盘放**3**个\n\n**数学表达**：\n可以用除法表示：\n```\n12 ÷ 4 = 3\n```\n\n**各部分名称**：\n- **12**：被除数（要分的总数）\n- **4**：除数（平均分成几份）\n- **3**：商（每份的个数）\n- **÷**：除号\n\n**读法**：12除以4等于3\n\n---\n\n### 例题9：15条鱼平均放在5个鱼缸里\n\n**问题**：把15条鱼平均放在5个鱼缸里，每个鱼缸里放（ ）条。\n\n**列式**：\n```\n15 ÷ 5 = 3\n```\n\n---\n\n### 例题10：20个竹笋，每4个放一盘\n\n**情境**：20个竹笋\n\n**问题**：每4个放一盘，能放几盘？\n\n**操作**：圈一圈\n\n**结果**：能放**5**盘\n\n**列式**：\n```\n20 ÷ 4 = 5\n```\n\n**对比两种除法意义**：\n- 平均分成几份 → 求每份多少（等分）\n- 每份几个 → 能分几份（包含）\n\n---",
+      "content_text": "5. 除法的初步认识（从平均分到除法） 例题8：12个竹笋平均放在4个盘子里 情境：12个竹笋，4个盘子 核心问题：把12个竹笋平均放在4个盘子里，每盘放几个？ 操作思考： 平均分 → 每盘同样多 分一分，每盘放3个 数学表达： 可以用除法表示： 各部分名称： 12：被除数（要分的总数） 4：除数（平均分成几份） 3：商（每份的个数） ÷：除号 读法：12除以4等于3 例题9：15条鱼平均放在5个鱼缸里 问题：把15条鱼平均放在5个鱼缸里，每个鱼缸里放（ ）条。 列式： 例题10：20个竹笋，每4个放一盘 情境：20个竹笋 问题：每4个放一盘，能放几盘？ 操作：圈一圈 结果：能放5盘 列式： 对比两种除法意义： 平均分成几份 → 求每份多少（等分） 每份几个 → 能分几份（包含）",
+      "knowledge_point_count": 8,
+      "char_count": 344,
+      "sort_order": 20500,
+      "content_hash": "a994970b8f62a1d3ad84eb0c74ae2a4a6e1988f6cc92020855d8b515ab559a71",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/02-表内除法（一）.md"
+        ],
+        "source_heading": "5. 除法的初步认识（从平均分到除法）",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第5课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l06",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 2,
+      "unit_label": "第2单元",
+      "unit_title": "表内除法（一）",
+      "lesson_number": 6,
+      "lesson_label": "第6课",
+      "lesson_title": "6. 除法算式的读写",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "2 表内除法（一） / 6 6. 除法算式的读写",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 6. 除法算式的读写\n\n### 例题11：认识除法各部分名称\n\n**算式**：20 ÷ 4 = 5\n\n**各部分名称**：\n```\n20 ÷ 4 = 5\n│  │  │\n│  │  └─ 商\n│  └──── 除数\n└─────── 被除数\n```\n\n---\n\n### 例题12：说出各部分名称\n\n练习题：说出每个算式中的被除数、除数和商\n\n```\n10 ÷ 5 = 2    15 ÷ 3 = 5    18 ÷ 2 = 9\n48 ÷ 8 = 6    56 ÷ 7 = 8    28 ÷ 4 = 7\n```\n\n---",
+      "content_text": "6. 除法算式的读写 例题11：认识除法各部分名称 算式：20 ÷ 4 = 5 各部分名称： 例题12：说出各部分名称 练习题：说出每个算式中的被除数、除数和商",
+      "knowledge_point_count": 1,
+      "char_count": 80,
+      "sort_order": 20600,
+      "content_hash": "1fae03dc0e4870897ae112eb03d0a20fe2cb8b1723856f80f493a6d22b69a975",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/02-表内除法（一）.md"
+        ],
+        "source_heading": "6. 除法算式的读写",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第6课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l07",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 2,
+      "unit_label": "第2单元",
+      "unit_title": "表内除法（一）",
+      "lesson_number": 7,
+      "lesson_label": "第7课",
+      "lesson_title": "7. 用2-6的乘法口诀求商",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "2 表内除法（一） / 7 7. 用2-6的乘法口诀求商",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 7. 用2-6的乘法口诀求商\n\n### 例题13：12个桃，每只小猴分3个\n\n**情境**：12个桃，每只小猴分3个，可以分给几只小猴？\n\n**方法1**：减法分法\n```\n第一只分3个，12-3=9\n第二只分3个，9-3=6\n第三只分3个，6-3=3\n第四只分3个，正好分完\n12 ÷ 3 = 4\n```\n\n**方法2**：乘法口诀（直接用）\n```\n想：3和几相乘得12？\n三（四）十二，商是4\n3 × 4 = 12\n```\n\n**结论**：可以直接用乘法口诀计算\n\n---\n\n### 例题14：用口诀求商\n\n**题目**：\n```\n12 ÷ 3 =     12 ÷ 6 =     12 ÷ 4 =\n10 ÷ 5 =     8 ÷ 2 =      9 ÷ 3 =\n6 ÷ 2 =\n```\n\n**计算方法**：\n- 想乘法口诀\n- 找出商\n\n---",
+      "content_text": "7. 用2-6的乘法口诀求商 例题13：12个桃，每只小猴分3个 情境：12个桃，每只小猴分3个，可以分给几只小猴？ 方法1：减法分法 方法2：乘法口诀（直接用） 结论：可以直接用乘法口诀计算 例题14：用口诀求商 题目： 计算方法： 想乘法口诀 找出商",
+      "knowledge_point_count": 2,
+      "char_count": 127,
+      "sort_order": 20700,
+      "content_hash": "ecad646384edc65e05ad020e136caddca5d70ab0244938f31a46a241dce4ab4d",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/02-表内除法（一）.md"
+        ],
+        "source_heading": "7. 用2-6的乘法口诀求商",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第7课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l08",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 2,
+      "unit_label": "第2单元",
+      "unit_title": "表内除法（一）",
+      "lesson_number": 8,
+      "lesson_label": "第8课",
+      "lesson_title": "8. 乘除法的关系",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "2 表内除法（一） / 8 8. 乘除法的关系",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 8. 乘除法的关系\n\n### 例题15：24个包子\n\n**情境**：24个包子\n\n**问题1**：每屉放4个，可以放几屉？\n```\n想：（四）六二十四，商是6\n24 ÷ 4 = 6\n```\n\n**问题2**：平均放在6个笼屉里，每屉放几个？\n```\n想：四（六）二十四，商是4\n24 ÷ 6 = 4\n```\n\n**乘法算式**：\n```\n4 × 6 = 24\n6 × 4 = 24\n```\n\n**发现**：乘法和除法互为逆运算\n\n---\n\n### 例题16：看图写算式\n\n**根据一幅图写多个算式**：\n\n```\n乘法：4 × 6 = 24\n除法：24 ÷ 4 = 6\n     24 ÷ 6 = 4\n```\n\n---",
+      "content_text": "8. 乘除法的关系 例题15：24个包子 情境：24个包子 问题1：每屉放4个，可以放几屉？ 问题2：平均放在6个笼屉里，每屉放几个？ 乘法算式： 发现：乘法和除法互为逆运算 例题16：看图写算式 根据一幅图写多个算式：",
+      "knowledge_point_count": 1,
+      "char_count": 110,
+      "sort_order": 20800,
+      "content_hash": "9d263c975c310efdea2e75bdbb6e607d77114838fcf2c6bd14476d82064c4701",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/02-表内除法（一）.md"
+        ],
+        "source_heading": "8. 乘除法的关系",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第8课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l09",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 2,
+      "unit_label": "第2单元",
+      "unit_title": "表内除法（一）",
+      "lesson_number": 9,
+      "lesson_label": "第9课",
+      "lesson_title": "9. 综合练习：口诀求商",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "2 表内除法（一） / 9 9. 综合练习：口诀求商",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 9. 综合练习：口诀求商\n\n### 例题17：计算练习\n\n```\n16 ÷ 4 =     想：四（四）十六，商是4\n30 ÷ 5 =     想：五（六）三十，商是6\n30 ÷ 6 =     想：（五）六三十，商是5\n20 ÷ 4 =     想：四（五）二十，商是5\n18 ÷ 3 =     想：三（六）十八，商是6\n18 ÷ 6 =     想：（三）六十八，商是3\n15 ÷ 3 =     想：三（五）十五，商是5\n20 ÷ 5 =     想：四（五）二十，商是4\n15 ÷ 5 =     想：（三）五十五，商是3\n24 ÷ 4 =     想：四（六）二十四，商是6\n24 ÷ 6 =     想：（四）六二十四，商是4\n```\n\n---",
+      "content_text": "9. 综合练习：口诀求商 例题17：计算练习",
+      "knowledge_point_count": 1,
+      "char_count": 22,
+      "sort_order": 20900,
+      "content_hash": "59930ee8d3562dcfea6c4ed20744ea06e9d4ec788aaba103d687d926dd1f6f14",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/02-表内除法（一）.md"
+        ],
+        "source_heading": "9. 综合练习：口诀求商",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第9课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l10",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 2,
+      "unit_label": "第2单元",
+      "unit_title": "表内除法（一）",
+      "lesson_number": 10,
+      "lesson_label": "第10课",
+      "lesson_title": "10. 特殊情况的除法",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "2 表内除法（一） / 10 10. 特殊情况的除法",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 10. 特殊情况的除法\n\n### 例题18：除以1和自身\n\n**观察规律**：\n```\n4 ÷ 4 = 1\n6 ÷ 1 = 6\n5 ÷ 5 = 1\n3 ÷ 1 = 3\n6 ÷ 6 = 1\n2 ÷ 1 = 2\n12 ÷ 3 = 4\n```\n\n**发现**：\n- 两个相同的数相除（不为0），商是1\n- 任何数除以1，商是它本身\n\n---",
+      "content_text": "10. 特殊情况的除法 例题18：除以1和自身 观察规律： 发现： 两个相同的数相除（不为0），商是1 任何数除以1，商是它本身",
+      "knowledge_point_count": 2,
+      "char_count": 64,
+      "sort_order": 21000,
+      "content_hash": "7f9fc1569b238c72bff1f95051e25d1e198468dddbd274e0d05c9361d563a56a",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/02-表内除法（一）.md"
+        ],
+        "source_heading": "10. 特殊情况的除法",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第10课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l11",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 2,
+      "unit_label": "第2单元",
+      "unit_title": "表内除法（一）",
+      "lesson_number": 11,
+      "lesson_label": "第11课",
+      "lesson_title": "11. 只能算一个除法算式的口诀",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "2 表内除法（一） / 11 11. 只能算一个除法算式的口诀",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 11. 只能算一个除法算式的口诀\n\n### 例题19：特殊口诀\n\n**问题**：在学过的乘法口诀中，哪几句口诀只能用来计算一个乘法算式和一个除法算式？\n\n**分析**：\n```\n一一得一 → 1 × 1 = 1, 1 ÷ 1 = 1\n二二得四 → 2 × 2 = 4, 4 ÷ 2 = 2\n三三得九 → 3 × 3 = 9, 9 ÷ 3 = 3\n四四十六 → 4 × 4 = 16, 16 ÷ 4 = 4\n五五二十五 → 5 × 5 = 25, 25 ÷ 5 = 5\n六六三十六 → 6 × 6 = 36, 36 ÷ 6 = 6\n```\n\n**结论**：两个乘数相同的口诀只能算一个除法算式\n\n---",
+      "content_text": "11. 只能算一个除法算式的口诀 例题19：特殊口诀 问题：在学过的乘法口诀中，哪几句口诀只能用来计算一个乘法算式和一个除法算式？ 分析： 结论：两个乘数相同的口诀只能算一个除法算式",
+      "knowledge_point_count": 1,
+      "char_count": 91,
+      "sort_order": 21100,
+      "content_hash": "f0bb585052d62914b43794154900fff17c8c4f13e5115d465843f48cf782b59e",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/02-表内除法（一）.md"
+        ],
+        "source_heading": "11. 只能算一个除法算式的口诀",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第11课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l12",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 2,
+      "unit_label": "第2单元",
+      "unit_title": "表内除法（一）",
+      "lesson_number": 12,
+      "lesson_label": "第12课",
+      "lesson_title": "12. 解决问题：两种分法对比",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "2 表内除法（一） / 12 12. 解决问题：两种分法对比",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 12. 解决问题：两种分法对比\n\n### 例题20：15个粽子的两种分法\n\n**问题1**：15个粽子，平均放到3个笼屉里，每个笼屉里放几个？\n\n**分析**：\n- 知道了什么？15个粽子，平均放到3个笼屉\n- 怎样解答？因为是平均分，求每个笼屉放几个，就是求每份是几。用除法计算。\n```\n15 ÷ 3 = 5（个）\n```\n- 解答正确吗？3个笼屉，每屉5个，一共15个。对！\n\n**口答**：每个笼屉里放**5**个。\n\n---\n\n**问题2**：15个粽子，每个笼屉里放5个，要用几个笼屉？\n\n**分析**：\n- 知道了什么？15个粽子，每个笼屉放5个\n- 怎样解答？求要用几个笼屉，就是求15里有几个5。用除法计算。\n```\n15 ÷ 5 = 3（个）\n```\n- 解答正确吗？每屉5个，3屉就是15个。对啦！\n\n**口答**：要用**3**个笼屉。\n\n---\n\n**对比两道题**：\n\n| 比较项目 | 问题1 | 问题2 |\n|----------|-------|-------|\n| 已知条件 | 15个粽子，3个笼屉 | 15个粽子，每屉5个 |\n| 问题 | 每屉几个？ | 要用几个笼屉？ |\n| 算式 | 15 ÷ 3 = 5 | 15 ÷ 5 = 3 |\n| 除法意义 | 等分（求每份） | 包含（求份数） |\n\n**相同点**：\n- 都是平均分\n- 都用除法计算\n- 都是15 ÷ 3 = 5 或 15 ÷ 5 = 3\n\n**不同点**：\n- 问题1是求每份多少（等分）\n- 问题2是求能分几份（包含）\n\n---",
+      "content_text": "12. 解决问题：两种分法对比 例题20：15个粽子的两种分法 问题1：15个粽子，平均放到3个笼屉里，每个笼屉里放几个？ 分析： 知道了什么？15个粽子，平均放到3个笼屉 怎样解答？因为是平均分，求每个笼屉放几个，就是求每份是几。用除法计算。 解答正确吗？3个笼屉，每屉5个，一共15个。对！ 口答：每个笼屉里放5个。 问题2：15个粽子，每个笼屉里放5个，要用几个笼屉？ 分析： 知道了什么？15个粽子，每个笼屉放5个 怎样解答？求要用几个笼屉，就是求15里有几个5。用除法计算。 解答正确吗？每屉5个，3屉就是15个。对啦！ 口答：要用3个笼屉。 对比两道题： 比较项目 | 问题1 | 问题2 | 已知条件 | 15个粽子，3个笼屉 | 15个粽子，每屉5个 | 问题 | 每屉几个？ | 要用几个笼屉？ | 算式 | 15 ÷ 3 = 5 | 15 ÷ 5 = 3 | 除法意义 | 等分（求每份） | 包含（求份数） | 相同点： 都是平均分 都用除法计算 都是15 ÷ 3 = 5 或 15 ÷ 5 = 3 不同点： 问题1是求每份多少（等分） 问题2是求能分几份（包含）",
+      "knowledge_point_count": 11,
+      "char_count": 493,
+      "sort_order": 21200,
+      "content_hash": "a74d21cde665a7e17a809c998e194520dd8548c4d30bedb42471f26bc98ee31f",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/02-表内除法（一）.md"
+        ],
+        "source_heading": "12. 解决问题：两种分法对比",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第12课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l13",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 2,
+      "unit_label": "第2单元",
+      "unit_title": "表内除法（一）",
+      "lesson_number": 13,
+      "lesson_label": "第13课",
+      "lesson_title": "13. 解决问题：乘除法综合",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "2 表内除法（一） / 13 13. 解决问题：乘除法综合",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 13. 解决问题：乘除法综合\n\n### 例题21：中国结问题\n\n**问题1**：一个中国结上需要6个☆，要编5个中国结，需要多少个☆？\n\n**分析**：求5个6是多少，用乘法\n```\n6 × 5 = 30（个）\n```\n\n---\n\n**问题2**：18个☆够做几个左边这样的中国结？\n\n**分析**：求18里有几个6，用除法\n```\n18 ÷ 6 = 3（个）\n```\n\n---\n\n### 例题22：多肉植物问题\n\n**（1）每个花盆里有3棵多肉植物，6个花盆里共有（ ）棵。**\n```\n3 × 6 = 18（棵）\n```\n\n**（2）18棵多肉植物平均种在6个花盆里，每个花盆里种（ ）棵。**\n```\n18 ÷ 6 = 3（棵）\n```\n\n**（3）18棵多肉植物，每3棵种在一个花盆里，需要（ ）个花盆。**\n```\n18 ÷ 3 = 6（个）\n```\n\n---",
+      "content_text": "13. 解决问题：乘除法综合 例题21：中国结问题 问题1：一个中国结上需要6个☆，要编5个中国结，需要多少个☆？ 分析：求5个6是多少，用乘法 问题2：18个☆够做几个左边这样的中国结？ 分析：求18里有几个6，用除法 例题22：多肉植物问题 （1）每个花盆里有3棵多肉植物，6个花盆里共有（ ）棵。 （2）18棵多肉植物平均种在6个花盆里，每个花盆里种（ ）棵。 （3）18棵多肉植物，每3棵种在一个花盆里，需要（ ）个花盆。",
+      "knowledge_point_count": 1,
+      "char_count": 215,
+      "sort_order": 21300,
+      "content_hash": "a99f6b29116efbcc5006a0108274ba3c859882491be641634a186cb630ef130a",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/02-表内除法（一）.md"
+        ],
+        "source_heading": "13. 解决问题：乘除法综合",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第13课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l14",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 2,
+      "unit_label": "第2单元",
+      "unit_title": "表内除法（一）",
+      "lesson_number": 14,
+      "lesson_label": "第14课",
+      "lesson_title": "14. 整理和复习",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "2 表内除法（一） / 14 14. 整理和复习",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 14. 整理和复习\n\n### 例题23：乘法口诀表\n\n**补充完整乘法口诀**：\n```\n一（一）得一\n一二得二\n二二得四\n一三得三\n二（三）得六\n三三得九\n一四得四\n二四得八\n（三）四十二\n四四十六\n一五得五\n二五一十\n三五十五\n四五（二十）\n五五二十五\n一六得六\n二六（十二）\n三六十八\n四六二十四\n五（六）三十\n（六）六三十六\n```\n\n**说出乘除法算式**：\n例如：\"三四十二\"\n```\n3 × 4 = 12    4 × 3 = 12\n12 ÷ 3 = 4    12 ÷ 4 = 3\n```\n\n---\n\n### 例题24：单元综合练习\n\n**（1）12个☆，每2个一份，可以分成几份？**\n```\n12 ÷ 2 = 6（份）\n```\n\n**（2）被除数是30，除数是5，商是几？**\n```\n30 ÷ 5 = 6\n```\n\n**（3）25里面有几个5？**\n```\n25 ÷ 5 = 5\n```\n\n---\n\n# 结论与法则",
+      "content_text": "14. 整理和复习 例题23：乘法口诀表 补充完整乘法口诀： 说出乘除法算式： 例如：\"三四十二\" 例题24：单元综合练习 （1）12个☆，每2个一份，可以分成几份？ （2）被除数是30，除数是5，商是几？ （3）25里面有几个5？ 结论与法则",
+      "knowledge_point_count": 1,
+      "char_count": 122,
+      "sort_order": 21400,
+      "content_hash": "7e0ede79df6d1a409434f7f376b147223bfbcf726fd7d87424bd709417ce5d62",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/02-表内除法（一）.md"
+        ],
+        "source_heading": "14. 整理和复习",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第14课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u03",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "unit",
+      "unit_number": 3,
+      "unit_label": "第3单元",
+      "unit_title": "图形的运动（一）",
+      "lesson_number": 0,
+      "lesson_label": "",
+      "lesson_title": "",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "3 图形的运动（一） / 单元背景",
+      "content_type": "unit_context",
+      "content_markdown": "# 单元知识结构\n\n```\n图形的运动（一）\n├── 轴对称图形\n│   ├── 认识对称现象\n│   │   ├── 生活中的对称\n│   │   └── 判断对称图形\n│   ├── 认识轴对称图形\n│   │   ├── 定义：沿直线对折完全重合\n│   │   └── 对称轴\n│   └── 制作轴对称图形\n│       ├── 折一折\n│       ├── 画一画\n│       └── 剪一剪\n├── 平移\n│   ├── 认识平移现象\n│   │   ├── 生活中的平移\n│   │   └── 平移的特征\n│   ├── 平移图形\n│   │   ├── 沿直线移动\n│   │   ├── 形状不变\n│   │   └── 大小不变\n│   └── 平移的应用\n│       ├── 判断能否重合\n│       └── 平移拼图\n└── 旋转\n    ├── 认识旋转现象\n    │   ├── 生活中的旋转\n    │   └── 旋转的特征\n    └── 旋转的应用\n        ├── 钟表指针旋转\n        └── 陀螺旋转\n```\n\n# 核心探究过程",
+      "content_text": "单元知识结构 核心探究过程",
+      "knowledge_point_count": 1,
+      "char_count": 13,
+      "sort_order": 30000,
+      "content_hash": "cc834c900e6a8b5af9e666d5a6609ab6d61c517dfe7deff703a13fdd2a9ca661",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/03-图形的运动（一）.md"
+        ],
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "unit",
+      "native_label": "第3单元",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u03::l01",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 3,
+      "unit_label": "第3单元",
+      "unit_title": "图形的运动（一）",
+      "lesson_number": 1,
+      "lesson_label": "第1课",
+      "lesson_title": "1. 认识对称现象（单元导入）",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "3 图形的运动（一） / 1 1. 认识对称现象（单元导入）",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 1. 认识对称现象（单元导入）\n\n### 例题1：观察生活中的对称\n\n**情境展示**：\n- 蝴蝶\n- 蜻蜓\n- 叶子\n- 脸谱\n- 建筑物\n\n**核心观察**：这些都是对称现象。你还见过哪些对称现象？\n\n**学生思考**：\n- 人体是对称的\n- 很多建筑物是对称的\n- 一些动物也是对称的\n\n---",
+      "content_text": "1. 认识对称现象（单元导入） 例题1：观察生活中的对称 情境展示： 蝴蝶 蜻蜓 叶子 脸谱 建筑物 核心观察：这些都是对称现象。你还见过哪些对称现象？ 学生思考： 人体是对称的 很多建筑物是对称的 一些动物也是对称的",
+      "knowledge_point_count": 8,
+      "char_count": 109,
+      "sort_order": 30100,
+      "content_hash": "b64da0b902fde1980d999601eaa4441a4beefae9423d208870b5f8f7f3d689ca",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/03-图形的运动（一）.md"
+        ],
+        "source_heading": "1. 认识对称现象（单元导入）",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第1课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u03::l02",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 3,
+      "unit_label": "第3单元",
+      "unit_title": "图形的运动（一）",
+      "lesson_number": 2,
+      "lesson_label": "第2课",
+      "lesson_title": "2. 认识轴对称图形",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "3 图形的运动（一） / 2 2. 认识轴对称图形",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 2. 认识轴对称图形\n\n### 例题2：剪一剪，认识对称\n\n**操作活动**：\n1. 先把一张纸对折\n2. 再画一画\n3. 最后剪一剪\n\n**核心概念**：\n- 像这样剪出来的图形都是**对称的**\n- 它们都是**轴对称图形**\n- 折痕所在的直线叫**对称轴**\n\n**动手操作**：\n- 让学生模仿教材中的方法剪纸\n- 体验对折、画、剪的过程\n- 观察展开后的图形\n\n---\n\n### 例题3：判断轴对称图形\n\n**问题**：下面哪些图形是轴对称图形？在（ ）里画\"√\"\n\n**图形示例**：\n- 等腰三角形（是）\n- 长方形（是）\n- 平行四边形（一般不是）\n- 圆形（是）\n- 不规则图形（部分是）\n\n**判断方法**：\n- 想象能否沿某条直线对折完全重合\n- 可以实际折一折验证\n\n---",
+      "content_text": "2. 认识轴对称图形 例题2：剪一剪，认识对称 操作活动： 1. 先把一张纸对折 2. 再画一画 3. 最后剪一剪 核心概念： 像这样剪出来的图形都是对称的 它们都是轴对称图形 折痕所在的直线叫对称轴 动手操作： 让学生模仿教材中的方法剪纸 体验对折、画、剪的过程 观察展开后的图形 例题3：判断轴对称图形 问题：下面哪些图形是轴对称图形？在（ ）里画\"√\" 图形示例： 等腰三角形（是） 长方形（是） 平行四边形（一般不是） 圆形（是） 不规则图形（部分是） 判断方法： 想象能否沿某条直线对折完全重合 可以实际折一折验证",
+      "knowledge_point_count": 13,
+      "char_count": 262,
+      "sort_order": 30200,
+      "content_hash": "93d389fbf9564076ce9dc580aad6f0756199a09883ae282c7458eff5dd33dc01",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/03-图形的运动（一）.md"
+        ],
+        "source_heading": "2. 认识轴对称图形",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第2课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u03::l03",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 3,
+      "unit_label": "第3单元",
+      "unit_title": "图形的运动（一）",
+      "lesson_number": 3,
+      "lesson_label": "第3课",
+      "lesson_title": "3. 制作轴对称图形",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "3 图形的运动（一） / 3 3. 制作轴对称图形",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 3. 制作轴对称图形\n\n### 例题4：剪轴对称图形\n\n**操作步骤**：\n1. **折一折**：把纸对折\n2. **画一画**：在对折后的纸上画出半个图案\n3. **剪一剪**：沿着画好的线剪\n4. **展开**：得到完整的轴对称图形\n\n**关键要点**：\n- 画的时候要沿着折痕画\n- 剪的时候要注意连接\n- 展开后得到完整的图形\n\n---\n\n### 例题5：手拉手的纸人\n\n**挑战1**：你能剪出右边这样手拉手的2个纸人吗？\n\n**探究过程**：\n\n**第一次尝试**：先剪1个纸人试一试\n- 对折1次，画出半个纸人\n- 剪下展开，得到1个纸人\n- 发现：每个纸人都是**轴对称图形**\n\n**第二次尝试**：再试试剪2个纸人\n- 对折2次\n- 画出半个纸人（注意位置）\n- 剪下展开，得到2个手拉手的纸人\n\n**关键发现**：\n- 对折1次可以剪出1个纸人\n- 对折2次可以剪出2个纸人\n- 画的时候，纸人的头和身体要从折痕处画起\n\n---\n\n**挑战2**：你能剪出4个手拉手的纸人吗？\n\n**思考**：\n- 要剪出4个手拉手的纸人\n- 应该对折几次？（对折3次？还是用其他方法？）\n- 折纸的方法不止1种\n\n**常见错误**：\n- 有学生画的时候位置不对\n- 剪出来出现半个纸人\n- 原因：画的时候要注意连接部分\n\n**正确方法**：\n- 想清楚展开后是什么样子\n- 画的时候确保连接\n- 可以先用铅笔轻轻画\n\n---",
+      "content_text": "3. 制作轴对称图形 例题4：剪轴对称图形 操作步骤： 1. 折一折：把纸对折 2. 画一画：在对折后的纸上画出半个图案 3. 剪一剪：沿着画好的线剪 4. 展开：得到完整的轴对称图形 关键要点： 画的时候要沿着折痕画 剪的时候要注意连接 展开后得到完整的图形 例题5：手拉手的纸人 挑战1：你能剪出右边这样手拉手的2个纸人吗？ 探究过程： 第一次尝试：先剪1个纸人试一试 对折1次，画出半个纸人 剪下展开，得到1个纸人 发现：每个纸人都是轴对称图形 第二次尝试：再试试剪2个纸人 对折2次 画出半个纸人（注意位置） 剪下展开，得到2个手拉手的纸人 关键发现： 对折1次可以剪出1个纸人 对折2次可以剪出2个纸人 画的时候，纸人的头和身体要从折痕处画起 挑战2：你能剪出4个手拉手的纸人吗？ 思考： 要剪出4个手拉手的纸人 应该对折几次？（对折3次？还是用其他方法？） 折纸的方法不止1种 常见错误： 有学生画的时候位置不对 剪出来出现半个纸人 原因：画的时候要注意连接部分 正确方法： 想清楚展开后是什么样子 画的时候确保连接 可以先用铅笔轻轻画",
+      "knowledge_point_count": 21,
+      "char_count": 474,
+      "sort_order": 30300,
+      "content_hash": "c085a25c10949bb36a06dfb763b06855047bbdc47bbbcdba3098f503824d1e01",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/03-图形的运动（一）.md"
+        ],
+        "source_heading": "3. 制作轴对称图形",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第3课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u03::l04",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 3,
+      "unit_label": "第3单元",
+      "unit_title": "图形的运动（一）",
+      "lesson_number": 4,
+      "lesson_label": "第4课",
+      "lesson_title": "4. 认识平移现象",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "3 图形的运动（一） / 4 4. 认识平移现象",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 4. 认识平移现象\n\n### 例题6：观察生活中的平移\n\n**情境展示**：\n- 推拉窗的移动\n- 电梯的上下移动\n- 抽屉的拉出推进\n- 升降机的移动\n\n**核心观察**：这些都是平移现象。你还见过哪些平移现象？\n\n**平移的特征**：\n- 物体沿**直线**移动\n- 移动过程中**形状**不变\n- 移动过程中**大小**不变\n- 移动过程中**方向**不变\n\n---\n\n### 例题7：小房子的平移\n\n**情境**：出示6座小房子，编号①-⑥\n\n**问题**：移一移。哪几座小房子可以通过平移相互重合？\n\n**学生操作**：\n- ①向上平移，可以和④重合\n- ④向下平移，可以和①重合\n- ③向下平移，可以和⑥重合\n- ⑥向上平移，可以和③重合\n\n**核心发现**：\n- 两个图形只要**形状、方向、大小**一样，就能通过平移相互重合\n\n---\n\n### 例题8：判断哪些可以通过平移重合\n\n**问题**：上面还有哪些小房子可以通过平移相互重合？\n\n**分析**：\n- ①和④：可以（形状、方向、大小相同）\n- ③和⑥：可以（形状、方向、大小相同）\n- ①和③：不可以（方向不同）\n- ②和⑤：不可以（形状不同）\n\n---",
+      "content_text": "4. 认识平移现象 例题6：观察生活中的平移 情境展示： 推拉窗的移动 电梯的上下移动 抽屉的拉出推进 升降机的移动 核心观察：这些都是平移现象。你还见过哪些平移现象？ 平移的特征： 物体沿直线移动 移动过程中形状不变 移动过程中大小不变 移动过程中方向不变 例题7：小房子的平移 情境：出示6座小房子，编号①-⑥ 问题：移一移。哪几座小房子可以通过平移相互重合？ 学生操作： ①向上平移，可以和④重合 ④向下平移，可以和①重合 ③向下平移，可以和⑥重合 ⑥向上平移，可以和③重合 核心发现： 两个图形只要形状、方向、大小一样，就能通过平移相互重合 例题8：判断哪些可以通过平移重合 问题：上面还有哪些小房子可以通过平移相互重合？ 分析： ①和④：可以（形状、方向、大小相同） ③和⑥：可以（形状、方向、大小相同） ①和③：不可以（方向不同） ②和⑤：不可以（形状不同）",
+      "knowledge_point_count": 17,
+      "char_count": 385,
+      "sort_order": 30400,
+      "content_hash": "7e2c19190f7dee02ba656cc9158efe6d35834f12c503f94ac2b06a135e68126e",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/03-图形的运动（一）.md"
+        ],
+        "source_heading": "4. 认识平移现象",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第4课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u03::l05",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 3,
+      "unit_label": "第3单元",
+      "unit_title": "图形的运动（一）",
+      "lesson_number": 5,
+      "lesson_label": "第5课",
+      "lesson_title": "5. 认识旋转现象",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "3 图形的运动（一） / 5 5. 认识旋转现象",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 5. 认识旋转现象\n\n### 例题9：观察生活中的旋转\n\n**情境展示**：\n- 风扇的转动\n- 时钟指针的转动\n- 陀螺的转动\n- 车轮的转动\n- 旋转门的转动\n\n**核心观察**：这些都是旋转现象。你还见过哪些旋转现象？\n\n**旋转的特征**：\n- 物体绕着**一个点**或**一条轴**转动\n- 转动时**形状**不变\n- 转动时**大小**不变\n- 但**方向**在改变\n\n---\n\n### 例题10：陀螺旋转\n\n**问题**：陀螺旋转以后，每个点转出什么形状？试一试吧！\n\n**操作活动**：\n1. 剪下第119页中的学具\n2. 贴在硬纸板上\n3. 照样子做陀螺\n4. 旋转陀螺观察\n\n**观察发现**：\n- 陀螺旋转时，看起来像一个圆\n- 每个点转出的轨迹是圆形\n\n**生活中的数学**：\n在漂亮的剪纸中，就有我们所学的轴对称、平移和旋转。\n\n---",
+      "content_text": "5. 认识旋转现象 例题9：观察生活中的旋转 情境展示： 风扇的转动 时钟指针的转动 陀螺的转动 车轮的转动 旋转门的转动 核心观察：这些都是旋转现象。你还见过哪些旋转现象？ 旋转的特征： 物体绕着一个点或一条轴转动 转动时形状不变 转动时大小不变 但方向在改变 例题10：陀螺旋转 问题：陀螺旋转以后，每个点转出什么形状？试一试吧！ 操作活动： 1. 剪下第119页中的学具 2. 贴在硬纸板上 3. 照样子做陀螺 4. 旋转陀螺观察 观察发现： 陀螺旋转时，看起来像一个圆 每个点转出的轨迹是圆形 生活中的数学： 在漂亮的剪纸中，就有我们所学的轴对称、平移和旋转。",
+      "knowledge_point_count": 11,
+      "char_count": 284,
+      "sort_order": 30500,
+      "content_hash": "c769f9ff7cebede00cab7e9f4155f302b92f52cc113d2e2c89ea6d7b64402c09",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/03-图形的运动（一）.md"
+        ],
+        "source_heading": "5. 认识旋转现象",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第5课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u03::l06",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 3,
+      "unit_label": "第3单元",
+      "unit_title": "图形的运动（一）",
+      "lesson_number": 6,
+      "lesson_label": "第6课",
+      "lesson_title": "6. 综合应用",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "3 图形的运动（一） / 6 6. 综合应用",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 6. 综合应用\n\n### 例题11：判断轴对称图形\n\n**问题**：下面哪些图形是轴对称图形？在（ ）里画\"√\"\n\n**练习内容**：\n- 各种几何图形\n- 简单的图案\n- 生活中的图形\n\n**判断方法**：\n- 想象能否对折完全重合\n- 实际折一折验证\n\n---\n\n### 例题12：连一连（剪纸复原）\n\n**问题**：下面的图形分别是从哪张对折后的纸上剪下来的？连一连。\n\n**分析思路**：\n- 观察剪纸图案\n- 想象对折后的样子\n- 判断折痕位置\n- 进行连线\n\n---\n\n### 例题13：平移涂色\n\n**问题**：哪些小鱼可以通过平移与红色小鱼重合？把它们涂上颜色。\n\n**判断依据**：\n- 形状相同\n- 方向相同\n- 大小相同\n\n**注意**：\n- 只能通过平移，不能旋转或翻转\n- 要观察小鱼的方向\n\n---\n\n### 例题14：平移拼图\n\n**问题**：左边的图形经过平移，拼成了一个火箭，在那个火箭下画\"√\"\n\n**分析**：\n- 观察各个火箭的组成\n- 判断是否只通过平移得到\n- 不能有旋转或翻转\n\n---\n\n### 例题15：判断运动方式\n\n**问题**：下列现象，是平移的在（ ）里画\"△\"，是旋转的在（ ）里画\"○\"\n\n**现象示例**：\n- 推拉窗（△）\n- 电风扇（○）\n- 电梯上下（△）\n- 钟表指针（○）\n- 拉抽屉（△）\n- 拧瓶盖（○）\n\n---\n\n### 例题16：钟表旋转与时间\n\n**问题**：写出分针从12旋转到下面各个位置所经过的时间。\n\n**位置示例**：\n- 12转到3（15分）\n- 12转到6（30分）\n- 12转到9（45分）\n\n**知识点**：\n- 分针旋转一周是60分\n- 分针旋转一大格是5分\n- 结合乘法口诀（三五十五）\n\n---\n\n### 例题17：数字转盘游戏\n\n**游戏规则**：\n1. 用圆片制作一个数字转盘\n2. 两人一组\n3. 每人各转两次，得到两个数\n4. 计算出两个数的积\n5. 比比谁的积大\n\n**知识点**：\n- 旋转现象\n- 乘法计算\n- 比较大小\n\n**示例**：\n- 第一人转出3和9，积是27（三九二十七）\n- 第二人转出...\n\n---\n\n### 例题18：剪纸图案判断\n\n**问题**：拿两张正方形的纸，按下面的方式折一折、剪一剪。指出不同剪法展开后分别得到的图案。\n\n**剪法1**：\n- 对折\n- 剪去一部分\n- 展开\n\n**剪法2**：\n- 对折方式不同\n- 剪法不同\n- 展开\n\n**观察**：不同折法和剪法得到不同图案\n\n---\n\n### 例题19：找出平移得到的图\n\n**问题**：找出由图（1）平移得到的图，在序号上画\"√\"\n\n**判断**：\n- （1）是原图\n- （4）是（1）平移得到的（√）\n- 其他不是\n\n---",
+      "content_text": "6. 综合应用 例题11：判断轴对称图形 问题：下面哪些图形是轴对称图形？在（ ）里画\"√\" 练习内容： 各种几何图形 简单的图案 生活中的图形 判断方法： 想象能否对折完全重合 实际折一折验证 例题12：连一连（剪纸复原） 问题：下面的图形分别是从哪张对折后的纸上剪下来的？连一连。 分析思路： 观察剪纸图案 想象对折后的样子 判断折痕位置 进行连线 例题13：平移涂色 问题：哪些小鱼可以通过平移与红色小鱼重合？把它们涂上颜色。 判断依据： 形状相同 方向相同 大小相同 注意： 只能通过平移，不能旋转或翻转 要观察小鱼的方向 例题14：平移拼图 问题：左边的图形经过平移，拼成了一个火箭，在那个火箭下画\"√\" 分析： 观察各个火箭的组成 判断是否只通过平移得到 不能有旋转或翻转 例题15：判断运动方式 问题：下列现象，是平移的在（ ）里画\"△\"，是旋转的在（ ）里画\"○\" 现象示例： 推拉窗（△） 电风扇（○） 电梯上下（△） 钟表指针（○） 拉抽屉（△） 拧瓶盖（○） 例题16：钟表旋转与时间 问题：写出分针从12旋转到下面各个位置所经过的时间。 位置示例： 12转到3（15分） 12转到6（30分） 12转到9（45分） 知识点： 分针旋转一周是60分 分针旋转一大格是5分 结合乘法口诀（三五十五） 例题17：数字转盘游戏 游戏规则： 1. 用圆片制作一个数字转盘 2. 两人一组 3. 每人各转两次，得到两个数 4. 计算出两个数的积 5. 比比谁的积大 知识点： 旋转现象 乘法计算 比较大小 示例： 第一人转出3和9，积是27（三九二十七） 第二人转出... 例题18：剪纸图案判断 问题：拿两张正方形的纸，按下面的方式折一折、剪一剪。指出不同剪法展开后分别得到的图案。 剪法1： 对折 剪去一部分 展开 剪法2： 对折方式不同 剪法不同 展开 观察：不同折法和剪法得到不同图案 例题19：找出平移得到的图 问题：找出由图（1）平移得到的图，在序号上画\"√\" 判断： （1）是原图 （4）是（1）平移得到的（√） 其他不是",
+      "knowledge_point_count": 43,
+      "char_count": 874,
+      "sort_order": 30600,
+      "content_hash": "7fc8e5641d5c06811d9d5d8d903995b51e24711701a1f869f3d04422c0d918bd",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/03-图形的运动（一）.md"
+        ],
+        "source_heading": "6. 综合应用",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第6课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u03::l07",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 3,
+      "unit_label": "第3单元",
+      "unit_title": "图形的运动（一）",
+      "lesson_number": 7,
+      "lesson_label": "第7课",
+      "lesson_title": "7. 单元总结",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "3 图形的运动（一） / 7 7. 单元总结",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 7. 单元总结\n\n### 成长小档案\n\n**学生反思**：\n- 我能剪出漂亮的轴对称图形了！\n- 我发现身边有好多旋转现象，太有意思了！\n\n**教学价值**：\n- 培养空间观念\n- 发展几何直观\n- 感受数学美\n- 联系生活实际\n\n---\n\n# 结论与法则",
+      "content_text": "7. 单元总结 成长小档案 学生反思： 我能剪出漂亮的轴对称图形了！ 我发现身边有好多旋转现象，太有意思了！ 教学价值： 培养空间观念 发展几何直观 感受数学美 联系生活实际 结论与法则",
+      "knowledge_point_count": 6,
+      "char_count": 93,
+      "sort_order": 30700,
+      "content_hash": "0b06b6b1d3fd35df8e28468676d6c136e55d73ec944e02b28c5dfe069cb51c36",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/03-图形的运动（一）.md"
+        ],
+        "source_heading": "7. 单元总结",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第7课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u04",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "unit",
+      "unit_number": 4,
+      "unit_label": "第4单元",
+      "unit_title": "表内除法（二）",
+      "lesson_number": 0,
+      "lesson_label": "",
+      "lesson_title": "",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "4 表内除法（二） / 单元背景",
+      "content_type": "unit_context",
+      "content_markdown": "# 单元知识结构\n\n```\n表内除法（二）\n├── 用7、8、9的乘法口诀求商\n│   ├── 复习7、8、9的乘法口诀\n│   ├── 用口诀求商的方法\n│   │   ├── 想除数和几相乘得被除数\n│   │   └── 找出对应的口诀\n│   ├── 求商练习\n│   │   ├── 基本练习\n│   │   ├── 混合练习\n│   │   └── 综合练习\n│   └── 乘除法互逆关系\n│       └── 一个乘法算式对应两个除法算式\n├── 解决问题\n│   ├── 乘除两步计算问题\n│   ├── 包含多余条件的解决问题\n│   └── 综合运用乘除法\n└── 整理和复习\n    ├── 知识梳理\n    ├── 乘法口诀表\n    └── 综合练习\n```\n\n# 核心探究过程",
+      "content_text": "单元知识结构 核心探究过程",
+      "knowledge_point_count": 1,
+      "char_count": 13,
+      "sort_order": 40000,
+      "content_hash": "69d37111644e37347875bed6f5646bd8c1af1b78a5a775b70e4f191ddc089ef2",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/04-表内除法（二）.md"
+        ],
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "unit",
+      "native_label": "第4单元",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u04::l01",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 4,
+      "unit_label": "第4单元",
+      "unit_title": "表内除法（二）",
+      "lesson_number": 1,
+      "lesson_label": "第1课",
+      "lesson_title": "1. 用7的乘法口诀求商",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "4 表内除法（二） / 1 1. 用7的乘法口诀求商",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 1. 用7的乘法口诀求商\n\n### 例题1：复习7的乘法口诀\n\n**情境**：出示7的乘法口诀卡片\n\n**口诀复习**：\n```\n一七得七\n二七十四\n三七二十一\n四七二十八\n五七三十五\n六七四十二\n七七四十九\n```\n\n---\n\n### 例题2：用7的口诀求商\n\n**题目**：\n```\n7 × 4 = 28\n28 ÷ 4 = ?\n28 ÷ 7 = ?\n```\n\n**思考过程**：\n- 28 ÷ 4 = ?\n- 想：4和几相乘得28？\n- 四（七）二十八，商是7\n\n- 28 ÷ 7 = ?\n- 想：7和几相乘得28？\n- （四）七二十八，商是4\n\n---\n\n### 例题3：综合练习\n\n**题目**：\n```\n21 ÷ 3 =     想：三（七）二十一\n35 ÷ 7 =     想：（五）七三十五\n42 ÷ 6 =     想：六（七）四十二\n49 ÷ 7 =     想：（七）七四十九\n```\n\n---",
+      "content_text": "1. 用7的乘法口诀求商 例题1：复习7的乘法口诀 情境：出示7的乘法口诀卡片 口诀复习： 例题2：用7的口诀求商 题目： 思考过程： 28 ÷ 4 = ? 想：4和几相乘得28？ 四（七）二十八，商是7 28 ÷ 7 = ? 想：7和几相乘得28？ （四）七二十八，商是4 例题3：综合练习 题目：",
+      "knowledge_point_count": 6,
+      "char_count": 150,
+      "sort_order": 40100,
+      "content_hash": "0f24ec8d660db7ae1a40e91bd0b3448421737b625152f3d4a8038ee4e33e8244",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/04-表内除法（二）.md"
+        ],
+        "source_heading": "1. 用7的乘法口诀求商",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第1课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u04::l02",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 4,
+      "unit_label": "第4单元",
+      "unit_title": "表内除法（二）",
+      "lesson_number": 2,
+      "lesson_label": "第2课",
+      "lesson_title": "2. 用8的乘法口诀求商",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "4 表内除法（二） / 2 2. 用8的乘法口诀求商",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 2. 用8的乘法口诀求商\n\n### 例题4：复习8的乘法口诀\n\n**口诀复习**：\n```\n一八得八\n二八十六\n三八二十四\n四八三十二\n五八四十\n六八四十八\n七八五十六\n八八六十四\n```\n\n---\n\n### 例题5：用8的口诀求商\n\n**题目**：\n```\n8 × 2 = 16\n16 ÷ 2 = ?\n16 ÷ 8 = ?\n```\n\n**思考过程**：\n- 16 ÷ 2 = ?\n- 想：2和几相乘得16？\n- 二（八）十六，商是8\n\n- 16 ÷ 8 = ?\n- 想：8和几相乘得16？\n- （二）八十六，商是2\n\n---\n\n### 例题6：综合练习\n\n**题目**：\n```\n24 ÷ 8 =     想：（三）八二十四\n32 ÷ 4 =     想：四（八）三十二\n40 ÷ 8 =     想：（五）八四十\n48 ÷ 6 =     想：六（八）四十八\n56 ÷ 7 =     想：七（八）五十六\n64 ÷ 8 =     想：（八）八六十四\n```\n\n---",
+      "content_text": "2. 用8的乘法口诀求商 例题4：复习8的乘法口诀 口诀复习： 例题5：用8的口诀求商 题目： 思考过程： 16 ÷ 2 = ? 想：2和几相乘得16？ 二（八）十六，商是8 16 ÷ 8 = ? 想：8和几相乘得16？ （二）八十六，商是2 例题6：综合练习 题目：",
+      "knowledge_point_count": 6,
+      "char_count": 134,
+      "sort_order": 40200,
+      "content_hash": "f37d33fc4102e7bbb5420cee7c125c924fdd81d086b86bf856cdad5e85368642",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/04-表内除法（二）.md"
+        ],
+        "source_heading": "2. 用8的乘法口诀求商",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第2课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u04::l03",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 4,
+      "unit_label": "第4单元",
+      "unit_title": "表内除法（二）",
+      "lesson_number": 3,
+      "lesson_label": "第3课",
+      "lesson_title": "3. 用9的乘法口诀求商",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "4 表内除法（二） / 3 3. 用9的乘法口诀求商",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 3. 用9的乘法口诀求商\n\n### 例题7：复习9的乘法口诀\n\n**口诀复习**：\n```\n一九得九\n二九十八\n三九二十七\n四九三十六\n五九四十五\n六九五十四\n七九六十三\n八九七十二\n九九八十一\n```\n\n---\n\n### 例题8：用9的口诀求商\n\n**题目**：\n```\n9 × 3 = 27\n27 ÷ 3 = ?\n27 ÷ 9 = ?\n```\n\n**思考过程**：\n- 27 ÷ 3 = ?\n- 想：3和几相乘得27？\n- 三（九）二十七，商是9\n\n- 27 ÷ 9 = ?\n- 想：9和几相乘得27？\n- （三）九二十七，商是3\n\n---\n\n### 例题9：综合练习\n\n**题目**：\n```\n18 ÷ 9 =     想：（二）九十八\n27 ÷ 3 =     想：三（九）二十七\n36 ÷ 4 =     想：四（九）三十六\n45 ÷ 5 =     想：（五）九四十五\n54 ÷ 6 =     想：六（九）五十四\n63 ÷ 7 =     想：七（九）六十三\n72 ÷ 8 =     想：（八）九七十二\n81 ÷ 9 =     想：（九）九八十一\n```\n\n---",
+      "content_text": "3. 用9的乘法口诀求商 例题7：复习9的乘法口诀 口诀复习： 例题8：用9的口诀求商 题目： 思考过程： 27 ÷ 3 = ? 想：3和几相乘得27？ 三（九）二十七，商是9 27 ÷ 9 = ? 想：9和几相乘得27？ （三）九二十七，商是3 例题9：综合练习 题目：",
+      "knowledge_point_count": 6,
+      "char_count": 136,
+      "sort_order": 40300,
+      "content_hash": "2c4c2281acb7e483bf8c6f8a99cc88b770012d2e7f47b923378258d6202e0cf2",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/04-表内除法（二）.md"
+        ],
+        "source_heading": "3. 用9的乘法口诀求商",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第3课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u04::l04",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 4,
+      "unit_label": "第4单元",
+      "unit_title": "表内除法（二）",
+      "lesson_number": 4,
+      "lesson_label": "第4课",
+      "lesson_title": "4. 混合练习",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "4 表内除法（二） / 4 4. 混合练习",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 4. 混合练习\n\n### 例题10：连一连\n\n**题目**：把算式和对应的口诀连起来\n\n```\n算式              口诀\n16 ÷ 2 = 8   →   二八十六\n24 ÷ 8 = 3   →   三八二十四\n28 ÷ 4 = 7   →   四七二十八\n21 ÷ 3 = 7   →   三七二十一\n32 ÷ 4 = 8   →   四八三十二\n```\n\n---\n\n### 例题11：填表格\n\n**题目**：\n```\n÷ 7\n35  → 5\n42  → 6\n49  → 7\n56  → 8\n\n÷ 8\n24  → 3\n40  → 5\n48  → 6\n56  → 7\n\n÷ 9\n18  → 2\n36  → 4\n45  → 5\n63  → 7\n```\n\n---",
+      "content_text": "4. 混合练习 例题10：连一连 题目：把算式和对应的口诀连起来 例题11：填表格 题目：",
+      "knowledge_point_count": 1,
+      "char_count": 45,
+      "sort_order": 40400,
+      "content_hash": "9c9f43e64d7a063c955a7a2db8321e2bb136fefa5bb9483ce2ff721f4a9705ae",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/04-表内除法（二）.md"
+        ],
+        "source_heading": "4. 混合练习",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第4课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u04::l05",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 4,
+      "unit_label": "第4单元",
+      "unit_title": "表内除法（二）",
+      "lesson_number": 5,
+      "lesson_label": "第5课",
+      "lesson_title": "5. 乘除法互逆关系",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "4 表内除法（二） / 5 5. 乘除法互逆关系",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 5. 乘除法互逆关系\n\n### 例题12：看图写三个算式\n\n**情境**：出示图形（如8×7=56的图示）\n\n**问题**：你能写出哪些算式？\n\n**算式**：\n```\n7 × 8 = 56\n8 × 7 = 56\n56 ÷ 7 = 8\n56 ÷ 8 = 7\n```\n\n**发现**：\n- 一个乘法算式可以写出两个除法算式\n- 乘法和除法互为逆运算\n\n---",
+      "content_text": "5. 乘除法互逆关系 例题12：看图写三个算式 情境：出示图形（如8×7=56的图示） 问题：你能写出哪些算式？ 算式： 发现： 一个乘法算式可以写出两个除法算式 乘法和除法互为逆运算",
+      "knowledge_point_count": 2,
+      "char_count": 92,
+      "sort_order": 40500,
+      "content_hash": "4f35c47a9cfab6224f9bf6759fbc58a3619282f3e3242df88b0cff565b4a1b22",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/04-表内除法（二）.md"
+        ],
+        "source_heading": "5. 乘除法互逆关系",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第5课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u04::l06",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 4,
+      "unit_label": "第4单元",
+      "unit_title": "表内除法（二）",
+      "lesson_number": 6,
+      "lesson_label": "第6课",
+      "lesson_title": "6. 解决问题（乘除两步）",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "4 表内除法（二） / 6 6. 解决问题（乘除两步）",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 6. 解决问题（乘除两步）\n\n### 例题13：购物问题\n\n**情境**：\n- 每个笔记本7元\n- 买5个笔记本需要多少钱？\n- 如果有35元，能买几个笔记本？\n\n**问题1**：\n- 买5个笔记本需要多少钱？\n```\n7 × 5 = 35（元）\n```\n\n**问题2**：\n- 有35元，能买几个笔记本？\n```\n35 ÷ 7 = 5（个）\n```\n\n---\n\n### 例题14：分组问题\n\n**情境**：\n- 二（1）班有42人\n- 每6人分一组\n- 可以分几组？\n\n**分析**：\n- 已知：总人数42人，每组6人\n- 求：可以分几组\n- 就是求42里有几个6\n\n**列式**：\n```\n42 ÷ 6 = 7（组）\n```\n\n---\n\n### 例题15：包含多余条件的问题\n\n**情境**：\n- 教室里有8行桌子\n- 每行7张\n- 其中6张是单人桌，其余是双人桌\n- 双人桌有多少张？\n\n**分析**：\n- 多余条件：其中6张是单人桌（与问题无关）\n- 需要先算出桌子总数\n```\n8 × 7 = 56（张）\n```\n- 再算双人桌数量\n```\n56 - 6 = 50（张）\n```\n\n---",
+      "content_text": "6. 解决问题（乘除两步） 例题13：购物问题 情境： 每个笔记本7元 买5个笔记本需要多少钱？ 如果有35元，能买几个笔记本？ 问题1： 买5个笔记本需要多少钱？ 问题2： 有35元，能买几个笔记本？ 例题14：分组问题 情境： 二（1）班有42人 每6人分一组 可以分几组？ 分析： 已知：总人数42人，每组6人 求：可以分几组 就是求42里有几个6 列式： 例题15：包含多余条件的问题 情境： 教室里有8行桌子 每行7张 其中6张是单人桌，其余是双人桌 双人桌有多少张？ 分析： 多余条件：其中6张是单人桌（与问题无关） 需要先算出桌子总数 再算双人桌数量",
+      "knowledge_point_count": 18,
+      "char_count": 282,
+      "sort_order": 40600,
+      "content_hash": "df6cd86e523edbbbbc5ad24b29a94b7fe7b074800a75a28470c129adf49fcc8c",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/04-表内除法（二）.md"
+        ],
+        "source_heading": "6. 解决问题（乘除两步）",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第6课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u04::l07",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 4,
+      "unit_label": "第4单元",
+      "unit_title": "表内除法（二）",
+      "lesson_number": 7,
+      "lesson_label": "第7课",
+      "lesson_title": "7. 整理和复习",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "4 表内除法（二） / 7 7. 整理和复习",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 7. 整理和复习\n\n### 例题16：乘法口诀表\n\n**完整口诀表**（从一一得一到九九八十一）\n\n**重点**：\n- 熟记所有口诀\n- 能灵活运用口诀求商\n- 理解乘除互逆关系\n\n---\n\n### 例题17：综合练习\n\n**题目**：\n```\n计算：\n24 ÷ 8 =     35 ÷ 7 =     45 ÷ 9 =\n56 ÷ 8 =     42 ÷ 6 =     63 ÷ 7 =\n72 ÷ 9 =     49 ÷ 7 =     81 ÷ 9 =\n```\n\n---\n\n### 例题18：解决问题\n\n**题目**：\n1. 学校买来45本新书，每层书架放9本，需要几层书架？\n2. 二（2）班有48人，做游戏时每8人一组，可以分几组？\n3. 妈妈买了7千克苹果，每千克8元，一共花了多少钱？\n\n---\n\n# 结论与法则",
+      "content_text": "7. 整理和复习 例题16：乘法口诀表 完整口诀表（从一一得一到九九八十一） 重点： 熟记所有口诀 能灵活运用口诀求商 理解乘除互逆关系 例题17：综合练习 题目： 例题18：解决问题 题目： 1. 学校买来45本新书，每层书架放9本，需要几层书架？ 2. 二（2）班有48人，做游戏时每8人一组，可以分几组？ 3. 妈妈买了7千克苹果，每千克8元，一共花了多少钱？ 结论与法则",
+      "knowledge_point_count": 3,
+      "char_count": 189,
+      "sort_order": 40700,
+      "content_hash": "d031e3005e4807772d84d0493299715f0aa0be960c9a7bae4e6d966d813e3f2c",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/04-表内除法（二）.md"
+        ],
+        "source_heading": "7. 整理和复习",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第7课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u05",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "unit",
+      "unit_number": 5,
+      "unit_label": "第5单元",
+      "unit_title": "混合运算",
+      "lesson_number": 0,
+      "lesson_label": "",
+      "lesson_title": "",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "5 混合运算 / 单元背景",
+      "content_type": "unit_context",
+      "content_markdown": "# 单元知识结构\n\n```\n混合运算\n├── 没有括号的混合运算\n│   ├── 乘加、乘减\n│   │   ├── 运算顺序：先算乘法，后算加减法\n│   │   └── 算式表达：如 3+4×3\n│   ├── 除加、除减\n│   │   ├── 运算顺序：先算除法，后算加减法\n│   │   └── 算式表达：如 20-8÷2\n│   └── 总结\n│       └── 在没有括号的算式里，如果既有乘、除法，\n│         又有加、减法，要先算乘、除法，后算加、减法\n├── 有小括号的混合运算\n│   ├── 带有小括号的运算\n│   ├── 运算顺序：先算小括号里面的\n│   └── 算式表达：如 (3+4)×3\n└── 解决问题\n    ├── 两步计算问题\n    ├── 分步列式\n    └── 综合算式\n```\n\n# 核心探究过程",
+      "content_text": "单元知识结构 核心探究过程",
+      "knowledge_point_count": 1,
+      "char_count": 13,
+      "sort_order": 50000,
+      "content_hash": "6b1e7dececd536e89010683990d03d1f6e019ed59dacdd94d127187f610be37d",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/05-混合运算.md"
+        ],
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "unit",
+      "native_label": "第5单元",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u05::l01",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 5,
+      "unit_label": "第5单元",
+      "unit_title": "混合运算",
+      "lesson_number": 1,
+      "lesson_label": "第1课",
+      "lesson_title": "1. 乘加、乘减混合运算",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "5 混合运算 / 1 1. 乘加、乘减混合运算",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 1. 乘加、乘减混合运算\n\n### 例题1：购买酸奶问题\n\n**情境**：\n- 每组酸奶有4盒，共有3组\n- 另外还有3盒散装的\n- 一共有多少盒酸奶？\n\n**方法1：分步计算**\n```\n4×3=12（盒）\n12+3=15（盒）\n```\n\n**方法2：综合算式**\n```\n4×3+3\n=12+3\n=15\n```\n\n**运算顺序**：\n- 先算4×3=12\n- 再算12+3=15\n\n---\n\n### 例题2：面包店问题\n\n**情境**：\n- 面包店每个面包3元\n- 买4个面包\n- 付了20元，应找回多少钱？\n\n**分步计算**：\n```\n3×4=12（元）\n20-12=8（元）\n```\n\n**综合算式**：\n```\n20-3×4\n=20-12\n=8\n```\n\n**运算顺序**：\n- 先算3×4=12（先算乘法）\n- 再算20-12=8\n\n---\n\n### 例题3：练习\n\n**题目**：下面各题第一步要先算什么？在下面画上线\n\n```\n7×5-3        （先算7×5）\n20-8÷2       （先算8÷2）\n4+4×6        （先算4×6）\n81÷9+2       （先算81÷9）\n```\n\n---",
+      "content_text": "1. 乘加、乘减混合运算 例题1：购买酸奶问题 情境： 每组酸奶有4盒，共有3组 另外还有3盒散装的 一共有多少盒酸奶？ 方法1：分步计算 方法2：综合算式 运算顺序： 先算4×3=12 再算12+3=15 例题2：面包店问题 情境： 面包店每个面包3元 买4个面包 付了20元，应找回多少钱？ 分步计算： 综合算式： 运算顺序： 先算3×4=12（先算乘法） 再算20-12=8 例题3：练习 题目：下面各题第一步要先算什么？在下面画上线",
+      "knowledge_point_count": 10,
+      "char_count": 220,
+      "sort_order": 50100,
+      "content_hash": "8a2fbb956419fa2297a118f6b5eb994f1615794cb7cd357c5377e97c5463c1bf",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/05-混合运算.md"
+        ],
+        "source_heading": "1. 乘加、乘减混合运算",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第1课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u05::l02",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 5,
+      "unit_label": "第5单元",
+      "unit_title": "混合运算",
+      "lesson_number": 2,
+      "lesson_label": "第2课",
+      "lesson_title": "2. 除加、除减混合运算",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "5 混合运算 / 2 2. 除加、除减混合运算",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 2. 除加、除减混合运算\n\n### 例题4：分物品问题\n\n**情境**：\n- 有18个苹果\n- 平均分给6个小朋友\n- 老师又拿来5个\n- 现在一共有多少个？\n\n**分步计算**：\n```\n18÷6=3（个）\n3+5=8（个）\n```\n\n**综合算式**：\n```\n18÷6+5\n=3+5\n=8\n```\n\n---\n\n### 例题5：用钱问题\n\n**情境**：\n- 小明有20元\n- 买了2支笔，每支4元\n- 还剩多少元？\n\n**分步计算**：\n```\n2×4=8（元）\n20-8=12（元）\n```\n\n**综合算式**：\n```\n20-2×4\n=20-8\n=12\n```\n\n---",
+      "content_text": "2. 除加、除减混合运算 例题4：分物品问题 情境： 有18个苹果 平均分给6个小朋友 老师又拿来5个 现在一共有多少个？ 分步计算： 综合算式： 例题5：用钱问题 情境： 小明有20元 买了2支笔，每支4元 还剩多少元？ 分步计算： 综合算式：",
+      "knowledge_point_count": 7,
+      "char_count": 123,
+      "sort_order": 50200,
+      "content_hash": "8ef54c24075290b7ef5b0fdcd47934f8257e9684989998cad013fb0b5c20efd8",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/05-混合运算.md"
+        ],
+        "source_heading": "2. 除加、除减混合运算",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第2课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u05::l03",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 5,
+      "unit_label": "第5单元",
+      "unit_title": "混合运算",
+      "lesson_number": 3,
+      "lesson_label": "第3课",
+      "lesson_title": "3. 运算顺序总结",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "5 混合运算 / 3 3. 运算顺序总结",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 3. 运算顺序总结\n\n### 例题6：判断运算顺序\n\n**题目**：先算什么，再算什么？\n\n```\n5+3×4        先算3×4，再算加法\n15-6÷3       先算6÷3，再算减法\n8×7-20       先算8×7，再算减法\n45÷5+10      先算45÷5，再算加法\n```\n\n**总结**：\n> 在没有括号的算式里，如果既有乘、除法，又有加、减法，要先算乘、除法，后算加、减法。\n\n---",
+      "content_text": "3. 运算顺序总结 例题6：判断运算顺序 题目：先算什么，再算什么？ 总结： 在没有括号的算式里，如果既有乘、除法，又有加、减法，要先算乘、除法，后算加、减法。",
+      "knowledge_point_count": 1,
+      "char_count": 80,
+      "sort_order": 50300,
+      "content_hash": "9f89023db35a8e7222a9069182baab06d3a16fc5b8b22a8c60f2b2fe85d27d44",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/05-混合运算.md"
+        ],
+        "source_heading": "3. 运算顺序总结",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第3课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u05::l04",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 5,
+      "unit_label": "第5单元",
+      "unit_title": "混合运算",
+      "lesson_number": 4,
+      "lesson_label": "第4课",
+      "lesson_title": "4. 有小括号的混合运算",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "5 混合运算 / 4 4. 有小括号的混合运算",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 4. 有小括号的混合运算\n\n### 例题7：带小括号的运算\n\n**情境**：\n- 一组有3个男同学，4个女同学\n- 共有这样的4组\n- 一共有多少个同学？\n\n**方法1**：\n```\n3+4=7（个）\n7×4=28（个）\n```\n\n**方法2：综合算式**\n```\n(3+4)×4\n=7×4\n=28\n```\n\n**运算顺序**：\n- 先算小括号里面的3+4=7\n- 再算7×4=28\n\n---\n\n### 例题8：比较两种情况\n\n**情况1**：3+4×4\n```\n3+4×4\n=3+16\n=19\n```\n（先算4×4=16，再算3+16=19）\n\n**情况2**：(3+4)×4\n```\n(3+4)×4\n=7×4\n=28\n```\n（先算3+4=7，再算7×4=28）\n\n**发现**：小括号改变运算顺序\n\n---\n\n### 例题9：练习\n\n**题目**：下面各题要先算什么？\n\n```\n(5+3)×4      先算小括号里面的5+3\n(10-2)×6     先算小括号里面的10-2\n(15+5)÷5     先算小括号里面的15+5\n(20-8)÷4     先算小括号里面的20-8\n```\n\n---",
+      "content_text": "4. 有小括号的混合运算 例题7：带小括号的运算 情境： 一组有3个男同学，4个女同学 共有这样的4组 一共有多少个同学？ 方法1： 方法2：综合算式 运算顺序： 先算小括号里面的3+4=7 再算7×4=28 例题8：比较两种情况 情况1：3+4×4 （先算4×4=16，再算3+16=19） 情况2：(3+4)×4 （先算3+4=7，再算7×4=28） 发现：小括号改变运算顺序 例题9：练习 题目：下面各题要先算什么？",
+      "knowledge_point_count": 5,
+      "char_count": 211,
+      "sort_order": 50400,
+      "content_hash": "545a9d6c84e832726d82c36acd9107e70dcf5ed6f45dbc08d4d015e8e10926b7",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/05-混合运算.md"
+        ],
+        "source_heading": "4. 有小括号的混合运算",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第4课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u05::l05",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 5,
+      "unit_label": "第5单元",
+      "unit_title": "混合运算",
+      "lesson_number": 5,
+      "lesson_label": "第5课",
+      "lesson_title": "5. 综合练习",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "5 混合运算 / 5 5. 综合练习",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 5. 综合练习\n\n### 例题10：对比练习\n\n**题目**：比较下面各组题的运算顺序和结果\n\n**第一组**：\n```\n4+3×2 = 4+6 = 10\n(4+3)×2 = 7×2 = 14\n```\n\n**第二组**：\n```\n12-3×2 = 12-6 = 6\n(12-3)×2 = 9×2 = 18\n```\n\n**第三组**：\n```\n16÷4+2 = 4+2 = 6\n16÷(4+2) = 16÷6 = 2...4\n```\n\n---\n\n### 例题11：改写算式\n\n**题目**：根据分步计算列综合算式\n\n**（1）**\n```\n6×4=24\n24-8=16\n\n综合算式：6×4-8\n```\n\n**（2）**\n```\n15+9=24\n24÷3=8\n\n综合算式：(15+9)÷3\n```\n\n**（3）**\n```\n20-8=12\n12÷4=3\n\n综合算式：(20-8)÷4\n```\n\n---",
+      "content_text": "5. 综合练习 例题10：对比练习 题目：比较下面各组题的运算顺序和结果 第一组： 第二组： 第三组： 例题11：改写算式 题目：根据分步计算列综合算式 （1） （2） （3）",
+      "knowledge_point_count": 1,
+      "char_count": 88,
+      "sort_order": 50500,
+      "content_hash": "fa31175c4c5a0afd18f72a9b20ac43f014a9a7aa7c6af97c6dab007af17903e6",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/05-混合运算.md"
+        ],
+        "source_heading": "5. 综合练习",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第5课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u05::l06",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 5,
+      "unit_label": "第5单元",
+      "unit_title": "混合运算",
+      "lesson_number": 6,
+      "lesson_label": "第6课",
+      "lesson_title": "6. 解决问题",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "5 混合运算 / 6 6. 解决问题",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 6. 解决问题\n\n### 例题12：两步计算问题\n\n**情境**：\n- 班级有24个同学\n- 分成4组做游戏\n- 每组再分成2个小组\n- 每个小组有几个同学？\n\n**分析**：\n- 第一步：求每组有几个同学\n```\n24÷4=6（个）\n```\n- 第二步：求每个小组有几个同学\n```\n6÷2=3（个）\n```\n\n**综合算式**：\n```\n24÷4÷2\n=6÷2\n=3\n```\n\n---\n\n### 例题13：购物问题\n\n**情境**：\n- 妈妈买了3千克苹果，每千克8元\n- 买了2千克梨，每千克6元\n- 一共花了多少钱？\n\n**方法1：分步计算**\n```\n3×8=24（元）\n2×6=12（元）\n24+12=36（元）\n```\n\n**方法2：综合算式**\n```\n3×8+2×6\n=24+12\n=36\n```\n\n---\n\n### 例题14：比较大小\n\n**题目**：\n```\n4×5+3 ○ 4×(5+3)\n\n左边：4×5+3 = 20+3 = 23\n右边：4×(5+3) = 4×8 = 32\n\n23 < 32\n```\n\n---\n\n# 结论与法则",
+      "content_text": "6. 解决问题 例题12：两步计算问题 情境： 班级有24个同学 分成4组做游戏 每组再分成2个小组 每个小组有几个同学？ 分析： 第一步：求每组有几个同学 第二步：求每个小组有几个同学 综合算式： 例题13：购物问题 情境： 妈妈买了3千克苹果，每千克8元 买了2千克梨，每千克6元 一共花了多少钱？ 方法1：分步计算 方法2：综合算式 例题14：比较大小 题目： 结论与法则",
+      "knowledge_point_count": 9,
+      "char_count": 189,
+      "sort_order": 50600,
+      "content_hash": "97d7f92f3af74aa85debd45ae92a2c2cc68c0a4c2ce8b955c0ecb5976bfd9ec4",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/05-混合运算.md"
+        ],
+        "source_heading": "6. 解决问题",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第6课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u06",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "unit",
+      "unit_number": 6,
+      "unit_label": "第6单元",
+      "unit_title": "有余数的除法",
+      "lesson_number": 0,
+      "lesson_label": "",
+      "lesson_title": "",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "6 有余数的除法 / 单元背景",
+      "content_type": "unit_context",
+      "content_markdown": "# 单元知识结构\n\n```\n有余数的除法\n├── 有余数除法的认识\n│   ├── 从表内除法引入\n│   ├── 分东西有剩余的情况\n│   ├── 余数的意义\n│   └── 有余数除法的读写\n├── 余数和除数的关系\n│   ├── 余数 < 除数\n│   ├── 余数 = 除数（需要调整商）\n│   └── 余数可以是0吗？\n└── 解决问题\n    ├── 有余数除法的简单应用\n    ├── 进一法\n    └── 去尾法\n```\n\n# 核心探究过程",
+      "content_text": "单元知识结构 核心探究过程",
+      "knowledge_point_count": 1,
+      "char_count": 13,
+      "sort_order": 60000,
+      "content_hash": "699db9c98a9305028b33582bb0f320dcd1c7eb02b6a40faa99b53cb885913a5d",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/06-有余数的除法.md"
+        ],
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "unit",
+      "native_label": "第6单元",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u06::l01",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 6,
+      "unit_label": "第6单元",
+      "unit_title": "有余数的除法",
+      "lesson_number": 1,
+      "lesson_label": "第1课",
+      "lesson_title": "1. 有余数除法的认识",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "6 有余数的除法 / 1 1. 有余数除法的认识",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 1. 有余数除法的认识\n\n### 例题1：分铅笔\n\n**情境**：有11支铅笔，平均分给3个小朋友，每人分几支？\n\n**分法**：\n- 每人分3支，用了9支，还剩2支\n- 每人分4支，不够分\n\n**列式**：\n```\n11 ÷ 3 = 3（支）……2（支）\n```\n\n**各部分名称**：\n- 11：被除数\n- 3：除数\n- 3：商\n- 2：余数\n\n**读法**：11除以3等于3余2\n\n---\n\n### 例题2：摆小棒\n\n**情境**：\n- 有13根小棒\n- 每4根摆一个正方形\n- 可以摆几个？还剩几根？\n\n**操作**：\n- 4根摆一个\n- 8根摆两个\n- 12根摆三个\n- 还剩1根\n\n**列式**：\n```\n13 ÷ 4 = 3（个）……1（根）\n```\n\n---",
+      "content_text": "1. 有余数除法的认识 例题1：分铅笔 情境：有11支铅笔，平均分给3个小朋友，每人分几支？ 分法： 每人分3支，用了9支，还剩2支 每人分4支，不够分 列式： 各部分名称： 11：被除数 3：除数 3：商 2：余数 读法：11除以3等于3余2 例题2：摆小棒 情境： 有13根小棒 每4根摆一个正方形 可以摆几个？还剩几根？ 操作： 4根摆一个 8根摆两个 12根摆三个 还剩1根 列式：",
+      "knowledge_point_count": 13,
+      "char_count": 195,
+      "sort_order": 60100,
+      "content_hash": "0d6a452066175f0865e67b06e3b0b674e709b5249a272afd02ede7afe7d50829",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/06-有余数的除法.md"
+        ],
+        "source_heading": "1. 有余数除法的认识",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第1课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u06::l02",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 6,
+      "unit_label": "第6单元",
+      "unit_title": "有余数的除法",
+      "lesson_number": 2,
+      "lesson_label": "第2课",
+      "lesson_title": "2. 余数和除数的关系",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "6 有余数的除法 / 2 2. 余数和除数的关系",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 2. 余数和除数的关系\n\n### 例题3：观察余数和除数\n\n**题目**：\n```\n17 ÷ 3 = 5……2    （余数2 < 除数3）\n18 ÷ 3 = 6……0    （余数0 < 除数3）\n19 ÷ 3 = 6……1    （余数1 < 除数3）\n20 ÷ 3 = 6……2    （余数2 < 除数3）\n21 ÷ 3 = 7……0    （余数0 < 除数3）\n```\n\n**发现**：余数一定要比除数小\n\n---\n\n### 例题4：判断对错\n\n**题目**：下面的计算对吗？不对的请改正\n\n```\n18 ÷ 4 = 3……6    （×，余数6 > 除数4，不对）\n改正：18 ÷ 4 = 4……2\n\n25 ÷ 6 = 3……7    （×，余数7 > 除数6，不对）\n改正：25 ÷ 6 = 4……1\n\n20 ÷ 3 = 7……-1   （×，余数不能是负数）\n改正：20 ÷ 3 = 6……2\n```\n\n---\n\n### 例题5：最大能填几\n\n**题目**：\n```\n( ) × 4 < 15     最大填3\n5 × ( ) < 37     最大填7\n( ) × 6 < 43     最大填7\n```\n\n---",
+      "content_text": "2. 余数和除数的关系 例题3：观察余数和除数 题目： 发现：余数一定要比除数小 例题4：判断对错 题目：下面的计算对吗？不对的请改正 例题5：最大能填几 题目：",
+      "knowledge_point_count": 1,
+      "char_count": 81,
+      "sort_order": 60200,
+      "content_hash": "a6b2e7f2de48160618bd1418838ef525ebf4c3a7c4e6de4b8adf0552511cc1b0",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/06-有余数的除法.md"
+        ],
+        "source_heading": "2. 余数和除数的关系",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第2课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u06::l03",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 6,
+      "unit_label": "第6单元",
+      "unit_title": "有余数的除法",
+      "lesson_number": 3,
+      "lesson_label": "第3课",
+      "lesson_title": "3. 有余数除法的计算",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "6 有余数的除法 / 3 3. 有余数除法的计算",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 3. 有余数除法的计算\n\n### 例题6：竖式计算\n\n**例1**：13 ÷ 4 = 3……1\n\n```\n    3\n   -----\n4 ) 1 3\n    1 2\n   -----\n      1\n```\n\n**步骤**：\n1. 13除以4，商3\n2. 3乘4得12\n3. 13减12余1\n4. 余数1小于除数4\n\n---\n\n### 例题7：练习\n\n**题目**：\n```\n15 ÷ 4 = 3……3\n17 ÷ 5 = 3……2\n19 ÷ 6 = 3……1\n22 ÷ 7 = 3……1\n```\n\n---",
+      "content_text": "3. 有余数除法的计算 例题6：竖式计算 例1：13 ÷ 4 = 3……1 步骤： 1. 13除以4，商3 2. 3乘4得12 3. 13减12余1 4. 余数1小于除数4 例题7：练习 题目：",
+      "knowledge_point_count": 1,
+      "char_count": 97,
+      "sort_order": 60300,
+      "content_hash": "65a4c61d16b2b94ad51a7ae333e0033cab8a7910c4344696be1c95a8de313cd0",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/06-有余数的除法.md"
+        ],
+        "source_heading": "3. 有余数除法的计算",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第3课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u06::l04",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 6,
+      "unit_label": "第6单元",
+      "unit_title": "有余数的除法",
+      "lesson_number": 4,
+      "lesson_label": "第4课",
+      "lesson_title": "4. 解决问题",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "6 有余数的除法 / 4 4. 解决问题",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 4. 解决问题\n\n### 例题8：租船问题\n\n**情境**：\n- 有22人去划船\n- 每条船限坐4人\n- 至少要租几条船？\n\n**列式**：\n```\n22 ÷ 4 = 5（条）……2（人）\n```\n\n**思考**：\n- 商是5，余数是2\n- 余下的2人也需要一条船\n- 5+1=6（条）\n\n**答**：至少要租6条船\n\n（这种方法叫\"进一法\"）\n\n---\n\n### 例题9：做衣服问题\n\n**情境**：\n- 有25米布\n- 每套衣服用3米\n- 最多能做几套？\n\n**列式**：\n```\n25 ÷ 3 = 8（套）……1（米）\n```\n\n**思考**：\n- 商是8，余数是1\n- 余下的1米不够做一套\n- 只能做8套\n\n**答**：最多能做8套\n\n（这种方法叫\"去尾法\"）\n\n---\n\n### 例题10：摆花问题\n\n**情境**：\n- 学校有20盆花\n- 每组摆4盆\n- 可以摆几组？还剩几盆？\n\n**列式**：\n```\n20 ÷ 4 = 5（组）……0（盆）\n```\n\n**注意**：这里余数是0，正好分完\n\n---\n\n### 例题11：排队问题\n\n**情境**：\n- 有28个同学排队\n- 每排5人\n- 可以排几排？还剩几人？\n\n**列式**：\n```\n28 ÷ 5 = 5（排）……3（人）\n```\n\n---",
+      "content_text": "4. 解决问题 例题8：租船问题 情境： 有22人去划船 每条船限坐4人 至少要租几条船？ 列式： 思考： 商是5，余数是2 余下的2人也需要一条船 5+1=6（条） 答：至少要租6条船 （这种方法叫\"进一法\"） 例题9：做衣服问题 情境： 有25米布 每套衣服用3米 最多能做几套？ 列式： 思考： 商是8，余数是1 余下的1米不够做一套 只能做8套 答：最多能做8套 （这种方法叫\"去尾法\"） 例题10：摆花问题 情境： 学校有20盆花 每组摆4盆 可以摆几组？还剩几盆？ 列式： 注意：这里余数是0，正好分完 例题11：排队问题 情境： 有28个同学排队 每排5人 可以排几排？还剩几人？ 列式：",
+      "knowledge_point_count": 18,
+      "char_count": 301,
+      "sort_order": 60400,
+      "content_hash": "cff29a315fa74ab2b8360dfd4004134e1df13e73ab0139788905adbd3bdf1ebe",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/06-有余数的除法.md"
+        ],
+        "source_heading": "4. 解决问题",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第4课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u06::l05",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 6,
+      "unit_label": "第6单元",
+      "unit_title": "有余数的除法",
+      "lesson_number": 5,
+      "lesson_label": "第5课",
+      "lesson_title": "5. 综合练习",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "6 有余数的除法 / 5 5. 综合练习",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 5. 综合练习\n\n### 例题12：选择题\n\n**题目**：下面哪个算式是正确的？\n```\nA. 15 ÷ 4 = 2……7     （×，余数 > 除数）\nB. 15 ÷ 4 = 3……3     （×，商太小）\nC. 15 ÷ 4 = 3……3     （×）\nD. 15 ÷ 4 = 3……3     （×）\n\n正确答案应该是：15 ÷ 4 = 3……3（检查：3×4+3=15，√）\n```\n\n---\n\n### 例题13：解决问题\n\n**题目**：老师有40本练习本，每人分5本，可以分给几个同学？还剩几本？\n\n**列式**：\n```\n40 ÷ 5 = 8（个）……0（本）\n```\n\n**答**：可以分给8个同学，正好分完。\n\n---\n\n# 结论与法则",
+      "content_text": "5. 综合练习 例题12：选择题 题目：下面哪个算式是正确的？ 例题13：解决问题 题目：老师有40本练习本，每人分5本，可以分给几个同学？还剩几本？ 列式： 答：可以分给8个同学，正好分完。 结论与法则",
+      "knowledge_point_count": 1,
+      "char_count": 102,
+      "sort_order": 60500,
+      "content_hash": "4427a8119ecd13146f586902807a195132a2ca398823bcecdb0c3ef49336b46e",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/06-有余数的除法.md"
+        ],
+        "source_heading": "5. 综合练习",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第5课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u07",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "unit",
+      "unit_number": 7,
+      "unit_label": "第7单元",
+      "unit_title": "万以内数的认识",
+      "lesson_number": 0,
+      "lesson_label": "",
+      "lesson_title": "",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "7 万以内数的认识 / 单元背景",
+      "content_type": "unit_context",
+      "content_markdown": "# 单元知识结构\n\n```\n万以内数的认识\n├── 1000以内数的认识\n│   ├── 数数（一个一个地数、十个十地数）\n│   ├── 数的组成\n│   ├── 数位顺序表\n│   ├── 读数和写数\n│   └── 数的大小比较\n├── 10000以内数的认识\n│   ├── 认识新的计数单位\"万\"\n│   ├── 数的组成\n│   ├── 读数和写数\n│   └── 数的大小比较\n├── 整百、整千数的加减法\n│   ├── 口算整百、整千数加减\n│   └── 估算\n└── 近似数\n    ├── 认识近似数\n    └── 求近似数的方法\n```\n\n# 核心探究过程",
+      "content_text": "单元知识结构 核心探究过程",
+      "knowledge_point_count": 1,
+      "char_count": 13,
+      "sort_order": 70000,
+      "content_hash": "a919f83e4c3fe2b73149f0b8de266fd25d08f5ba118fc2f4df2f67c6b9367a11",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/07-万以内数的认识.md"
+        ],
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "unit",
+      "native_label": "第7单元",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u07::l01",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 7,
+      "unit_label": "第7单元",
+      "unit_title": "万以内数的认识",
+      "lesson_number": 1,
+      "lesson_label": "第1课",
+      "lesson_title": "1. 1000以内数的认识",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "7 万以内数的认识 / 1 1. 1000以内数的认识",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 1. 1000以内数的认识\n\n### 例题1：数数\n\n**一个一个地数**：\n- 从198数到206\n- 10个一是十\n\n**十个十个地数**：\n- 从三百数到四百\n- 10个十是一百\n\n**一百一百地数**：\n- 从一百数到一千\n- 10个一百是一千\n\n---\n\n### 例题2：数的组成\n\n**例**：326是由什么组成的？\n\n**分析**：\n```\n326 = 3个百、2个十、6个一\n326 = 300 + 20 + 6\n```\n\n---\n\n### 例题3：数位顺序表\n\n| ... | 千位 | 百位 | 十位 | 个位 |\n|-----|------|------|------|------|\n|     |      |  3   |  2   |  6   |\n\n**例**：326\n- 3在百位，表示3个百\n- 2在十位，表示2个十\n- 6在个位，表示6个一\n\n---\n\n### 例题4：读数和写数\n\n**读数**：\n- 326 读作：三百二十六\n- 504 读作：五百零四\n- 700 读作：七百\n\n**写数**：\n- 三百二十五 写作：325\n- 六百零八 写作：608\n- 九百 写作：900\n\n**规则**：\n- 读数：从高位读起，百位是几读几百，十位是几读几十，个位是几读几\n- 写数：从高位写起，哪一位上是几就写几\n\n---\n\n### 例题5：数的大小比较\n\n**比较方法**：\n1. 先比位数，位数多的数大\n2. 位数相同，从高位比起\n\n**例**：\n- 398 ○ 402 → 398 < 402（位数不同）\n- 567 ○ 576 → 567 < 576（位数相同，从高位比起）\n- 809 ○ 890 → 809 < 890\n\n---",
+      "content_text": "1. 1000以内数的认识 例题1：数数 一个一个地数： 从198数到206 10个一是十 十个十个地数： 从三百数到四百 10个十是一百 一百一百地数： 从一百数到一千 10个一百是一千 例题2：数的组成 例：326是由什么组成的？ 分析： 例题3：数位顺序表 ... | 千位 | 百位 | 十位 | 个位 | | | 3 | 2 | 6 | 例：326 3在百位，表示3个百 2在十位，表示2个十 6在个位，表示6个一 例题4：读数和写数 读数： 326 读作：三百二十六 504 读作：五百零四 700 读作：七百 写数： 三百二十五 写作：325 六百零八 写作：608 九百 写作：900 规则： 读数：从高位读起，百位是几读几百，十位是几读几十，个位是几读几 写数：从高位写起，哪一位上是几就写几 例题5：数的大小比较 比较方法： 1. 先比位数，位数多的数大 2. 位数相同，从高位比起 例： 398 ○ 402 → 398 < 402（位数不同） 567 ○ 576 → 567 < 576（位数相同，从高位比起） 809 ○ 890 → 809 < 890",
+      "knowledge_point_count": 20,
+      "char_count": 488,
+      "sort_order": 70100,
+      "content_hash": "40ceb330084423dc9dac1e18529148b8f3669934a45b97059d2ef54d78b4d2c6",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/07-万以内数的认识.md"
+        ],
+        "source_heading": "1. 1000以内数的认识",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第1课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u07::l02",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 7,
+      "unit_label": "第7单元",
+      "unit_title": "万以内数的认识",
+      "lesson_number": 2,
+      "lesson_label": "第2课",
+      "lesson_title": "2. 10000以内数的认识",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "7 万以内数的认识 / 2 2. 10000以内数的认识",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 2. 10000以内数的认识\n\n### 例题6：认识\"万\"\n\n**数数**：\n- 一千一千地数，数到一万\n- 10个一千是一万\n\n**计数单位**：\n- 一（个）\n- 十\n- 百\n- 千\n- 万\n\n---\n\n### 例题7：数位顺序表\n\n| ... | 万位 | 千位 | 百位 | 十位 | 个位 |\n|-----|------|------|------|------|------|\n|     |  3   |  4   |  5   |  6   |  7   |\n\n**例**：34567\n- 3在万位，表示3个万\n- 4在千位，表示4个千\n- 5在百位，表示5个百\n- 6在十位，表示6个十\n- 7在个位，表示7个一\n\n---\n\n### 例题8：读数和写数\n\n**读数**：\n- 2345 读作：二千三百四十五\n- 5006 读作：五千零六\n- 8000 读作：八千\n\n**写数**：\n- 三千四百五十六 写作：3456\n- 七千零九 写作：7009\n- 一万 写作：10000\n\n---",
+      "content_text": "2. 10000以内数的认识 例题6：认识\"万\" 数数： 一千一千地数，数到一万 10个一千是一万 计数单位： 一（个） 十 百 千 万 例题7：数位顺序表 ... | 万位 | 千位 | 百位 | 十位 | 个位 | | 3 | 4 | 5 | 6 | 7 | 例：34567 3在万位，表示3个万 4在千位，表示4个千 5在百位，表示5个百 6在十位，表示6个十 7在个位，表示7个一 例题8：读数和写数 读数： 2345 读作：二千三百四十五 5006 读作：五千零六 8000 读作：八千 写数： 三千四百五十六 写作：3456 七千零九 写作：7009 一万 写作：10000",
+      "knowledge_point_count": 18,
+      "char_count": 293,
+      "sort_order": 70200,
+      "content_hash": "aeec3775c8909011ef1c8d076b95620c0a64d70b4e4a6eec31b1af0c4ab389d3",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/07-万以内数的认识.md"
+        ],
+        "source_heading": "2. 10000以内数的认识",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第2课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u07::l03",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 7,
+      "unit_label": "第7单元",
+      "unit_title": "万以内数的认识",
+      "lesson_number": 3,
+      "lesson_label": "第3课",
+      "lesson_title": "3. 整百、整千数的加减法",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "7 万以内数的认识 / 3 3. 整百、整千数的加减法",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 3. 整百、整千数的加减法\n\n### 例题9：口算\n\n**整百数加减**：\n```\n800 + 200 = 1000\n1500 - 500 = 1000\n```\n\n**整千数加减**：\n```\n3000 + 5000 = 8000\n9000 - 4000 = 5000\n```\n\n**方法**：把0前面的数相加减，再在后面添上相应的0\n\n---\n\n### 例题10：估算\n\n**题目**：\n一台电视机2980元，一个电风扇805元，带4000元够吗？\n\n**估算**：\n```\n2980 ≈ 3000\n805 ≈ 800\n3000 + 800 = 3800（元）\n3800 < 4000，够\n```\n\n---",
+      "content_text": "3. 整百、整千数的加减法 例题9：口算 整百数加减： 整千数加减： 方法：把0前面的数相加减，再在后面添上相应的0 例题10：估算 题目： 一台电视机2980元，一个电风扇805元，带4000元够吗？ 估算：",
+      "knowledge_point_count": 1,
+      "char_count": 105,
+      "sort_order": 70300,
+      "content_hash": "0e7e479ef8db2a0d34cbdec7a4133a73ce908b291ec23d5ed6820e2397b1049d",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/07-万以内数的认识.md"
+        ],
+        "source_heading": "3. 整百、整千数的加减法",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第3课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u07::l04",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 7,
+      "unit_label": "第7单元",
+      "unit_title": "万以内数的认识",
+      "lesson_number": 4,
+      "lesson_label": "第4课",
+      "lesson_title": "4. 近似数",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "7 万以内数的认识 / 4 4. 近似数",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 4. 近似数\n\n### 例题11：认识近似数\n\n**准确数**：\n- 我们班有42人\n- 这本书有198页\n\n**近似数**：\n- 这座山大约高1000米\n- 这个图书馆大约有5000册书\n\n---\n\n### 例题12：求近似数\n\n**方法**：看十位上的数\n\n- 四舍：十位是0、1、2、3、4，舍去（变0）\n- 五入：十位是5、6、7、8、9，进一（百位加1）\n\n**例**：\n```\n324 ≈ 300\n387 ≈ 400\n509 ≈ 500\n596 ≈ 600\n```\n\n---\n\n# 结论与法则",
+      "content_text": "4. 近似数 例题11：认识近似数 准确数： 我们班有42人 这本书有198页 近似数： 这座山大约高1000米 这个图书馆大约有5000册书 例题12：求近似数 方法：看十位上的数 四舍：十位是0、1、2、3、4，舍去（变0） 五入：十位是5、6、7、8、9，进一（百位加1） 例： 结论与法则",
+      "knowledge_point_count": 6,
+      "char_count": 148,
+      "sort_order": 70400,
+      "content_hash": "f96b5978f56bef3ba1d49d705874fafc3ee7d26ceee3b76cb35ab981a57e8ca0",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/07-万以内数的认识.md"
+        ],
+        "source_heading": "4. 近似数",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第4课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u08",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "unit",
+      "unit_number": 8,
+      "unit_label": "第8单元",
+      "unit_title": "克和千克",
+      "lesson_number": 0,
+      "lesson_label": "",
+      "lesson_title": "",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "8 克和千克 / 单元背景",
+      "content_type": "unit_context",
+      "content_markdown": "# 单元知识结构\n\n```\n克和千克\n├── 认识质量单位\n│   ├── 认识克（g）\n│   │   ├── 1克有多重\n│   │   ├── 哪些物品约重1克\n│   │   └── 用天平测量\n│   ├── 认识千克（kg）\n│   │   ├── 1千克有多重\n│   │   ├── 哪些物品约重1千克\n│   │   └── 用秤测量\n│   └── 克和千克的关系\n│       └── 1千克 = 1000克\n├── 建立质量观念\n│   ├── 1克的质量观念\n│   ├── 1千克的质量观念\n│   └── 估计物品质量\n└── 简单的计算和应用\n    ├── 单位换算\n    ├── 简单计算\n    └── 解决问题\n```\n\n# 核心探究过程",
+      "content_text": "单元知识结构 核心探究过程",
+      "knowledge_point_count": 1,
+      "char_count": 13,
+      "sort_order": 80000,
+      "content_hash": "b7d4f7c4813e521bf713d298d312b28118067b8b951773b403151d78f6442a0b",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/08-克和千克.md"
+        ],
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "unit",
+      "native_label": "第8单元",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u08::l01",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 8,
+      "unit_label": "第8单元",
+      "unit_title": "克和千克",
+      "lesson_number": 1,
+      "lesson_label": "第1课",
+      "lesson_title": "1. 认识克",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "8 克和千克 / 1 1. 认识克",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 1. 认识克\n\n### 例题1：1克有多重？\n\n**情境**：出示一些物品\n- 2分硬币约重1克\n- 1枚大头针约重1克\n- 1粒花生米约重1克\n\n**认识天平**：\n- 天平是测量较轻物品质量的工具\n- 单位是克（g）\n\n---\n\n### 例题2：测量物品的质量\n\n**活动**：用手掂一掂，感受1克有多重\n\n**物品举例**：\n- 1枚2分硬币约1克\n- 1个图钉约1克\n- 1粒黄豆约1克\n\n**测量**：\n- 用天平测量数学书的质量\n- 用天平测量橡皮的质量\n\n---",
+      "content_text": "1. 认识克 例题1：1克有多重？ 情境：出示一些物品 2分硬币约重1克 1枚大头针约重1克 1粒花生米约重1克 认识天平： 天平是测量较轻物品质量的工具 单位是克（g） 例题2：测量物品的质量 活动：用手掂一掂，感受1克有多重 物品举例： 1枚2分硬币约1克 1个图钉约1克 1粒黄豆约1克 测量： 用天平测量数学书的质量 用天平测量橡皮的质量",
+      "knowledge_point_count": 10,
+      "char_count": 173,
+      "sort_order": 80100,
+      "content_hash": "c2e36783b4fa6c3361455718305ce68bc7eeaf97660115b7d68e5c0d7181f9d9",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/08-克和千克.md"
+        ],
+        "source_heading": "1. 认识克",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第1课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u08::l02",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 8,
+      "unit_label": "第8单元",
+      "unit_title": "克和千克",
+      "lesson_number": 2,
+      "lesson_label": "第2课",
+      "lesson_title": "2. 认识千克",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "8 克和千克 / 2 2. 认识千克",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 2. 认识千克\n\n### 例题3：1千克有多重？\n\n**情境**：\n- 2袋盐约重1千克\n- 1袋大米约重10千克\n- 1个大西瓜约重5千克\n\n**认识秤**：\n- 盘秤、弹簧秤、电子秤等\n- 单位是千克（kg）\n\n---\n\n### 例题4：感受1千克\n\n**活动**：\n- 用手掂一掂1千克的物品\n- 比较1克和1千克的质量\n\n**发现**：\n- 1千克比1克重得多\n- 1千克 = 1000克\n\n---",
+      "content_text": "2. 认识千克 例题3：1千克有多重？ 情境： 2袋盐约重1千克 1袋大米约重10千克 1个大西瓜约重5千克 认识秤： 盘秤、弹簧秤、电子秤等 单位是千克（kg） 例题4：感受1千克 活动： 用手掂一掂1千克的物品 比较1克和1千克的质量 发现： 1千克比1克重得多 1千克 = 1000克",
+      "knowledge_point_count": 9,
+      "char_count": 145,
+      "sort_order": 80200,
+      "content_hash": "8d5bfa025cf119a2dce828c9b691841266563e55e27705343d42a695c563fa59",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/08-克和千克.md"
+        ],
+        "source_heading": "2. 认识千克",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第2课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u08::l03",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 8,
+      "unit_label": "第8单元",
+      "unit_title": "克和千克",
+      "lesson_number": 3,
+      "lesson_label": "第3课",
+      "lesson_title": "3. 克和千克的关系",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "8 克和千克 / 3 3. 克和千克的关系",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 3. 克和千克的关系\n\n### 例题5：单位换算\n\n**关系**：\n```\n1千克 = 1000克\n1kg = 1000g\n```\n\n**练习**：\n```\n2千克 = ( 2000 )克\n5千克 = ( 5000 )克\n3000克 = ( 3 )千克\n8000克 = ( 8 )千克\n```\n\n---",
+      "content_text": "3. 克和千克的关系 例题5：单位换算 关系： 练习：",
+      "knowledge_point_count": 1,
+      "char_count": 27,
+      "sort_order": 80300,
+      "content_hash": "28ee535c3f24549755158539860ba73ef94d78f045f15d7556a506ed169fc431",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/08-克和千克.md"
+        ],
+        "source_heading": "3. 克和千克的关系",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第3课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u08::l04",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 8,
+      "unit_label": "第8单元",
+      "unit_title": "克和千克",
+      "lesson_number": 4,
+      "lesson_label": "第4课",
+      "lesson_title": "4. 简单的计算",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "8 克和千克 / 4 4. 简单的计算",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 4. 简单的计算\n\n### 例题6：单位换算\n\n**题目**：\n```\n3kg = ( )g\n4000g = ( )kg\n```\n\n**解答**：\n```\n3kg = 3000g\n4000g = 4kg\n```\n\n---\n\n### 例题7：比较大小\n\n**题目**：在○里填上>、<或=\n\n```\n3kg ○ 3000g    (3kg = 3000g)\n5kg ○ 4900g    (5kg > 4900g)\n8000g ○ 9kg    (8000g < 9kg)\n```\n\n---",
+      "content_text": "4. 简单的计算 例题6：单位换算 题目： 解答： 例题7：比较大小 题目：在○里填上>、<或=",
+      "knowledge_point_count": 1,
+      "char_count": 48,
+      "sort_order": 80400,
+      "content_hash": "70264fa47e68de6f2920394d945f0f7af12449ac0b14dbfa6c2820d77feeb489",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/08-克和千克.md"
+        ],
+        "source_heading": "4. 简单的计算",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第4课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u08::l05",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 8,
+      "unit_label": "第8单元",
+      "unit_title": "克和千克",
+      "lesson_number": 5,
+      "lesson_label": "第5课",
+      "lesson_title": "5. 解决问题",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "8 克和千克 / 5 5. 解决问题",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 5. 解决问题\n\n### 例题8：购物问题\n\n**情境**：\n- 妈妈买了2千克苹果\n- 买了500克橘子\n- 一共买了多少克水果？\n\n**分析**：\n```\n2kg = 2000g\n2000 + 500 = 2500g\n```\n\n---\n\n### 例题9：估计质量\n\n**情境**：\n- 估计一个鸡蛋的质量（约50克）\n- 估计一袋洗衣粉的质量（约1千克）\n- 估计一本书的质量（约200克）\n\n---\n\n### 例题10：选择合适的单位\n\n**题目**：在括号里填上\"克\"或\"千克\"\n\n```\n一个梨约150( 克 )\n一个西瓜约4( 千克 )\n一袋奶粉约500( 克 )\n一袋大米约25( 千克 )\n```\n\n---\n\n# 结论与法则",
+      "content_text": "5. 解决问题 例题8：购物问题 情境： 妈妈买了2千克苹果 买了500克橘子 一共买了多少克水果？ 分析： 例题9：估计质量 情境： 估计一个鸡蛋的质量（约50克） 估计一袋洗衣粉的质量（约1千克） 估计一本书的质量（约200克） 例题10：选择合适的单位 题目：在括号里填上\"克\"或\"千克\" 结论与法则",
+      "knowledge_point_count": 6,
+      "char_count": 153,
+      "sort_order": 80500,
+      "content_hash": "4fee20a6051f1e32de46d92020c2578d2b8e069ab4231582b5854dee7741567c",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/08-克和千克.md"
+        ],
+        "source_heading": "5. 解决问题",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第5课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u09",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "unit",
+      "unit_number": 9,
+      "unit_label": "第9单元",
+      "unit_title": "小小设计师",
+      "lesson_number": 0,
+      "lesson_label": "",
+      "lesson_title": "",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "9 小小设计师 / 单元背景",
+      "content_type": "unit_context",
+      "content_markdown": "# 单元知识结构\n\n```\n小小设计师（综合实践活动）\n├── 活动目标\n│   ├── 综合运用图形的运动知识\n│   ├── 设计美丽图案\n│   ├── 培养创新意识\n│   └── 感受数学之美\n├── 活动内容\n│   ├── 运用平移设计图案\n│   ├── 运用旋转设计图案\n│   ├── 运用轴对称设计图案\n│   └── 综合运用设计图案\n└── 活动过程\n    ├── 欣赏图案\n    ├── 分析设计方法\n    ├── 动手设计\n    └── 展示交流\n```\n\n# 核心探究过程",
+      "content_text": "单元知识结构 核心探究过程",
+      "knowledge_point_count": 1,
+      "char_count": 13,
+      "sort_order": 90000,
+      "content_hash": "907d3315ff41d3fd6dc64f40eebb4319c5deb48292de4c1b18c0a6c67ded325c",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/09-小小设计师.md"
+        ],
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "unit",
+      "native_label": "第9单元",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u09::l01",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 9,
+      "unit_label": "第9单元",
+      "unit_title": "小小设计师",
+      "lesson_number": 1,
+      "lesson_label": "第1课",
+      "lesson_title": "1. 欣赏图案",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "9 小小设计师 / 1 1. 欣赏图案",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 1. 欣赏图案\n\n### 例题1：生活中的图案\n\n**展示**：\n- 地板图案\n- 窗花图案\n- 服饰图案\n- 包装纸图案\n\n**问题**：这些图案是怎么设计出来的？\n\n---",
+      "content_text": "1. 欣赏图案 例题1：生活中的图案 展示： 地板图案 窗花图案 服饰图案 包装纸图案 问题：这些图案是怎么设计出来的？",
+      "knowledge_point_count": 4,
+      "char_count": 60,
+      "sort_order": 90100,
+      "content_hash": "9b43d15cc8c1e0ad999d6fd0486ea38e5d84825e87d1034fdca2630e53d0b86b",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/09-小小设计师.md"
+        ],
+        "source_heading": "1. 欣赏图案",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第1课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u09::l02",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 9,
+      "unit_label": "第9单元",
+      "unit_title": "小小设计师",
+      "lesson_number": 2,
+      "lesson_label": "第2课",
+      "lesson_title": "2. 分析设计方法",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "9 小小设计师 / 2 2. 分析设计方法",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 2. 分析设计方法\n\n### 例题2：平移图案\n\n**分析**：\n- 基本图形：一个简单的图形\n- 设计方法：通过平移得到\n- 效果：形成连续的图案\n\n**例**：\n```\n基本图案：★\n平移后：★★★★★★★★\n```\n\n---\n\n### 例题3：旋转图案\n\n**分析**：\n- 基本图形：一个简单的图形\n- 设计方法：通过旋转得到\n- 效果：形成中心对称的图案\n\n**例**：\n```\n基本图案：一个花瓣\n旋转后：形成花朵图案\n```\n\n---\n\n### 例题4：轴对称图案\n\n**分析**：\n- 基本图形：半个图案\n- 设计方法：对折剪\n- 效果：形成对称的图案\n\n**例**：\n```\n对折剪纸\n展开后得到对称图案\n```\n\n---",
+      "content_text": "2. 分析设计方法 例题2：平移图案 分析： 基本图形：一个简单的图形 设计方法：通过平移得到 效果：形成连续的图案 例： 例题3：旋转图案 分析： 基本图形：一个简单的图形 设计方法：通过旋转得到 效果：形成中心对称的图案 例： 例题4：轴对称图案 分析： 基本图形：半个图案 设计方法：对折剪 效果：形成对称的图案 例：",
+      "knowledge_point_count": 9,
+      "char_count": 162,
+      "sort_order": 90200,
+      "content_hash": "4376a4bfc2ca34201d7996664ee0d3f7e0fb1c745837762d36cdcb074b44836b",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/09-小小设计师.md"
+        ],
+        "source_heading": "2. 分析设计方法",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第2课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u09::l03",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 9,
+      "unit_label": "第9单元",
+      "unit_title": "小小设计师",
+      "lesson_number": 3,
+      "lesson_label": "第3课",
+      "lesson_title": "3. 动手设计",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "9 小小设计师 / 3 3. 动手设计",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 3. 动手设计\n\n### 例题5：设计步骤\n\n**第一步**：选择基本图形\n- 可以是简单图形\n- 可以是自己设计的图形\n\n**第二步**：选择设计方法\n- 平移\n- 旋转\n- 轴对称\n- 综合\n\n**第三步**：动手设计\n- 画一画\n- 剪一剪\n- 贴一贴\n\n---\n\n### 例题6：学生作品示例\n\n**作品1**：用平移设计的花边\n\n**作品2**：用旋转设计的万花筒图案\n\n**作品3**：用轴对称设计的窗花\n\n**作品4**：综合运用设计的壁纸图案\n\n---",
+      "content_text": "3. 动手设计 例题5：设计步骤 第一步：选择基本图形 可以是简单图形 可以是自己设计的图形 第二步：选择设计方法 平移 旋转 轴对称 综合 第三步：动手设计 画一画 剪一剪 贴一贴 例题6：学生作品示例 作品1：用平移设计的花边 作品2：用旋转设计的万花筒图案 作品3：用轴对称设计的窗花 作品4：综合运用设计的壁纸图案",
+      "knowledge_point_count": 9,
+      "char_count": 161,
+      "sort_order": 90300,
+      "content_hash": "c21e79f20351ace6c45a5d9bc930ef2d460096632c70c2065cb4ef191dca8e4c",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/09-小小设计师.md"
+        ],
+        "source_heading": "3. 动手设计",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第3课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u09::l04",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 9,
+      "unit_label": "第9单元",
+      "unit_title": "小小设计师",
+      "lesson_number": 4,
+      "lesson_label": "第4课",
+      "lesson_title": "4. 展示交流",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "9 小小设计师 / 4 4. 展示交流",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 4. 展示交流\n\n### 例题7：作品展示\n\n**展示内容**：\n- 作品名称\n- 设计方法\n- 设计理念\n- 遇到的问题\n- 解决方法\n\n---\n\n# 结论与法则",
+      "content_text": "4. 展示交流 例题7：作品展示 展示内容： 作品名称 设计方法 设计理念 遇到的问题 解决方法 结论与法则",
+      "knowledge_point_count": 5,
+      "char_count": 54,
+      "sort_order": 90400,
+      "content_hash": "15ea27733eae86b8ea6499ed2625eff1fc437fc4b42c2c8f77cfabb0c245aa86",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/09-小小设计师.md"
+        ],
+        "source_heading": "4. 展示交流",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第4课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u10",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "unit",
+      "unit_number": 10,
+      "unit_label": "第10单元",
+      "unit_title": "数学广角——推理",
+      "lesson_number": 0,
+      "lesson_label": "",
+      "lesson_title": "",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "10 数学广角——推理 / 单元背景",
+      "content_type": "unit_context",
+      "content_markdown": "# 单元知识结构\n\n```\n数学广角——推理\n├── 简单的推理\n│   ├── 两种情况的推理\n│   │   ├── 不是这个就是那个\n│   │   └── 排除法\n│   └── 三种情况的推理\n│       ├── 逐步排除\n│       └── 列表法\n├── 推理方法\n│   ├── 排除法\n│   ├── 假设法\n│   └── 列表法\n└── 解决问题\n    ├── 判断推理\n    └── 逻辑推理\n```\n\n# 核心探究过程",
+      "content_text": "单元知识结构 核心探究过程",
+      "knowledge_point_count": 1,
+      "char_count": 13,
+      "sort_order": 100000,
+      "content_hash": "92dc7b9d482073b4a945a2e81bd36fab7b89e3bade3335f88c2049d557bb8420",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/10-数学广角——推理.md"
+        ],
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "unit",
+      "native_label": "第10单元",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u10::l01",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 10,
+      "unit_label": "第10单元",
+      "unit_title": "数学广角——推理",
+      "lesson_number": 1,
+      "lesson_label": "第1课",
+      "lesson_title": "1. 两种情况的推理",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "10 数学广角——推理 / 1 1. 两种情况的推理",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 1. 两种情况的推理\n\n### 例题1：拿彩球\n\n**情境**：\n- 有红、黄两种颜色的球\n- 小明拿的不是红球\n- 小明拿的是什么球？\n\n**推理过程**：\n```\n只有两种颜色：红、黄\n不是红的 → 那一定是黄的\n```\n\n**答**：小明拿的是黄球\n\n---\n\n### 例题2：判断班级\n\n**情境**：\n- 小红不在二班\n- 小红在一班还是二班？\n\n**推理过程**：\n```\n只有一班、二班\n不是二班 → 那一定是一班\n```\n\n**答**：小红在一班\n\n---",
+      "content_text": "1. 两种情况的推理 例题1：拿彩球 情境： 有红、黄两种颜色的球 小明拿的不是红球 小明拿的是什么球？ 推理过程： 答：小明拿的是黄球 例题2：判断班级 情境： 小红不在二班 小红在一班还是二班？ 推理过程： 答：小红在一班",
+      "knowledge_point_count": 5,
+      "char_count": 113,
+      "sort_order": 100100,
+      "content_hash": "f3759c478562b20d40567d2bbf61391a72905fa5986778c3fa0ef30a8c6a31f5",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/10-数学广角——推理.md"
+        ],
+        "source_heading": "1. 两种情况的推理",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第1课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u10::l02",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 10,
+      "unit_label": "第10单元",
+      "unit_title": "数学广角——推理",
+      "lesson_number": 2,
+      "lesson_label": "第2课",
+      "lesson_title": "2. 三种情况的推理",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "10 数学广角——推理 / 2 2. 三种情况的推理",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 2. 三种情况的推理\n\n### 例题3：三种颜色的球\n\n**情境**：\n- 有红、黄、蓝三种颜色的球\n- 小明拿的不是红球\n- 小明拿的也不是黄球\n- 小明拿的是什么球？\n\n**推理过程**：\n```\n有红、黄、蓝三种\n不是红的\n也不是黄的\n那一定是蓝的\n```\n\n**答**：小明拿的是蓝球\n\n---\n\n### 例题4：三个小朋友的名次\n\n**情境**：\n- 小明、小红、小刚三人赛跑\n- 小明不是第一名\n- 小红不是第一名\n- 小刚不是第三名\n- 请你排一排名次\n\n**推理过程**：\n```\n第一步：排除法找第一名\n小明不是第一，小红不是第一\n→ 小刚是第一名\n\n第二步：排除法找第三名\n小刚不是第三（已是第一）\n题目说小刚不是第三，但这已排除\n需要更多信息...\n\n重新分析：\n小明不是第一，小红不是第一\n→ 小刚第一\n\n小刚不是第三（已知）\n→ 小刚只能是第一或第二\n已确定小刚第一\n\n现在剩下小明、小红争第二、第三\n需要更多条件...\n```\n\n---",
+      "content_text": "2. 三种情况的推理 例题3：三种颜色的球 情境： 有红、黄、蓝三种颜色的球 小明拿的不是红球 小明拿的也不是黄球 小明拿的是什么球？ 推理过程： 答：小明拿的是蓝球 例题4：三个小朋友的名次 情境： 小明、小红、小刚三人赛跑 小明不是第一名 小红不是第一名 小刚不是第三名 请你排一排名次 推理过程：",
+      "knowledge_point_count": 9,
+      "char_count": 151,
+      "sort_order": 100200,
+      "content_hash": "4f36be2e10caada7408fbbd3be1f9510036fa35710be0d15d559920b2037a431",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/10-数学广角——推理.md"
+        ],
+        "source_heading": "2. 三种情况的推理",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第2课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u10::l03",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 10,
+      "unit_label": "第10单元",
+      "unit_title": "数学广角——推理",
+      "lesson_number": 3,
+      "lesson_label": "第3课",
+      "lesson_title": "3. 列表法推理",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "10 数学广角——推理 / 3 3. 列表法推理",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 3. 列表法推理\n\n### 例题5：三个人拿三种书\n\n**情境**：\n- 小明、小红、小刚三人\n- 分别拿了语文、数学、英语书\n- 小明拿的不是数学书\n- 小红拿的不是语文书\n- 小刚拿的是英语书\n- 他们各拿什么书？\n\n**列表法**：\n\n| | 语文 | 数学 | 英语 |\n|---|---|---|---|\n| 小明 | | × | |\n| 小红 | × | | |\n| 小刚 | | | √ |\n\n**推理过程**：\n```\n第一步：小刚拿英语书（已知）\n小刚：英语 √\n\n第二步：小红不拿语文\n小红：语文 ×\n小红只能拿数学或英语\n英语已被小刚拿走\n→ 小红拿数学\n\n第三步：小明拿剩下的\n小明：语文\n```\n\n**答**：\n- 小明拿语文书\n- 小红拿数学书\n- 小刚拿英语书\n\n---\n\n### 例题6：三种动物的年龄\n\n**情境**：\n- 小狗、小猫、小兔\n- 小狗不是最大的\n- 小兔不是最小的\n- 小猫比小狗大\n- 按年龄从小到大排列\n\n**推理过程**：\n```\n已知：小猫 > 小狗\n\n小兔不是最小的\n→ 小兔 > 小狗\n\n小狗不是最大的\n→ 小狗 < 小猫或小兔\n\n综合分析：\n小猫 > 小狗\n小兔 > 小狗\n小猫和小兔谁更大？\n\n需要更多信息...\n如果有\"小猫不是最大的\"\n→ 小兔最大\n→ 顺序：小狗 < 小猫 < 小兔\n```\n\n---",
+      "content_text": "3. 列表法推理 例题5：三个人拿三种书 情境： 小明、小红、小刚三人 分别拿了语文、数学、英语书 小明拿的不是数学书 小红拿的不是语文书 小刚拿的是英语书 他们各拿什么书？ 列表法： | 语文 | 数学 | 英语 | 小明 | | × | | 小红 | × | | | 小刚 | | | √ | 推理过程： 答： 小明拿语文书 小红拿数学书 小刚拿英语书 例题6：三种动物的年龄 情境： 小狗、小猫、小兔 小狗不是最大的 小兔不是最小的 小猫比小狗大 按年龄从小到大排列 推理过程：",
+      "knowledge_point_count": 14,
+      "char_count": 242,
+      "sort_order": 100300,
+      "content_hash": "338bd7dbcaf82fb4cc7a81225302ed860afa6485dd72e5dd273dd46b3b30d97e",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/10-数学广角——推理.md"
+        ],
+        "source_heading": "3. 列表法推理",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第3课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u10::l04",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 10,
+      "unit_label": "第10单元",
+      "unit_title": "数学广角——推理",
+      "lesson_number": 4,
+      "lesson_label": "第4课",
+      "lesson_title": "4. 排除法",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "10 数学广角——推理 / 4 4. 排除法",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 4. 排除法\n\n### 例题7：四种水果\n\n**情境**：\n- 苹果、香蕉、橘子、葡萄\n- 小明不喜欢吃苹果\n- 也不喜欢吃香蕉\n- 还不喜欢吃橘子\n- 小明喜欢吃什么？\n\n**推理**：\n```\n四种水果：苹果、香蕉、橘子、葡萄\n不是苹果\n不是香蕉\n不是橘子\n→ 只能是葡萄\n```\n\n---\n\n### 例题8：四个小朋友的名次\n\n**情境**：\n- 小明、小红、小刚、小丽\n- 小明不是第一\n- 小红不是第一也不是第二\n- 小刚不是第四\n- 请排出一、二、三、四名\n\n**推理过程**：\n```\n第一步：找第一名\n小明不是第一，小红不是第一\n→ 第一名是小刚或小丽\n\n第二步：找第二名\n小红不是第二\n→ 第二名是小明、小刚或小丽\n\n第三步：找第四名\n小刚不是第四\n→ 第四名是小明、小红或小丽\n\n...需要更多条件\n```\n\n---",
+      "content_text": "4. 排除法 例题7：四种水果 情境： 苹果、香蕉、橘子、葡萄 小明不喜欢吃苹果 也不喜欢吃香蕉 还不喜欢吃橘子 小明喜欢吃什么？ 推理： 例题8：四个小朋友的名次 情境： 小明、小红、小刚、小丽 小明不是第一 小红不是第一也不是第二 小刚不是第四 请排出一、二、三、四名 推理过程：",
+      "knowledge_point_count": 10,
+      "char_count": 142,
+      "sort_order": 100400,
+      "content_hash": "50e6c4da67a310f887a003ad0c4cda93bd22a975480677723dc408dd086f661b",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/10-数学广角——推理.md"
+        ],
+        "source_heading": "4. 排除法",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第4课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u10::l05",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 10,
+      "unit_label": "第10单元",
+      "unit_title": "数学广角——推理",
+      "lesson_number": 5,
+      "lesson_label": "第5课",
+      "lesson_title": "5. 假设法",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "10 数学广角——推理 / 5 5. 假设法",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 5. 假设法\n\n### 例题9：真假话推理\n\n**情境**：\n- 小明说：\"我拿了红球\"\n- 小红说：\"我没拿红球\"\n- 只有一人说了真话\n- 谁拿了红球？\n\n**假设法**：\n```\n假设小明说真话：\n→ 小明拿了红球\n→ 小红说\"我没拿红球\"也是真话\n→ 两人说真话，矛盾！\n→ 假设错误\n\n假设小红说真话：\n→ 小红没拿红球\n→ 小明说谎\n→ 小明没拿红球\n→ 可能是别人拿了\n\n继续推理...\n```\n\n---\n\n# 结论与法则",
+      "content_text": "5. 假设法 例题9：真假话推理 情境： 小明说：\"我拿了红球\" 小红说：\"我没拿红球\" 只有一人说了真话 谁拿了红球？ 假设法： 结论与法则",
+      "knowledge_point_count": 4,
+      "char_count": 71,
+      "sort_order": 100500,
+      "content_hash": "86a65c57fa4ecc09592f3c4d977917623936466fef58bdcca186686b0dc2eb7e",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/10-数学广角——推理.md"
+        ],
+        "source_heading": "5. 假设法",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第5课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "unit",
+      "unit_number": 11,
+      "unit_label": "第11单元",
+      "unit_title": "总复习",
+      "lesson_number": 0,
+      "lesson_label": "",
+      "lesson_title": "",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "11 总复习 / 单元背景",
+      "content_type": "unit_context",
+      "content_markdown": "# 单元知识结构\n\n```\n总复习\n├── 数与代数\n│   ├── 表内除法\n│   │   ├── 平均分的认识\n│   │   ├── 除法的意义\n│   │   ├── 用乘法口诀求商\n│   │   └── 解决问题\n│   ├── 混合运算\n│   │   ├── 运算顺序\n│   │   └── 解决问题\n│   ├── 有余数的除法\n│   │   ├── 余数的意义\n│   │   ├── 余数和除数的关系\n│   │   └── 解决问题\n│   └── 万以内数的认识\n│       ├── 计数单位\n│       ├── 读写数\n│       └── 大小比较\n├── 图形与几何\n│   ├── 图形的运动\n│   │   ├── 轴对称图形\n│   │   ├── 平移\n│   │   └── 旋转\n│   └── 克和千克\n│       ├── 认识质量单位\n│       └── 单位换算\n├── 统计与概率\n│   └── 数据收集和整理\n│       ├── 收集数据\n│       ├── 整理数据\n│       └── 分析数据\n└── 综合应用\n    ├── 综合练习\n    ├── 问题解决\n    └── 思维拓展\n```\n\n# 核心内容复习",
+      "content_text": "单元知识结构 核心内容复习",
+      "knowledge_point_count": 1,
+      "char_count": 13,
+      "sort_order": 110000,
+      "content_hash": "a266a948f92d2c824ddf92f93a8b7b51674afd08582cdd49e9daa58f2c2fd80d",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/11-总复习.md"
+        ],
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "unit",
+      "native_label": "第11单元",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11::l01",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 11,
+      "unit_label": "第11单元",
+      "unit_title": "总复习",
+      "lesson_number": 1,
+      "lesson_label": "第1课",
+      "lesson_title": "1. 数据收集和整理",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "11 总复习 / 1 1. 数据收集和整理",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 1. 数据收集和整理\n\n### 知识要点\n\n**数据收集方法**：\n- 调查法\n- 记录方法（正字法、符号法）\n\n**统计表**：\n- 表头设计\n- 数据填写\n\n**数据分析**：\n- 最多、最少\n- 计算总数\n- 比较数据\n\n---\n\n### 典型例题\n\n**题目**：调查本班同学最喜欢的水果\n\n| 水果 | 苹果 | 香蕉 | 橘子 | 葡萄 |\n|------|------|------|------|------|\n| 人数 | 12   | 8    | 10   | 5    |\n\n**问题**：\n1. 最喜欢（ ）的人数最多\n2. 最喜欢（ ）的人数最少\n3. 全班共有多少人？\n\n**解答**：\n1. 最喜欢（苹果）的人数最多\n2. 最喜欢（葡萄）的人数最少\n3. 12+8+10+5=35（人）\n\n---",
+      "content_text": "1. 数据收集和整理 知识要点 数据收集方法： 调查法 记录方法（正字法、符号法） 统计表： 表头设计 数据填写 数据分析： 最多、最少 计算总数 比较数据 典型例题 题目：调查本班同学最喜欢的水果 水果 | 苹果 | 香蕉 | 橘子 | 葡萄 | 人数 | 12 | 8 | 10 | 5 | 问题： 1. 最喜欢（ ）的人数最多 2. 最喜欢（ ）的人数最少 3. 全班共有多少人？ 解答： 1. 最喜欢（苹果）的人数最多 2. 最喜欢（葡萄）的人数最少 3. 12+8+10+5=35（人）",
+      "knowledge_point_count": 7,
+      "char_count": 248,
+      "sort_order": 110100,
+      "content_hash": "ebff4bee0bce0c4809c27039af84d076f375e0febbf65eae03283e482d4c80e0",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/11-总复习.md"
+        ],
+        "source_heading": "1. 数据收集和整理",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第1课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11::l02",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 11,
+      "unit_label": "第11单元",
+      "unit_title": "总复习",
+      "lesson_number": 2,
+      "lesson_label": "第2课",
+      "lesson_title": "2. 表内除法",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "11 总复习 / 2 2. 表内除法",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 2. 表内除法\n\n### 知识要点\n\n**平均分**：\n- 每份分得同样多\n- 等分和包含\n\n**除法的意义**：\n- 平均分可以用除法表示\n- 被除数÷除数=商\n\n**用口诀求商**：\n- 想除数和几相乘得被除数\n\n---\n\n### 典型例题\n\n**题目1**：把18个苹果平均放在3个盘子里，每盘放几个？\n\n```\n18 ÷ 3 = 6（个）\n```\n\n**题目2**：24个橘子，每6个放一盘，能放几盘？\n\n```\n24 ÷ 6 = 4（盘）\n```\n\n**题目3**：计算\n```\n21 ÷ 7 =     32 ÷ 8 =     45 ÷ 9 =\n35 ÷ 5 =     42 ÷ 6 =     56 ÷ 7 =\n```\n\n---",
+      "content_text": "2. 表内除法 知识要点 平均分： 每份分得同样多 等分和包含 除法的意义： 平均分可以用除法表示 被除数÷除数=商 用口诀求商： 想除数和几相乘得被除数 典型例题 题目1：把18个苹果平均放在3个盘子里，每盘放几个？ 题目2：24个橘子，每6个放一盘，能放几盘？ 题目3：计算",
+      "knowledge_point_count": 5,
+      "char_count": 139,
+      "sort_order": 110200,
+      "content_hash": "3c8a2ac3fb63fefcc8cec9bce57a2826346b6fcdb247a459b79c426bbf10fceb",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/11-总复习.md"
+        ],
+        "source_heading": "2. 表内除法",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第2课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11::l03",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 11,
+      "unit_label": "第11单元",
+      "unit_title": "总复习",
+      "lesson_number": 3,
+      "lesson_label": "第3课",
+      "lesson_title": "3. 图形的运动",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "11 总复习 / 3 3. 图形的运动",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 3. 图形的运动\n\n### 知识要点\n\n**轴对称图形**：\n- 沿直线对折完全重合\n- 有对称轴\n\n**平移**：\n- 沿直线移动\n- 形状、大小、方向不变\n\n**旋转**：\n- 绕点或轴转动\n- 形状、大小不变\n\n---\n\n### 典型例题\n\n**题目1**：下面哪些图形是轴对称图形？\n\n```\n等腰三角形（√）\n平行四边形（×）\n圆形（√）\n```\n\n**题目2**：下列现象是平移的画△，是旋转的画○\n\n```\n推拉窗（△）\n电风扇（○）\n电梯上下（△）\n```\n\n---",
+      "content_text": "3. 图形的运动 知识要点 轴对称图形： 沿直线对折完全重合 有对称轴 平移： 沿直线移动 形状、大小、方向不变 旋转： 绕点或轴转动 形状、大小不变 典型例题 题目1：下面哪些图形是轴对称图形？ 题目2：下列现象是平移的画△，是旋转的画○",
+      "knowledge_point_count": 6,
+      "char_count": 120,
+      "sort_order": 110300,
+      "content_hash": "b915034d9b6467ef7f8911c559cfb7fd158ebd4059151d1e94a6cc39e97baeca",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/11-总复习.md"
+        ],
+        "source_heading": "3. 图形的运动",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第3课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11::l04",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 11,
+      "unit_label": "第11单元",
+      "unit_title": "总复习",
+      "lesson_number": 4,
+      "lesson_label": "第4课",
+      "lesson_title": "4. 混合运算",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "11 总复习 / 4 4. 混合运算",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 4. 混合运算\n\n### 知识要点\n\n**运算顺序**：\n1. 没有括号：先乘除后加减\n2. 有小括号：先算小括号里面\n\n---\n\n### 典型例题\n\n**题目**：计算\n```\n4+3×2 = 4+6 = 10\n(4+3)×2 = 7×2 = 14\n20-8÷2 = 20-4 = 16\n(20-8)÷2 = 12÷2 = 6\n```\n\n---",
+      "content_text": "4. 混合运算 知识要点 运算顺序： 1. 没有括号：先乘除后加减 2. 有小括号：先算小括号里面 典型例题 题目：计算",
+      "knowledge_point_count": 1,
+      "char_count": 60,
+      "sort_order": 110400,
+      "content_hash": "73a72b57ceb822520059c1205cfae2a877bbcb2c5e4741548414759499cecc02",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/11-总复习.md"
+        ],
+        "source_heading": "4. 混合运算",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第4课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11::l05",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 11,
+      "unit_label": "第11单元",
+      "unit_title": "总复习",
+      "lesson_number": 5,
+      "lesson_label": "第5课",
+      "lesson_title": "5. 有余数的除法",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "11 总复习 / 5 5. 有余数的除法",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 5. 有余数的除法\n\n### 知识要点\n\n**余数的意义**：\n- 平均分后有剩余\n\n**余数和除数的关系**：\n- 余数 < 除数\n\n---\n\n### 典型例题\n\n**题目1**：17÷3 = 5……2\n\n**题目2**：判断对错\n```\n18÷4=3……6 （×，余数6 > 除数4）\n改正：18÷4=4……2\n```\n\n**题目3**：有20人去划船，每条船限坐6人，至少要租几条船？\n\n```\n20÷6=3（条）……2（人）\n3+1=4（条）\n```\n\n---",
+      "content_text": "5. 有余数的除法 知识要点 余数的意义： 平均分后有剩余 余数和除数的关系： 余数 < 除数 典型例题 题目1：17÷3 = 5……2 题目2：判断对错 题目3：有20人去划船，每条船限坐6人，至少要租几条船？",
+      "knowledge_point_count": 2,
+      "char_count": 106,
+      "sort_order": 110500,
+      "content_hash": "3fa88230c4b573ed204555a7d1008fe18a1b3d57b65037099cf84799f8d581d4",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/11-总复习.md"
+        ],
+        "source_heading": "5. 有余数的除法",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第5课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11::l06",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 11,
+      "unit_label": "第11单元",
+      "unit_title": "总复习",
+      "lesson_number": 6,
+      "lesson_label": "第6课",
+      "lesson_title": "6. 万以内数的认识",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "11 总复习 / 6 6. 万以内数的认识",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 6. 万以内数的认识\n\n### 知识要点\n\n**计数单位**：\n- 个、十、百、千、万\n\n**读写数**：\n- 从高位起\n- 中间或末尾有0的读写\n\n**大小比较**：\n- 先比位数\n- 位数相同从高位比起\n\n---\n\n### 典型例题\n\n**题目1**：读数\n```\n345 读作：三百四十五\n506 读作：五百零六\n7000 读作：七千\n```\n\n**题目2**：写数\n```\n二千三百四十五 写作：2345\n六千零八 写作：6008\n```\n\n**题目3**：比较大小\n```\n398 ○ 402  (398 < 402)\n567 ○ 576  (567 < 576)\n```\n\n---",
+      "content_text": "6. 万以内数的认识 知识要点 计数单位： 个、十、百、千、万 读写数： 从高位起 中间或末尾有0的读写 大小比较： 先比位数 位数相同从高位比起 典型例题 题目1：读数 题目2：写数 题目3：比较大小",
+      "knowledge_point_count": 5,
+      "char_count": 101,
+      "sort_order": 110600,
+      "content_hash": "bffb95f134352673f68bd61bbbee1228d1186e0b88c0d9f726692dcd94dee565",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/11-总复习.md"
+        ],
+        "source_heading": "6. 万以内数的认识",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第6课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11::l07",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 11,
+      "unit_label": "第11单元",
+      "unit_title": "总复习",
+      "lesson_number": 7,
+      "lesson_label": "第7课",
+      "lesson_title": "7. 克和千克",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "11 总复习 / 7 7. 克和千克",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 7. 克和千克\n\n### 知识要点\n\n**质量单位**：\n- 克（g）：较轻的物品\n- 千克（kg）：较重的物品\n\n**单位关系**：\n- 1千克 = 1000克\n\n---\n\n### 典型例题\n\n**题目1**：单位换算\n```\n3kg = ( 3000 )g\n5000g = ( 5 )kg\n```\n\n**题目2**：选择单位\n```\n一个梨约150( 克 )\n一个西瓜约4( 千克 )\n```\n\n---",
+      "content_text": "7. 克和千克 知识要点 质量单位： 克（g）：较轻的物品 千克（kg）：较重的物品 单位关系： 1千克 = 1000克 典型例题 题目1：单位换算 题目2：选择单位",
+      "knowledge_point_count": 3,
+      "char_count": 83,
+      "sort_order": 110700,
+      "content_hash": "c68a81044e309b64ba441fc32e7e18ecacf638efc3656fed9130b3e813757863",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/11-总复习.md"
+        ],
+        "source_heading": "7. 克和千克",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第7课",
+      "frame_policy": "not_applicable"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11::l08",
+      "collection_slug": "primary-math-pep-legacy-g02-v2",
+      "section_level": "lesson",
+      "unit_number": 11,
+      "unit_label": "第11单元",
+      "unit_title": "总复习",
+      "lesson_number": 8,
+      "lesson_label": "第8课",
+      "lesson_title": "8. 数学广角——推理",
+      "frame_number": 0,
+      "frame_label": "",
+      "frame_title": "",
+      "section_path": "11 总复习 / 8 8. 数学广角——推理",
+      "content_type": "lesson_summary",
+      "content_markdown": "## 8. 数学广角——推理\n\n### 知识要点\n\n**推理方法**：\n- 排除法\n- 假设法\n- 列表法\n\n---\n\n### 典型例题\n\n**题目**：有红、黄、蓝三种颜色的球\n- 小明拿的不是红球\n- 小明拿的也不是黄球\n- 小明拿的是什么球？\n\n**推理**：\n```\n三种：红、黄、蓝\n不是红的\n不是黄的\n→ 是蓝的\n```\n\n---\n\n# 综合练习\n\n### 综合题1：购物问题\n\n妈妈带了100元去买东西：\n- 买一本故事书28元\n- 买一盒彩笔15元\n- 买一个书包45元\n- 她的钱够吗？\n\n**解答**：\n```\n28+15+45=88（元）\n88<100\n答：够\n```\n\n---\n\n### 综合题2：班级活动\n\n二（1）班有42人：\n- 每组6人，可以分几组？\n- 如果每组7人呢？\n\n**解答**：\n```\n42÷6=7（组）\n42÷7=6（组）\n```\n\n---\n\n### 综合题3：统计与推理\n\n调查同学们最喜欢的运动：\n\n| 运动 | 跑步 | 跳绳 | 篮球 | 足球 |\n|------|------|------|------|------|\n| 人数 | 10   | 15   | 8    | 12   |\n\n**问题**：\n1. 最喜欢（ ）的人数最多\n2. 最喜欢跑步和足球的一共有多少人？\n3. 如果要组织比赛，选哪种运动最合适？\n\n**解答**：\n1. 最喜欢（跳绳）的人数最多\n2. 10+12=22（人）\n3. 跳绳（喜欢的人最多）\n\n---\n\n# 复习建议",
+      "content_text": "8. 数学广角——推理 知识要点 推理方法： 排除法 假设法 列表法 典型例题 题目：有红、黄、蓝三种颜色的球 小明拿的不是红球 小明拿的也不是黄球 小明拿的是什么球？ 推理： 综合练习 综合题1：购物问题 妈妈带了100元去买东西： 买一本故事书28元 买一盒彩笔15元 买一个书包45元 她的钱够吗？ 解答： 综合题2：班级活动 二（1）班有42人： 每组6人，可以分几组？ 如果每组7人呢？ 解答： 综合题3：统计与推理 调查同学们最喜欢的运动： 运动 | 跑步 | 跳绳 | 篮球 | 足球 | 人数 | 10 | 15 | 8 | 12 | 问题： 1. 最喜欢（ ）的人数最多 2. 最喜欢跑步和足球的一共有多少人？ 3. 如果要组织比赛，选哪种运动最合适？ 解答： 1. 最喜欢（跳绳）的人数最多 2. 10+12=22（人） 3. 跳绳（喜欢的人最多） 复习建议",
+      "knowledge_point_count": 12,
+      "char_count": 389,
+      "sort_order": 110800,
+      "content_hash": "99b77d41a6be54a8c3a293fac5edb5f38769a0d48c6310a357c03640595e5c1f",
+      "verification_status": "source_declared_user_provided_summary",
+      "metadata": {
+        "parser": "primary-math-unit-file",
+        "source_files": [
+          "/Users/apple/Library/Mobile Documents/iCloud~md~obsidian/Documents/哈老师の知识库/业务文档/教学设计师俱乐部文档/教师培训课程/教材课标知识库/人教版小学数学教材/二年级下册/11-总复习.md"
+        ],
+        "source_heading": "8. 数学广角——推理",
+        "synthetic_lesson": false,
+        "v3_lite": true,
+        "lesson_boundary": "level2_heading"
+      },
+      "native_node_type": "lesson",
+      "native_label": "第8课",
+      "frame_policy": "not_applicable"
+    }
+  ],
+  "links": [
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u01::l01",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u01::l02",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u01::l03",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u01::l04",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u01::l05",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u01::l06",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u01::l07",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u01::l08",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u01::l09",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01::l01",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u01",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01::l02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u01",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01::l03",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u01",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01::l04",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u01",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01::l05",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u01",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01::l06",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u01",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01::l07",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u01",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01::l08",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u01",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u01::l09",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u01",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02::l01",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02::l02",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02::l03",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02::l04",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02::l05",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02::l06",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02::l07",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02::l08",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02::l09",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02::l10",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02::l11",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02::l12",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02::l13",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02::l14",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l01",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l03",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l04",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l05",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l06",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l07",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l08",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l09",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l10",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l11",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l12",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l13",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u02::l14",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u02",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u03",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u03::l01",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u03",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u03::l02",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u03",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u03::l03",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u03",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u03::l04",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u03",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u03::l05",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u03",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u03::l06",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u03",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u03::l07",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u03::l01",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u03",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u03::l02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u03",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u03::l03",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u03",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u03::l04",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u03",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u03::l05",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u03",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u03::l06",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u03",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u03::l07",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u03",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u04",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u04::l01",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u04",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u04::l02",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u04",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u04::l03",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u04",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u04::l04",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u04",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u04::l05",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u04",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u04::l06",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u04",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u04::l07",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u04::l01",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u04",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u04::l02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u04",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u04::l03",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u04",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u04::l04",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u04",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u04::l05",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u04",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u04::l06",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u04",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u04::l07",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u04",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u05",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u05::l01",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u05",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u05::l02",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u05",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u05::l03",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u05",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u05::l04",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u05",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u05::l05",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u05",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u05::l06",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u05::l01",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u05",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u05::l02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u05",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u05::l03",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u05",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u05::l04",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u05",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u05::l05",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u05",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u05::l06",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u05",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u06",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u06::l01",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u06",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u06::l02",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u06",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u06::l03",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u06",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u06::l04",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u06",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u06::l05",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u06::l01",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u06",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u06::l02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u06",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u06::l03",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u06",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u06::l04",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u06",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u06::l05",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u06",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u07",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u07::l01",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u07",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u07::l02",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u07",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u07::l03",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u07",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u07::l04",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u07::l01",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u07",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u07::l02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u07",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u07::l03",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u07",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u07::l04",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u07",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u08",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u08::l01",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u08",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u08::l02",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u08",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u08::l03",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u08",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u08::l04",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u08",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u08::l05",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u08::l01",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u08",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u08::l02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u08",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u08::l03",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u08",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u08::l04",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u08",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u08::l05",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u08",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u09",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u09::l01",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u09",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u09::l02",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u09",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u09::l03",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u09",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u09::l04",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u09::l01",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u09",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u09::l02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u09",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u09::l03",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u09",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u09::l04",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u09",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u10",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u10::l01",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u10",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u10::l02",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u10",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u10::l03",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u10",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u10::l04",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u10",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u10::l05",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u10::l01",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u10",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u10::l02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u10",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u10::l03",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u10",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u10::l04",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u10",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u10::l05",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u10",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u11::l01",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u11::l02",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u11::l03",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u11::l04",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u11::l05",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u11::l06",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u11::l07",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u11::l08",
+      "relation_type": "unit_to_lesson"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11::l01",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u11",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11::l02",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u11",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11::l03",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u11",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11::l04",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u11",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11::l05",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u11",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11::l06",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u11",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11::l07",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u11",
+      "relation_type": "lesson_to_unit"
+    },
+    {
+      "section_key": "primary-math-pep-legacy-g02-v2::u11::l08",
+      "linked_section_key": "primary-math-pep-legacy-g02-v2::u11",
+      "relation_type": "lesson_to_unit"
+    }
+  ]
+}
