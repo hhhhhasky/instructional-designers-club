@@ -5,6 +5,8 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import MarkdownRenderer from '@/components/common/MarkdownRenderer';
 import CoursePlaybackRateControl, { type CoursePlaybackRate } from '@/components/course/CoursePlaybackRateControl';
 import type { Course } from '@/types/types';
+import { saveAudioPosition, loadAudioPosition, clearAudioPosition } from '@/lib/audio-persistence';
+import { useAudioKeyboard } from '@/hooks/useAudioKeyboard';
 
 // 课程内容形态：用于卡片/目录上的「视频/图文/音频/精华/图集」标识。
 export type CourseContentFormat = 'video' | 'audio' | 'article' | 'essence' | 'images';
@@ -56,6 +58,8 @@ export default function CourseContentStack({
   playbackRate = 1,
   onPlaybackRateChange,
   onVideoSeek,
+  onAudioSeek,
+  audioRef: externalAudioRef,
 }: {
   course: Course;
   onAudioProgress?: (percent: number) => void;
@@ -65,8 +69,11 @@ export default function CourseContentStack({
   playbackRate?: CoursePlaybackRate;
   onPlaybackRateChange?: (rate: CoursePlaybackRate) => void;
   onVideoSeek?: (seconds: number) => void;
+  onAudioSeek?: (seconds: number) => void;
+  audioRef?: React.RefObject<HTMLAudioElement>;
 }) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const internalAudioRef = useRef<HTMLAudioElement | null>(null);
+  const audioRef = externalAudioRef || internalAudioRef;
   const [lightbox, setLightbox] = useState<string | null>(null);
 
   const images = (course.images ?? []).filter(Boolean);
@@ -88,13 +95,72 @@ export default function CourseContentStack({
   };
 
   const handleAudioRef = (audio: HTMLAudioElement | null) => {
-    audioRef.current = audio;
+    if (!externalAudioRef) {
+      (audioRef as React.MutableRefObject<HTMLAudioElement | null>).current = audio;
+    }
     if (audio) audio.playbackRate = playbackRate;
   };
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.playbackRate = playbackRate;
   }, [playbackRate]);
+
+  // 恢复播放位置
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !course.id) return;
+
+    const savedTime = loadAudioPosition(course.id);
+    if (savedTime !== null && savedTime > 0 && audio.readyState >= 1) {
+      audio.currentTime = savedTime;
+    }
+
+    // 监听元数据加载完成后恢复位置
+    const handleLoadedMetadata = () => {
+      const savedTime = loadAudioPosition(course.id);
+      if (savedTime !== null && savedTime > 0) {
+        audio.currentTime = savedTime;
+      }
+    };
+
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    return () => audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+  }, [audioRef, course.id]);
+
+  // 定期保存播放位置（每 5 秒）
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !course.id) return;
+
+    let lastSavedTime = 0;
+
+    const handleTimeUpdate = () => {
+      const now = audio.currentTime;
+      const saveThreshold = 5; // 秒
+      if (Math.floor(now / saveThreshold) > Math.floor(lastSavedTime / saveThreshold)) {
+        saveAudioPosition(course.id, now);
+        lastSavedTime = now;
+      }
+    };
+
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    return () => audio.removeEventListener('timeupdate', handleTimeUpdate);
+  }, [audioRef, course.id]);
+
+  // 课程卸载时清除旧数据
+  useEffect(() => {
+    return () => {
+      clearAudioPosition();
+    };
+  }, [course.id]);
+
+  // 快捷键支持
+  useAudioKeyboard({
+    audioRef,
+    isEnabled: hasAudio,
+    onPlaybackRateChange,
+    currentPlaybackRate: playbackRate,
+  });
 
   return (
     <section className="pt-7 pb-6 border-b border-bdl space-y-7">
@@ -134,7 +200,7 @@ export default function CourseContentStack({
             正文
           </h2>
           <article className="bg-bgs/40 rounded-ds-md px-5 py-4">
-            <MarkdownRenderer content={course.body as string} onVideoSeek={onVideoSeek} />
+            <MarkdownRenderer content={course.body as string} onVideoSeek={onVideoSeek} onAudioSeek={onAudioSeek} />
           </article>
         </div>
       )}

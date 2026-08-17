@@ -22,6 +22,8 @@ const ALLOWED_COURSE_FILE_EXTENSIONS = new Set([
   "webp",
   "gif",
 ]);
+const MAX_MEDIA_SIZE = 2 * 1024 * 1024 * 1024; // 2GB for video/audio
+const ALLOWED_MEDIA_EXTENSIONS = new Set(["mp4", "mov", "mp3", "m4a", "wav"]);
 
 export async function uploadCourseImage(file: File): Promise<string> {
   if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
@@ -81,4 +83,41 @@ export async function uploadCourseFile(courseId: string, file: File): Promise<Co
   }
 
   return (data as { attachment: CourseAttachment }).attachment;
+}
+
+/**
+ * 上传课程音视频文件（直接返回公开 URL，用于 video_url/audio_url 字段）
+ * @param courseId 课程 ID
+ * @param file 音视频文件
+ * @returns 公开访问的 R2 URL
+ */
+export async function uploadCourseMedia(courseId: string, file: File): Promise<string> {
+  const extension = file.name.split(".").pop()?.toLowerCase() || "";
+  if (!ALLOWED_MEDIA_EXTENSIONS.has(extension)) {
+    throw new Error("仅支持 MP4、MOV、MP3、M4A、WAV 音视频文件");
+  }
+  if (file.size > MAX_MEDIA_SIZE) {
+    throw new Error("音视频文件不能超过 2GB");
+  }
+
+  const body = new FormData();
+  body.append("courseId", courseId);
+  body.append("file", file);
+
+  const { data, error } = await supabase.functions.invoke("upload-course-media", { body });
+  if (error) {
+    let message = error.message || "音视频上传失败";
+    const context = "context" in error ? error.context : undefined;
+    if (context instanceof Response) {
+      const payload = await context.clone().json().catch(() => null) as { error?: string } | null;
+      if (payload?.error) message = payload.error;
+    }
+    throw new Error(message);
+  }
+
+  if (!data || typeof data.url !== "string" || !data.url.startsWith("http")) {
+    throw new Error("上传成功，但服务端没有返回有效的音视频 URL");
+  }
+
+  return data.url;
 }

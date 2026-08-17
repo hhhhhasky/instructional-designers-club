@@ -42,10 +42,12 @@ export default function MarkdownRenderer({
   content,
   className,
   onVideoSeek,
+  onAudioSeek,
 }: {
   content: string;
   className?: string;
   onVideoSeek?: (seconds: number) => void;
+  onAudioSeek?: (seconds: number) => void;
 }) {
   const segments = splitDetailsBlocks(content);
 
@@ -67,13 +69,13 @@ export default function MarkdownRenderer({
                 {segment.summary}
               </summary>
               <div className="mt-3 border-t border-bdl pt-3">
-                <MarkdownRenderer content={segment.content} onVideoSeek={onVideoSeek} />
+                <MarkdownRenderer content={segment.content} onVideoSeek={onVideoSeek} onAudioSeek={onAudioSeek} />
               </div>
             </details>
           );
         }
 
-        return <MarkdownBlock key={index} content={segment.content} onVideoSeek={onVideoSeek} />;
+        return <MarkdownBlock key={index} content={segment.content} onVideoSeek={onVideoSeek} onAudioSeek={onAudioSeek} />;
       })}
     </div>
   );
@@ -108,7 +110,7 @@ function timestampFromHref(href: string | undefined): number | null {
   return parseVideoTimestamp(href.slice(3));
 }
 
-function MarkdownBlock({ content, onVideoSeek }: { content: string; onVideoSeek?: (seconds: number) => void }) {
+function MarkdownBlock({ content, onVideoSeek, onAudioSeek }: { content: string; onVideoSeek?: (seconds: number) => void; onAudioSeek?: (seconds: number) => void }) {
   if (!content.trim()) return null;
 
   return (
@@ -148,17 +150,21 @@ function MarkdownBlock({ content, onVideoSeek }: { content: string; onVideoSeek?
         li: ({ children }) => <li className="leading-relaxed pl-1">{children}</li>,
         a: ({ children, href }) => {
           const seconds = timestampFromHref(href);
-          if (seconds !== null && onVideoSeek) {
-            return (
-              <button
-                type="button"
-                onClick={() => onVideoSeek(seconds)}
-                aria-label={`跳转到视频时间点 ${String(children)}`}
-                className="inline-flex items-center rounded bg-acl px-1.5 py-0.5 font-semibold text-ac underline underline-offset-2 hover:bg-ac/15 transition-colors"
-              >
-                {children}
-              </button>
-            );
+          if (seconds !== null) {
+            // 优先使用音频回调（如果在音频上下文中），否则使用视频回调
+            const seekHandler = onAudioSeek || onVideoSeek;
+            if (seekHandler) {
+              return (
+                <button
+                  type="button"
+                  onClick={() => seekHandler(seconds)}
+                  aria-label={`跳转到${onAudioSeek ? '音频' : '视频'}时间点 ${String(children)}`}
+                  className="inline-flex items-center rounded bg-acl px-1.5 py-0.5 font-semibold text-ac underline underline-offset-2 hover:bg-ac/15 transition-colors"
+                >
+                  {children}
+                </button>
+              );
+            }
           }
           return (
             <a

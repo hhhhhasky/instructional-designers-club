@@ -103,6 +103,7 @@ export default function CourseDetailPage() {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeLevel, setUpgradeLevel] = useState<'plus' | 'pro'>('plus');
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const [playbackRate, setPlaybackRate] = useState<CoursePlaybackRate>(() => readStoredCoursePlaybackRate());
   const contentScrollRef = useRef<HTMLDivElement>(null);
   const lastSyncedProgress = useRef(0);
@@ -221,6 +222,26 @@ export default function CourseDetailPage() {
       seekAndPlay();
     } else {
       video.addEventListener('loadedmetadata', seekAndPlay, { once: true });
+    }
+  }, []);
+
+  const handleAudioSeek = useCallback((seconds: number) => {
+    const audio = audioRef.current;
+    if (!audio || !Number.isFinite(seconds) || seconds < 0) return;
+
+    const seekAndPlay = () => {
+      if (Number.isFinite(audio.duration) && seconds > audio.duration) return;
+      audio.currentTime = seconds;
+      void audio.play().catch(() => {
+        // 浏览器可能禁止非静音自动播放，但点击时间戳本身仍应完成定位。
+      });
+      audio.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+
+    if (audio.readyState >= 1) {
+      seekAndPlay();
+    } else {
+      audio.addEventListener('loadedmetadata', seekAndPlay, { once: true });
     }
   }, []);
 
@@ -1025,6 +1046,8 @@ export default function CourseDetailPage() {
                     playbackRate={playbackRate}
                     onPlaybackRateChange={handlePlaybackRateChange}
                     onVideoSeek={handleVideoSeek}
+                    onAudioSeek={handleAudioSeek}
+                    audioRef={audioRef}
                   />
 
                   {attachments.length > 0 && (

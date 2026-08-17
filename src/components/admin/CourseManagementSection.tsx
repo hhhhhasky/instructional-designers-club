@@ -48,7 +48,7 @@ import {
   type AdminCourseTrack,
 } from "@/db/admin-api";
 import { getPlusCourseStructure } from "@/db/api";
-import { uploadCourseFile } from "@/db/course-media";
+import { uploadCourseFile, uploadCourseMedia } from "@/db/course-media";
 import MarkdownEditor from "@/components/admin/MarkdownEditor";
 import {
   PLUS_TRACKS,
@@ -176,6 +176,8 @@ export default function CourseManagementSection() {
   const [attachments, setAttachments] = useState<CourseAttachment[]>([]);
   const [attachmentsLoading, setAttachmentsLoading] = useState(false);
   const [fileUploading, setFileUploading] = useState(false);
+  const [videoUploading, setVideoUploading] = useState(false);
+  const [audioUploading, setAudioUploading] = useState(false);
   const [accessPassword, setAccessPassword] = useState("");
   const [removeAccessPassword, setRemoveAccessPassword] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -667,6 +669,36 @@ export default function CourseManagementSection() {
       toast.error(getErrorMessage(error, "文件上传失败"));
     } finally {
       setFileUploading(false);
+    }
+  };
+
+  const handleVideoUpload = async (file: File) => {
+    if (!editingCourse) return;
+
+    try {
+      setVideoUploading(true);
+      const url = await uploadCourseMedia(editingCourse.id, file);
+      updateForm("video_url", url);
+      toast.success("视频上传成功");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "视频上传失败"));
+    } finally {
+      setVideoUploading(false);
+    }
+  };
+
+  const handleAudioUpload = async (file: File) => {
+    if (!editingCourse) return;
+
+    try {
+      setAudioUploading(true);
+      const url = await uploadCourseMedia(editingCourse.id, file);
+      updateForm("audio_url", url);
+      toast.success("音频上传成功");
+    } catch (error) {
+      toast.error(getErrorMessage(error, "音频上传失败"));
+    } finally {
+      setAudioUploading(false);
     }
   };
 
@@ -1379,23 +1411,81 @@ export default function CourseManagementSection() {
                 </div>
                 <div>
                   <label className="block text-ds-xs text-txs mb-1">视频 URL</label>
-                  <input
-                    type="text"
-                    value={form.video_url || ""}
-                    onChange={(e) => updateForm("video_url", e.target.value || null)}
-                    placeholder="视频文件链接（R2 上传后填入）"
-                    className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx placeholder:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={form.video_url || ""}
+                      onChange={(e) => updateForm("video_url", e.target.value || null)}
+                      placeholder="视频文件链接（R2 上传后填入或直接上传）"
+                      className="flex-1 h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx placeholder:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+                    />
+                    <label className={cn(
+                      "flex items-center gap-2 px-4 h-11 rounded-ds-lg border border-bd cursor-pointer transition-all",
+                      "bg-bgs hover:bg-warm text-tx hover:text-ac",
+                      videoUploading && "opacity-50 cursor-not-allowed"
+                    )}>
+                      {videoUploading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span className="text-ds-sm">上传中...</span>
+                        </>
+                      ) : (
+                        <>
+                          <UploadCloud className="w-4 h-4" />
+                          <span className="text-ds-sm">上传</span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept="video/mp4,video/quicktime"
+                        disabled={videoUploading || !editingCourse}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) void handleVideoUpload(file);
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-ds-xs text-txs mb-1">音频 URL</label>
-                  <input
-                    type="text"
-                    value={form.audio_url || ""}
-                    onChange={(e) => updateForm("audio_url", e.target.value || null)}
-                    placeholder="音频文件链接（R2 上传后填入，如 mp3/m4a）"
-                    className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx placeholder:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
-                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={form.audio_url || ""}
+                      onChange={(e) => updateForm("audio_url", e.target.value || null)}
+                      placeholder="音频文件链接（R2 上传后填入或直接上传）"
+                      className="flex-1 h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx placeholder:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+                    />
+                    <label className={cn(
+                      "flex items-center gap-2 px-4 h-11 rounded-ds-lg border border-bd cursor-pointer transition-all",
+                      "bg-bgs hover:bg-warm text-tx hover:text-ac",
+                      audioUploading && "opacity-50 cursor-not-allowed"
+                    )}>
+                      {audioUploading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span className="text-ds-sm">上传中...</span>
+                        </>
+                      ) : (
+                        <>
+                          <UploadCloud className="w-4 h-4" />
+                          <span className="text-ds-sm">上传</span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept="audio/mp3,audio/mp4,audio/mpeg,audio/wav"
+                        disabled={audioUploading || !editingCourse}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) void handleAudioUpload(file);
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-ds-xs text-txs mb-1">会议链接</label>
