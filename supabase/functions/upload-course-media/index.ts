@@ -43,7 +43,7 @@ function getR2Client() {
   return { client, bucket, publicUrl };
 }
 
-async function requireAdmin(request: Request) {
+async function requireAdmin(request: Request): Promise<{ error?: Response; user?: any; profile?: any }> {
   const authorization = request.headers.get("Authorization");
   if (!authorization?.startsWith("Bearer ")) {
     return { error: jsonResponse({ error: "请先登录管理员账号" }, 401) };
@@ -79,7 +79,7 @@ async function requireAdmin(request: Request) {
   return { user, profile };
 }
 
-Deno.serve(async (request) => {
+Deno.serve(async (request): Promise<Response> => {
   // Handle CORS preflight
   if (request.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -91,7 +91,7 @@ Deno.serve(async (request) => {
 
   // Verify admin permission
   const authResult = await requireAdmin(request);
-  if ("error" in authResult) {
+  if (authResult.error) {
     return authResult.error;
   }
 
