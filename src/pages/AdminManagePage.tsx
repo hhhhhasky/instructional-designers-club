@@ -5,6 +5,7 @@ import {
   CircleHelp,
   FileKey2,
   LayoutTemplate,
+  Radio,
   type LucideIcon,
   RefreshCw,
   UserCog,
@@ -16,6 +17,7 @@ import CourseManagementSection from "@/components/admin/CourseManagementSection"
 import CourseQuestionsManagementSection from "@/components/admin/CourseQuestionsManagementSection";
 import ContentManagementSection from "@/components/admin/content/ContentManagementSection";
 import HaiManagementSection from "@/components/admin/HaiManagementSection";
+import LiveManagementSection from "@/components/admin/LiveManagementSection";
 import PasswordResetSection from "@/components/admin/PasswordResetSection";
 import StudentListSection from "@/components/admin/StudentListSection";
 import { Button } from "@/components/ui/button";
@@ -28,6 +30,7 @@ const MANAGE_TABS = [
   { value: "questions", label: "课程问答", short: "问答", description: "问题、回复与内容审核", icon: CircleHelp },
   { value: "content", label: "内容运营", short: "内容", description: "首页、公告、活动与资源", icon: LayoutTemplate },
   { value: "hai", label: "HAI 配置", short: "HAI", description: "模型、提示词、额度与知识库", icon: Bot },
+  { value: "live", label: "Live互动", short: "Live", description: "房间、题目与实时互动控制", icon: Radio },
   { value: "reset", label: "服务工单", short: "工单", description: "密码重置与账号协助", icon: FileKey2 },
 ] as const;
 
@@ -79,7 +82,7 @@ export default function AdminManagePage() {
       <MaintenancePulse snapshot={snapshot} onOpen={changeTab} />
 
       <Tabs value={activeTab} onValueChange={changeTab} className="mt-5 w-full">
-        <TabsList className="grid h-auto w-full grid-cols-3 gap-1 rounded-ds-xl border border-bd bg-white p-1.5 shadow-ds-xs lg:grid-cols-6">
+        <TabsList className="grid h-auto w-full grid-cols-3 gap-1 rounded-ds-xl border border-bd bg-white p-1.5 shadow-ds-xs lg:grid-cols-4 xl:grid-cols-7">
           {MANAGE_TABS.map((tab) => (
             <ManageTabTrigger key={tab.value} {...tab} />
           ))}
@@ -92,6 +95,7 @@ export default function AdminManagePage() {
           <TabsContent value="questions" className="mt-5"><CourseQuestionsManagementSection /></TabsContent>
           <TabsContent value="content" className="mt-5"><ContentManagementSection /></TabsContent>
           <TabsContent value="hai" className="mt-5"><HaiManagementSection /></TabsContent>
+          <TabsContent value="live" className="mt-5"><LiveManagementSection /></TabsContent>
           <TabsContent value="reset" className="mt-5"><PasswordResetSection /></TabsContent>
         </div>
       </Tabs>
@@ -106,6 +110,7 @@ function MaintenancePulse({ snapshot, onOpen }: { snapshot: MaintenanceSnapshot 
     { label: "公开问答", value: snapshot?.visible_questions, note: "含回复审核", tab: "questions", tone: "text-pp bg-ppl" },
     { label: "在架内容", value: snapshot?.active_content, note: "公告 · 活动 · 资源", tab: "content", tone: "text-am bg-aml" },
     { label: "HAI 告警", value: snapshot?.open_hai_alerts, note: "未处理运行告警", tab: "hai", tone: "text-tl bg-tll" },
+    { label: "Live 房间", value: "实时", note: "房间 · 题目 · 控课", tab: "live", tone: "text-ac bg-acl" },
     { label: "待办工单", value: snapshot?.pending_resets, note: "密码重置申请", tab: "reset", tone: "text-red-600 bg-red-50" },
   ];
 
@@ -115,10 +120,10 @@ function MaintenancePulse({ snapshot, onOpen }: { snapshot: MaintenanceSnapshot 
       <div className="relative flex flex-col gap-4 xl:flex-row xl:items-center">
         <div className="xl:w-[245px] xl:shrink-0">
           <div className="flex items-center gap-2 text-[#efb393]"><RefreshCw className="h-4 w-4" /><span className="text-[10px] font-ds-black tracking-[.16em]">MAINTENANCE PULSE</span></div>
-          <h2 className="mt-2 font-serif text-ds-xl font-ds-black">六个真实写入工作区</h2>
+          <h2 className="mt-2 font-serif text-ds-xl font-ds-black">七个真实写入工作区</h2>
           <p className="mt-1 text-[11px] leading-5 text-white/55">每项修改都会同步到 Supabase，并按权限与业务规则校验。</p>
         </div>
-        <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
+        <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-7">
           {items.map((item) => (
             <button key={item.tab} type="button" onClick={() => onOpen(item.tab)} className="group rounded-ds-lg border border-white/10 bg-white/[0.06] p-3 text-left transition hover:-translate-y-0.5 hover:bg-white/10">
               <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-ds-bold ${item.tone}`}>{item.label}</span>

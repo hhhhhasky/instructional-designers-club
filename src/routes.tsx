@@ -13,6 +13,8 @@ const loadRegisterPage = () => import('./pages/RegisterPage');
 const loadSettingsPage = () => import('./pages/SettingsPage');
 const loadLearningPage = () => import('./pages/LearningPage');
 const loadLearningMapPage = () => import('./pages/LearningMapPage');
+const loadLiveEntryPage = () => import('./pages/LiveEntryPage');
+const loadLiveParticipantPage = () => import('./pages/LiveParticipantPage');
 const loadHaiPage = () => import('./pages/HaiPage');
 const loadHaiWorkPage = () => import('./pages/HaiWorkPage');
 const loadHaiWorkTaskPage = () => import('./pages/HaiWorkTaskPage');
@@ -31,6 +33,8 @@ const RegisterPage = lazy(loadRegisterPage);
 const SettingsPage = lazy(loadSettingsPage);
 const LearningPage = lazy(loadLearningPage);
 const LearningMapPage = lazy(loadLearningMapPage);
+const LiveEntryPage = lazy(loadLiveEntryPage);
+const LiveParticipantPage = lazy(loadLiveParticipantPage);
 const HaiPage = lazy(loadHaiPage);
 const HaiWorkPage = lazy(loadHaiWorkPage);
 const HaiWorkTaskPage = lazy(loadHaiWorkTaskPage);
@@ -176,6 +180,20 @@ const routes: RouteConfig[] = [
     element: <LearningMapPage />,
     visible: false,
     preload: loadLearningMapPage
+  },
+  {
+    name: 'Live 互动',
+    path: '/live',
+    element: <LiveEntryPage />,
+    visible: true,
+    preload: loadLiveEntryPage
+  },
+  {
+    name: 'Live 房间',
+    path: '/live/:roomCode',
+    element: <LiveParticipantPage />,
+    visible: false,
+    preload: loadLiveParticipantPage
   },
   {
     name: '数据看板',
