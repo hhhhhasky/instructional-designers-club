@@ -93,7 +93,7 @@ function ManageSidebar() {
   return (
     <TabsList className="h-auto w-full flex-col items-stretch border-b border-bd bg-transparent pb-4 md:sticky md:top-24 md:border-b-0 md:border-r md:pr-5" aria-label="数据管理导航">
       <div className="px-3 pb-2 pt-2 text-[10px] font-ds-black tracking-[0.16em] text-txs">维护模块</div>
-      <div className="flex gap-1 overflow-x-auto md:flex-col">
+      <div className="grid grid-cols-2 gap-1 md:flex md:flex-col">
         {MANAGE_TABS.map((tab) => <ManageTabTrigger key={tab.value} {...tab} />)}
       </div>
     </TabsList>
@@ -114,8 +114,8 @@ function MaintenancePulse({ snapshot, onOpen }: { snapshot: MaintenanceSnapshot 
   return (
     <section className="relative overflow-hidden rounded-ds-xl border border-[#244f48]/10 bg-[#244f48] px-4 py-5 text-white shadow-ds-lg md:px-6">
       <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_center,rgba(226,167,92,.18),transparent_68%)]" />
-      <div className="relative flex flex-col gap-4 xl:flex-row xl:items-center">
-        <div className="xl:w-[245px] xl:shrink-0">
+      <div className="relative flex min-w-0 flex-col gap-4 xl:flex-row xl:items-center">
+        <div className="min-w-0 xl:w-[245px] xl:shrink-0">
           <div className="flex items-center gap-2 text-[#efb393]"><RefreshCw className="h-4 w-4" /><span className="text-[10px] font-ds-black tracking-[.16em]">MAINTENANCE PULSE</span></div>
           <h2 className="mt-2 font-serif text-ds-xl font-ds-black">七个真实写入工作区</h2>
           <p className="mt-1 text-[11px] leading-5 text-white/55">每项修改都会同步到 Supabase，并按权限与业务规则校验。</p>
@@ -148,7 +148,7 @@ function WorkspaceIntro({ tab }: { tab: typeof MANAGE_TABS[number] }) {
   return (
     <div className="flex items-start gap-3 border-b border-bdl pb-4">
       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-ds-md bg-bgs text-ac"><Icon className="h-4 w-4" /></span>
-      <div><p className="text-ds-md font-ds-black text-tx">{tab.label}</p><p className="mt-0.5 text-[11px] text-txs">{tab.description}</p></div>
+      <div className="min-w-0"><p className="text-ds-md font-ds-black text-tx">{tab.label}</p><p className="mt-0.5 text-[11px] text-txs">{tab.description}</p></div>
     </div>
   );
 }

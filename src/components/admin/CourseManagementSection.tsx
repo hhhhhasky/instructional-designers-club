@@ -818,7 +818,7 @@ export default function CourseManagementSection() {
           </select>
         </div>
 
-        <div className="flex items-center gap-3 self-stretch xl:self-auto">
+        <div className="flex flex-wrap items-center gap-3 self-stretch xl:self-auto">
           <span className="text-ds-sm text-txs">
             共 {filtered.length} 门课程
           </span>

@@ -13,6 +13,7 @@ export default function MobileTabBar() {
   const location = useLocation();
   const isCourseDetail = useMatch({ path: '/courses/:id', end: true });
   const isHai = location.pathname === '/hai' || location.pathname.startsWith('/hai/');
+  const isAdmin = location.pathname === '/admin' || location.pathname.startsWith('/admin/');
 
   const tabs: TabItem[] = [
     { name: '首页', path: '/', icon: Home },
@@ -36,6 +37,7 @@ export default function MobileTabBar() {
   // 课程详情页使用自己的目录 / 上一节 / 下一节控制栏。
   // 精确匹配避免误伤 /courses 列表页和 /courses/plus/:trackId 篇章页。
   if (isCourseDetail) return null;
+  if (isAdmin) return null;
   if (isHai) return <HaiModeNavigation />;
 
   return (

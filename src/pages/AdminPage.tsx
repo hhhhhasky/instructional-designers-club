@@ -40,7 +40,7 @@ function DashboardSidebar() {
   return (
     <TabsList className="h-auto w-full flex-col items-stretch border-b border-bd bg-transparent pb-4 md:sticky md:top-24 md:border-b-0 md:border-r md:pr-5" aria-label="数据看板导航">
       <div className="px-3 pb-2 pt-2 text-[10px] font-ds-black tracking-[0.16em] text-txs">看板模块</div>
-      <div className="flex gap-1 overflow-x-auto md:flex-col">
+      <div className="grid grid-cols-2 gap-1 md:flex md:flex-col">
         <DashboardTab value="overview" icon={BarChart3} label="运营总览" />
         <DashboardTab value="members" icon={Users} label="会员趋势" />
         <DashboardTab value="courses" icon={BookOpenCheck} label="课程表现" />
@@ -56,7 +56,7 @@ function DashboardTab({ value, icon: Icon, label }: { value: string; icon: typeo
   return (
     <TabsTrigger
       value={value}
-      className="h-11 min-w-[118px] justify-start gap-2 rounded-ds-md px-3 text-left text-ds-xs text-txs data-[state=active]:bg-[#173d39] data-[state=active]:text-white data-[state=active]:shadow-none md:w-full"
+      className="h-11 w-full justify-start gap-2 rounded-ds-md px-2 text-left text-ds-xs text-txs data-[state=active]:bg-[#173d39] data-[state=active]:text-white data-[state=active]:shadow-none sm:px-3"
     >
       <Icon className="h-3.5 w-3.5" />
       {label}

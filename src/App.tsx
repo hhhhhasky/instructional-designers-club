@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 
 import routes from './routes';
@@ -9,9 +9,20 @@ import MobileTabBar from '@/components/navigation/MobileTabBar';
 const App: React.FC = () => {
   return (
     <Router>
+      <AppContent />
+    </Router>
+  );
+};
+
+function AppContent() {
+  const location = useLocation();
+  const isAdmin = location.pathname === '/admin' || location.pathname.startsWith('/admin/');
+
+  return (
+    <>
       <ScrollToTop />
-      <div className="flex flex-col min-h-screen">
-        <main className="flex-grow pb-16 md:pb-0">
+      <div className="flex min-h-screen flex-col">
+        <main className={isAdmin ? 'flex-grow' : 'flex-grow pb-16 md:pb-0'}>
           <Suspense
             fallback={(
               <div className="editorial-route-loading" role="status" aria-live="polite">
@@ -34,14 +45,13 @@ const App: React.FC = () => {
           </Suspense>
         </main>
 
-        {/* 移动端底部Tab导航栏 */}
-        <MobileTabBar />
+        {!isAdmin && <MobileTabBar />}
 
         {/* 全局 Toast 通知 */}
         <Toaster position="top-right" richColors />
       </div>
-    </Router>
+    </>
   );
-};
+}
 
 export default App;

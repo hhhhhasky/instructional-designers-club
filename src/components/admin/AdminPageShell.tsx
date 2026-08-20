@@ -223,7 +223,7 @@ export default function AdminPageShell({
       <PageMeta title={title} description={description} noIndex />
       <div className="min-h-screen bg-[#f4efe7] flex flex-col">
         <Header />
-        <main className="relative flex-1 overflow-hidden px-4 pb-14 pt-20">
+        <main className="relative min-w-0 flex-1 overflow-x-hidden px-3 pb-14 pt-20 sm:px-4">
           <div className="pointer-events-none absolute left-[-120px] top-32 h-72 w-72 rounded-full bg-ac/5 blur-3xl" />
           <div className="pointer-events-none absolute right-[-80px] top-[420px] h-64 w-64 rounded-full bg-tl/5 blur-3xl" />
           <div className="relative mx-auto max-w-[1400px] animate-fade-in pt-4 md:pt-7">
@@ -234,9 +234,9 @@ export default function AdminPageShell({
               <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
               返回俱乐部前台
             </button>
-            <div className="overflow-hidden rounded-ds-xl border border-[#173d39]/15 bg-white/60 shadow-ds-sm backdrop-blur-sm">
+            <div className="min-w-0 overflow-hidden rounded-ds-xl border border-[#173d39]/15 bg-white/60 shadow-ds-sm backdrop-blur-sm">
               <AdminTopNav activeSection={activeSection} />
-              <div className="p-3 md:p-5">
+              <div className="min-w-0 p-3 md:p-5">
                 {children}
               </div>
             </div>
@@ -251,7 +251,7 @@ export default function AdminPageShell({
 function AdminTopNav({ activeSection }: { activeSection: AdminPageShellProps["activeSection"] }) {
   return (
     <nav className="border-b border-bd bg-white/80" aria-label="平台管理后台导航">
-      <div className="flex min-h-16 flex-col sm:flex-row sm:items-stretch">
+      <div className="flex min-h-16 min-w-0 flex-col sm:flex-row sm:items-stretch">
         <Link to="/admin" className="flex items-center gap-3 border-b border-bdl px-5 py-3 sm:w-[245px] sm:shrink-0 sm:border-b-0 sm:border-r">
           <span className="grid h-9 w-9 place-items-center rounded-ds-md bg-[#173d39] text-[#efb393]"><ShieldCheck className="h-4 w-4" /></span>
           <span>
@@ -273,7 +273,7 @@ function AdminTopLink({ to, label, description, active }: { to: string; label: s
     <Link
       to={to}
       aria-current={active ? "page" : undefined}
-      className={`relative flex min-w-[142px] flex-1 items-center gap-3 border-r border-bdl px-5 py-3 transition-colors last:border-r-0 sm:min-w-[180px] sm:px-7 ${active ? "bg-bgs text-[#173d39]" : "text-tx hover:bg-bgs"}`}
+      className={`relative flex min-w-[142px] flex-1 items-center gap-3 border-r border-bdl px-4 py-3 transition-colors last:border-r-0 sm:min-w-[180px] sm:px-7 ${active ? "bg-bgs text-[#173d39]" : "text-tx hover:bg-bgs"}`}
     >
       <span className={`h-2 w-2 rounded-full ${active ? "bg-ac" : "bg-bdl"}`} />
       <span>
