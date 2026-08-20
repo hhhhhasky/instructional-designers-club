@@ -58,7 +58,7 @@ const routes: RouteConfig[] = [
     preload: loadHomePage
   },
   {
-    name: '教学通识课',
+    name: '课程',
     path: '/courses',
     element: <CoursesPage />,
     visible: true,
@@ -68,7 +68,7 @@ const routes: RouteConfig[] = [
     name: '教师AI课',
     path: '/teacher-ai-courses',
     element: <TeacherAiCoursesPage />,
-    visible: true,
+    visible: false,
     preload: loadTeacherAiCoursesPage
   },
   {
@@ -101,7 +101,7 @@ const routes: RouteConfig[] = [
     name: '资源中心',
     path: '/resources',
     element: <ResourcesPage />,
-    visible: true,
+    visible: false,
     preload: loadResourcesPage
   },
   {
@@ -171,7 +171,7 @@ const routes: RouteConfig[] = [
     name: '学习主页',
     path: '/learning',
     element: <LearningPage />,
-    visible: false,
+    visible: true,
     preload: loadLearningPage
   },
   {

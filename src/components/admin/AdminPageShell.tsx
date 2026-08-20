@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/common/Footer";
@@ -13,7 +13,7 @@ interface AdminPageShellProps {
   title: string;
   description: string;
   currentPath: string;
-  actions?: ReactNode;
+  activeSection: "manage" | "dashboard";
   children: ReactNode;
 }
 
@@ -21,7 +21,7 @@ export default function AdminPageShell({
   title,
   description,
   currentPath,
-  actions,
+  activeSection,
   children,
 }: AdminPageShellProps) {
   const navigate = useNavigate();
@@ -220,45 +220,67 @@ export default function AdminPageShell({
 
   return (
     <>
-      <PageMeta title={title} description="" noIndex />
+      <PageMeta title={title} description={description} noIndex />
       <div className="min-h-screen bg-[#f4efe7] flex flex-col">
         <Header />
         <main className="relative flex-1 overflow-hidden px-4 pb-14 pt-20">
           <div className="pointer-events-none absolute left-[-120px] top-32 h-72 w-72 rounded-full bg-ac/5 blur-3xl" />
           <div className="pointer-events-none absolute right-[-80px] top-[420px] h-64 w-64 rounded-full bg-tl/5 blur-3xl" />
           <div className="relative mx-auto max-w-[1400px] animate-fade-in pt-4 md:pt-7">
-            <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <div>
-                <button
-                  onClick={() => navigate("/")}
-                  className="group mb-3 inline-flex items-center gap-1.5 text-ds-xs font-ds-bold text-txs transition-colors hover:text-ac"
-                >
-                  <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
-                  返回俱乐部前台
-                </button>
-                <div className="flex items-center gap-3">
-                  <div className="grid h-11 w-11 place-items-center rounded-ds-lg bg-[#173d39] shadow-ds-md">
-                    <ShieldCheck className="h-5 w-5 text-[#efb393]" />
-                  </div>
-                  <div>
-                    <div className="mb-0.5 flex items-center gap-2">
-                      <span className="text-[10px] font-ds-black tracking-[0.18em] text-ac">ADMIN STUDIO</span>
-                      <span className="h-1 w-1 rounded-full bg-am" />
-                      <span className="text-[10px] text-txt">仅管理员可见</span>
-                    </div>
-                    <h1 className="font-serif text-ds-2xl font-ds-black tracking-tight text-tx md:text-ds-3xl">{title}</h1>
-                    <p className="mt-0.5 text-ds-xs text-txs md:text-ds-sm">{description}</p>
-                  </div>
-                </div>
+            <button
+              onClick={() => navigate("/")}
+              className="group mb-3 inline-flex items-center gap-1.5 text-ds-xs font-ds-bold text-txs transition-colors hover:text-ac"
+            >
+              <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+              返回俱乐部前台
+            </button>
+            <div className="overflow-hidden rounded-ds-xl border border-[#173d39]/15 bg-white/60 shadow-ds-sm backdrop-blur-sm">
+              <AdminTopNav activeSection={activeSection} />
+              <div className="p-3 md:p-5">
+                {children}
               </div>
-              <div className="flex items-center gap-2">{actions}</div>
             </div>
-
-            {children}
           </div>
         </main>
         <Footer />
       </div>
     </>
+  );
+}
+
+function AdminTopNav({ activeSection }: { activeSection: AdminPageShellProps["activeSection"] }) {
+  return (
+    <nav className="border-b border-bd bg-white/80" aria-label="平台管理后台导航">
+      <div className="flex min-h-16 flex-col sm:flex-row sm:items-stretch">
+        <Link to="/admin" className="flex items-center gap-3 border-b border-bdl px-5 py-3 sm:w-[245px] sm:shrink-0 sm:border-b-0 sm:border-r">
+          <span className="grid h-9 w-9 place-items-center rounded-ds-md bg-[#173d39] text-[#efb393]"><ShieldCheck className="h-4 w-4" /></span>
+          <span>
+            <span className="block text-ds-sm font-ds-black tracking-tight text-tx">平台管理后台</span>
+            <span className="mt-0.5 block text-[10px] tracking-[0.12em] text-txs">ADMIN STUDIO</span>
+          </span>
+        </Link>
+        <div className="flex min-w-0 flex-1 items-stretch overflow-x-auto">
+          <AdminTopLink to="/admin/manage" label="数据管理" description="课程、会员与内容维护" active={activeSection === "manage"} />
+          <AdminTopLink to="/admin" label="数据看板" description="运营趋势与学习数据" active={activeSection === "dashboard"} />
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+function AdminTopLink({ to, label, description, active }: { to: string; label: string; description: string; active: boolean }) {
+  return (
+    <Link
+      to={to}
+      aria-current={active ? "page" : undefined}
+      className={`relative flex min-w-[142px] flex-1 items-center gap-3 border-r border-bdl px-5 py-3 transition-colors last:border-r-0 sm:min-w-[180px] sm:px-7 ${active ? "bg-bgs text-[#173d39]" : "text-tx hover:bg-bgs"}`}
+    >
+      <span className={`h-2 w-2 rounded-full ${active ? "bg-ac" : "bg-bdl"}`} />
+      <span>
+        <span className="block text-ds-sm font-ds-bold">{label}</span>
+        <span className="mt-0.5 block text-[10px] text-txs">{description}</span>
+      </span>
+      {active && <span className="absolute inset-x-0 bottom-0 h-1 bg-ac" />}
+    </Link>
   );
 }

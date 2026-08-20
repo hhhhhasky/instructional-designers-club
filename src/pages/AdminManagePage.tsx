@@ -1,5 +1,4 @@
 import {
-  BarChart3,
   BookOpenCheck,
   Bot,
   CircleHelp,
@@ -11,7 +10,7 @@ import {
   UserCog,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import AdminPageShell from "@/components/admin/AdminPageShell";
 import CourseManagementSection from "@/components/admin/CourseManagementSection";
 import CourseQuestionsManagementSection from "@/components/admin/CourseQuestionsManagementSection";
@@ -20,7 +19,6 @@ import HaiManagementSection from "@/components/admin/HaiManagementSection";
 import LiveManagementSection from "@/components/admin/LiveManagementSection";
 import PasswordResetSection from "@/components/admin/PasswordResetSection";
 import StudentListSection from "@/components/admin/StudentListSection";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getAdminMaintenanceSnapshot, type MaintenanceSnapshot } from "@/db/admin-operations";
 
@@ -37,7 +35,6 @@ const MANAGE_TABS = [
 type ManageTab = typeof MANAGE_TABS[number]["value"];
 
 export default function AdminManagePage() {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get("tab");
   const initialTab = MANAGE_TABS.some((item) => item.value === requestedTab) ? requestedTab as ManageTab : "courses";
@@ -69,37 +66,37 @@ export default function AdminManagePage() {
       title="数据维护"
       description="所有会写入后端、影响会员体验的管理工作区"
       currentPath="/admin/manage"
-      actions={
-        <Button
-          className="bg-[#de7856] text-white hover:bg-[#c96546] hover:text-white"
-          onClick={() => navigate("/admin")}
-        >
-          <BarChart3 className="mr-1 h-4 w-4" />
-          返回数据看板
-        </Button>
-      }
+      activeSection="manage"
     >
       <MaintenancePulse snapshot={snapshot} onOpen={changeTab} />
 
       <Tabs value={activeTab} onValueChange={changeTab} className="mt-5 w-full">
-        <TabsList className="grid h-auto w-full grid-cols-3 gap-1 rounded-ds-xl border border-bd bg-white p-1.5 shadow-ds-xs lg:grid-cols-4 xl:grid-cols-7">
-          {MANAGE_TABS.map((tab) => (
-            <ManageTabTrigger key={tab.value} {...tab} />
-          ))}
-        </TabsList>
-
-        <div className="mt-5 min-h-[420px] rounded-ds-xl border border-bd bg-white/55 p-3 shadow-ds-xs md:p-5">
-          <WorkspaceIntro tab={MANAGE_TABS.find((item) => item.value === activeTab) ?? MANAGE_TABS[0]} />
-          <TabsContent value="courses" className="mt-5"><CourseManagementSection /></TabsContent>
-          <TabsContent value="students" className="mt-5"><StudentListSection /></TabsContent>
-          <TabsContent value="questions" className="mt-5"><CourseQuestionsManagementSection /></TabsContent>
-          <TabsContent value="content" className="mt-5"><ContentManagementSection /></TabsContent>
-          <TabsContent value="hai" className="mt-5"><HaiManagementSection /></TabsContent>
-          <TabsContent value="live" className="mt-5"><LiveManagementSection /></TabsContent>
-          <TabsContent value="reset" className="mt-5"><PasswordResetSection /></TabsContent>
+        <div className="grid md:grid-cols-[220px_minmax(0,1fr)] md:items-start">
+          <ManageSidebar />
+          <div className="min-w-0 border-t border-bd pt-5 md:border-l md:border-t-0 md:pl-5 md:pt-0">
+            <WorkspaceIntro tab={MANAGE_TABS.find((item) => item.value === activeTab) ?? MANAGE_TABS[0]} />
+            <TabsContent value="courses" className="mt-5"><CourseManagementSection /></TabsContent>
+            <TabsContent value="students" className="mt-5"><StudentListSection /></TabsContent>
+            <TabsContent value="questions" className="mt-5"><CourseQuestionsManagementSection /></TabsContent>
+            <TabsContent value="content" className="mt-5"><ContentManagementSection /></TabsContent>
+            <TabsContent value="hai" className="mt-5"><HaiManagementSection /></TabsContent>
+            <TabsContent value="live" className="mt-5"><LiveManagementSection /></TabsContent>
+            <TabsContent value="reset" className="mt-5"><PasswordResetSection /></TabsContent>
+          </div>
         </div>
       </Tabs>
     </AdminPageShell>
+  );
+}
+
+function ManageSidebar() {
+  return (
+    <TabsList className="h-auto w-full flex-col items-stretch border-b border-bd bg-transparent pb-4 md:sticky md:top-24 md:border-b-0 md:border-r md:pr-5" aria-label="数据管理导航">
+      <div className="px-3 pb-2 pt-2 text-[10px] font-ds-black tracking-[0.16em] text-txs">维护模块</div>
+      <div className="flex gap-1 overflow-x-auto md:flex-col">
+        {MANAGE_TABS.map((tab) => <ManageTabTrigger key={tab.value} {...tab} />)}
+      </div>
+    </TabsList>
   );
 }
 
@@ -137,12 +134,11 @@ function MaintenancePulse({ snapshot, onOpen }: { snapshot: MaintenanceSnapshot 
   );
 }
 
-function ManageTabTrigger({ value, label, short, icon: Icon }: { value: ManageTab; label: string; short: string; description: string; icon: LucideIcon }) {
+function ManageTabTrigger({ value, label, icon: Icon }: { value: ManageTab; label: string; short: string; description: string; icon: LucideIcon }) {
   return (
-    <TabsTrigger value={value} className="h-11 gap-1.5 rounded-ds-md px-2 text-ds-xs text-txs data-[state=active]:bg-[#173d39] data-[state=active]:text-white data-[state=active]:shadow-none">
+    <TabsTrigger value={value} className="h-11 w-full justify-start gap-2 rounded-ds-md px-3 text-left text-ds-xs text-txs data-[state=active]:bg-[#173d39] data-[state=active]:text-white data-[state=active]:shadow-none">
       <Icon className="h-3.5 w-3.5" />
-      <span className="hidden sm:inline lg:hidden xl:inline">{label}</span>
-      <span className="sm:hidden lg:inline xl:hidden">{short}</span>
+      <span>{label}</span>
     </TabsTrigger>
   );
 }

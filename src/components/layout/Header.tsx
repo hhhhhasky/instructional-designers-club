@@ -8,7 +8,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { GraduationCap, Menu, X, Settings, LogOut, User, BookOpen, ShieldCheck, BarChart3, Bell, CheckCheck, Gift, TrendingUp, TrendingDown, MessageCircle } from "lucide-react";
+import { GraduationCap, Menu, X, Settings, LogOut, User, Library, ShieldCheck, Bell, CheckCheck, Gift, TrendingUp, TrendingDown, MessageCircle } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import routes from "@/routes";
 import { useAuth } from "@/contexts/AuthContext";
@@ -111,7 +111,9 @@ export default function Header() {
 
   const isRouteActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
-    if (path === '/courses') return location.pathname === '/courses' || location.pathname.startsWith('/courses/plus');
+    if (path === '/courses') {
+      return location.pathname === '/courses' || location.pathname.startsWith('/courses/plus') || location.pathname === '/teacher-ai-courses';
+    }
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
@@ -271,9 +273,9 @@ export default function Header() {
                     </p>
                   </div>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate('/learning')} className="cursor-pointer">
-                    <BookOpen className="w-4 h-4 mr-2" />
-                    我的学习
+                  <DropdownMenuItem onClick={() => navigate('/resources')} className="cursor-pointer">
+                    <Library className="w-4 h-4 mr-2" />
+                    资源中心
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate('/settings')} className="cursor-pointer">
                     <Settings className="w-4 h-4 mr-2" />
@@ -283,12 +285,8 @@ export default function Header() {
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => navigate('/admin')} className="cursor-pointer text-ac">
-                        <BarChart3 className="w-4 h-4 mr-2" />
-                        数据看板
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => navigate('/admin/manage')} className="cursor-pointer text-ac">
                         <ShieldCheck className="w-4 h-4 mr-2" />
-                        数据维护
+                        平台管理后台
                       </DropdownMenuItem>
                     </>
                   )}
@@ -376,12 +374,12 @@ export default function Header() {
                     {user ? (
                       <>
                         <Link
-                          to="/learning"
+                          to="/resources"
                           onClick={() => setIsOpen(false)}
                           className="px-4 py-3 text-left text-ds-base font-ds-medium rounded-ds-lg text-tx hover:bg-bgs transition-all flex items-center gap-2"
                         >
-                          <BookOpen className="w-4 h-4" />
-                          我的学习
+                          <Library className="w-4 h-4" />
+                          资源中心
                         </Link>
                         <Link
                           to="/settings"
@@ -397,18 +395,8 @@ export default function Header() {
                             onClick={() => setIsOpen(false)}
                             className="px-4 py-3 text-left text-ds-base font-ds-medium rounded-ds-lg text-ac hover:bg-acl transition-all flex items-center gap-2"
                           >
-                            <BarChart3 className="w-4 h-4" />
-                            数据看板
-                          </Link>
-                        )}
-                        {isAdmin && (
-                          <Link
-                            to="/admin/manage"
-                            onClick={() => setIsOpen(false)}
-                            className="px-4 py-3 text-left text-ds-base font-ds-medium rounded-ds-lg text-ac hover:bg-acl transition-all flex items-center gap-2"
-                          >
                             <ShieldCheck className="w-4 h-4" />
-                            数据维护
+                            平台管理后台
                           </Link>
                         )}
                         <button

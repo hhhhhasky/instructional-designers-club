@@ -1,4 +1,4 @@
-import { BookOpen, Bot, GraduationCap, Home, Sparkles } from 'lucide-react';
+import { BookOpen, Bot, GraduationCap, Home, Radio } from 'lucide-react';
 import { Link, useLocation, useMatch } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import HaiModeNavigation from '@/components/hai/HaiModeNavigation';
@@ -16,9 +16,9 @@ export default function MobileTabBar() {
 
   const tabs: TabItem[] = [
     { name: '首页', path: '/', icon: Home },
-    { name: '通识课', path: '/courses', icon: BookOpen },
-    { name: 'AI课', path: '/teacher-ai-courses', icon: Sparkles },
+    { name: '课程', path: '/courses', icon: BookOpen },
     { name: 'HAI', path: '/hai', icon: Bot },
+    { name: 'Live 互动', path: '/live', icon: Radio },
     { name: '我的学习', path: '/learning', icon: GraduationCap },
   ];
 
@@ -26,6 +26,9 @@ export default function MobileTabBar() {
   const isActive = (path: string) => {
     if (path === '/') {
       return location.pathname === '/';
+    }
+    if (path === '/courses') {
+      return location.pathname === '/courses' || location.pathname.startsWith('/courses/plus') || location.pathname === '/teacher-ai-courses';
     }
     return location.pathname.startsWith(path);
   };

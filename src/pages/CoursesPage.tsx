@@ -16,6 +16,7 @@ import {
   CourseEditorialHero,
   CourseEditorialVolume,
 } from '@/components/course/CourseEditorialShell';
+import CourseTypeTabs from '@/components/course/CourseTypeTabs';
 import { getCourseCatalogSnapshot, getCourseDetailSnapshot, subscribeToCourseCatalogUpdates } from '@/db/api';
 import type { Course } from '@/types/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -121,6 +122,7 @@ export default function CoursesPage() {
         <Header />
         {isNavigating && <LoadingOverlay message="正在加载课程..." />}
         <main className="course-reading-desk flex-1 pb-12 pt-20">
+          <CourseTypeTabs />
           <CourseEditorialHero
             kicker="PLUS CATALOGUE · 教学通识课"
             badge="PLUS 专属"

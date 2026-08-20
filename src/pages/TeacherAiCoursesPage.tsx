@@ -16,6 +16,7 @@ import {
   CourseEditorialHero,
   CourseEditorialVolume,
 } from '@/components/course/CourseEditorialShell';
+import CourseTypeTabs from '@/components/course/CourseTypeTabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCourseCatalogSnapshot, getCourseDetailSnapshot, subscribeToCourseCatalogUpdates } from '@/db/api';
 import { canAccessCourse } from '@/lib/access-control';
@@ -119,6 +120,7 @@ export default function TeacherAiCoursesPage() {
         <Header />
         {isNavigating && <LoadingOverlay message="正在加载课程..." />}
         <main className="course-reading-desk flex-1 pb-12 pt-20">
+          <CourseTypeTabs />
           <CourseEditorialHero
             kicker="PRO CATALOGUE · 教师 AI 专题刊"
             badge="PRO 专属"
