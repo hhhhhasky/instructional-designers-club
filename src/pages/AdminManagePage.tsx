@@ -8,6 +8,7 @@ import {
   type LucideIcon,
   RefreshCw,
   UserCog,
+  Layers3,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -19,6 +20,7 @@ import HaiManagementSection from "@/components/admin/HaiManagementSection";
 import LiveManagementSection from "@/components/admin/LiveManagementSection";
 import PasswordResetSection from "@/components/admin/PasswordResetSection";
 import StudentListSection from "@/components/admin/StudentListSection";
+import V2CourseManagementSection from "@/components/admin/V2CourseManagementSection";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getAdminMaintenanceSnapshot, type MaintenanceSnapshot } from "@/db/admin-operations";
 
@@ -30,6 +32,7 @@ const MANAGE_TABS = [
   { value: "hai", label: "HAI 配置", short: "HAI", description: "模型、提示词、额度与知识库", icon: Bot },
   { value: "live", label: "Live互动", short: "Live", description: "房间、题目与实时互动控制", icon: Radio },
   { value: "reset", label: "服务工单", short: "工单", description: "密码重置与账号协助", icon: FileKey2 },
+  { value: "v2", label: "V2 课程系统", short: "V2课程", description: "课程大纲、批阅、字典与权限", icon: Layers3 },
 ] as const;
 
 type ManageTab = typeof MANAGE_TABS[number]["value"];
@@ -82,6 +85,7 @@ export default function AdminManagePage() {
             <TabsContent value="hai" className="mt-5"><HaiManagementSection /></TabsContent>
             <TabsContent value="live" className="mt-5"><LiveManagementSection /></TabsContent>
             <TabsContent value="reset" className="mt-5"><PasswordResetSection /></TabsContent>
+            <TabsContent value="v2" className="mt-5"><V2CourseManagementSection /></TabsContent>
           </div>
         </div>
       </Tabs>

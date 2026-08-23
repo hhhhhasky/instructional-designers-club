@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import QuestionSettingsFields, {
+  type QuestionSettingsTypeOption,
+} from "@/components/questions/QuestionSettingsFields";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +20,13 @@ import {
 } from "@/lib/live";
 
 const OPTION_IDS = ["A", "B", "C", "D"] as const;
+const LIVE_QUESTION_TYPES: QuestionSettingsTypeOption[] = (
+  Object.keys(LIVE_QUESTION_TYPE_LABELS) as LiveQuestionType[]
+).map((type) => ({
+  value: type,
+  label: LIVE_QUESTION_TYPE_LABELS[type],
+  kind: type === "single_choice" ? "single" : type === "multiple_choice" ? "multiple" : "true_false",
+}));
 
 interface QuestionEditorForm {
   title: string;
@@ -84,15 +94,6 @@ export default function QuestionEditorModal({
       correctSingle: "A",
       correctMultiple: [],
       correctBoolean: true,
-    }));
-  };
-
-  const toggleMultipleAnswer = (id: string) => {
-    setForm((prev) => ({
-      ...prev,
-      correctMultiple: prev.correctMultiple.includes(id)
-        ? prev.correctMultiple.filter((item) => item !== id)
-        : [...prev.correctMultiple, id],
     }));
   };
 
@@ -184,114 +185,30 @@ export default function QuestionEditorModal({
             />
           </label>
 
-          <fieldset className="grid gap-1.5" disabled={locked || saving}>
-            <legend className="text-ds-xs font-ds-semibold text-tx">题目类型</legend>
-            <div className="flex flex-wrap gap-2">
-              {(Object.keys(LIVE_QUESTION_TYPE_LABELS) as LiveQuestionType[]).map((type) => (
-                <label
-                  key={type}
-                  className={`cursor-pointer rounded-ds-pill border px-3 py-1.5 text-ds-xs transition-colors ${
-                    form.type === type
-                      ? "border-ac bg-acl text-ac font-ds-bold"
-                      : "border-bd bg-bg text-txs hover:border-ac/50"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="live-question-type"
-                    className="sr-only"
-                    checked={form.type === type}
-                    onChange={() => changeType(type)}
-                  />
-                  {LIVE_QUESTION_TYPE_LABELS[type]}
-                </label>
-              ))}
-            </div>
-          </fieldset>
-
-          <label className="grid gap-1.5">
-            <span className="text-ds-xs font-ds-semibold text-tx">题干</span>
-            <textarea
-              value={form.content}
-              onChange={(event) => setForm((prev) => ({ ...prev, content: event.target.value }))}
-              disabled={locked || saving}
-              rows={4}
-              placeholder="写清楚题目情境和要学员判断的内容"
-              className={`${inputClass} h-auto py-2.5 leading-7`}
-            />
-          </label>
-
-          {form.type === "true_false" ? (
-            <fieldset className="grid gap-2" disabled={locked || saving}>
-              <legend className="text-ds-xs font-ds-semibold text-tx">正确答案</legend>
-              <div className="flex gap-2">
-                {[true, false].map((value) => (
-                  <label
-                    key={String(value)}
-                    className={`cursor-pointer rounded-ds-pill border px-4 py-2 text-ds-xs transition-colors ${
-                      form.correctBoolean === value
-                        ? "border-tl bg-tll text-tl font-ds-bold"
-                        : "border-bd bg-bg text-txs hover:border-tl/50"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="live-true-false-answer"
-                      className="sr-only"
-                      checked={form.correctBoolean === value}
-                      onChange={() => setForm((prev) => ({ ...prev, correctBoolean: value }))}
-                    />
-                    {value ? "正确" : "错误"}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-          ) : (
-            <div className="grid gap-3">
-              <p className="text-ds-xs font-ds-semibold text-tx">选项与正确答案</p>
-              {OPTION_IDS.map((id, index) => {
-                const filled = (form.optionText[index] ?? "").trim().length > 0;
-                return (
-                  <div key={id} className="flex items-center gap-2">
-                    {form.type === "single_choice" ? (
-                      <input
-                        type="radio"
-                        name="live-single-answer"
-                        aria-label={`正确答案 ${id}`}
-                        checked={form.correctSingle === id}
-                        onChange={() => setForm((prev) => ({ ...prev, correctSingle: id }))}
-                        disabled={locked || saving || !filled}
-                        className="h-4 w-4 accent-[var(--ac)]"
-                      />
-                    ) : (
-                      <input
-                        type="checkbox"
-                        aria-label={`正确答案 ${id}`}
-                        checked={form.correctMultiple.includes(id)}
-                        onChange={() => toggleMultipleAnswer(id)}
-                        disabled={locked || saving || !filled}
-                        className="h-4 w-4 accent-[var(--ac)]"
-                      />
-                    )}
-                    <span className="w-6 font-ds-bold text-ac">{id}</span>
-                    <input
-                      value={form.optionText[index] ?? ""}
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        setForm((prev) => ({
-                          ...prev,
-                          optionText: prev.optionText.map((item, itemIndex) => itemIndex === index ? value : item),
-                        }));
-                      }}
-                      disabled={locked || saving}
-                      placeholder={`选项 ${id}`}
-                      className={inputClass}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <QuestionSettingsFields
+            type={form.type}
+            types={LIVE_QUESTION_TYPES}
+            prompt={form.content}
+            options={form.type === "true_false"
+              ? [{ key: "true", text: "正确" }, { key: "false", text: "错误" }]
+              : OPTION_IDS.map((key, index) => ({ key, text: form.optionText[index] ?? "" }))}
+            correct={form.type === "multiple_choice"
+              ? form.correctMultiple
+              : form.type === "true_false"
+                ? [String(form.correctBoolean)]
+                : [form.correctSingle]}
+            namePrefix="live"
+            disabled={locked || saving}
+            onTypeChange={(value) => changeType(value as LiveQuestionType)}
+            onPromptChange={(content) => setForm((prev) => ({ ...prev, content }))}
+            onOptionsChange={(options) => setForm((prev) => ({ ...prev, optionText: options.map((option) => option.text) }))}
+            onCorrectChange={(correct) => setForm((prev) => ({
+              ...prev,
+              correctSingle: correct[0] ?? "A",
+              correctMultiple: correct,
+              correctBoolean: correct[0] !== "false",
+            }))}
+          />
         </div>
 
         <DialogFooter>
