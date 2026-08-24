@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Loader2, Radio } from "lucide-react";
+import { ArrowLeft, BarChart3, CheckCircle2, Loader2, Radio } from "lucide-react";
 import { toast } from "sonner";
 import Footer from "@/components/common/Footer";
 import Header from "@/components/layout/Header";
@@ -8,7 +8,13 @@ import PageMeta from "@/components/common/PageMeta";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/db/supabase";
-import { getLiveParticipantSnapshot, submitLiveAnswer, type LiveParticipantSnapshot } from "@/db/live-api";
+import {
+  getLiveParticipantResults,
+  getLiveParticipantSnapshot,
+  recordLiveParticipant,
+  submitLiveAnswer,
+  type LiveParticipantSnapshot,
+} from "@/db/live-api";
 import {
   extractLiveEvent,
   formatLiveAnswer,
@@ -27,6 +33,7 @@ export default function LiveParticipantPage() {
   const [ended, setEnded] = useState(false);
   const [draftAnswer, setDraftAnswer] = useState<LiveAnswer | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const recordedLiveIdRef = useRef<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!user) return;
@@ -67,6 +74,16 @@ export default function LiveParticipantPage() {
 
   useEffect(() => {
     const liveId = snapshot?.session.id;
+    if (!liveId || recordedLiveIdRef.current === liveId) return;
+    void recordLiveParticipant(liveId)
+      .then(() => { recordedLiveIdRef.current = liveId; })
+      .catch(() => {
+        // 进入记录不影响答题主链路，下次进入时可恢复。
+      });
+  }, [snapshot?.session.id]);
+
+  useEffect(() => {
+    const liveId = snapshot?.session.id;
     if (!liveId || !user?.id || snapshot?.session.status !== "live") return;
     let disposed = false;
     const channel = supabase.channel(getLiveTopic(liveId), {
@@ -95,6 +112,7 @@ export default function LiveParticipantPage() {
           void channel.track({
             user_id: user.id,
             display_name: profile?.nickname ?? "学员",
+            role: "participant",
           });
           // 订阅完成后再读一次数据库，处理晚进入、刷新和漏收事件。
           void refresh();
@@ -126,6 +144,13 @@ export default function LiveParticipantPage() {
       const response = await submitLiveAnswer(question.id, user.id, draftAnswer as LiveAnswer);
       setSnapshot((prev) => prev ? { ...prev, response } : prev);
       toast.success("答案已提交，作答结束前仍可修改");
+      void getLiveParticipantResults(question.id)
+        .then((results) => {
+          setSnapshot((prev) => prev?.question?.id === question.id ? { ...prev, results } : prev);
+        })
+        .catch(() => {
+          // 提交已成功；若聚合回读短暂失败，后续 Broadcast 或刷新会恢复。
+        });
     } catch (cause) {
       toast.error(cause instanceof Error ? cause.message : "提交答案失败");
       void refresh();
@@ -141,13 +166,21 @@ export default function LiveParticipantPage() {
         <Header />
         <main className="flex-1 px-4 pb-16 pt-24 md:pb-12">
           <div className="mx-auto max-w-3xl">
-            <Link
-              to="/live"
-              className="inline-flex items-center gap-1.5 text-ds-sm text-txs transition-colors hover:text-ac"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              返回 Live 入口
-            </Link>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <Link
+                to="/live"
+                className="inline-flex items-center gap-1.5 text-ds-sm text-txs transition-colors hover:text-ac"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                返回 Live 入口
+              </Link>
+              {snapshot?.session ? (
+                <Link to={`/live/${roomCode}/dashboard`} className="inline-flex items-center gap-1.5 text-ds-xs font-ds-bold text-ac hover:underline">
+                  <BarChart3 className="h-3.5 w-3.5" />
+                  Live 数据展示屏
+                </Link>
+              ) : null}
+            </div>
 
             {authLoading || loading ? (
               <div className="editorial-paper mt-4 grid min-h-72 place-items-center p-8 text-txs">
@@ -302,6 +335,36 @@ export default function LiveParticipantPage() {
                     </span>
                   )}
                 </div>
+
+                {snapshot.response && snapshot.results ? (
+                  <div className="mt-5 rounded-ds-xl border border-bd bg-white/55 p-4" aria-live="polite">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <h2 className="font-serif text-ds-lg font-ds-black text-tx">大家的选择</h2>
+                      <span className="text-ds-xs text-txs">已答 {snapshot.results.answeredCount} 人 · 匿名统计</span>
+                    </div>
+                    <div className="mt-3 grid gap-3">
+                      {snapshot.results.options.map((option) => (
+                        <div key={option.id}>
+                          <div className="flex items-center justify-between gap-3 text-ds-xs">
+                            <span className="min-w-0 truncate font-ds-semibold text-tx">
+                              {option.id.length === 1 && question.type !== "true_false" ? `${option.id} · ` : ""}{option.label}
+                            </span>
+                            <span className="shrink-0 text-txs">{option.count} 人 · {option.percentage}%</span>
+                          </div>
+                          <div className="mt-1.5 h-2.5 overflow-hidden rounded-ds-pill bg-warm">
+                            <div
+                              className="h-full rounded-ds-pill bg-gradient-to-r from-ac to-am transition-[width] duration-300"
+                              style={{ width: `${Math.min(100, option.percentage)}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {question.type === "multiple_choice" ? (
+                      <p className="mt-3 text-[11px] text-txt">多选题按每个选项分别统计，各项占比之和可能超过 100%。</p>
+                    ) : null}
+                  </div>
+                ) : null}
               </section>
             )}
           </div>

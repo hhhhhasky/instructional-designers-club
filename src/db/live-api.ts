@@ -7,9 +7,15 @@ import {
   type LiveQuestion,
   type LiveQuestionOption,
   type LiveQuestionType,
+  type LiveParticipantResults,
   type LiveResponse,
   type LiveSession,
 } from "@/lib/live";
+import {
+  buildAdminLiveSessionDashboard,
+  type AdminLiveSessionDashboard,
+  type LiveRoomAudienceSummary,
+} from "@/lib/live-dashboard";
 
 export interface LiveQuestionInput {
   title: string;
@@ -24,6 +30,7 @@ export interface LiveParticipantSnapshot {
   question: LiveQuestion | null;
   response: LiveResponse | null;
   correctAnswer: Json | null;
+  results: LiveParticipantResults | null;
 }
 
 interface RawAdminQuestion {
@@ -94,6 +101,39 @@ function normalizeResponse(row: RawResponse): LiveResponse {
     user_id: row.user_id,
     answer: row.answer,
     answered_at: row.answered_at,
+  };
+}
+
+function normalizeParticipantResults(value: unknown): LiveParticipantResults | null {
+  if (typeof value !== "object" || value === null) return null;
+  const result = value as { question_id?: unknown; answered_count?: unknown; options?: unknown };
+  if (
+    typeof result.question_id !== "string"
+    || typeof result.answered_count !== "number"
+    || !Array.isArray(result.options)
+  ) return null;
+
+  const options = result.options.flatMap((item) => {
+    if (typeof item !== "object" || item === null) return [];
+    const option = item as { id?: unknown; label?: unknown; count?: unknown; percentage?: unknown };
+    if (
+      typeof option.id !== "string"
+      || typeof option.label !== "string"
+      || typeof option.count !== "number"
+      || typeof option.percentage !== "number"
+    ) return [];
+    return [{
+      id: option.id,
+      label: option.label,
+      count: option.count,
+      percentage: option.percentage,
+    }];
+  });
+
+  return {
+    questionId: result.question_id,
+    answeredCount: result.answered_count,
+    options,
   };
 }
 
@@ -334,6 +374,81 @@ export async function getLiveResponses(questionId: string): Promise<LiveResponse
   return ((data as RawResponse[]) ?? []).map(normalizeResponse);
 }
 
+export async function getAdminLiveSessionDashboard(
+  session: LiveSession,
+): Promise<AdminLiveSessionDashboard> {
+  const [questions, participantResult] = await Promise.all([
+    getAdminLiveQuestions(session.id),
+    supabase
+      .from("live_participants")
+      .select("*", { count: "exact", head: true })
+      .eq("live_id", session.id),
+  ]);
+  if (participantResult.error) await throwIfError(participantResult.error, "读取 Live 进入人数失败");
+
+  const questionIds = questions.map((question) => question.id);
+  let responses: LiveResponse[] = [];
+  if (questionIds.length > 0) {
+    const { data, error } = await supabase
+      .from("responses")
+      .select("question_id, user_id, answer, answered_at")
+      .in("question_id", questionIds)
+      .order("answered_at", { ascending: true });
+    if (error) await throwIfError(error, "读取 Live 看板答题数据失败");
+    responses = ((data as RawResponse[]) ?? []).map(normalizeResponse);
+  }
+
+  return buildAdminLiveSessionDashboard(
+    session,
+    questions,
+    responses,
+    participantResult.count ?? 0,
+  );
+}
+
+export async function recordLiveParticipant(liveId: string): Promise<void> {
+  const { error } = await supabase.rpc("record_live_participant", { p_live_id: liveId });
+  if (error) await throwIfError(error, "记录 Live 进入状态失败");
+}
+
+export async function getLiveRoomAudienceSummary(
+  liveId: string,
+): Promise<LiveRoomAudienceSummary> {
+  const { data, error } = await supabase.rpc("get_live_room_audience_summary", {
+    p_live_id: liveId,
+  });
+  if (error) await throwIfError(error, "读取 Live 房间数据失败");
+  if (typeof data !== "object" || data === null) throw new Error("Live 房间数据格式错误");
+  const value = data as {
+    live_id?: unknown;
+    current_question_id?: unknown;
+    joined_count?: unknown;
+    answered_count?: unknown;
+  };
+  if (
+    typeof value.live_id !== "string"
+    || (value.current_question_id !== null && typeof value.current_question_id !== "string")
+    || typeof value.joined_count !== "number"
+    || typeof value.answered_count !== "number"
+  ) throw new Error("Live 房间数据格式错误");
+  return {
+    liveId: value.live_id,
+    currentQuestionId: value.current_question_id ?? null,
+    joinedCount: value.joined_count,
+    answeredCount: value.answered_count,
+  };
+}
+
+export async function getLiveParticipantResults(
+  questionId: string,
+): Promise<LiveParticipantResults | null> {
+  const { data, error } = await supabase.rpc("get_live_participant_results", {
+    p_question_id: questionId,
+  });
+  if (error) await throwIfError(error, "读取匿名答题统计失败");
+  return normalizeParticipantResults(data);
+}
+
 export async function getLiveParticipantSnapshot(
   roomCode: string,
   userId: string,
@@ -349,7 +464,7 @@ export async function getLiveParticipantSnapshot(
   if (!session) return null;
 
   if (!session.current_question_id) {
-    return { session, question: null, response: null, correctAnswer: null };
+    return { session, question: null, response: null, correctAnswer: null, results: null };
   }
 
   const [questionResult, responseResult] = await Promise.all([
@@ -381,7 +496,11 @@ export async function getLiveParticipantSnapshot(
     correctAnswer = (keyResult.data as { correct_answer: Json } | null)?.correct_answer ?? null;
   }
 
-  return { session, question, response, correctAnswer };
+  const results = response
+    ? await getLiveParticipantResults(session.current_question_id)
+    : null;
+
+  return { session, question, response, correctAnswer, results };
 }
 
 export async function submitLiveAnswer(

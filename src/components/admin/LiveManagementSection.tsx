@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import {
+  BarChart3,
   Copy,
   DoorOpen,
   Loader2,
@@ -14,6 +15,7 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -49,7 +51,6 @@ import {
   LIVE_QUESTION_TYPE_LABELS,
   LIVE_STATUS_LABELS,
   extractLiveEvent,
-  formatLiveAnswer,
   getLiveControlCapabilities,
   getLiveTopic,
   isLiveQuestionEditable,
@@ -61,7 +62,7 @@ import {
   type LiveStatus,
 } from "@/lib/live";
 
-type PresenceMeta = { user_id?: string; display_name?: string };
+type PresenceMeta = { user_id?: string; display_name?: string; role?: "admin" | "participant" };
 
 const STATUS_FILTERS: Array<{ value: LiveStatus | "all"; label: string }> = [
   { value: "all", label: "全部状态" },
@@ -254,6 +255,7 @@ export default function LiveManagementSection() {
           void channel.track({
             user_id: user.id,
             display_name: profile?.nickname ?? "主持人",
+            role: "admin",
           });
         }
         if ((status === "CHANNEL_ERROR" || status === "TIMED_OUT") && !disposed) {
@@ -744,11 +746,11 @@ export default function LiveManagementSection() {
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
                   <p className="text-[10px] font-ds-black tracking-[.16em] text-[#efb393]">D · 互动控制 / 实时结果</p>
-                  <p className="mt-1 text-ds-xs text-white/55">这里是唯一的课堂事件发送区。</p>
+                  <p className="mt-1 text-ds-xs text-white/55">这里只负责发布、停止、公布与下一题；数据分析已移至独立看板。</p>
                 </div>
                 <div className="flex items-center gap-2 rounded-ds-lg border border-white/10 bg-white/[.06] px-3 py-2 text-ds-xs">
                   <Users className="h-4 w-4 text-[#efb393]" />
-                  在线 {new Set(onlineUsers.map((item) => item.user_id ?? JSON.stringify(item))).size}
+                  学员在线 {new Set(onlineUsers.filter((item) => item.role !== "admin").map((item) => item.user_id ?? JSON.stringify(item))).size}
                 </div>
               </div>
 
@@ -806,41 +808,25 @@ export default function LiveManagementSection() {
                   </div>
                 </div>
 
-                <div className="rounded-ds-lg border border-white/10 bg-white/[.05] p-3">
+                <div className="flex min-h-40 flex-col justify-between rounded-ds-lg border border-white/10 bg-white/[.05] p-4">
                   {currentQuestion && summary ? (
                     <>
-                      <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <p className="font-serif text-ds-lg font-ds-black">
-                          Q{currentQuestion.position} · {currentQuestion.title}
-                        </p>
-                        <p className="text-ds-xs text-white/60">
-                          已答 {summary.answeredCount} 人 · 正确率 {summary.correctRate}%
-                        </p>
+                      <div>
+                        <p className="text-[10px] font-ds-black tracking-[.14em] text-[#efb393]">CURRENT SNAPSHOT</p>
+                        <p className="mt-2 font-serif text-ds-lg font-ds-black">Q{currentQuestion.position} · {currentQuestion.title}</p>
+                        <p className="mt-2 text-ds-sm text-white/60">已答 <span className="font-ds-black text-white">{summary.answeredCount}</span> 人 · 正确率 <span className="font-ds-black text-white">{summary.correctRate}%</span></p>
                       </div>
-                      <div className="mt-3 grid gap-2">
-                        {summary.options.map((option) => (
-                          <div key={option.id}>
-                            <div className="flex justify-between text-ds-xs text-white/70">
-                              <span>{option.label}</span>
-                              <span>{option.count} 人 · {option.percentage}%</span>
-                            </div>
-                            <div className="mt-1 h-2.5 overflow-hidden rounded-ds-pill bg-black/20">
-                              <div
-                                className="h-full rounded-ds-pill bg-gradient-to-r from-[#efb393] to-[#e39c76] transition-[width]"
-                                style={{ width: `${Math.min(100, option.percentage)}%` }}
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <p className="mt-3 border-t border-white/10 pt-3 text-ds-xs text-white/70">
-                        正确答案：{formatLiveAnswer(currentQuestion.correct_answer)}
-                      </p>
+                      <Button asChild className="mt-5 w-full bg-[#efb393] text-[#244f48] hover:bg-[#e39c76] hover:text-[#244f48]">
+                        <Link to="/admin?tab=live"><BarChart3 className="h-4 w-4" />打开大型 Live 数据看板</Link>
+                      </Button>
                     </>
                   ) : (
-                    <div className="grid min-h-40 place-items-center text-center text-ds-sm text-white/55">
-                      等待主持人发布问题……
-                    </div>
+                    <>
+                      <div className="grid flex-1 place-items-center text-center text-ds-sm text-white/55">等待主持人发布问题……</div>
+                      <Button asChild className="mt-5 w-full bg-[#efb393] text-[#244f48] hover:bg-[#e39c76] hover:text-[#244f48]">
+                        <Link to="/admin?tab=live"><BarChart3 className="h-4 w-4" />打开大型 Live 数据看板</Link>
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>

@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { BarChart3, Bot, BookOpenCheck, Trophy, UserRoundSearch, Users } from "lucide-react";
+import { useEffect, useState } from "react";
+import { BarChart3, Bot, BookOpenCheck, Radio, Trophy, UserRoundSearch, Users } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import AdminPageShell from "@/components/admin/AdminPageShell";
 import OperationsDashboardSection from "@/components/admin/OperationsDashboardSection";
 import MemberOverviewSection from "@/components/admin/MemberOverviewSection";
@@ -7,10 +8,24 @@ import CourseRankingsSection from "@/components/admin/CourseRankingsSection";
 import InactiveStudentsSection from "@/components/admin/InactiveStudentsSection";
 import StudentLeaderboardSection from "@/components/admin/StudentLeaderboardSection";
 import HaiDashboardSection from "@/components/admin/HaiDashboardSection";
+import LiveDashboardSection from "@/components/admin/LiveDashboardSection";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState("overview");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get("tab");
+  const initialTab = DASHBOARD_TABS.includes(requestedTab ?? "") ? requestedTab as DashboardTab : "overview";
+  const [activeTab, setActiveTab] = useState<DashboardTab>(initialTab);
+
+  useEffect(() => {
+    if (requestedTab && DASHBOARD_TABS.includes(requestedTab)) setActiveTab(requestedTab as DashboardTab);
+  }, [requestedTab]);
+
+  const changeTab = (value: string) => {
+    const tab = value as DashboardTab;
+    setActiveTab(tab);
+    setSearchParams(tab === "overview" ? {} : { tab }, { replace: true });
+  };
 
   return (
     <AdminPageShell
@@ -19,7 +34,7 @@ export default function AdminPage() {
       currentPath="/admin"
       activeSection="dashboard"
     >
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={changeTab} className="w-full">
         <div className="grid md:grid-cols-[220px_minmax(0,1fr)] md:items-start">
           <DashboardSidebar />
           <div className="min-w-0 pt-5 md:pl-5 md:pt-0">
@@ -29,6 +44,7 @@ export default function AdminPage() {
             <TabsContent value="inactive" className="mt-0"><InactiveStudentsSection /></TabsContent>
             <TabsContent value="leaderboard" className="mt-0"><StudentLeaderboardSection /></TabsContent>
             <TabsContent value="hai" className="mt-0"><HaiDashboardSection /></TabsContent>
+            <TabsContent value="live" className="mt-0"><LiveDashboardSection /></TabsContent>
           </div>
         </div>
       </Tabs>
@@ -47,10 +63,14 @@ function DashboardSidebar() {
         <DashboardTab value="inactive" icon={UserRoundSearch} label="留存预警" />
         <DashboardTab value="leaderboard" icon={Trophy} label="学习榜单" />
         <DashboardTab value="hai" icon={Bot} label="HAI 运营" />
+        <DashboardTab value="live" icon={Radio} label="Live 互动" />
       </div>
     </TabsList>
   );
 }
+
+const DASHBOARD_TABS = ["overview", "members", "courses", "inactive", "leaderboard", "hai", "live"];
+type DashboardTab = typeof DASHBOARD_TABS[number];
 
 function DashboardTab({ value, icon: Icon, label }: { value: string; icon: typeof BarChart3; label: string }) {
   return (

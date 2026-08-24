@@ -117,6 +117,12 @@ export interface LiveResultOption {
   percentage: number;
 }
 
+export interface LiveParticipantResults {
+  questionId: string;
+  answeredCount: number;
+  options: LiveResultOption[];
+}
+
 export interface LiveResultsSummary {
   answeredCount: number;
   options: LiveResultOption[];
