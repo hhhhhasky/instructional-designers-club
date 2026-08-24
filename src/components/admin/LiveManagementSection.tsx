@@ -63,6 +63,10 @@ import {
 } from "@/lib/live";
 
 type PresenceMeta = { user_id?: string; display_name?: string; role?: "admin" | "participant" };
+type RealtimeStatus = "idle" | "connecting" | "connected" | "recovering";
+
+const LIVE_REALTIME_SUBSCRIBE_TIMEOUT_MS = 20_000;
+const LIVE_REALTIME_WARNING_DELAY_MS = 8_000;
 
 const STATUS_FILTERS: Array<{ value: LiveStatus | "all"; label: string }> = [
   { value: "all", label: "全部状态" },
@@ -114,6 +118,7 @@ export default function LiveManagementSection() {
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [deleteQuestion, setDeleteQuestion] = useState<AdminLiveQuestion | null>(null);
   const [showQr, setShowQr] = useState(false);
+  const [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>("idle");
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   const selectedSession = useMemo(
@@ -125,6 +130,12 @@ export default function LiveManagementSection() {
     [questions, selectedSession?.current_question_id],
   );
   const capabilities = selectedSession ? getLiveControlCapabilities(selectedSession) : null;
+  const realtimeStatusText: Record<RealtimeStatus, string> = {
+    idle: selectedSession?.status === "live" ? "实时连接待启动" : "实时连接未启用",
+    connecting: "实时连接中",
+    connected: "实时已连接",
+    recovering: "实时连接恢复中",
+  };
 
   const filteredSessions = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -225,8 +236,13 @@ export default function LiveManagementSection() {
 
   useEffect(() => {
     const liveId = selectedSession?.id;
-    if (!liveId || selectedSession?.status !== "live" || !user?.id) return;
+    if (!liveId || selectedSession?.status !== "live" || !user?.id) {
+      setRealtimeStatus("idle");
+      return;
+    }
     let disposed = false;
+    let warningTimer: ReturnType<typeof setTimeout> | null = null;
+    const warningToastId = `live-realtime-${liveId}`;
     const channel = supabase.channel(getLiveTopic(liveId), {
       config: {
         private: true,
@@ -235,6 +251,13 @@ export default function LiveManagementSection() {
       },
     });
     channelRef.current = channel;
+    setRealtimeStatus("connecting");
+
+    const clearWarningTimer = () => {
+      if (!warningTimer) return;
+      clearTimeout(warningTimer);
+      warningTimer = null;
+    };
 
     channel
       .on("broadcast", { event: "*" }, (payload) => {
@@ -250,8 +273,11 @@ export default function LiveManagementSection() {
       .on("presence", { event: "sync" }, () => {
         setOnlineUsers(flattenPresence(channel.presenceState() as Record<string, PresenceMeta[]>));
       })
-      .subscribe((status) => {
+      .subscribe((status, error) => {
         if (status === "SUBSCRIBED" && !disposed) {
+          clearWarningTimer();
+          toast.dismiss(warningToastId);
+          setRealtimeStatus("connected");
           void channel.track({
             user_id: user.id,
             display_name: profile?.nickname ?? "主持人",
@@ -259,15 +285,34 @@ export default function LiveManagementSection() {
           });
         }
         if ((status === "CHANNEL_ERROR" || status === "TIMED_OUT") && !disposed) {
-          toast.error("Live 实时连接中断，页面会按数据库状态恢复");
+          setRealtimeStatus("recovering");
+          void refreshRoom().catch((refreshError) => {
+            if (import.meta.env.DEV) console.warn("[live-realtime] database recovery failed", refreshError);
+          });
+          if (import.meta.env.DEV) {
+            console.warn("[live-realtime] channel is retrying", status, error?.message ?? "no error detail");
+          }
+          if (!warningTimer) {
+            warningTimer = setTimeout(() => {
+              warningTimer = null;
+              if (!disposed) {
+                toast.warning("Live 实时连接仍在自动重试，控课状态已由数据库保存", {
+                  id: warningToastId,
+                });
+              }
+            }, LIVE_REALTIME_WARNING_DELAY_MS);
+          }
         }
-      });
+      }, LIVE_REALTIME_SUBSCRIBE_TIMEOUT_MS);
 
     return () => {
       disposed = true;
+      clearWarningTimer();
+      toast.dismiss(warningToastId);
       channelRef.current = null;
       void supabase.removeChannel(channel);
       setOnlineUsers([]);
+      setRealtimeStatus("idle");
     };
   }, [selectedSession?.id, selectedSession?.status, user?.id, profile?.nickname, loadResponses, refreshRoom]);
 
@@ -748,9 +793,23 @@ export default function LiveManagementSection() {
                   <p className="text-[10px] font-ds-black tracking-[.16em] text-[#efb393]">D · 互动控制 / 实时结果</p>
                   <p className="mt-1 text-ds-xs text-white/55">这里只负责发布、停止、公布与下一题；数据分析已移至独立看板。</p>
                 </div>
-                <div className="flex items-center gap-2 rounded-ds-lg border border-white/10 bg-white/[.06] px-3 py-2 text-ds-xs">
-                  <Users className="h-4 w-4 text-[#efb393]" />
-                  学员在线 {new Set(onlineUsers.filter((item) => item.role !== "admin").map((item) => item.user_id ?? JSON.stringify(item))).size}
+                <div className="flex flex-wrap items-center gap-2 text-ds-xs">
+                  <div className="flex items-center gap-2 rounded-ds-lg border border-white/10 bg-white/[.06] px-3 py-2">
+                    <Users className="h-4 w-4 text-[#efb393]" />
+                    学员在线 {new Set(onlineUsers.filter((item) => item.role !== "admin").map((item) => item.user_id ?? JSON.stringify(item))).size}
+                  </div>
+                  <div className="flex items-center gap-2 rounded-ds-lg border border-white/10 bg-white/[.06] px-3 py-2">
+                    <span
+                      className={`h-2 w-2 rounded-full ${
+                        realtimeStatus === "connected"
+                          ? "bg-emerald-300"
+                          : realtimeStatus === "recovering"
+                            ? "animate-pulse bg-amber-300"
+                            : "bg-white/35"
+                      }`}
+                    />
+                    {realtimeStatusText[realtimeStatus]}
+                  </div>
                 </div>
               </div>
 
