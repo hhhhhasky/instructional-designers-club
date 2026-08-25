@@ -3,6 +3,7 @@ import type { Json } from "@/types/database.generated";
 export type LiveStatus = "draft" | "live" | "ended";
 export type LiveQuestionState = "waiting" | "answering" | "closed" | "revealed";
 export type LiveQuestionType = "single_choice" | "multiple_choice" | "true_false";
+export type LiveAudienceMode = "all" | "targeted";
 export type LiveAnswer = string | boolean | string[];
 
 export interface LiveSession {
@@ -27,10 +28,21 @@ export interface LiveQuestion {
   type: LiveQuestionType;
   content: string;
   options: LiveQuestionOption[];
+  audience_mode: LiveAudienceMode;
 }
 
 export interface AdminLiveQuestion extends LiveQuestion {
   correct_answer: Json;
+  target_user_ids: string[];
+  target_tags: string[];
+}
+
+export interface LiveAdminParticipant {
+  user_id: string;
+  nickname: string;
+  joined_at: string;
+  last_seen_at: string;
+  tags: string[];
 }
 
 export interface LiveResponse {
@@ -58,6 +70,37 @@ export const LIVE_QUESTION_TYPE_LABELS: Record<LiveQuestionType, string> = {
   multiple_choice: "多选题",
   true_false: "判断题",
 };
+
+export const LIVE_AUDIENCE_MODE_LABELS: Record<LiveAudienceMode, string> = {
+  all: "全部学员",
+  targeted: "定向学员",
+};
+
+export const LIVE_PARTICIPANT_TAG_PRESETS = ["进度较快", "进度较慢", "需要挑战", "需要支持"] as const;
+
+export function normalizeLiveTag(value: string): string {
+  return value.trim().replace(/\s+/g, " ").slice(0, 32);
+}
+
+export function formatLiveAudience(
+  question: Pick<AdminLiveQuestion, "audience_mode" | "target_user_ids" | "target_tags">,
+): string {
+  if (question.audience_mode === "all") return LIVE_AUDIENCE_MODE_LABELS.all;
+  const parts: string[] = [];
+  if (question.target_tags.length > 0) parts.push(`${question.target_tags.length} 个标签`);
+  if (question.target_user_ids.length > 0) parts.push(`${question.target_user_ids.length} 位学员`);
+  return parts.length > 0 ? `定向 · ${parts.join(" + ")}` : "定向 · 尚未选择";
+}
+
+export function liveQuestionTargetsParticipant(
+  question: Pick<AdminLiveQuestion, "audience_mode" | "target_user_ids" | "target_tags">,
+  participant: Pick<LiveAdminParticipant, "user_id" | "tags">,
+): boolean {
+  if (question.audience_mode === "all") return true;
+  if (question.target_user_ids.includes(participant.user_id)) return true;
+  const participantTags = new Set(participant.tags);
+  return question.target_tags.some((tag) => participantTags.has(tag));
+}
 
 export function getLiveTopic(liveId: string): string {
   return `live:${liveId}`;

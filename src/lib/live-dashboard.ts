@@ -1,9 +1,10 @@
-import type { AdminLiveQuestion, LiveResponse, LiveSession } from "@/lib/live";
-import { summarizeLiveResults, type LiveResultsSummary } from "@/lib/live";
+import type { AdminLiveQuestion, LiveAdminParticipant, LiveResponse, LiveSession } from "@/lib/live";
+import { liveQuestionTargetsParticipant, summarizeLiveResults, type LiveResultsSummary } from "@/lib/live";
 
 export interface AdminLiveQuestionDashboard extends LiveResultsSummary {
   question: AdminLiveQuestion;
   responseRate: number;
+  targetParticipantCount: number;
 }
 
 export interface AdminLiveSessionDashboard {
@@ -20,6 +21,7 @@ export interface LiveRoomAudienceSummary {
   liveId: string;
   currentQuestionId: string | null;
   joinedCount: number;
+  targetedCount: number;
   answeredCount: number;
 }
 
@@ -31,15 +33,20 @@ export function buildAdminLiveSessionDashboard(
   session: LiveSession,
   questions: AdminLiveQuestion[],
   responses: LiveResponse[],
-  participantCount: number,
+  participants: LiveAdminParticipant[],
 ): AdminLiveSessionDashboard {
+  const participantCount = participants.length;
   const answeredParticipantCount = new Set(responses.map((response) => response.user_id)).size;
   const questionDashboards = questions.map((question) => {
     const questionResponses = responses.filter((response) => response.question_id === question.id);
+    const targetParticipantCount = participants.filter((participant) => (
+      liveQuestionTargetsParticipant(question, participant)
+    )).length;
     return {
       question,
       ...summarizeLiveResults(question, question.correct_answer, questionResponses),
-      responseRate: percentage(questionResponses.length, participantCount),
+      responseRate: percentage(questionResponses.length, targetParticipantCount),
+      targetParticipantCount,
     };
   });
 

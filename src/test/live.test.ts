@@ -5,9 +5,11 @@ import { getLiveParticipantResults, getLiveRoomAudienceSummary, recordLivePartic
 import { supabase } from "@/db/supabase";
 import {
   extractLiveEvent,
+  formatLiveAudience,
   getLiveControlCapabilities,
   isCorrectLiveAnswer,
   isLiveQuestionEditable,
+  liveQuestionTargetsParticipant,
   nextLiveQuestionId,
   summarizeLiveResults,
   type AdminLiveQuestion,
@@ -119,11 +121,13 @@ describe("Live large dashboard aggregation", () => {
     const questions: AdminLiveQuestion[] = [
       {
         id: "q1", live_id: "live-1", position: 1, title: "目标题", type: "single_choice",
-        content: "请选择", options, correct_answer: "B",
+        content: "请选择", options, correct_answer: "B", audience_mode: "all",
+        target_user_ids: [], target_tags: [],
       },
       {
         id: "q2", live_id: "live-1", position: 2, title: "判断题", type: "true_false",
-        content: "请判断", options: [], correct_answer: true,
+        content: "请判断", options: [], correct_answer: true, audience_mode: "targeted",
+        target_user_ids: [], target_tags: ["进度较快"],
       },
     ];
     const responses = [
@@ -132,7 +136,14 @@ describe("Live large dashboard aggregation", () => {
       { question_id: "q2", user_id: "u1", answer: true, answered_at: "2026-08-24T08:01:00Z" },
     ];
 
-    const result = buildAdminLiveSessionDashboard(session, questions, responses, 4);
+    const participants = [
+      { user_id: "u1", nickname: "甲", joined_at: "2026-08-24T07:59:00Z", last_seen_at: "2026-08-24T08:01:00Z", tags: ["进度较快"] },
+      { user_id: "u2", nickname: "乙", joined_at: "2026-08-24T07:59:00Z", last_seen_at: "2026-08-24T08:01:00Z", tags: ["进度较慢"] },
+      { user_id: "u3", nickname: "丙", joined_at: "2026-08-24T07:59:00Z", last_seen_at: "2026-08-24T08:01:00Z", tags: ["进度较快"] },
+      { user_id: "u4", nickname: "丁", joined_at: "2026-08-24T07:59:00Z", last_seen_at: "2026-08-24T08:01:00Z", tags: [] },
+    ];
+
+    const result = buildAdminLiveSessionDashboard(session, questions, responses, participants);
     expect(result).toMatchObject({
       participantCount: 4,
       answeredParticipantCount: 2,
@@ -140,8 +151,20 @@ describe("Live large dashboard aggregation", () => {
       questionCount: 2,
       overallParticipationRate: 50,
     });
-    expect(result.questions.map((item) => [item.answeredCount, item.responseRate, item.correctRate]))
-      .toEqual([[2, 50, 50], [1, 25, 100]]);
+    expect(result.questions.map((item) => [item.targetParticipantCount, item.answeredCount, item.responseRate, item.correctRate]))
+      .toEqual([[4, 2, 50, 50], [2, 1, 50, 100]]);
+  });
+
+  it("matches a targeted question by explicit user or any participant tag", () => {
+    const targeted = {
+      audience_mode: "targeted" as const,
+      target_user_ids: ["u1"],
+      target_tags: ["进度较快"],
+    };
+    expect(liveQuestionTargetsParticipant(targeted, { user_id: "u1", tags: [] })).toBe(true);
+    expect(liveQuestionTargetsParticipant(targeted, { user_id: "u2", tags: ["进度较快"] })).toBe(true);
+    expect(liveQuestionTargetsParticipant(targeted, { user_id: "u3", tags: ["进度较慢"] })).toBe(false);
+    expect(formatLiveAudience(targeted)).toBe("定向 · 1 个标签 + 1 位学员");
   });
 });
 
@@ -221,6 +244,7 @@ describe("Live V1 realtime recovery and persistence", () => {
           live_id: "live-1",
           current_question_id: "q1",
           joined_count: 12,
+          targeted_count: 8,
           answered_count: 8,
         },
         error: null,
@@ -231,6 +255,7 @@ describe("Live V1 realtime recovery and persistence", () => {
       liveId: "live-1",
       currentQuestionId: "q1",
       joinedCount: 12,
+      targetedCount: 8,
       answeredCount: 8,
     });
     expect(supabase.rpc).toHaveBeenNthCalledWith(1, "record_live_participant", { p_live_id: "live-1" });
@@ -300,5 +325,32 @@ describe("Live V1 database boundary", () => {
     expect(sql).not.toContain("grant insert on table public.live_participants to authenticated");
     expect(sql).not.toContain("grant update on table public.live_participants to authenticated");
     expect(sql).not.toContain("'user_id',");
+  });
+
+  it("enforces targeted question visibility and keeps tag writes admin-only", () => {
+    const sql = readFileSync(
+      resolve(process.cwd(), "supabase/migrations/20260825021924_live_targeted_audiences.sql"),
+      "utf8",
+    );
+    for (const table of [
+      "live_participant_tags",
+      "live_question_target_users",
+      "live_question_target_tags",
+    ]) {
+      expect(sql).toContain(`create table if not exists public.${table}`);
+      expect(sql).toContain(`alter table public.${table} enable row level security`);
+      expect(sql).toContain(`revoke all on table public.${table} from anon, authenticated`);
+    }
+    expect(sql).toContain("create or replace function public.live_can_access_question");
+    expect(sql).toContain("participants read targeted current question");
+    expect(sql).toContain("targeted participants insert own responses");
+    expect(sql).toContain("targeted participants update own responses");
+    expect(sql).toContain("create or replace function public.set_live_question_audience");
+    expect(sql).toContain("create or replace function public.set_live_participant_tags");
+    expect(sql).toContain("revoke all on function public.set_live_question_audience(uuid, text, uuid[], text[]) from anon");
+    expect(sql).toContain("revoke all on function public.set_live_participant_tags(uuid, uuid, text[]) from anon");
+    expect(sql).toContain("'targeted_count', v_targeted_count");
+    expect(sql).not.toContain("grant insert on table public.live_participant_tags to authenticated");
+    expect(sql).not.toContain("grant update on table public.live_participant_tags to authenticated");
   });
 });

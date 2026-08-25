@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import LiveAudienceFields from "@/components/live/LiveAudienceFields";
 import QuestionSettingsFields, {
   type QuestionSettingsTypeOption,
 } from "@/components/questions/QuestionSettingsFields";
@@ -16,6 +17,8 @@ import type { LiveQuestionInput } from "@/db/live-api";
 import {
   LIVE_QUESTION_TYPE_LABELS,
   type AdminLiveQuestion,
+  type LiveAdminParticipant,
+  type LiveAudienceMode,
   type LiveQuestionType,
 } from "@/lib/live";
 
@@ -36,6 +39,9 @@ interface QuestionEditorForm {
   correctSingle: string;
   correctMultiple: string[];
   correctBoolean: boolean;
+  audienceMode: LiveAudienceMode;
+  targetUserIds: string[];
+  targetTags: string[];
 }
 
 const EMPTY_FORM: QuestionEditorForm = {
@@ -46,6 +52,9 @@ const EMPTY_FORM: QuestionEditorForm = {
   correctSingle: "A",
   correctMultiple: [],
   correctBoolean: true,
+  audienceMode: "all",
+  targetUserIds: [],
+  targetTags: [],
 };
 
 function questionToForm(question: AdminLiveQuestion | null): QuestionEditorForm {
@@ -61,6 +70,9 @@ function questionToForm(question: AdminLiveQuestion | null): QuestionEditorForm 
       ? question.correct_answer.filter((id): id is string => typeof id === "string")
       : [],
     correctBoolean: question.correct_answer !== false,
+    audienceMode: question.audience_mode,
+    targetUserIds: question.target_user_ids,
+    targetTags: question.target_tags,
   };
 }
 
@@ -70,6 +82,9 @@ interface QuestionEditorModalProps {
   question: AdminLiveQuestion | null;
   locked: boolean;
   saving: boolean;
+  participants: LiveAdminParticipant[];
+  availableTags: string[];
+  onlineUserIds: string[];
   onSave: (input: LiveQuestionInput) => Promise<void>;
 }
 
@@ -79,6 +94,9 @@ export default function QuestionEditorModal({
   question,
   locked,
   saving,
+  participants,
+  availableTags,
+  onlineUserIds,
   onSave,
 }: QuestionEditorModalProps) {
   const [form, setForm] = useState<QuestionEditorForm>(EMPTY_FORM);
@@ -108,6 +126,16 @@ export default function QuestionEditorModal({
       toast.error("请填写题干");
       return;
     }
+    if (form.audienceMode === "targeted" && form.targetUserIds.length === 0 && form.targetTags.length === 0) {
+      toast.error("定向题目至少选择一位学员或一个标签");
+      return;
+    }
+
+    const audience = {
+      audience_mode: form.audienceMode,
+      target_user_ids: form.audienceMode === "targeted" ? form.targetUserIds : [],
+      target_tags: form.audienceMode === "targeted" ? form.targetTags : [],
+    };
 
     if (form.type === "true_false") {
       await onSave({
@@ -116,6 +144,7 @@ export default function QuestionEditorModal({
         content,
         options: [],
         correct_answer: form.correctBoolean,
+        ...audience,
       });
       return;
     }
@@ -141,6 +170,7 @@ export default function QuestionEditorModal({
         content,
         options,
         correct_answer: form.correctSingle,
+        ...audience,
       });
       return;
     }
@@ -156,6 +186,7 @@ export default function QuestionEditorModal({
       content,
       options,
       correct_answer: correctMultiple,
+      ...audience,
     });
   };
 
@@ -208,6 +239,19 @@ export default function QuestionEditorModal({
               correctMultiple: correct,
               correctBoolean: correct[0] !== "false",
             }))}
+          />
+
+          <LiveAudienceFields
+            mode={form.audienceMode}
+            targetUserIds={form.targetUserIds}
+            targetTags={form.targetTags}
+            participants={participants}
+            availableTags={availableTags}
+            onlineUserIds={onlineUserIds}
+            disabled={locked || saving}
+            onModeChange={(audienceMode) => setForm((prev) => ({ ...prev, audienceMode }))}
+            onTargetUserIdsChange={(targetUserIds) => setForm((prev) => ({ ...prev, targetUserIds }))}
+            onTargetTagsChange={(targetTags) => setForm((prev) => ({ ...prev, targetTags }))}
           />
         </div>
 

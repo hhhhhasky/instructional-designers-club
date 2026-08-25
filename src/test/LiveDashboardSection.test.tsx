@@ -71,9 +71,13 @@ const fixture: AdminLiveSessionDashboard = {
       content: "请从两个目标中选择",
       options: [{ id: "A", text: "了解知识" }, { id: "B", text: "能解释并运用" }],
       correct_answer: "B",
+      audience_mode: "targeted",
+      target_user_ids: [],
+      target_tags: ["需要支持"],
     },
     answeredCount: 9,
     responseRate: 75,
+    targetParticipantCount: 12,
     correctCount: 6,
     correctRate: 66.7,
     options: [

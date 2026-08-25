@@ -240,8 +240,14 @@ export default function LiveParticipantPage() {
               <div className="editorial-paper mt-4 grid min-h-72 place-items-center p-8 text-center">
                 <div>
                   <span className="editorial-kicker">{session.room_code}</span>
-                  <h1 className="mt-3 font-serif text-ds-xl font-ds-black text-tx">已进入互动课堂</h1>
-                  <p className="mt-2 text-ds-sm text-txs">等待主持人发布问题……</p>
+                  <h1 className="mt-3 font-serif text-ds-xl font-ds-black text-tx">
+                    {session.current_question_id && !question ? "当前没有为你发布题目" : "已进入互动课堂"}
+                  </h1>
+                  <p className="mt-2 text-ds-sm text-txs">
+                    {session.current_question_id && !question
+                      ? "主持人正在根据不同学习进度发布不同问题，请继续保持在线。"
+                      : "等待主持人发布问题……"}
+                  </p>
                 </div>
               </div>
             ) : (

@@ -12,8 +12,10 @@ import {
   RefreshCw,
   Search,
   Square,
+  Tags,
   Trash2,
   Users,
+  X,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -36,10 +38,12 @@ import {
   createLiveSession,
   deleteLiveQuestion,
   endLiveSession,
+  getAdminLiveParticipants,
   getAdminLiveQuestions,
   getAdminLiveSessions,
   getLiveResponses,
   openLiveSession,
+  setLiveParticipantTags,
   updateLiveQuestion,
   updateLiveSessionState,
   updateLiveTitle,
@@ -49,14 +53,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   LIVE_QUESTION_STATE_LABELS,
   LIVE_QUESTION_TYPE_LABELS,
+  LIVE_PARTICIPANT_TAG_PRESETS,
   LIVE_STATUS_LABELS,
   extractLiveEvent,
+  formatLiveAudience,
   getLiveControlCapabilities,
   getLiveTopic,
   isLiveQuestionEditable,
+  liveQuestionTargetsParticipant,
   nextLiveQuestionId,
+  normalizeLiveTag,
   summarizeLiveResults,
   type AdminLiveQuestion,
+  type LiveAdminParticipant,
   type LiveResponse,
   type LiveSession,
   type LiveStatus,
@@ -100,6 +109,7 @@ export default function LiveManagementSection() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [questions, setQuestions] = useState<AdminLiveQuestion[]>([]);
   const [responses, setResponses] = useState<LiveResponse[]>([]);
+  const [participants, setParticipants] = useState<LiveAdminParticipant[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<PresenceMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -119,6 +129,8 @@ export default function LiveManagementSection() {
   const [deleteQuestion, setDeleteQuestion] = useState<AdminLiveQuestion | null>(null);
   const [showQr, setShowQr] = useState(false);
   const [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>("idle");
+  const [participantTagInputs, setParticipantTagInputs] = useState<Record<string, string>>({});
+  const [savingParticipantId, setSavingParticipantId] = useState<string | null>(null);
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   const selectedSession = useMemo(
@@ -136,6 +148,21 @@ export default function LiveManagementSection() {
     connected: "实时已连接",
     recovering: "实时连接恢复中",
   };
+  const onlineUserIds = useMemo(() => Array.from(new Set(
+    onlineUsers
+      .filter((item) => item.role === "participant" && item.user_id)
+      .map((item) => item.user_id as string),
+  )), [onlineUsers]);
+  const onlineUserIdSet = useMemo(() => new Set(onlineUserIds), [onlineUserIds]);
+  const availableTags = useMemo(() => Array.from(new Set([
+    ...LIVE_PARTICIPANT_TAG_PRESETS,
+    ...participants.flatMap((participant) => participant.tags),
+    ...questions.flatMap((question) => question.target_tags),
+  ])), [participants, questions]);
+  const orderedParticipants = useMemo(() => [...participants].sort((left, right) => (
+    Number(onlineUserIdSet.has(right.user_id)) - Number(onlineUserIdSet.has(left.user_id))
+    || right.last_seen_at.localeCompare(left.last_seen_at)
+  )), [onlineUserIdSet, participants]);
 
   const filteredSessions = useMemo(() => {
     const keyword = search.trim().toLowerCase();
@@ -155,6 +182,12 @@ export default function LiveManagementSection() {
 
   const loadResponses = useCallback(async (questionId: string | null) => {
     setResponses(questionId ? await getLiveResponses(questionId) : []);
+  }, []);
+
+  const loadParticipants = useCallback(async (liveId: string) => {
+    const rows = await getAdminLiveParticipants(liveId);
+    setParticipants(rows);
+    return rows;
   }, []);
 
   const loadSessions = useCallback(async (preferredId?: string | null) => {
@@ -187,12 +220,17 @@ export default function LiveManagementSection() {
     if (!selectedId) {
       setQuestions([]);
       setResponses([]);
+      setParticipants([]);
       setDraftTitle("");
       return;
     }
     let cancelled = false;
     setDetailsLoading(true);
-    Promise.all([loadQuestions(selectedId), loadResponses(sessions.find((row) => row.id === selectedId)?.current_question_id ?? null)])
+    Promise.all([
+      loadQuestions(selectedId),
+      loadParticipants(selectedId),
+      loadResponses(sessions.find((row) => row.id === selectedId)?.current_question_id ?? null),
+    ])
       .catch((error) => {
         if (!cancelled) toast.error(getErrorText(error, "读取题目或实时结果失败"));
       })
@@ -205,7 +243,7 @@ export default function LiveManagementSection() {
     return () => {
       cancelled = true;
     };
-  }, [selectedId, loadQuestions, loadResponses, sessions]);
+  }, [selectedId, loadParticipants, loadQuestions, loadResponses, sessions]);
 
   useEffect(() => {
     if (!selectedSession?.current_question_id && questions.length === 0) {
@@ -229,10 +267,11 @@ export default function LiveManagementSection() {
     const sessionRows = await loadSessions(selectedId);
     if (selectedId) {
       const questionRows = await loadQuestions(selectedId);
+      await loadParticipants(selectedId);
       const session = sessionRows.find((row) => row.id === selectedId);
       await loadResponses(session?.current_question_id ?? questionRows[0]?.id ?? null);
     }
-  }, [loadQuestions, loadResponses, loadSessions, selectedId]);
+  }, [loadParticipants, loadQuestions, loadResponses, loadSessions, selectedId]);
 
   useEffect(() => {
     const liveId = selectedSession?.id;
@@ -272,6 +311,9 @@ export default function LiveManagementSection() {
       })
       .on("presence", { event: "sync" }, () => {
         setOnlineUsers(flattenPresence(channel.presenceState() as Record<string, PresenceMeta[]>));
+        void loadParticipants(liveId).catch(() => {
+          // Presence 可能先于进入记录落库；下一次同步或手动刷新会补齐。
+        });
       })
       .subscribe((status, error) => {
         if (status === "SUBSCRIBED" && !disposed) {
@@ -314,7 +356,7 @@ export default function LiveManagementSection() {
       setOnlineUsers([]);
       setRealtimeStatus("idle");
     };
-  }, [selectedSession?.id, selectedSession?.status, user?.id, profile?.nickname, loadResponses, refreshRoom]);
+  }, [selectedSession?.id, selectedSession?.status, user?.id, profile?.nickname, loadParticipants, loadResponses, refreshRoom]);
 
   const sendControlEvent = async (event: string, payload: Record<string, string>) => {
     const channel = channelRef.current;
@@ -515,6 +557,36 @@ export default function LiveManagementSection() {
     } catch (error) {
       toast.error(getErrorText(error, "复制题目失败"));
     }
+  };
+
+  const saveParticipantTags = async (participant: LiveAdminParticipant, tags: string[]) => {
+    if (!selectedSession) return;
+    try {
+      setSavingParticipantId(participant.user_id);
+      const savedTags = await setLiveParticipantTags(selectedSession.id, participant.user_id, tags);
+      setParticipants((current) => current.map((item) => (
+        item.user_id === participant.user_id ? { ...item, tags: savedTags } : item
+      )));
+      if (selectedSession.status === "live") {
+        void sendControlEvent("audience_changed", { live_id: selectedSession.id });
+      }
+      toast.success(`已更新 ${participant.nickname} 的标签`);
+    } catch (error) {
+      toast.error(getErrorText(error, "保存学员标签失败"));
+    } finally {
+      setSavingParticipantId(null);
+    }
+  };
+
+  const addParticipantTag = (participant: LiveAdminParticipant, rawTag: string) => {
+    const tag = normalizeLiveTag(rawTag);
+    if (!tag || participant.tags.includes(tag)) return;
+    if (participant.tags.length >= 12) {
+      toast.error("每位学员最多设置 12 个标签");
+      return;
+    }
+    setParticipantTagInputs((current) => ({ ...current, [participant.user_id]: "" }));
+    void saveParticipantTags(participant, [...participant.tags, tag]);
   };
 
   const handleDeleteQuestion = async () => {
@@ -733,12 +805,16 @@ export default function LiveManagementSection() {
                         <th className="py-2 pr-3">序号</th>
                         <th className="py-2 pr-3">题目标题</th>
                         <th className="py-2 pr-3">题目类型</th>
+                        <th className="py-2 pr-3">发送对象</th>
                         <th className="py-2 text-right">操作</th>
                       </tr>
                     </thead>
                     <tbody>
                       {questions.map((question) => {
                         const editable = isLiveQuestionEditable(selectedSession, question.id);
+                        const targetCount = participants.filter((participant) => (
+                          liveQuestionTargetsParticipant(question, participant)
+                        )).length;
                         return (
                           <tr key={question.id} className="border-b border-bdl last:border-0">
                             <td className="py-2.5 pr-3 font-mono text-txs">Q{question.position}</td>
@@ -747,6 +823,11 @@ export default function LiveManagementSection() {
                               <p className="line-clamp-1 text-ds-xs text-txs">{question.content}</p>
                             </td>
                             <td className="py-2.5 pr-3 text-txs">{LIVE_QUESTION_TYPE_LABELS[question.type]}</td>
+                            <td className="py-2.5 pr-3">
+                              <span className={`rounded-ds-pill px-2 py-1 text-[10px] font-ds-bold ${question.audience_mode === "all" ? "bg-warm text-txs" : "bg-acl text-ac"}`}>
+                                {formatLiveAudience(question)} · 当前匹配 {targetCount} 人
+                              </span>
+                            </td>
                             <td className="py-2.5">
                               <div className="flex justify-end gap-1">
                                 <button
@@ -783,6 +864,100 @@ export default function LiveManagementSection() {
                       })}
                     </tbody>
                   </table>
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-ds-xl border border-bd bg-white/75 p-4 shadow-ds-xs">
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <p className="text-[10px] font-ds-black tracking-[.16em] text-txs">C · 学员标签与分组</p>
+                  <p className="mt-1 text-ds-xs leading-5 text-txs">给进入过本场房间的学员添加标签；题目可按标签或指定个人定向发布。</p>
+                </div>
+                <div className="flex flex-wrap gap-2 text-ds-xs">
+                  <span className="rounded-ds-pill bg-tll px-2.5 py-1 font-ds-bold text-tl">在线 {onlineUserIds.length}</span>
+                  <span className="rounded-ds-pill bg-warm px-2.5 py-1 text-txs">累计 {participants.length}</span>
+                </div>
+              </div>
+
+              {orderedParticipants.length === 0 ? (
+                <div className="mt-4 rounded-ds-lg border border-dashed border-bd bg-bg/70 px-4 py-6 text-center text-ds-sm text-txs">
+                  学员进入房间后会出现在这里。标签只在当前 Live 场次内生效。
+                </div>
+              ) : (
+                <div className="mt-4 grid gap-3 xl:grid-cols-2">
+                  {orderedParticipants.map((participant) => {
+                    const online = onlineUserIdSet.has(participant.user_id);
+                    const inputValue = participantTagInputs[participant.user_id] ?? "";
+                    const saving = savingParticipantId === participant.user_id;
+                    return (
+                      <article key={participant.user_id} className="rounded-ds-lg border border-bd bg-bg/70 p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className={`h-2.5 w-2.5 rounded-full ${online ? "bg-emerald-500" : "bg-bd"}`} />
+                              <h3 className="truncate text-ds-sm font-ds-bold text-tx">{participant.nickname}</h3>
+                              <span className="text-[10px] text-txt">{online ? "在线" : "已离线"}</span>
+                            </div>
+                            <p className="mt-1 font-mono text-[10px] text-txt">{participant.user_id.slice(0, 8)}</p>
+                          </div>
+                          {saving ? <Loader2 className="h-4 w-4 animate-spin text-ac" /> : null}
+                        </div>
+
+                        <div className="mt-3 flex min-h-7 flex-wrap gap-1.5">
+                          {participant.tags.map((tag) => (
+                            <span key={tag} className="inline-flex items-center gap-1 rounded-ds-pill bg-acl px-2.5 py-1 text-ds-xs font-ds-bold text-ac">
+                              {tag}
+                              <button
+                                type="button"
+                                aria-label={`移除 ${participant.nickname} 的标签 ${tag}`}
+                                disabled={saving || selectedSession.status === "ended"}
+                                onClick={() => void saveParticipantTags(participant, participant.tags.filter((item) => item !== tag))}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                          ))}
+                          {participant.tags.length === 0 ? <span className="text-ds-xs text-txt">暂无标签</span> : null}
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {LIVE_PARTICIPANT_TAG_PRESETS.filter((tag) => !participant.tags.includes(tag)).map((tag) => (
+                            <button
+                              key={tag}
+                              type="button"
+                              disabled={saving || selectedSession.status === "ended"}
+                              onClick={() => addParticipantTag(participant, tag)}
+                              className="rounded-ds-pill border border-bd bg-white px-2 py-1 text-[10px] text-txs hover:border-ac hover:text-ac disabled:opacity-40"
+                            >
+                              + {tag}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="mt-3 flex gap-2">
+                          <label className="relative min-w-0 flex-1">
+                            <Tags className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-txt" />
+                            <input
+                              value={inputValue}
+                              onChange={(event) => setParticipantTagInputs((current) => ({ ...current, [participant.user_id]: event.target.value }))}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                  event.preventDefault();
+                                  addParticipantTag(participant, inputValue);
+                                }
+                              }}
+                              disabled={saving || selectedSession.status === "ended"}
+                              maxLength={32}
+                              placeholder="自定义标签"
+                              className="h-9 w-full rounded-ds-md border border-bd bg-white pl-8 pr-2 text-ds-xs text-tx focus:border-ac focus:outline-none"
+                            />
+                          </label>
+                          <Button type="button" size="sm" variant="outline" disabled={saving || !normalizeLiveTag(inputValue) || selectedSession.status === "ended"} onClick={() => addParticipantTag(participant, inputValue)}>添加</Button>
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
               )}
             </section>
@@ -826,7 +1001,7 @@ export default function LiveManagementSection() {
                       {questions.length === 0 ? <option value="">暂无题目</option> : null}
                       {questions.map((question) => (
                         <option key={question.id} value={question.id}>
-                          Q{question.position} {question.title}
+                          Q{question.position} {question.title} · {formatLiveAudience(question)}
                         </option>
                       ))}
                     </select>
@@ -873,6 +1048,7 @@ export default function LiveManagementSection() {
                       <div>
                         <p className="text-[10px] font-ds-black tracking-[.14em] text-[#efb393]">CURRENT SNAPSHOT</p>
                         <p className="mt-2 font-serif text-ds-lg font-ds-black">Q{currentQuestion.position} · {currentQuestion.title}</p>
+                        <p className="mt-1 text-ds-xs text-[#efb393]">{formatLiveAudience(currentQuestion)}</p>
                         <p className="mt-2 text-ds-sm text-white/60">已答 <span className="font-ds-black text-white">{summary.answeredCount}</span> 人 · 正确率 <span className="font-ds-black text-white">{summary.correctRate}%</span></p>
                       </div>
                       <Button asChild className="mt-5 w-full bg-[#efb393] text-[#244f48] hover:bg-[#e39c76] hover:text-[#244f48]">
@@ -915,6 +1091,9 @@ export default function LiveManagementSection() {
           ),
         )}
         saving={savingQuestion}
+        participants={participants}
+        availableTags={availableTags}
+        onlineUserIds={onlineUserIds}
         onSave={handleSaveQuestion}
       />
       <ConfirmDialog

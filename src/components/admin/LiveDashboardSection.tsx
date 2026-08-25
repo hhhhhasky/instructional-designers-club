@@ -31,6 +31,7 @@ import {
   LIVE_STATUS_LABELS,
   extractLiveEvent,
   formatLiveAnswer,
+  formatLiveAudience,
   getLiveTopic,
   type LiveSession,
 } from "@/lib/live";
@@ -267,7 +268,7 @@ export default function LiveDashboardSection() {
 
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,.8fr)]">
         <article className="rounded-ds-xl border border-bd bg-white p-4 shadow-ds-xs md:p-6">
-          <SectionHeading eyebrow="QUESTION REACH" title="每道题的互动参与" description="作答人数 ÷ 累计进入人数，快速找出参与下降的题目" />
+          <SectionHeading eyebrow="QUESTION REACH" title="每道题的互动参与" description="作答人数 ÷ 该题目标人数，兼容全员题与定向题" />
           {questionChart.length > 0 ? (
             <div className="mt-4 h-[320px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -289,8 +290,9 @@ export default function LiveDashboardSection() {
             <div className="mt-5">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <p className="font-serif text-ds-xl font-ds-black text-tx">Q{currentQuestion.question.position} · {currentQuestion.question.title}</p>
-                <span className="text-ds-xs text-txs">{currentQuestion.answeredCount} 人已答 · {currentQuestion.responseRate}%</span>
+                <span className="text-ds-xs text-txs">{currentQuestion.answeredCount} / {currentQuestion.targetParticipantCount} 人已答 · {currentQuestion.responseRate}%</span>
               </div>
+              <p className="mt-2 text-ds-xs font-ds-bold text-ac">{formatLiveAudience(currentQuestion.question)}</p>
               <OptionBars options={currentQuestion.options} />
               <p className="mt-4 border-t border-bd pt-3 text-ds-xs text-txs">正确答案 <span className="font-ds-bold text-tl">{formatLiveAnswer(currentQuestion.question.correct_answer)}</span> · 正确率 {currentQuestion.correctRate}%</p>
             </div>
@@ -305,8 +307,8 @@ export default function LiveDashboardSection() {
             {dashboard.questions.map((item) => (
               <article key={item.question.id} className="rounded-ds-xl border border-bd bg-bg/70 p-4">
                 <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0"><p className="text-[10px] font-ds-black tracking-[.14em] text-ac">Q{item.question.position} · {LIVE_QUESTION_TYPE_LABELS[item.question.type]}</p><h3 className="mt-1 line-clamp-2 font-serif text-ds-lg font-ds-black text-tx">{item.question.title}</h3></div>
-                  <div className="shrink-0 text-right"><p className="font-serif text-ds-2xl font-ds-black text-tx">{item.answeredCount}</p><p className="text-[10px] text-txs">人已答 · {item.responseRate}%</p></div>
+                  <div className="min-w-0"><p className="text-[10px] font-ds-black tracking-[.14em] text-ac">Q{item.question.position} · {LIVE_QUESTION_TYPE_LABELS[item.question.type]}</p><h3 className="mt-1 line-clamp-2 font-serif text-ds-lg font-ds-black text-tx">{item.question.title}</h3><p className="mt-1 text-[10px] font-ds-bold text-ac">{formatLiveAudience(item.question)} · 目标 {item.targetParticipantCount} 人</p></div>
+                  <div className="shrink-0 text-right"><p className="font-serif text-ds-2xl font-ds-black text-tx">{item.answeredCount}</p><p className="text-[10px] text-txs">/{item.targetParticipantCount} 人 · {item.responseRate}%</p></div>
                 </div>
                 <OptionBars options={item.options} compact />
                 <div className="mt-3 flex items-center justify-between border-t border-bdl pt-3 text-[11px] text-txs"><span>正确率 {item.correctRate}%</span><span>正确答案 {formatLiveAnswer(item.question.correct_answer)}</span></div>
@@ -316,7 +318,7 @@ export default function LiveDashboardSection() {
         ) : <EmptyState text="当前场次还没有题目数据" />}
       </section>
 
-      <p className="px-1 text-[11px] leading-5 text-txt">数据口径：“当前在线”来自 Realtime Presence；“累计进入”为本场去重进入账号。记录功能上线前的历史场次只能从已有作答者回填，因此其累计进入数是可恢复的下限。</p>
+      <p className="px-1 text-[11px] leading-5 text-txt">数据口径：“当前在线”来自 Realtime Presence；“累计进入”为本场去重进入账号；单题参与率按该题目标受众计算，指定学员与标签命中者去重。记录功能上线前的历史场次只能从已有作答者回填，因此其累计进入数是可恢复的下限。</p>
     </div>
   );
 }

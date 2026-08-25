@@ -109,8 +109,8 @@ export default function LiveAudienceDashboardPage() {
 
   const onlineCount = learnerOnlineCount(onlineUsers);
   const participationRate = useMemo(() => {
-    if (!summary || summary.joinedCount === 0) return 0;
-    return Math.round((summary.answeredCount / summary.joinedCount) * 1000) / 10;
+    if (!summary || summary.targetedCount === 0) return 0;
+    return Math.round((summary.answeredCount / summary.targetedCount) * 1000) / 10;
   }, [summary]);
 
   return (
@@ -141,11 +141,12 @@ export default function LiveAudienceDashboardPage() {
                     <div><span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[.06] px-3 py-1 text-[11px] font-ds-bold tracking-[.16em] text-[#efb393]"><Radio className="h-3.5 w-3.5" /> LIVE NOW</span><h1 className="mt-4 font-serif text-[2rem] font-ds-black leading-tight md:text-[3rem]">{snapshot.session.title}</h1><p className="mt-2 font-mono text-ds-sm text-white/50">房间 {snapshot.session.room_code} · {LIVE_QUESTION_STATE_LABELS[snapshot.session.question_state]}</p></div>
                     <Button asChild className="bg-[#de7856] text-white hover:bg-[#c96546]"><Link to={`/live/${roomCode}`}>返回作答</Link></Button>
                   </div>
-                  <div className="relative mt-8 grid gap-px overflow-hidden rounded-ds-xl border border-white/10 bg-white/10 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="relative mt-8 grid gap-px overflow-hidden rounded-ds-xl border border-white/10 bg-white/10 sm:grid-cols-2 xl:grid-cols-5">
                     <AudienceKpi icon={Eye} label="当前在线" value={onlineCount} note="Presence 实时学员数" />
                     <AudienceKpi icon={Users} label="累计进入" value={summary.joinedCount} note="本场去重参与者" />
+                    <AudienceKpi icon={Users} label="本题目标" value={summary.targetedCount} note="定向受众去重人数" />
                     <AudienceKpi icon={CheckCircle2} label="当前题已答" value={summary.answeredCount} note="每人只计当前答案" />
-                    <AudienceKpi icon={BarChart3} label="当前题参与率" value={`${participationRate}%`} note="已答 ÷ 累计进入" />
+                    <AudienceKpi icon={BarChart3} label="当前题参与率" value={`${participationRate}%`} note="已答 ÷ 本题目标" />
                   </div>
                 </section>
 
@@ -159,7 +160,7 @@ export default function LiveAudienceDashboardPage() {
                         <div className="mt-7 grid min-h-56 place-items-center rounded-ds-xl border border-dashed border-bd bg-bg/60 p-6 text-center"><div><BarChart3 className="mx-auto h-8 w-8 text-txt" /><p className="mt-3 font-ds-bold text-tx">提交答案后显示选项分布</p><p className="mt-1 text-ds-sm text-txs">为避免当前统计影响你的选择，作答前只展示人数。</p><Button asChild className="mt-4 bg-ac text-white hover:bg-acd"><Link to={`/live/${roomCode}`}>去作答</Link></Button></div></div>
                       )}
                     </>
-                  ) : <div className="grid min-h-72 place-items-center text-center"><div><Radio className="mx-auto h-8 w-8 text-txt" /><h2 className="mt-3 font-serif text-ds-xl font-ds-black text-tx">等待发布题目</h2><p className="mt-2 text-ds-sm text-txs">主持人发布后，本页会自动更新。</p></div></div>}
+                  ) : <div className="grid min-h-72 place-items-center text-center"><div><Radio className="mx-auto h-8 w-8 text-txt" /><h2 className="mt-3 font-serif text-ds-xl font-ds-black text-tx">{snapshot.session.current_question_id ? "当前没有为你发布题目" : "等待发布题目"}</h2><p className="mt-2 text-ds-sm text-txs">{snapshot.session.current_question_id ? "主持人正在为不同学习进度的学员安排不同问题，请继续保持在线。" : "主持人发布后，本页会自动更新。"}</p></div></div>}
                 </section>
               </div>
             )}

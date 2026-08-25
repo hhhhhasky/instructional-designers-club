@@ -4,6 +4,8 @@ import {
   LIVE_STATUS_LABELS,
   type AdminLiveQuestion,
   type LiveAnswer,
+  type LiveAdminParticipant,
+  type LiveAudienceMode,
   type LiveQuestion,
   type LiveQuestionOption,
   type LiveQuestionType,
@@ -23,6 +25,9 @@ export interface LiveQuestionInput {
   content: string;
   options: LiveQuestionOption[];
   correct_answer: Json;
+  audience_mode: LiveAudienceMode;
+  target_user_ids: string[];
+  target_tags: string[];
 }
 
 export interface LiveParticipantSnapshot {
@@ -41,7 +46,10 @@ interface RawAdminQuestion {
   type: LiveQuestionType;
   content: string;
   options: Json;
+  audience_mode?: LiveAudienceMode;
   question_keys?: { correct_answer: Json } | { correct_answer: Json }[] | null;
+  live_question_target_users?: { user_id: string }[] | null;
+  live_question_target_tags?: { tag: string }[] | null;
 }
 
 interface RawQuestion {
@@ -52,6 +60,7 @@ interface RawQuestion {
   type: LiveQuestionType;
   content: string;
   options: Json;
+  audience_mode?: LiveAudienceMode;
 }
 
 interface RawResponse {
@@ -80,6 +89,7 @@ function normalizeQuestion(row: RawQuestion): LiveQuestion {
     type: row.type,
     content: row.content,
     options: normalizeOptions(row.options),
+    audience_mode: row.audience_mode === "targeted" ? "targeted" : "all",
   };
 }
 
@@ -88,6 +98,27 @@ function normalizeAdminQuestion(row: RawAdminQuestion): AdminLiveQuestion {
   return {
     ...normalizeQuestion(row),
     correct_answer: embedded?.correct_answer ?? null,
+    target_user_ids: (row.live_question_target_users ?? []).map((target) => target.user_id),
+    target_tags: (row.live_question_target_tags ?? []).map((target) => target.tag),
+  };
+}
+
+function normalizeAdminParticipant(value: unknown): LiveAdminParticipant | null {
+  if (typeof value !== "object" || value === null) return null;
+  const participant = value as Record<string, unknown>;
+  if (
+    typeof participant.user_id !== "string"
+    || typeof participant.nickname !== "string"
+    || typeof participant.joined_at !== "string"
+    || typeof participant.last_seen_at !== "string"
+    || !Array.isArray(participant.tags)
+  ) return null;
+  return {
+    user_id: participant.user_id,
+    nickname: participant.nickname,
+    joined_at: participant.joined_at,
+    last_seen_at: participant.last_seen_at,
+    tags: participant.tags.filter((tag): tag is string => typeof tag === "string"),
   };
 }
 
@@ -261,7 +292,7 @@ export async function endLiveSession(liveId: string): Promise<LiveSession> {
 export async function getAdminLiveQuestions(liveId: string): Promise<AdminLiveQuestion[]> {
   const { data, error } = await supabase
     .from("questions")
-    .select("*, question_keys(correct_answer)")
+    .select("*, question_keys(correct_answer), live_question_target_users(user_id), live_question_target_tags(tag)")
     .eq("live_id", liveId)
     .order("position", { ascending: true });
   if (error) await throwIfError(error, "读取题目失败");
@@ -283,6 +314,7 @@ export async function createLiveQuestion(
         type: input.type,
         content: input.content,
         options: input.options,
+        audience_mode: input.audience_mode,
       })
       .select("*")
       .single();
@@ -305,9 +337,22 @@ export async function createLiveQuestion(
       await supabase.from("questions").delete().eq("id", question.id);
       await throwIfError(keyResult.error, "保存正确答案失败");
     }
+    try {
+      await setLiveQuestionAudience(
+        question.id,
+        input.audience_mode,
+        input.target_user_ids,
+        input.target_tags,
+      );
+    } catch (error) {
+      await supabase.from("questions").delete().eq("id", question.id);
+      throw error;
+    }
     return {
       ...normalizeQuestion(question),
       correct_answer: (keyResult.data as { correct_answer: Json } | null)?.correct_answer ?? input.correct_answer,
+      target_user_ids: input.audience_mode === "targeted" ? input.target_user_ids : [],
+      target_tags: input.audience_mode === "targeted" ? input.target_tags : [],
     };
   }
   throw new Error("题目序号冲突，请重试");
@@ -335,6 +380,13 @@ export async function updateLiveQuestion(
       { onConflict: "question_id" },
     );
   if (keyResult.error) await throwIfError(keyResult.error, "更新正确答案失败");
+
+  await setLiveQuestionAudience(
+    questionId,
+    input.audience_mode,
+    input.target_user_ids,
+    input.target_tags,
+  );
 }
 
 export async function copyLiveQuestion(questionId: string): Promise<AdminLiveQuestion | null> {
@@ -346,13 +398,16 @@ export async function copyLiveQuestion(questionId: string): Promise<AdminLiveQue
     content: source.content,
     options: source.options,
     correct_answer: source.correct_answer,
+    audience_mode: source.audience_mode,
+    target_user_ids: source.target_user_ids,
+    target_tags: source.target_tags,
   });
 }
 
 async function getAdminLiveQuestionsSnapshot(questionId: string): Promise<AdminLiveQuestion | null> {
   const { data, error } = await supabase
     .from("questions")
-    .select("*, question_keys(correct_answer)")
+    .select("*, question_keys(correct_answer), live_question_target_users(user_id), live_question_target_tags(tag)")
     .eq("id", questionId)
     .maybeSingle();
   if (error) await throwIfError(error, "读取题目失败");
@@ -374,17 +429,52 @@ export async function getLiveResponses(questionId: string): Promise<LiveResponse
   return ((data as RawResponse[]) ?? []).map(normalizeResponse);
 }
 
+export async function getAdminLiveParticipants(liveId: string): Promise<LiveAdminParticipant[]> {
+  const { data, error } = await supabase.rpc("get_live_admin_participants", { p_live_id: liveId });
+  if (error) await throwIfError(error, "读取 Live 学员标签失败");
+  if (!Array.isArray(data)) throw new Error("Live 学员标签数据格式错误");
+  return data.flatMap((participant) => {
+    const normalized = normalizeAdminParticipant(participant);
+    return normalized ? [normalized] : [];
+  });
+}
+
+export async function setLiveParticipantTags(
+  liveId: string,
+  userId: string,
+  tags: string[],
+): Promise<string[]> {
+  const { data, error } = await supabase.rpc("set_live_participant_tags", {
+    p_live_id: liveId,
+    p_user_id: userId,
+    p_tags: tags,
+  });
+  if (error) await throwIfError(error, "保存学员标签失败");
+  return Array.isArray(data) ? data.filter((tag): tag is string => typeof tag === "string") : [];
+}
+
+export async function setLiveQuestionAudience(
+  questionId: string,
+  audienceMode: LiveAudienceMode,
+  userIds: string[],
+  tags: string[],
+): Promise<void> {
+  const { error } = await supabase.rpc("set_live_question_audience", {
+    p_question_id: questionId,
+    p_audience_mode: audienceMode,
+    p_user_ids: userIds,
+    p_tags: tags,
+  });
+  if (error) await throwIfError(error, "保存题目发送对象失败");
+}
+
 export async function getAdminLiveSessionDashboard(
   session: LiveSession,
 ): Promise<AdminLiveSessionDashboard> {
-  const [questions, participantResult] = await Promise.all([
+  const [questions, participants] = await Promise.all([
     getAdminLiveQuestions(session.id),
-    supabase
-      .from("live_participants")
-      .select("*", { count: "exact", head: true })
-      .eq("live_id", session.id),
+    getAdminLiveParticipants(session.id),
   ]);
-  if (participantResult.error) await throwIfError(participantResult.error, "读取 Live 进入人数失败");
 
   const questionIds = questions.map((question) => question.id);
   let responses: LiveResponse[] = [];
@@ -402,7 +492,7 @@ export async function getAdminLiveSessionDashboard(
     session,
     questions,
     responses,
-    participantResult.count ?? 0,
+    participants,
   );
 }
 
@@ -423,18 +513,21 @@ export async function getLiveRoomAudienceSummary(
     live_id?: unknown;
     current_question_id?: unknown;
     joined_count?: unknown;
+    targeted_count?: unknown;
     answered_count?: unknown;
   };
   if (
     typeof value.live_id !== "string"
     || (value.current_question_id !== null && typeof value.current_question_id !== "string")
     || typeof value.joined_count !== "number"
+    || typeof value.targeted_count !== "number"
     || typeof value.answered_count !== "number"
   ) throw new Error("Live 房间数据格式错误");
   return {
     liveId: value.live_id,
     currentQuestionId: value.current_question_id ?? null,
     joinedCount: value.joined_count,
+    targetedCount: value.targeted_count,
     answeredCount: value.answered_count,
   };
 }
@@ -496,7 +589,7 @@ export async function getLiveParticipantSnapshot(
     correctAnswer = (keyResult.data as { correct_answer: Json } | null)?.correct_answer ?? null;
   }
 
-  const results = response
+  const results = question && response
     ? await getLiveParticipantResults(session.current_question_id)
     : null;
 
