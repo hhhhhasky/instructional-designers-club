@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { signInWithPhone, signUpWithPhone } from '@/lib/access-control';
+import { signInWithPhone, signUpWithPhone, updateLearningProgress } from '@/lib/access-control';
 import { supabase } from '@/db/supabase';
 
 vi.mock('@/db/api', () => ({
@@ -81,5 +81,39 @@ describe('phone auth error handling', () => {
 
     expect(result).toEqual({ error: '该账号已停用，请联系管理员', session: null, user: null });
     expect(supabase.auth.signOut).toHaveBeenCalledOnce();
+  });
+});
+
+describe('learning progress persistence', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('upserts by user and course so the first progress write cannot silently miss', async () => {
+    const upsert = vi.fn().mockResolvedValue({ error: null });
+    vi.mocked(supabase.from).mockReturnValue({ upsert } as never);
+
+    await updateLearningProgress('user-1', 'course-1', 31.5, 'in_progress');
+
+    expect(supabase.from).toHaveBeenCalledWith('learning_records');
+    expect(upsert).toHaveBeenCalledWith(
+      {
+        user_id: 'user-1',
+        course_id: 'course-1',
+        progress: 31.5,
+        status: 'in_progress',
+        last_watched_at: expect.any(String),
+      },
+      { onConflict: 'user_id,course_id' },
+    );
+  });
+
+  it('surfaces Supabase write errors so the page can retry later', async () => {
+    const writeError = new Error('progress write failed');
+    vi.mocked(supabase.from).mockReturnValue({
+      upsert: vi.fn().mockResolvedValue({ error: writeError }),
+    } as never);
+
+    await expect(updateLearningProgress('user-1', 'course-1', 42, 'in_progress')).rejects.toBe(writeError);
   });
 });

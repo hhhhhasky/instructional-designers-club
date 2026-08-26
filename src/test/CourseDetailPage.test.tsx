@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BookOpen } from 'lucide-react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -14,6 +14,21 @@ vi.mock('react-router-dom', async () => {
 });
 
 const mockUser = { id: 'user-1', phone: '13800000000', nickname: '测试用户', avatar_url: null, access_level: 'pro' as const, status: 'active' as const, created_at: '', updated_at: '' };
+
+const localStorageValues = new Map<string, string>();
+Object.defineProperty(window, 'localStorage', {
+  configurable: true,
+  value: {
+    getItem: (key: string) => localStorageValues.get(key) ?? null,
+    setItem: (key: string, value: string) => localStorageValues.set(key, value),
+    removeItem: (key: string) => localStorageValues.delete(key),
+    clear: () => localStorageValues.clear(),
+    key: (index: number) => [...localStorageValues.keys()][index] ?? null,
+    get length() {
+      return localStorageValues.size;
+    },
+  } satisfies Storage,
+});
 
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({ user: mockUser, accessLevel: 'pro' }),
@@ -43,7 +58,7 @@ vi.mock('@/db/api', () => ({
 vi.mock('@/lib/access-control', () => ({
   canAccessCourse: vi.fn(() => true),
   recordCourseVisit: vi.fn(),
-  updateLearningProgress: vi.fn(),
+  updateLearningProgress: vi.fn(() => Promise.resolve()),
   getUserLearningRecords: vi.fn(() => Promise.resolve([])),
 }));
 
@@ -72,8 +87,9 @@ import {
   getPlusCourseStructure,
 } from '@/db/api';
 import { getCourseQuestions, getCourseQuestionTags } from '@/db/course-questions';
-import { canAccessCourse, getUserLearningRecords } from '@/lib/access-control';
+import { canAccessCourse, getUserLearningRecords, updateLearningProgress } from '@/lib/access-control';
 import type { PlusTrackConfig } from '@/lib/plusCourseStructure';
+import type { LearningRecord } from '@/types/types';
 
 const makeCourse = (overrides: Record<string, unknown> = {}): import('@/types/types').Course => ({
   id: 'c1',
@@ -189,6 +205,7 @@ async function renderAndWait(
   courseId = 'c1',
   attachments: import('@/types/types').CourseAttachment[] = [],
   courseOverrides: Record<string, unknown> = {},
+  records: LearningRecord[] = [],
 ) {
   vi.mocked(getCourseDetailSnapshot).mockResolvedValue(
     makeDetailSnapshot(makeCourse({ id: courseId, ...courseOverrides }), siblingCourses, makeCatalog(siblingCourses)),
@@ -199,7 +216,7 @@ async function renderAndWait(
   vi.mocked(getCourseCatalogSnapshot).mockResolvedValue(makeCatalog(siblingCourses));
   vi.mocked(getCoursesByMembershipAndCategory).mockResolvedValue(siblingCourses);
   vi.mocked(getCategoriesByMembershipType).mockResolvedValue(['教学设计']);
-  vi.mocked(getUserLearningRecords).mockResolvedValue([]);
+  vi.mocked(getUserLearningRecords).mockResolvedValue(records);
 
   const result = renderCourseDetail(courseId);
   await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
@@ -208,6 +225,7 @@ async function renderAndWait(
 
 afterEach(() => {
   vi.mocked(canAccessCourse).mockReturnValue(true);
+  window.localStorage.clear();
 });
 
 // --- Tests ---
@@ -242,6 +260,82 @@ describe('CourseDetailPage — 课程导航功能', () => {
     await user.click(screen.getByRole('menuitemradio', { name: '1.5×' }));
 
     expect((document.querySelector('video') as HTMLVideoElement).playbackRate).toBe(1.5);
+  });
+
+  it('手机端全屏按钮优先调用 iPhone Safari 原生全屏接口', async () => {
+    const user = userEvent.setup();
+    await renderAndWait('c1');
+    const video = document.querySelector('video') as HTMLVideoElement & { webkitEnterFullscreen?: () => void };
+    const webkitEnterFullscreen = vi.fn();
+    Object.defineProperty(video, 'webkitEnterFullscreen', { configurable: true, value: webkitEnterFullscreen });
+
+    await user.click(screen.getByRole('button', { name: '全屏播放课程视频' }));
+
+    expect(webkitEnterFullscreen).toHaveBeenCalledOnce();
+  });
+
+  it('支持标准 Fullscreen API', async () => {
+    const user = userEvent.setup();
+    await renderAndWait('c1');
+    const video = document.querySelector('video') as HTMLVideoElement;
+    const requestFullscreen = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(video.parentElement, 'requestFullscreen', { configurable: true, value: requestFullscreen });
+
+    await user.click(screen.getByRole('button', { name: '全屏播放课程视频' }));
+
+    expect(requestFullscreen).toHaveBeenCalledOnce();
+  });
+
+  it('重新打开课程后按已保存进度恢复播放位置', async () => {
+    const record: LearningRecord = {
+      id: 'record-1',
+      user_id: mockUser.id,
+      course_id: 'c1',
+      status: 'in_progress',
+      watch_count: 1,
+      progress: 40,
+      last_watched_at: '2026-08-26T01:00:00.000Z',
+      created_at: '2026-08-26T01:00:00.000Z',
+      updated_at: '2026-08-26T01:00:00.000Z',
+    };
+    await renderAndWait('c1', [], {}, [record]);
+    const video = document.querySelector('video') as HTMLVideoElement;
+    Object.defineProperty(video, 'duration', { configurable: true, value: 200 });
+
+    await waitFor(() => {
+      expect(screen.getByRole('progressbar', { name: '当前课程完成度' })).toHaveAttribute('aria-valuenow', '40');
+    });
+    fireEvent.loadedMetadata(video);
+
+    expect(video.currentTime).toBe(80);
+  });
+
+  it('暂停时立即保存精确进度并写入本机检查点', async () => {
+    const record: LearningRecord = {
+      id: 'record-1',
+      user_id: mockUser.id,
+      course_id: 'c1',
+      status: 'in_progress',
+      watch_count: 1,
+      progress: 10,
+      last_watched_at: '2026-08-26T01:00:00.000Z',
+      created_at: '2026-08-26T01:00:00.000Z',
+      updated_at: '2026-08-26T01:00:00.000Z',
+    };
+    await renderAndWait('c1', [], {}, [record]);
+    const video = document.querySelector('video') as HTMLVideoElement;
+    Object.defineProperty(video, 'duration', { configurable: true, value: 200 });
+    video.currentTime = 63;
+
+    await waitFor(() => {
+      expect(screen.getByRole('progressbar', { name: '当前课程完成度' })).toHaveAttribute('aria-valuenow', '10');
+    });
+    fireEvent.pause(video);
+
+    await waitFor(() => {
+      expect(updateLearningProgress).toHaveBeenCalledWith(mockUser.id, 'c1', 31.5, 'in_progress');
+    });
+    expect(window.localStorage.getItem(`course-video-checkpoint:${mockUser.id}:c1`)).toContain('"seconds":63');
   });
 
   it('点击正文时间戳会跳转视频并尝试播放', async () => {

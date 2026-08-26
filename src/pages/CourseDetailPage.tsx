@@ -25,6 +25,7 @@ import {
   FileImage,
   FileAudio,
   File,
+  Maximize2,
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
@@ -83,6 +84,53 @@ const LEVEL_STYLE: Record<string, string> = {
 
 const detailWriteGuard = new Map<string, number>();
 const WRITE_GUARD_TTL_MS = 60 * 1000;
+const VIDEO_PROGRESS_SYNC_STEP = 2;
+const VIDEO_CHECKPOINT_PREFIX = 'course-video-checkpoint';
+
+type VideoCheckpoint = {
+  progress: number;
+  seconds: number;
+  duration: number;
+  updatedAt: string;
+};
+
+type WebkitVideoElement = HTMLVideoElement & {
+  webkitEnterFullscreen?: () => void;
+};
+
+function getVideoCheckpointKey(userId: string, courseId: string): string {
+  return `${VIDEO_CHECKPOINT_PREFIX}:${userId}:${courseId}`;
+}
+
+function readVideoCheckpoint(userId: string, courseId: string): VideoCheckpoint | null {
+  try {
+    const stored = window.localStorage.getItem(getVideoCheckpointKey(userId, courseId));
+    if (!stored) return null;
+    const parsed = JSON.parse(stored) as Partial<VideoCheckpoint>;
+    if (
+      !Number.isFinite(parsed.progress) ||
+      !Number.isFinite(parsed.seconds) ||
+      !Number.isFinite(parsed.duration) ||
+      (parsed.duration ?? 0) <= 0
+    ) {
+      return null;
+    }
+    return parsed as VideoCheckpoint;
+  } catch {
+    return null;
+  }
+}
+
+function writeVideoCheckpoint(userId: string, courseId: string, checkpoint: VideoCheckpoint): void {
+  try {
+    const existing = readVideoCheckpoint(userId, courseId);
+    const sameMedia = existing && Math.abs(existing.duration - checkpoint.duration) <= Math.max(2, checkpoint.duration * 0.01);
+    if (sameMedia && existing.progress > checkpoint.progress) return;
+    window.localStorage.setItem(getVideoCheckpointKey(userId, courseId), JSON.stringify(checkpoint));
+  } catch {
+    // 隐私模式或存储空间不足时仍可继续使用服务端进度。
+  }
+}
 
 function shouldRunDetailWrite(key: string): boolean {
   const now = Date.now();
@@ -103,11 +151,14 @@ export default function CourseDetailPage() {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeLevel, setUpgradeLevel] = useState<'plus' | 'pro'>('plus');
   const videoRef = useRef<HTMLVideoElement>(null);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playbackRate, setPlaybackRate] = useState<CoursePlaybackRate>(() => readStoredCoursePlaybackRate());
   const contentScrollRef = useRef<HTMLDivElement>(null);
   const lastSyncedProgress = useRef(0);
   const lastSyncedAudioProgress = useRef(0);
+  const learningProgressReady = useRef(false);
+  const [resumeCheckpoint, setResumeCheckpoint] = useState<VideoCheckpoint | null>(null);
   const [manuallyMarked, setManuallyMarked] = useState(false);
   const [completionOpen, setCompletionOpen] = useState(false);
   const [completionSnapshot, setCompletionSnapshot] = useState<GamificationSnapshot | null>(null);
@@ -149,14 +200,25 @@ export default function CourseDetailPage() {
   const hasPasswordPreviewAccess = Boolean(course && passwordUnlockedCourseId === course.id);
   const syncProgress = useCallback(() => {
     const video = videoRef.current;
-    if (!video || !video.duration || !user || !course || !hasStandardCourseAccess) return;
+    if (!video || !video.duration || !user || !course || !hasStandardCourseAccess || !learningProgressReady.current) return;
 
-    const progress = Math.round((video.currentTime / video.duration) * 100);
+    const progress = Math.min(100, Math.round((video.currentTime / video.duration) * 10000) / 100);
     if (progress <= lastSyncedProgress.current) return;
 
+    writeVideoCheckpoint(user.id, course.id, {
+      progress,
+      seconds: video.currentTime,
+      duration: video.duration,
+      updatedAt: new Date().toISOString(),
+    });
+
+    const previousProgress = lastSyncedProgress.current;
     lastSyncedProgress.current = progress;
     const status = progress >= 95 ? 'completed' : 'in_progress';
-    updateLearningProgress(user.id, course.id, progress, status);
+    void updateLearningProgress(user.id, course.id, progress, status).catch((error) => {
+      if (lastSyncedProgress.current === progress) lastSyncedProgress.current = previousProgress;
+      console.error('保存课程学习进度失败:', error);
+    });
   }, [user, course, hasStandardCourseAccess]);
 
   const showCompletionFeedback = useCallback(async () => {
@@ -195,11 +257,29 @@ export default function CourseDetailPage() {
     const video = videoRef.current;
     if (!video || !video.duration) return;
 
-    const progress = Math.round((video.currentTime / video.duration) * 100);
-    if (progress - lastSyncedProgress.current >= 10 || progress >= 95) {
+    const progress = Math.round((video.currentTime / video.duration) * 10000) / 100;
+    if (progress - lastSyncedProgress.current >= VIDEO_PROGRESS_SYNC_STEP || progress >= 95) {
       syncProgress();
     }
   }, [syncProgress]);
+
+  const handleVideoFullscreen = useCallback(() => {
+    const video = videoRef.current as WebkitVideoElement | null;
+    if (!video) return;
+
+    // iPhone Safari 仍只允许 video 元素通过私有接口进入原生全屏播放器。
+    if (typeof video.webkitEnterFullscreen === 'function') {
+      video.webkitEnterFullscreen();
+      return;
+    }
+
+    const fullscreenTarget = videoContainerRef.current ?? video;
+    if (typeof fullscreenTarget.requestFullscreen === 'function') {
+      void fullscreenTarget.requestFullscreen().catch((error) => {
+        console.error('进入视频全屏失败:', error);
+      });
+    }
+  }, []);
 
   const handleVideoEnded = useCallback(() => {
     void completeCurrentCourse();
@@ -280,6 +360,10 @@ export default function CourseDetailPage() {
         setProtectedContentCourseId(null);
         setProtectedContentLoading(false);
         setManuallyMarked(false);
+        setResumeCheckpoint(null);
+        learningProgressReady.current = false;
+        lastSyncedProgress.current = 0;
+        lastSyncedAudioProgress.current = 0;
         setAttachments([]);
         setSiblingCourses([]);
         setTeacherAiCatalog({ categories: [], coursesByCategory: {} });
@@ -414,16 +498,34 @@ export default function CourseDetailPage() {
         if (shouldRunDetailWrite(`visit:${user.id}:${course.id}`)) {
           recordCourseVisit(user.id, course.id);
         }
-        getUserLearningRecords(user.id).then(records => {
-          setLearningRecords(records);
-          const record = records.find(r => r.course_id === course.id);
-          if (record && record.progress > lastSyncedProgress.current) {
-            lastSyncedProgress.current = record.progress;
-          }
-          if (record && record.progress > lastSyncedAudioProgress.current) {
-            lastSyncedAudioProgress.current = record.progress;
-          }
-        });
+        const localCheckpoint = readVideoCheckpoint(user.id, course.id);
+        getUserLearningRecords(user.id)
+          .then(records => {
+            setLearningRecords(records);
+            const record = records.find(r => r.course_id === course.id);
+            const serverProgress = record?.progress ?? 0;
+            const effectiveProgress = Math.max(serverProgress, localCheckpoint?.progress ?? 0);
+            lastSyncedProgress.current = effectiveProgress;
+            lastSyncedAudioProgress.current = serverProgress;
+            setResumeCheckpoint(
+              effectiveProgress > 0
+                ? {
+                    progress: effectiveProgress,
+                    seconds: localCheckpoint?.progress === effectiveProgress ? localCheckpoint.seconds : 0,
+                    duration: localCheckpoint?.progress === effectiveProgress ? localCheckpoint.duration : 0,
+                    updatedAt: localCheckpoint?.updatedAt ?? new Date().toISOString(),
+                  }
+                : null,
+            );
+          })
+          .catch((error) => {
+            console.error('加载课程学习进度失败:', error);
+            lastSyncedProgress.current = localCheckpoint?.progress ?? 0;
+            setResumeCheckpoint(localCheckpoint);
+          })
+          .finally(() => {
+            learningProgressReady.current = true;
+          });
       }
     } else {
       setShowUpgrade(false);
@@ -431,10 +533,46 @@ export default function CourseDetailPage() {
     }
   }, [course, user, hasStandardCourseAccess, hasPasswordPreviewAccess, protectedContentCourseId, isLoading, authLoading, navigate]);
 
-  // 页面离开时同步最终进度
+  // 暂停、锁屏、切后台或离开页面时都立即同步，避免移动浏览器冻结后丢失断点。
   useEffect(() => {
-    return () => { syncProgress(); };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') syncProgress();
+    };
+    const handlePageHide = () => syncProgress();
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', handlePageHide);
+    return () => {
+      syncProgress();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handlePageHide);
+    };
   }, [syncProgress]);
+
+  // 服务端保存百分比，本机同时保存秒数；优先用匹配当前媒体的秒数恢复，否则按百分比定位。
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !resumeCheckpoint || resumeCheckpoint.progress <= 0 || resumeCheckpoint.progress >= 95) return;
+
+    const restoreProgress = () => {
+      if (!Number.isFinite(video.duration) || video.duration <= 0 || video.currentTime > 1) return;
+      const durationMatches =
+        resumeCheckpoint.duration > 0 &&
+        Math.abs(resumeCheckpoint.duration - video.duration) <= Math.max(2, video.duration * 0.01);
+      const seconds = durationMatches && resumeCheckpoint.seconds > 0
+        ? resumeCheckpoint.seconds
+        : video.duration * (resumeCheckpoint.progress / 100);
+      video.currentTime = Math.min(seconds, Math.max(0, video.duration - 1));
+    };
+
+    if (video.readyState >= 1) {
+      restoreProgress();
+      return;
+    }
+
+    video.addEventListener('loadedmetadata', restoreProgress, { once: true });
+    return () => video.removeEventListener('loadedmetadata', restoreProgress);
+  }, [course?.id, resumeCheckpoint]);
 
   // 桌面端课程正文使用独立滚动容器；切换课程后回到正文顶部。
   useEffect(() => {
@@ -657,6 +795,7 @@ export default function CourseDetailPage() {
       preload="auto"
       className="w-full block"
       onTimeUpdate={handleTimeUpdate}
+      onPause={syncProgress}
       onEnded={handleVideoEnded}
     />
   ) : (
@@ -827,10 +966,18 @@ export default function CourseDetailPage() {
               <div className="course-reading-paper">
 
                 {/* Hero Video */}
-                <div className="relative bg-black">
+                <div ref={videoContainerRef} className="relative bg-black">
                   {heroContent}
                   {course.video_url && (
-                    <div className="absolute top-3 right-3 z-10">
+                    <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleVideoFullscreen}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-black/70 text-white shadow-sm backdrop-blur-sm transition-colors hover:bg-black/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                        aria-label="全屏播放课程视频"
+                      >
+                        <Maximize2 className="h-4 w-4" />
+                      </button>
                       <CoursePlaybackRateControl value={playbackRate} onChange={handlePlaybackRateChange} />
                     </div>
                   )}
@@ -1045,8 +1192,8 @@ export default function CourseDetailPage() {
                     isCompleted={isCurrentCompleted}
                     playbackRate={playbackRate}
                     onPlaybackRateChange={handlePlaybackRateChange}
-                    onVideoSeek={handleVideoSeek}
-                    onAudioSeek={handleAudioSeek}
+                    onVideoSeek={course.video_url ? handleVideoSeek : undefined}
+                    onAudioSeek={!course.video_url && course.audio_url ? handleAudioSeek : undefined}
                     audioRef={audioRef}
                   />
 

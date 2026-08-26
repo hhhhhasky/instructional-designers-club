@@ -308,15 +308,16 @@ export async function updateLearningProgress(
   progress: number,
   status: 'in_progress' | 'completed',
 ): Promise<void> {
-  await supabase
+  const { error } = await supabase
     .from('learning_records')
-    .update({
+    .upsert({
+      user_id: userId,
+      course_id: courseId,
       progress,
       status,
       last_watched_at: new Date().toISOString(),
-    })
-    .eq('user_id', userId)
-    .eq('course_id', courseId);
+    }, { onConflict: 'user_id,course_id' });
+  if (error) throw error;
   clearLearningDataCache(userId);
 }
 
