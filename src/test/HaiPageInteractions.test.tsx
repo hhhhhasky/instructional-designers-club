@@ -206,6 +206,32 @@ describe("HAI mobile chat shell", () => {
     expect(screen.queryByText(/tokens/i)).not.toBeInTheDocument();
     expect(screen.queryByText("45,000 / 150,000 tokens")).not.toBeInTheDocument();
   });
+
+  it("disables chat entry points when the weekly quota has been reached", async () => {
+    vi.mocked(getHaiAccessStatus).mockResolvedValueOnce({
+      access: { authenticated: true, allowed: true, quota_policy_key: "beta" },
+      usage: {
+        policy_key: "beta",
+        daily_used: 150000,
+        weekly_used: 165082,
+        daily_limit: 150000,
+        weekly_limit: 150000,
+      },
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/hai"]}>
+        <HaiPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "本周 HAI 额度已用完，下周恢复后可继续使用。",
+    );
+    expect(screen.getByLabelText("输入教学问题")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "发送" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: HAI_STARTER_QUESTIONS[0] })).toBeDisabled();
+  });
 });
 
 describe("HAI assistant message actions", () => {

@@ -55,6 +55,21 @@ describe("HAI dashboard", () => {
 
     await waitFor(() => expect(getAdminHaiDashboard).toHaveBeenLastCalledWith(7));
   });
+
+  it("sorts the selected time range automatically by the chosen ranking field", async () => {
+    const user = userEvent.setup();
+    render(<HaiDashboardSection />);
+    await screen.findByText("每一次调用，都能看见");
+
+    const rankingRows = screen.getByTestId("hai-user-ranking-rows");
+    expect(rankingRows.querySelectorAll("tr")[0]).toHaveTextContent("王老师");
+
+    await user.selectOptions(screen.getByLabelText("排行榜排序方式"), "requests");
+
+    expect(rankingRows.querySelectorAll("tr")[0]).toHaveTextContent("陈老师");
+    expect(screen.getByText("当前统计周期：近 30 天")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Token 总量（近 30 天）" })).toBeInTheDocument();
+  });
 });
 
 const dashboardFixture: HaiDashboardData = {
@@ -89,6 +104,18 @@ const dashboardFixture: HaiDashboardData = {
     average_tokens: 1200,
     failed_count: 0,
     last_used_at: "2026-07-13T10:00:00.000Z",
+  }, {
+    user_id: "user-2",
+    nickname: "陈老师",
+    phone: "13900002222",
+    access_level: "plus",
+    request_count: 20,
+    total_tokens: 6000,
+    input_tokens: 4000,
+    output_tokens: 2000,
+    average_tokens: 300,
+    failed_count: 1,
+    last_used_at: "2026-07-13T09:00:00.000Z",
   }],
   recent_events: [{
     id: "event-1",

@@ -45,6 +45,14 @@ const RANGE_OPTIONS: Array<{ value: HaiDashboardRangeDays; label: string }> = [
   { value: 90, label: "近 90 天" },
 ];
 
+type HaiRankingSort = "tokens" | "requests" | "recent";
+
+const RANKING_SORT_OPTIONS: Array<{ value: HaiRankingSort; label: string }> = [
+  { value: "tokens", label: "Token 总量优先" },
+  { value: "requests", label: "使用次数优先" },
+  { value: "recent", label: "最近使用优先" },
+];
+
 export default function HaiDashboardSection() {
   const [rangeDays, setRangeDays] = useState<HaiDashboardRangeDays>(30);
   const [data, setData] = useState<HaiDashboardData | null>(null);
@@ -52,6 +60,7 @@ export default function HaiDashboardSection() {
   const [error, setError] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [reviewing, setReviewing] = useState(false);
+  const [rankingSort, setRankingSort] = useState<HaiRankingSort>("tokens");
 
   useEffect(() => {
     let cancelled = false;
@@ -96,6 +105,19 @@ export default function HaiDashboardSection() {
 
   const { summary } = data;
   const latestReview = data.daily_reviews[0];
+  const displayedRangeDays = data.range_days;
+  const rangeLabel = RANGE_OPTIONS.find((option) => option.value === displayedRangeDays)?.label ??
+    `近 ${displayedRangeDays} 天`;
+  const userRankings = [...data.user_rankings].sort((a, b) => {
+    if (rankingSort === "requests") {
+      return b.request_count - a.request_count || b.total_tokens - a.total_tokens;
+    }
+    if (rankingSort === "recent") {
+      return new Date(b.last_used_at).getTime() - new Date(a.last_used_at).getTime() ||
+        b.total_tokens - a.total_tokens;
+    }
+    return b.total_tokens - a.total_tokens || b.request_count - a.request_count;
+  });
 
   async function runReviewNow() {
     if (reviewing) return;
@@ -126,6 +148,7 @@ export default function HaiDashboardSection() {
             <p className="mt-2 max-w-2xl text-ds-sm leading-relaxed text-white/70">
               汇总真实使用、Token 成本、用户活跃与编排质检，让 HAI 的增长和质量在同一张看板上被判断。
             </p>
+            <p className="mt-2 text-ds-xs font-ds-bold text-white/85">当前统计周期：{rangeLabel}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex rounded-ds-md border border-white/15 bg-black/10 p-1">
@@ -264,9 +287,29 @@ export default function HaiDashboardSection() {
       </section>
 
       <section className="rounded-ds-lg border border-bd bg-white shadow-ds-xs">
-        <div className="flex flex-col gap-2 border-b border-bd px-4 py-4 md:flex-row md:items-end md:justify-between md:px-6">
-          <SectionTitle title="单用户 Token 消耗排行榜" description="按统计周期内实际 Token 总量降序排列" />
-          <span className="text-ds-xs text-txs">共 {data.user_rankings.length} 位使用者</span>
+        <div className="flex flex-col gap-3 border-b border-bd px-4 py-4 md:flex-row md:items-end md:justify-between md:px-6">
+          <SectionTitle
+            title="单用户 Token 消耗排行榜"
+            description={`${rangeLabel}内的实际用量；这是统计周期累计，不等同于用户的当日或当周配额`}
+          />
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-ds-xs text-txs">
+              <span>自动排序</span>
+              <select
+                aria-label="排行榜排序方式"
+                value={rankingSort}
+                onChange={(event) => setRankingSort(event.target.value as HaiRankingSort)}
+                className="h-9 rounded-ds-sm border border-bd bg-white px-2 text-ds-xs font-ds-semibold text-tx outline-none focus:border-ac focus:ring-2 focus:ring-ac/15"
+              >
+                {RANKING_SORT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <span className="text-ds-xs text-txs">共 {userRankings.length} 位使用者</span>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] text-left text-ds-sm">
@@ -275,14 +318,14 @@ export default function HaiDashboardSection() {
                 <th className="w-16 px-4 py-3 text-center">排名</th>
                 <th className="px-4 py-3">用户</th>
                 <th className="px-4 py-3 text-right">使用次数</th>
-                <th className="px-4 py-3 text-right">Token 总量</th>
+                <th className="px-4 py-3 text-right">Token 总量（{rangeLabel}）</th>
                 <th className="px-4 py-3 text-right">单次平均</th>
                 <th className="px-4 py-3 text-right">失败</th>
                 <th className="px-4 py-3 text-right">最近使用</th>
               </tr>
             </thead>
-            <tbody>
-              {data.user_rankings.map((user, index) => (
+            <tbody data-testid="hai-user-ranking-rows">
+              {userRankings.map((user, index) => (
                 <tr key={user.user_id} className="border-t border-bdl transition hover:bg-bgs/40">
                   <td className="px-4 py-3 text-center"><RankMark rank={index + 1} /></td>
                   <td className="px-4 py-3">
@@ -298,7 +341,7 @@ export default function HaiDashboardSection() {
                   <td className="px-4 py-3 text-right text-ds-xs text-txs">{formatDateTime(user.last_used_at)}</td>
                 </tr>
               ))}
-              {data.user_rankings.length === 0 && (
+              {userRankings.length === 0 && (
                 <tr><td colSpan={7} className="px-4 py-12 text-center text-txs">当前周期暂无 HAI 使用记录</td></tr>
               )}
             </tbody>

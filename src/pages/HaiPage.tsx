@@ -101,6 +101,9 @@ export default function HaiPage() {
     if (!usage?.weekly_limit) return 0;
     return Math.min(100, Math.round((usage.weekly_used / usage.weekly_limit) * 100));
   }, [usage]);
+  const weeklyQuotaReached = Boolean(
+    usage?.weekly_limit && usage.weekly_used >= usage.weekly_limit,
+  );
 
   useEffect(() => {
     if (!loading && !user) {
@@ -236,6 +239,10 @@ export default function HaiPage() {
   async function handleSend(suggestedQuestion?: string) {
     const text = (suggestedQuestion ?? draft).trim();
     if (!text || busy || !chatModule) return;
+    if (weeklyQuotaReached) {
+      setStatus("本周 HAI 使用额度已达上限，请下周再试。");
+      return;
+    }
     setBusy(true);
     setStatus("");
     setDraft("");
@@ -464,6 +471,7 @@ export default function HaiPage() {
                 <EmptyState
                   module={chatModule}
                   busy={busy}
+                  quotaReached={weeklyQuotaReached}
                   onQuestionSelect={(question) => void handleSend(question)}
                 />
               ) : (
@@ -490,6 +498,11 @@ export default function HaiPage() {
                   {status}
                 </p>
               )}
+              {weeklyQuotaReached && (
+                <p className="mb-2 rounded-ds-md border border-amber-200 bg-amber-50 px-3 py-2 text-ds-sm text-amber-800" role="status">
+                  本周 HAI 额度已用完，下周恢复后可继续使用。
+                </p>
+              )}
               <div className="mx-auto flex w-full max-w-3xl min-w-0 gap-2">
                 <textarea
                   rows={1}
@@ -501,14 +514,18 @@ export default function HaiPage() {
                       void handleSend();
                     }
                   }}
-                  placeholder={chatModule ? `发送给「${chatModule.short_label}」` : "输入你的教学问题"}
+                  placeholder={weeklyQuotaReached
+                    ? "本周额度已用完"
+                    : chatModule
+                      ? `发送给「${chatModule.short_label}」`
+                      : "输入你的教学问题"}
                   className="h-[52px] min-h-[52px] min-w-0 flex-1 resize-none rounded-ds-md border border-bd bg-bg px-3.5 py-3 text-[16px] leading-relaxed text-tx outline-none transition focus:border-ac focus:ring-2 focus:ring-ac/15 md:h-[72px] md:min-h-[72px] md:rounded-ds-lg md:px-4"
-                  disabled={busy}
+                  disabled={busy || weeklyQuotaReached}
                   aria-label="输入教学问题"
                 />
                 <Button
                   className="h-[52px] w-[52px] rounded-ds-md bg-ac text-white hover:bg-acd md:h-[72px] md:w-14 md:rounded-ds-lg"
-                  disabled={busy || !draft.trim() || !chatModule}
+                  disabled={busy || weeklyQuotaReached || !draft.trim() || !chatModule}
                   onClick={() => void handleSend()}
                   aria-label="发送"
                 >
@@ -768,10 +785,12 @@ export function MessageBubble({
 export function EmptyState({
   module,
   busy,
+  quotaReached = false,
   onQuestionSelect,
 }: {
   module: HaiFeatureModule | null;
   busy: boolean;
+  quotaReached?: boolean;
   onQuestionSelect: (question: string) => void;
 }) {
   return (
@@ -796,7 +815,7 @@ export function EmptyState({
               type="button"
               aria-label={question}
               onClick={() => onQuestionSelect(question)}
-              disabled={busy}
+              disabled={busy || quotaReached}
               className="group flex min-h-11 min-w-0 items-center gap-2.5 rounded-ds-md border border-bd bg-white px-3 py-2 text-left shadow-ds-xs transition hover:-translate-y-0.5 hover:border-ac/40 hover:shadow-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/30 disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-[96px] sm:items-start sm:gap-3 sm:rounded-ds-lg sm:p-4"
             >
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-ds-full bg-acl text-[11px] font-ds-bold text-ac transition group-hover:bg-ac group-hover:text-white sm:h-6 sm:w-6 sm:text-ds-xs">
