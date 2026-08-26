@@ -298,6 +298,7 @@ Deno.serve(async (request) => {
             entityType: "work_task",
             entityId: taskId,
             model: completionOptions.model,
+            provider: firstAttempt.provider_code,
             startedAt: new Date(firstAttempt.started_at),
             completedAt: new Date(firstAttempt.completed_at),
             status: firstAttempt.error ? "failed" : "completed",
@@ -342,6 +343,7 @@ Deno.serve(async (request) => {
               entityType: "work_task",
               entityId: taskId,
               model: completionOptions.model,
+              provider: repairAttempt.provider_code,
               startedAt: new Date(repairAttempt.started_at),
               completedAt: new Date(repairAttempt.completed_at),
               status: repairAttempt.error ? "failed" : "completed",
@@ -948,6 +950,7 @@ async function collectModelOutput(params: {
   console.log("[hai-work] calling DeepSeek with model:", model, "providerId:", params.module.model_provider_id, "moduleSlug:", params.module.slug);
   let output = "";
   let usage: HaiProviderUsage | null = null;
+  let providerCode = "deepseek";
   // 强制关闭 thinking — Markdown 产出不需要推理步骤。
   const workOptions = { ...params.completionOptions, thinkingEnabled: false };
   try {
@@ -960,6 +963,7 @@ async function collectModelOutput(params: {
       admin: params.admin,
       modelProviderId: params.module.model_provider_id,
       onUsage: (value) => { usage = value; },
+      onProviderResolved: (value) => { providerCode = value; },
     })) output += token;
     const finishedAt = new Date();
     return {
@@ -968,6 +972,7 @@ async function collectModelOutput(params: {
       completed_at: finishedAt.toISOString(),
       duration_ms: finishedAt.getTime() - startedAt.getTime(),
       usage,
+      provider_code: providerCode,
     };
   } catch (error) {
     const failedAt = new Date();
@@ -977,6 +982,7 @@ async function collectModelOutput(params: {
       completed_at: failedAt.toISOString(),
       duration_ms: failedAt.getTime() - startedAt.getTime(),
       usage,
+      provider_code: providerCode,
       error: error instanceof Error ? error.message : "模型调用失败。",
     };
   }

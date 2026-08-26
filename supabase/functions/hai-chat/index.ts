@@ -252,6 +252,7 @@ Deno.serve(async (request) => {
         let assistantMessageId: string | null = null;
         let draftUsage: HaiProviderUsage | null = null;
         let rewriteUsage: HaiProviderUsage | null = null;
+        let providerCode = "deepseek";
         let draftStartedAt: string | null = null;
         let rewriteStartedAt: string | null = null;
         let draftRecorded = false;
@@ -277,6 +278,7 @@ Deno.serve(async (request) => {
               admin: auth.admin,
               modelProviderId: module.model_provider_id,
               onUsage: (usage) => { draftUsage = usage; },
+              onProviderResolved: (value) => { providerCode = value; },
             })
           ) {
             output += token;
@@ -294,6 +296,7 @@ Deno.serve(async (request) => {
             entityType: "conversation",
             entityId: conversationId,
             model: completionOptions.model,
+            provider: providerCode,
             startedAt: new Date(draftStartedAt ?? new Date(startedAt).toISOString()),
             completedAt: new Date(),
             status: "completed",
@@ -345,6 +348,7 @@ Deno.serve(async (request) => {
                 admin: auth.admin,
                 modelProviderId: module.model_provider_id,
                 onUsage: (usage) => { rewriteUsage = usage; },
+                onProviderResolved: (value) => { providerCode = value; },
               })
             ) {
               finalAnswer += token;
@@ -360,6 +364,7 @@ Deno.serve(async (request) => {
               entityType: "conversation",
               entityId: conversationId,
               model: completionOptions.model,
+              provider: providerCode,
               startedAt: new Date(rewriteStartedAt ?? new Date().toISOString()),
               completedAt: new Date(),
               status: "completed",
@@ -500,6 +505,7 @@ Deno.serve(async (request) => {
               entityType: "conversation",
               entityId: conversationId,
               model: completionOptions.model,
+              provider: providerCode,
               startedAt: new Date(draftStartedAt),
               completedAt: new Date(),
               status: "failed",
@@ -518,6 +524,7 @@ Deno.serve(async (request) => {
               entityType: "conversation",
               entityId: conversationId,
               model: completionOptions.model,
+              provider: providerCode,
               startedAt: new Date(rewriteStartedAt),
               completedAt: new Date(),
               status: "failed",

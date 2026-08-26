@@ -26,3 +26,14 @@ Deno.test("normalizeProviderUsage returns null when provider sends no usage", ()
   assertEquals(normalizeProviderUsage({ prompt_tokens: 10 })?.promptTokens, 10);
   assertEquals(normalizeProviderUsage({ prompt_tokens: 10 })?.totalTokens, null);
 });
+
+Deno.test("normalizeProviderUsage maps Zhipu cached_tokens to hit/miss counters", () => {
+  const usage = normalizeProviderUsage({
+    prompt_tokens: 1000,
+    prompt_tokens_details: { cached_tokens: 760 },
+    completion_tokens: 240,
+    total_tokens: 1240,
+  });
+  assertEquals(usage?.cacheHitTokens, 760);
+  assertEquals(usage?.cacheMissTokens, 240);
+});

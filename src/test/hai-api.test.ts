@@ -176,6 +176,7 @@ describe("HAI model provider persistence", () => {
 
     expect(query.insert).toHaveBeenCalledWith({
       label: "DeepSeek V4 Pro",
+      provider_code: "deepseek",
       model_name: "deepseek-v4-pro",
       api_key: "secret-key",
       base_url: "https://api.deepseek.com",
@@ -201,6 +202,7 @@ describe("HAI model provider persistence", () => {
 
     expect(query.update).toHaveBeenCalledWith({
       label: "DeepSeek V4 Pro",
+      provider_code: "deepseek",
       model_name: "deepseek-v4-pro",
       base_url: "https://api.deepseek.com",
       is_enabled: true,

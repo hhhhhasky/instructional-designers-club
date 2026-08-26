@@ -1,6 +1,4 @@
-// Generated from the linked Supabase schema on 2026-07-24, then extended
-// with the pending local migration 20260724090000_hai_trace_v2_daily_review_drafts.
-// Regenerate after that migration is applied remotely to remove this overlay.
+// Generated from the live Supabase public schema on 2026-08-14.
 export type Json =
   | string
   | number
@@ -973,7 +971,15 @@ export type Database = {
           thinking_enabled?: boolean
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "hai_feature_modules_model_provider_id_fkey"
+            columns: ["model_provider_id"]
+            isOneToOne: false
+            referencedRelation: "hai_model_providers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hai_invite_codes: {
         Row: {
@@ -1425,6 +1431,7 @@ export type Database = {
         Row: {
           id: string
           label: string
+          provider_code: string
           model_name: string
           api_key: string
           base_url: string
@@ -1436,6 +1443,7 @@ export type Database = {
         Insert: {
           id?: string
           label: string
+          provider_code?: string
           model_name: string
           api_key: string
           base_url: string
@@ -1447,6 +1455,7 @@ export type Database = {
         Update: {
           id?: string
           label?: string
+          provider_code?: string
           model_name?: string
           api_key?: string
           base_url?: string
@@ -1559,8 +1568,133 @@ export type Database = {
           {
             foreignKeyName: "hai_optimization_log_candidate_skill_version_id_fkey"
             columns: ["candidate_skill_version_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "hai_chat_skill_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hai_politics_case_sources: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          metadata: Json
+          slug: string
+          source_file_name: string
+          source_hash: string
+          source_note: string
+          stage_scope: string[]
+          subject_scope: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          slug: string
+          source_file_name?: string
+          source_hash: string
+          source_note?: string
+          stage_scope?: string[]
+          subject_scope?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          slug?: string
+          source_file_name?: string
+          source_hash?: string
+          source_note?: string
+          stage_scope?: string[]
+          subject_scope?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      hai_politics_cases: {
+        Row: {
+          case_key: string
+          char_count: number
+          classroom_question: string
+          concepts: string[]
+          content_hash: string
+          content_markdown: string
+          content_text: string
+          created_at: string
+          event_date: string
+          id: string
+          is_active: boolean
+          metadata: Json
+          sort_order: number
+          source_id: string
+          source_urls: string[]
+          stage_scope: string[]
+          summary: string
+          title: string
+          topic_direction: string
+          updated_at: string
+          verification_status: string
+        }
+        Insert: {
+          case_key: string
+          char_count?: number
+          classroom_question: string
+          concepts?: string[]
+          content_hash: string
+          content_markdown: string
+          content_text: string
+          created_at?: string
+          event_date?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          sort_order?: number
+          source_id: string
+          source_urls?: string[]
+          stage_scope?: string[]
+          summary: string
+          title: string
+          topic_direction?: string
+          updated_at?: string
+          verification_status?: string
+        }
+        Update: {
+          case_key?: string
+          char_count?: number
+          classroom_question?: string
+          concepts?: string[]
+          content_hash?: string
+          content_markdown?: string
+          content_text?: string
+          created_at?: string
+          event_date?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          sort_order?: number
+          source_id?: string
+          source_urls?: string[]
+          stage_scope?: string[]
+          summary?: string
+          title?: string
+          topic_direction?: string
+          updated_at?: string
+          verification_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hai_politics_cases_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "hai_politics_case_sources"
             referencedColumns: ["id"]
           },
         ]
@@ -1862,6 +1996,45 @@ export type Database = {
         }
         Relationships: []
       }
+      hai_textbook_section_links: {
+        Row: {
+          created_at: string
+          id: string
+          linked_section_id: string
+          relation_type: string
+          section_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          linked_section_id: string
+          relation_type: string
+          section_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          linked_section_id?: string
+          relation_type?: string
+          section_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hai_textbook_section_links_linked_section_id_fkey"
+            columns: ["linked_section_id"]
+            isOneToOne: false
+            referencedRelation: "hai_textbook_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hai_textbook_section_links_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "hai_textbook_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hai_textbook_sections: {
         Row: {
           char_count: number
@@ -1882,6 +2055,7 @@ export type Database = {
           lesson_title: string
           metadata: Json
           section_key: string
+          section_level: string
           section_path: string
           sort_order: number
           unit_label: string
@@ -1909,6 +2083,7 @@ export type Database = {
           lesson_title: string
           metadata?: Json
           section_key: string
+          section_level?: string
           section_path: string
           sort_order?: number
           unit_label: string
@@ -1936,6 +2111,7 @@ export type Database = {
           lesson_title?: string
           metadata?: Json
           section_key?: string
+          section_level?: string
           section_path?: string
           sort_order?: number
           unit_label?: string
@@ -3223,6 +3399,43 @@ export type Database = {
         }
         Returns: undefined
       }
+      hai_get_textbook_sections_by_route: {
+        Args: {
+          p_collection_slug: string
+          p_frame_number?: number
+          p_lesson_number: number
+          p_unit_number: number
+        }
+        Returns: {
+          collection_id: string
+          collection_slug: string
+          collection_title: string
+          content_hash: string
+          content_markdown: string
+          content_type: string
+          edition_label: string
+          frame_label: string
+          frame_number: number
+          frame_title: string
+          grade_label: string
+          grade_level: number
+          lesson_label: string
+          lesson_number: number
+          lesson_title: string
+          publication_status: string
+          requires_confirmation: boolean
+          section_id: string
+          section_level: string
+          section_path: string
+          sort_order: number
+          source_hash: string
+          unit_label: string
+          unit_number: number
+          unit_title: string
+          verification_status: string
+          volume: string
+        }[]
+      }
       hai_has_access: { Args: { p_user_id?: string }; Returns: boolean }
       hai_import_chat_skill_snapshot: {
         Args: {
@@ -3233,6 +3446,10 @@ export type Database = {
           p_version_label: string
         }
         Returns: string
+      }
+      hai_import_politics_case_payload: {
+        Args: { p_payload: Json }
+        Returns: Json
       }
       hai_import_textbook_payload: { Args: { p_payload: Json }; Returns: Json }
       hai_import_work_skill_snapshot: {
@@ -3257,11 +3474,13 @@ export type Database = {
           edition_label: string
           frame_label: string
           frame_number: number
+          frame_route_number: number
           frame_title: string
           grade_label: string
           grade_level: number
           lesson_label: string
           lesson_number: number
+          lesson_route_number: number
           lesson_title: string
           publication_status: string
           requires_confirmation: boolean
@@ -3269,6 +3488,7 @@ export type Database = {
           subject: string
           unit_label: string
           unit_number: number
+          unit_route_number: number
           unit_title: string
           verification_status: string
           volume: string
@@ -3324,7 +3544,7 @@ export type Database = {
           title: string
         }[]
       }
-      hai_match_textbook_sections: {
+      hai_match_politics_cases: {
         Args: {
           p_frame_query?: string
           p_grade_level?: number
@@ -3333,35 +3553,23 @@ export type Database = {
           p_stage: string
           p_subject: string
           p_unit_query?: string
-          p_volume?: string
+          p_teaching_mode?: string
         }
         Returns: {
-          collection_id: string
-          collection_slug: string
-          collection_title: string
+          case_id: string
+          classroom_question: string
+          concepts: string[]
           content_hash: string
           content_markdown: string
-          content_type: string
-          edition_label: string
-          frame_label: string
-          frame_number: number
-          frame_title: string
-          grade_label: string
-          grade_level: number
-          lesson_label: string
-          lesson_number: number
-          lesson_title: string
-          publication_status: string
-          requires_confirmation: boolean
+          event_date: string
           score: number
-          section_id: string
-          section_path: string
-          source_hash: string
-          unit_label: string
-          unit_number: number
-          unit_title: string
+          source_file_name: string
+          source_slug: string
+          source_urls: string[]
+          summary: string
+          title: string
+          topic_direction: string
           verification_status: string
-          volume: string
         }[]
       }
       hai_publish_chat_skill_version: {

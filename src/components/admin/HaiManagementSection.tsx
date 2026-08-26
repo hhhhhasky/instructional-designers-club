@@ -166,7 +166,7 @@ export default function HaiManagementSection() {
   const [knowledgeSources, setKnowledgeSources] = useState<HaiKnowledgeSource[]>([]);
   const [runtimeSettings, setRuntimeSettings] = useState<HaiRuntimeSetting[]>([]);
   const [modelProviders, setModelProviders] = useState<HaiModelProvider[]>([]);
-  const [providerDraft, setProviderDraft] = useState({ id: "", label: "", model_name: "", api_key: "", base_url: "", is_enabled: true, sort_order: 0 });
+  const [providerDraft, setProviderDraft] = useState({ id: "", label: "", provider_code: "", model_name: "", api_key: "", base_url: "", is_enabled: true, sort_order: 0 });
   const [editingProviderId, setEditingProviderId] = useState<string | null>(null);
   const [defaultMethodCards, setDefaultMethodCards] = useState<HanMethodCard[]>([]);
   const [methodCardConfigRows, setMethodCardConfigRows] = useState<HaiMethodCardConfigRow[]>([]);
@@ -418,6 +418,7 @@ export default function HaiManagementSection() {
       await saveHaiModelProvider({
         id: editingProviderId || undefined,
         label: providerDraft.label,
+        provider_code: providerDraft.provider_code,
         model_name: providerDraft.model_name,
         api_key: providerDraft.api_key,
         base_url: providerDraft.base_url,
@@ -425,7 +426,7 @@ export default function HaiManagementSection() {
         sort_order: providerDraft.sort_order,
       });
       setEditingProviderId(null);
-      setProviderDraft({ id: "", label: "", model_name: "", api_key: "", base_url: "", is_enabled: true, sort_order: 0 });
+      setProviderDraft({ id: "", label: "", provider_code: "", model_name: "", api_key: "", base_url: "", is_enabled: true, sort_order: 0 });
       await loadAll();
       setStatus("模型供应商已保存。");
     } catch (error) {
@@ -451,6 +452,7 @@ export default function HaiManagementSection() {
     setProviderDraft({
       id: provider.id,
       label: provider.label,
+      provider_code: provider.provider_code,
       model_name: provider.model_name,
       api_key: "",
       base_url: provider.base_url,
@@ -1481,7 +1483,13 @@ export default function HaiManagementSection() {
           <p className="mb-2 text-ds-sm font-ds-bold text-tx">
             {editingProviderId ? "编辑模型供应商" : "新增模型供应商"}
           </p>
-          <div className="grid gap-2 sm:grid-cols-5">
+          <div className="grid gap-2 sm:grid-cols-6">
+            <input
+              placeholder="provider code（如 deepseek / zhipu）"
+              value={providerDraft.provider_code}
+              onChange={(e) => setProviderDraft((d) => ({ ...d, provider_code: e.target.value }))}
+              className="h-9 rounded-ds-sm border border-bd bg-white px-2 text-ds-sm"
+            />
             <input
               placeholder="唯一配置名称（如 DeepSeek V4）"
               value={providerDraft.label}
@@ -1521,7 +1529,7 @@ export default function HaiManagementSection() {
                 保存
               </Button>
               {editingProviderId && (
-                <Button size="sm" variant="outline" onClick={() => { setEditingProviderId(null); setProviderDraft({ id: "", label: "", model_name: "", api_key: "", base_url: "", is_enabled: true, sort_order: 0 }); }}>
+                <Button size="sm" variant="outline" onClick={() => { setEditingProviderId(null); setProviderDraft({ id: "", label: "", provider_code: "", model_name: "", api_key: "", base_url: "", is_enabled: true, sort_order: 0 }); }}>
                   <X className="h-4 w-4" />取消
                 </Button>
               )}
@@ -1539,6 +1547,7 @@ export default function HaiManagementSection() {
                 className="flex flex-wrap items-center gap-3 rounded-ds-md border border-bd bg-white px-3 py-2"
               >
                 <span className="min-w-[140px] text-ds-sm font-ds-bold text-tx">{provider.label}</span>
+                <Badge variant="outline">{provider.provider_code}</Badge>
                 <code className="text-ds-xs text-txs">{provider.model_name}</code>
                 <span className="text-ds-xs text-txs truncate max-w-[200px] hidden sm:inline">{provider.base_url}</span>
                 <Badge variant={provider.is_enabled ? "default" : "secondary"}>

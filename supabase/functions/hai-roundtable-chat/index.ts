@@ -181,6 +181,7 @@ Deno.serve(async (request) => {
       async start(controller) {
         let output = "";
         let providerUsage: HaiProviderUsage | null = null;
+        let providerCode = "deepseek";
         try {
           sendSse(controller, encoder, {
             type: "ready",
@@ -195,6 +196,7 @@ Deno.serve(async (request) => {
               userId: auth.user.id,
               admin: auth.admin,
               onUsage: (usage) => { providerUsage = usage; },
+              onProviderResolved: (value) => { providerCode = value; },
             })
           ) {
             output += token;
@@ -268,6 +270,7 @@ Deno.serve(async (request) => {
             entityType: "conversation",
             entityId: conversationId,
             model: completionOptions.model,
+            provider: providerCode,
             startedAt: new Date(startedAt),
             completedAt: new Date(),
             status: "completed",
@@ -321,6 +324,7 @@ Deno.serve(async (request) => {
             entityType: "conversation",
             entityId: conversationId,
             model: completionOptions.model,
+            provider: providerCode,
             startedAt: new Date(startedAt),
             completedAt: new Date(),
             status: "failed",

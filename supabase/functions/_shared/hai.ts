@@ -280,7 +280,17 @@ type HaiPricingRow = {
   off_peak_cache_miss_input_per_million: number | string;
   off_peak_output_per_million: number | string;
   currency: string;
+  metadata?: Record<string, unknown>;
 };
+
+function inferProviderCode(baseUrl: string, explicit?: string | null) {
+  const value = explicit?.trim().toLowerCase();
+  if (value) return value;
+  const url = baseUrl.toLowerCase();
+  if (url.includes("deepseek")) return "deepseek";
+  if (url.includes("bigmodel") || url.includes("z.ai")) return "zhipu";
+  return "openai_compatible";
+}
 
 function isDeepSeekPeak(at: Date, timezone = "Asia/Shanghai") {
   const weekday = new Intl.DateTimeFormat("en-US", {
@@ -311,12 +321,17 @@ export function normalizeProviderUsage(value: unknown, providerRequestId?: strin
   const record = normalizeRecord(value);
   if (Object.keys(record).length === 0) return null;
   const details = normalizeRecord(record.completion_tokens_details);
+  const promptDetails = normalizeRecord(record.prompt_tokens_details);
   const promptTokens = Number.isFinite(Number(record.prompt_tokens)) ? Number(record.prompt_tokens) : null;
-  const cacheHitTokens = Number.isFinite(Number(record.prompt_cache_hit_tokens))
-    ? Number(record.prompt_cache_hit_tokens)
+  const cachedRaw = record.prompt_cache_hit_tokens ?? promptDetails.cached_tokens;
+  const cacheHitTokens = Number.isFinite(Number(cachedRaw))
+    ? Number(cachedRaw)
     : null;
-  const cacheMissTokens = Number.isFinite(Number(record.prompt_cache_miss_tokens))
-    ? Number(record.prompt_cache_miss_tokens)
+  const cacheMissRaw = record.prompt_cache_miss_tokens ?? (
+    promptTokens != null && cacheHitTokens != null ? Math.max(0, promptTokens - cacheHitTokens) : null
+  );
+  const cacheMissTokens = Number.isFinite(Number(cacheMissRaw))
+    ? Number(cacheMissRaw)
     : null;
   const completionTokens = Number.isFinite(Number(record.completion_tokens))
     ? Number(record.completion_tokens)
@@ -347,9 +362,9 @@ async function loadHaiPricing(
 ): Promise<HaiPricingRow | null> {
   const { data, error } = await admin
     .from("hai_model_pricing")
-    .select("provider, model_name, effective_from, effective_to, timezone, peak_cache_hit_input_per_million, peak_cache_miss_input_per_million, peak_output_per_million, off_peak_cache_hit_input_per_million, off_peak_cache_miss_input_per_million, off_peak_output_per_million, currency")
+    .select("provider, model_name, effective_from, effective_to, timezone, peak_cache_hit_input_per_million, peak_cache_miss_input_per_million, peak_output_per_million, off_peak_cache_hit_input_per_million, off_peak_cache_miss_input_per_million, off_peak_output_per_million, currency, metadata")
     .eq("provider", provider)
-    .eq("model_name", model)
+    .ilike("model_name", model)
     .eq("enabled", true)
     .order("effective_from", { ascending: false });
   if (error) {
@@ -374,6 +389,7 @@ export async function recordHaiModelCall(params: {
   entityType?: string | null;
   entityId?: string | null;
   model: string;
+  provider?: string | null;
   modelProviderId?: string | null;
   startedAt: Date;
   completedAt?: Date | null;
@@ -381,7 +397,7 @@ export async function recordHaiModelCall(params: {
   usage: HaiProviderUsage | null;
   metadata?: Record<string, unknown>;
 }) {
-  const provider = "deepseek";
+  const provider = inferProviderCode(params.provider ?? "deepseek");
   const pricing = await loadHaiPricing(params.admin, provider, params.model, params.startedAt);
   const peak = pricing ? isDeepSeekPeak(params.startedAt, pricing.timezone) : false;
   const priceBand = pricing ? (peak ? "peak" : "off_peak") : "unknown";
@@ -444,6 +460,7 @@ export async function recordHaiModelCall(params: {
       cache_hit_input_per_million: hitRate,
       cache_miss_input_per_million: missRate,
       output_per_million: outputRate,
+      ...(pricing.metadata ?? {}),
     } : {},
     cache_hit_cost: money(cacheHitCost),
     cache_miss_cost: money(cacheMissCost),
@@ -670,6 +687,7 @@ function deepSeekConfig() {
     baseUrl: Deno.env.get("DEEPSEEK_BASE_URL") || "https://api.deepseek.com",
     apiKey: Deno.env.get("DEEPSEEK_API_KEY"),
     model: Deno.env.get("DEEPSEEK_MODEL") || "deepseek-v4-flash",
+    providerCode: "deepseek",
   };
 }
 
@@ -677,6 +695,7 @@ type ProviderConfig = {
   baseUrl: string;
   apiKey: string;
   model: string;
+  providerCode: string;
 };
 
 /**
@@ -696,12 +715,13 @@ async function resolveProviderConfig(
       baseUrl: Deno.env.get("DEEPSEEK_BASE_URL") || "https://api.deepseek.com",
       apiKey: envKey,
       model: fallbackModel || Deno.env.get("DEEPSEEK_MODEL") || "deepseek-v4-flash",
+      providerCode: "deepseek",
     };
   }
 
   const { data, error } = await admin
     .from("hai_model_providers")
-    .select("label, model_name, api_key, base_url, is_enabled")
+    .select("label, model_name, api_key, base_url, is_enabled, provider_code")
     .eq("id", modelProviderId)
     .maybeSingle();
 
@@ -713,6 +733,7 @@ async function resolveProviderConfig(
       baseUrl: Deno.env.get("DEEPSEEK_BASE_URL") || "https://api.deepseek.com",
       apiKey: envKey,
       model: fallbackModel || Deno.env.get("DEEPSEEK_MODEL") || "deepseek-v4-flash",
+      providerCode: "deepseek",
     };
   }
 
@@ -734,6 +755,7 @@ async function resolveProviderConfig(
     baseUrl: data.base_url.replace(/\/$/, "") || "https://api.deepseek.com",
     apiKey,
     model: fallbackModel || data.model_name,
+    providerCode: inferProviderCode(data.base_url, data.provider_code),
   };
 }
 
@@ -752,12 +774,14 @@ export async function* streamDeepSeek(
     admin?: SupabaseClient | null;
     modelProviderId?: string | null;
     onUsage?: (usage: HaiProviderUsage) => void | Promise<void>;
+    onProviderResolved?: (providerCode: string) => void;
   } = {},
 ) {
   const config = options.admin
     ? await resolveProviderConfig(options.admin, options.modelProviderId, options.model)
     : deepSeekConfig();
   if (!config.apiKey) throw new HttpError(503, "AI 服务未配置 DeepSeek API Key。");
+  options.onProviderResolved?.(config.providerCode);
 
   const response = await fetch(`${config.baseUrl.replace(/\/$/, "")}/chat/completions`, {
     method: "POST",

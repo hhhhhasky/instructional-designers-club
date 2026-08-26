@@ -53,12 +53,20 @@ export interface HaiFeatureModule {
 export interface HaiModelProvider {
   id: string;
   label: string;
+  provider_code: string;
   model_name: string;
   base_url: string;
   is_enabled: boolean;
   sort_order: number;
   created_at: string;
   updated_at: string;
+}
+
+function inferProviderCodeFromUrl(baseUrl: string) {
+  const url = baseUrl.toLowerCase();
+  if (url.includes("deepseek")) return "deepseek";
+  if (url.includes("bigmodel") || url.includes("z.ai")) return "zhipu";
+  return "openai_compatible";
 }
 
 export type HaiMode = "chat" | "work";
@@ -326,17 +334,18 @@ export async function getHaiWorkTools(): Promise<HaiFeatureModule[]> {
 export async function getHaiModelProviders(): Promise<HaiModelProvider[]> {
   const { data, error } = await supabase
     .from("hai_model_providers")
-    .select("id, label, model_name, base_url, is_enabled, sort_order, created_at, updated_at")
+    .select("id, label, provider_code, model_name, base_url, is_enabled, sort_order, created_at, updated_at")
     .order("sort_order", { ascending: true });
   if (error) throw error;
   return (data as HaiModelProvider[]) ?? [];
 }
 
 export async function saveHaiModelProvider(
-  provider: { label: string; model_name: string; api_key: string; base_url: string; is_enabled: boolean; sort_order: number; id?: string },
+  provider: { label: string; provider_code?: string; model_name: string; api_key: string; base_url: string; is_enabled: boolean; sort_order: number; id?: string },
 ): Promise<void> {
   const values = {
     label: provider.label.trim(),
+    provider_code: provider.provider_code?.trim().toLowerCase() || inferProviderCodeFromUrl(provider.base_url),
     model_name: provider.model_name.trim(),
     base_url: provider.base_url.trim(),
     is_enabled: provider.is_enabled,
