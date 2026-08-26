@@ -130,6 +130,7 @@ export interface HaiUserRanking {
   access_level: string;
   request_count: number;
   total_tokens: number;
+  seven_day_total_tokens: number;
   input_tokens: number;
   output_tokens: number;
   average_tokens: number;
@@ -408,6 +409,7 @@ export function buildHaiDashboardData(
   modelCalls: HaiModelCallRow[] = [],
 ): HaiDashboardData {
   const dailyMap = createDailyBuckets(rangeDays, now);
+  const sevenDayStart = startOfRange(7, now);
   const rankings = new Map<string, HaiUserRanking>();
   const activeUsers = new Set<string>();
   let totalTokens = 0;
@@ -450,6 +452,7 @@ export function buildHaiDashboardData(
       access_level: profile?.access_level || "-",
       request_count: 0,
       total_tokens: 0,
+      seven_day_total_tokens: 0,
       input_tokens: 0,
       output_tokens: 0,
       average_tokens: 0,
@@ -458,6 +461,7 @@ export function buildHaiDashboardData(
     };
     current.request_count += 1;
     current.total_tokens += tokens;
+    if (new Date(event.created_at) >= sevenDayStart) current.seven_day_total_tokens += tokens;
     current.input_tokens += input;
     current.output_tokens += output;
     if (event.status === "failed") current.failed_count += 1;

@@ -44,6 +44,8 @@ describe("HAI dashboard", () => {
     expect(screen.getByText("单用户 Token 消耗排行榜")).toBeInTheDocument();
     expect(screen.getAllByText("王老师").length).toBeGreaterThan(0);
     expect(screen.getByText("12,000")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "7 天累计总量" })).toBeInTheDocument();
+    expect(screen.getByText("9,000")).toBeInTheDocument();
   });
 
   it("reloads the dashboard when the time range changes", async () => {
@@ -101,6 +103,7 @@ const dashboardFixture: HaiDashboardData = {
     total_tokens: 12000,
     input_tokens: 8000,
     output_tokens: 4000,
+    seven_day_total_tokens: 9000,
     average_tokens: 1200,
     failed_count: 0,
     last_used_at: "2026-07-13T10:00:00.000Z",
@@ -113,6 +116,7 @@ const dashboardFixture: HaiDashboardData = {
     total_tokens: 6000,
     input_tokens: 4000,
     output_tokens: 2000,
+    seven_day_total_tokens: 5000,
     average_tokens: 300,
     failed_count: 1,
     last_used_at: "2026-07-13T09:00:00.000Z",

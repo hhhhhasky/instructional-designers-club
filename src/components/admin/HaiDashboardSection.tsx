@@ -346,13 +346,14 @@ export default function HaiDashboardSection() {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px] text-left text-ds-sm">
+          <table className="w-full min-w-[980px] text-left text-ds-sm">
             <thead className="bg-bgs/70 text-txs">
               <tr>
                 <th className="w-16 px-4 py-3 text-center">排名</th>
                 <th className="px-4 py-3">用户</th>
                 <th className="px-4 py-3 text-right">使用次数</th>
                 <th className="px-4 py-3 text-right">Token 总量（{rangeLabel}）</th>
+                <th className="px-4 py-3 text-right">7 天累计总量</th>
                 <th className="px-4 py-3 text-right">单次平均</th>
                 <th className="px-4 py-3 text-right">失败</th>
                 <th className="px-4 py-3 text-right">最近使用</th>
@@ -368,6 +369,7 @@ export default function HaiDashboardSection() {
                   </td>
                   <td className="px-4 py-3 text-right text-tx">{formatNumber(user.request_count)}</td>
                   <td className="px-4 py-3 text-right font-ds-black text-ac">{formatNumber(user.total_tokens)}</td>
+                  <td className="px-4 py-3 text-right font-ds-semibold text-tl">{formatNumber(user.seven_day_total_tokens)}</td>
                   <td className="px-4 py-3 text-right text-txs">{formatNumber(user.average_tokens)}</td>
                   <td className="px-4 py-3 text-right">
                     <span className={user.failed_count > 0 ? "text-red-600" : "text-txs"}>{user.failed_count}</span>
@@ -376,7 +378,7 @@ export default function HaiDashboardSection() {
                 </tr>
               ))}
               {userRankings.length === 0 && (
-                <tr><td colSpan={7} className="px-4 py-12 text-center text-txs">当前周期暂无 HAI 使用记录</td></tr>
+                <tr><td colSpan={8} className="px-4 py-12 text-center text-txs">当前周期暂无 HAI 使用记录</td></tr>
               )}
             </tbody>
           </table>
