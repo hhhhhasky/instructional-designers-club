@@ -335,18 +335,29 @@ export async function getHaiModelProviders(): Promise<HaiModelProvider[]> {
 export async function saveHaiModelProvider(
   provider: { label: string; model_name: string; api_key: string; base_url: string; is_enabled: boolean; sort_order: number; id?: string },
 ): Promise<void> {
-  const { error } = await supabase
-    .from("hai_model_providers")
-    .upsert({
-      id: provider.id,
-      label: provider.label,
-      model_name: provider.model_name,
-      api_key: provider.api_key,
-      base_url: provider.base_url,
-      is_enabled: provider.is_enabled,
-      sort_order: provider.sort_order,
-    });
-  if (error) throw error;
+  const values = {
+    label: provider.label.trim(),
+    model_name: provider.model_name.trim(),
+    base_url: provider.base_url.trim(),
+    is_enabled: provider.is_enabled,
+    sort_order: provider.sort_order,
+  };
+
+  const result = provider.id
+    ? await supabase
+      .from("hai_model_providers")
+      .update(provider.api_key.trim() ? { ...values, api_key: provider.api_key.trim() } : values)
+      .eq("id", provider.id)
+    : await supabase
+      .from("hai_model_providers")
+      .insert({ ...values, api_key: provider.api_key.trim() });
+
+  if (result.error) {
+    if (result.error.code === "23505") {
+      throw new Error(`配置名称“${values.label}”已存在，请编辑已有配置或使用不同名称。`);
+    }
+    throw new Error(result.error.message || "模型供应商保存失败，请稍后重试。");
+  }
 }
 
 export async function deleteHaiModelProvider(id: string): Promise<void> {

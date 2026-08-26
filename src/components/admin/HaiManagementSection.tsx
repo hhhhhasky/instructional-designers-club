@@ -1483,7 +1483,7 @@ export default function HaiManagementSection() {
           </p>
           <div className="grid gap-2 sm:grid-cols-5">
             <input
-              placeholder="标签（如 DeepSeek V4）"
+              placeholder="唯一配置名称（如 DeepSeek V4）"
               value={providerDraft.label}
               onChange={(e) => setProviderDraft((d) => ({ ...d, label: e.target.value }))}
               className="h-9 rounded-ds-sm border border-bd bg-white px-2 text-ds-sm"

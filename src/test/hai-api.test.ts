@@ -6,6 +6,7 @@ import {
   getHaiWorkTaskDetail,
   HAI_CHAT_MODULE_SLUG,
   HaiApiError,
+  saveHaiModelProvider,
   type HaiFeatureModule,
   streamHaiChat,
 } from "@/db/hai-api";
@@ -155,6 +156,80 @@ describe("HAI Chat module boundary", () => {
   });
 });
 
+describe("HAI model provider persistence", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("inserts a new provider without sending an undefined id", async () => {
+    const query = createQuery({ data: null, error: null });
+    fromMock.mockReturnValue(query);
+
+    await saveHaiModelProvider({
+      label: " DeepSeek V4 Pro ",
+      model_name: " deepseek-v4-pro ",
+      api_key: " secret-key ",
+      base_url: " https://api.deepseek.com ",
+      is_enabled: true,
+      sort_order: 2,
+    });
+
+    expect(query.insert).toHaveBeenCalledWith({
+      label: "DeepSeek V4 Pro",
+      model_name: "deepseek-v4-pro",
+      api_key: "secret-key",
+      base_url: "https://api.deepseek.com",
+      is_enabled: true,
+      sort_order: 2,
+    });
+    expect(query.upsert).not.toHaveBeenCalled();
+  });
+
+  it("does not clear the stored API key when an edit leaves it blank", async () => {
+    const query = createQuery({ data: null, error: null });
+    fromMock.mockReturnValue(query);
+
+    await saveHaiModelProvider({
+      id: "provider-1",
+      label: "DeepSeek V4 Pro",
+      model_name: "deepseek-v4-pro",
+      api_key: "   ",
+      base_url: "https://api.deepseek.com",
+      is_enabled: true,
+      sort_order: 2,
+    });
+
+    expect(query.update).toHaveBeenCalledWith({
+      label: "DeepSeek V4 Pro",
+      model_name: "deepseek-v4-pro",
+      base_url: "https://api.deepseek.com",
+      is_enabled: true,
+      sort_order: 2,
+    });
+    expect(query.eq).toHaveBeenCalledWith("id", "provider-1");
+  });
+
+  it("turns a duplicate label conflict into an actionable message", async () => {
+    const query = createQuery({
+      data: null,
+      error: {
+        code: "23505",
+        message: "duplicate key value violates unique constraint",
+      },
+    });
+    fromMock.mockReturnValue(query);
+
+    await expect(saveHaiModelProvider({
+      label: "GLM",
+      model_name: "glm-5",
+      api_key: "secret-key",
+      base_url: "https://open.bigmodel.cn/api/paas/v4",
+      is_enabled: true,
+      sort_order: 0,
+    })).rejects.toThrow("配置名称“GLM”已存在，请编辑已有配置或使用不同名称。");
+  });
+});
+
 describe("HAI Work task detail reliability", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -266,6 +341,9 @@ describe("HAI personal data isolation", () => {
 function createQuery(result: { data: unknown; error: unknown }) {
   const query = {
     select: vi.fn(() => query),
+    insert: vi.fn(() => query),
+    update: vi.fn(() => query),
+    upsert: vi.fn(() => query),
     eq: vi.fn(() => query),
     is: vi.fn(() => query),
     order: vi.fn(() => query),
