@@ -5,6 +5,9 @@ import {
   createTitle,
   estimateTokens,
   finalizeUsage,
+  recordHaiModelCall,
+  summarizeHaiModelCalls,
+  type HaiProviderUsage,
   type HaiChatCompletionOptions,
   type HaiRuntimeConfig,
   handleCors,
@@ -177,6 +180,7 @@ Deno.serve(async (request) => {
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
         let output = "";
+        let providerUsage: HaiProviderUsage | null = null;
         try {
           sendSse(controller, encoder, {
             type: "ready",
@@ -189,6 +193,8 @@ Deno.serve(async (request) => {
             const token of streamDeepSeek(messages, {
               ...completionOptions,
               userId: auth.user.id,
+              admin: auth.admin,
+              onUsage: (usage) => { providerUsage = usage; },
             })
           ) {
             output += token;
@@ -252,6 +258,23 @@ Deno.serve(async (request) => {
               message_id: assistantMessage.id,
             }, configSnapshot),
           });
+          await recordHaiModelCall({
+            admin: auth.admin,
+            userId: auth.user.id,
+            requestId: clientRequestId,
+            callIndex: 1,
+            stage: "roundtable",
+            route: "hai-roundtable-chat",
+            entityType: "conversation",
+            entityId: conversationId,
+            model: completionOptions.model,
+            startedAt: new Date(startedAt),
+            completedAt: new Date(),
+            status: "completed",
+            usage: providerUsage,
+            metadata: { module_slug: module.slug, role_ids: roleIds },
+          });
+          const exactUsage = await summarizeHaiModelCalls({ admin: auth.admin, requestId: clientRequestId });
 
           sendSse(controller, encoder, {
             type: "done",
@@ -261,6 +284,11 @@ Deno.serve(async (request) => {
               inputTokens,
               outputTokens,
               totalTokens: inputTokens + outputTokens,
+              actualInputTokens: exactUsage?.promptTokens ?? null,
+              actualOutputTokens: exactUsage?.completionTokens ?? null,
+              actualTotalTokens: exactUsage?.totalTokens ?? null,
+              actualCost: exactUsage?.totalCost ?? null,
+              actualUsageStatus: exactUsage?.usageStatus ?? "missing",
             },
           });
         } catch (error) {
@@ -283,6 +311,23 @@ Deno.serve(async (request) => {
               error: message,
             }, configSnapshot),
           });
+          await recordHaiModelCall({
+            admin: auth.admin,
+            userId: auth.user.id,
+            requestId: clientRequestId,
+            callIndex: 1,
+            stage: "roundtable",
+            route: "hai-roundtable-chat",
+            entityType: "conversation",
+            entityId: conversationId,
+            model: completionOptions.model,
+            startedAt: new Date(startedAt),
+            completedAt: new Date(),
+            status: "failed",
+            usage: providerUsage,
+            metadata: { module_slug: module.slug, role_ids: roleIds, error: message },
+          });
+          await summarizeHaiModelCalls({ admin: auth.admin, requestId: clientRequestId });
           sendSse(controller, encoder, { type: "error", message });
         } finally {
           controller.close();

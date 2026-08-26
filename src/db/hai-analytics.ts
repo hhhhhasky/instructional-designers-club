@@ -19,9 +19,46 @@ export interface HaiUsageEventRow {
   total_tokens: number | null;
   input_tokens: number | null;
   output_tokens: number | null;
+  actual_prompt_tokens?: number | null;
+  actual_cache_hit_tokens?: number | null;
+  actual_cache_miss_tokens?: number | null;
+  actual_completion_tokens?: number | null;
+  actual_reasoning_tokens?: number | null;
+  actual_visible_output_tokens?: number | null;
+  actual_total_tokens?: number | null;
+  actual_cost?: number | null;
+  actual_currency?: string | null;
+  actual_usage_status?: "actual" | "partial" | "missing" | "estimated" | null;
   duration_ms: number | null;
   metadata?: Record<string, unknown>;
   created_at: string;
+  profiles?: HaiProfileRelation;
+}
+
+export interface HaiModelCallRow {
+  id: string;
+  user_id: string | null;
+  request_id: string;
+  call_index: number;
+  stage: string;
+  route: string;
+  model: string;
+  provider_request_id: string | null;
+  status: "running" | "completed" | "failed";
+  started_at: string;
+  completed_at: string | null;
+  prompt_tokens: number | null;
+  cache_hit_tokens: number | null;
+  cache_miss_tokens: number | null;
+  completion_tokens: number | null;
+  reasoning_tokens: number | null;
+  visible_output_tokens: number | null;
+  total_tokens: number | null;
+  usage_status: "provider" | "provider_partial" | "missing";
+  price_band: "peak" | "off_peak" | "unknown";
+  total_cost: number | null;
+  currency: string;
+  metadata?: Record<string, unknown>;
   profiles?: HaiProfileRelation;
 }
 
@@ -166,6 +203,18 @@ export interface HaiDashboardData {
     work_request_count?: number;
     work_success_rate?: number;
     work_revision_count?: number;
+    actual_call_count?: number;
+    actual_complete_call_count?: number;
+    actual_prompt_tokens?: number;
+    actual_cache_hit_tokens?: number;
+    actual_cache_miss_tokens?: number;
+    actual_completion_tokens?: number;
+    actual_reasoning_tokens?: number;
+    actual_visible_output_tokens?: number;
+    actual_total_tokens?: number;
+    actual_cost?: number | null;
+    actual_currency?: string | null;
+    actual_usage_status?: "actual" | "partial" | "missing";
   };
   daily_usage: HaiDailyUsage[];
   user_rankings: HaiUserRanking[];
@@ -174,18 +223,21 @@ export interface HaiDashboardData {
   recent_traces: HaiRecentTrace[];
   recent_work_traces: HaiWorkDebugTraceRow[];
   daily_reviews: HaiDailyReviewRun[];
+  recent_model_calls?: Array<HaiModelCallRow & { profile: HaiProfile | null }>;
 }
 
 const PAGE_SIZE = 1000;
 const MAX_EVENT_PAGES = 20;
 const MAX_TRACE_PAGES = 20;
 const MAX_WORK_TRACE_PAGES = 20;
+const MAX_MODEL_CALL_PAGES = 20;
 
 export async function getAdminHaiDashboard(rangeDays: HaiDashboardRangeDays): Promise<HaiDashboardData> {
   const now = new Date();
   const since = startOfRange(rangeDays, now).toISOString();
-  const [events, alertResult, traceMessages, workTraces, dailyReviews] = await Promise.all([
+  const [events, modelCalls, alertResult, traceMessages, workTraces, dailyReviews] = await Promise.all([
     fetchUsageEvents(since),
+    fetchModelCalls(since),
     supabase
       .from("hai_usage_alerts")
       .select("id, user_id, severity, title, description, route, created_at, profiles!user_id(nickname, phone, access_level)")
@@ -206,7 +258,30 @@ export async function getAdminHaiDashboard(rangeDays: HaiDashboardRangeDays): Pr
     now,
     dailyReviews,
     workTraces,
+    modelCalls,
   );
+}
+
+async function fetchModelCalls(since: string): Promise<HaiModelCallRow[]> {
+  const rows: HaiModelCallRow[] = [];
+  for (let page = 0; page < MAX_MODEL_CALL_PAGES; page += 1) {
+    const from = page * PAGE_SIZE;
+    const { data, error } = await (supabase as any)
+      .from("hai_model_calls")
+      .select("id, user_id, request_id, call_index, stage, route, model, provider_request_id, status, started_at, completed_at, prompt_tokens, cache_hit_tokens, cache_miss_tokens, completion_tokens, reasoning_tokens, visible_output_tokens, total_tokens, usage_status, price_band, total_cost, currency, metadata, profiles!user_id(nickname, phone, access_level)")
+      .gte("started_at", since)
+      .order("started_at", { ascending: false })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) {
+      // Migration may not yet be applied in a local/admin preview environment.
+      console.warn("getAdminHaiDashboard: model-call ledger unavailable, degrading to empty list.", error);
+      return [];
+    }
+    const batch = (data as HaiModelCallRow[]) ?? [];
+    rows.push(...batch);
+    if (batch.length < PAGE_SIZE) break;
+  }
+  return rows;
 }
 
 async function fetchWorkDebugTraces(since: string): Promise<HaiWorkDebugTraceRow[]> {
@@ -272,15 +347,29 @@ async function fetchUsageEvents(since: string): Promise<HaiUsageEventRow[]> {
 
   for (let page = 0; page < MAX_EVENT_PAGES; page += 1) {
     const from = page * PAGE_SIZE;
-    const { data, error } = await supabase
+    const query = supabase
       .from("hai_usage_events")
-      .select("id, user_id, event_type, route, status, total_tokens, input_tokens, output_tokens, duration_ms, metadata, created_at, profiles!user_id(nickname, phone, access_level)")
+      .select("id, user_id, event_type, route, status, total_tokens, input_tokens, output_tokens, actual_prompt_tokens, actual_cache_hit_tokens, actual_cache_miss_tokens, actual_completion_tokens, actual_reasoning_tokens, actual_visible_output_tokens, actual_total_tokens, actual_cost, actual_currency, actual_usage_status, duration_ms, metadata, created_at, profiles!user_id(nickname, phone, access_level)")
       .like("event_type", "hai.request.%")
       .in("status", ["completed", "cached", "failed"])
       .gte("created_at", since)
       .order("created_at", { ascending: false })
       .range(from, from + PAGE_SIZE - 1);
-
+    let { data, error } = await query;
+    if (error) {
+      // Keep the dashboard readable during the short window before the ledger
+      // migration is applied; legacy rows simply show estimated usage.
+      const fallbackResult = await supabase
+        .from("hai_usage_events")
+        .select("id, user_id, event_type, route, status, total_tokens, input_tokens, output_tokens, duration_ms, metadata, created_at, profiles!user_id(nickname, phone, access_level)")
+        .like("event_type", "hai.request.%")
+        .in("status", ["completed", "cached", "failed"])
+        .gte("created_at", since)
+        .order("created_at", { ascending: false })
+        .range(from, from + PAGE_SIZE - 1);
+      data = fallbackResult.data as typeof data;
+      error = fallbackResult.error;
+    }
     if (error) throw error;
     const pageRows = (data as HaiUsageEventRow[]) ?? [];
     rows.push(...pageRows);
@@ -316,6 +405,7 @@ export function buildHaiDashboardData(
   now = new Date(),
   dailyReviews: HaiDailyReviewRun[] = [],
   workTraces: HaiWorkDebugTraceRow[] = [],
+  modelCalls: HaiModelCallRow[] = [],
 ): HaiDashboardData {
   const dailyMap = createDailyBuckets(rangeDays, now);
   const rankings = new Map<string, HaiUserRanking>();
@@ -390,6 +480,15 @@ export function buildHaiDashboardData(
   const workEvents = events.filter((event) => event.route === "hai-work");
   const workCompleted = workEvents.filter((event) => event.status === "completed" || event.status === "cached");
   const workRevisions = workCompleted.filter((event) => event.metadata?.revision === true);
+  const actualCalls = modelCalls.filter((call) => call.usage_status === "provider" || call.usage_status === "provider_partial");
+  const completeActualCalls = modelCalls.filter((call) => call.usage_status === "provider");
+  const actualCostValues = actualCalls.map((call) => call.total_cost).filter((value): value is number => typeof value === "number");
+  const actualCost = actualCostValues.length > 0 ? actualCostValues.reduce((sum, value) => sum + value, 0) : null;
+  const actualUsageStatus = actualCalls.length === 0
+    ? "missing"
+    : completeActualCalls.length === actualCalls.length
+    ? "actual"
+    : "partial";
 
   return {
     range_days: rangeDays,
@@ -411,6 +510,18 @@ export function buildHaiDashboardData(
       work_request_count: workEvents.length,
       work_success_rate: workEvents.length > 0 ? roundPercent(workCompleted.length / workEvents.length) : 0,
       work_revision_count: workRevisions.length,
+      actual_call_count: actualCalls.length,
+      actual_complete_call_count: completeActualCalls.length,
+      actual_prompt_tokens: actualCalls.reduce((sum, item) => sum + nonNegative(item.prompt_tokens), 0),
+      actual_cache_hit_tokens: actualCalls.reduce((sum, item) => sum + nonNegative(item.cache_hit_tokens), 0),
+      actual_cache_miss_tokens: actualCalls.reduce((sum, item) => sum + nonNegative(item.cache_miss_tokens), 0),
+      actual_completion_tokens: actualCalls.reduce((sum, item) => sum + nonNegative(item.completion_tokens), 0),
+      actual_reasoning_tokens: actualCalls.reduce((sum, item) => sum + nonNegative(item.reasoning_tokens), 0),
+      actual_visible_output_tokens: actualCalls.reduce((sum, item) => sum + nonNegative(item.visible_output_tokens), 0),
+      actual_total_tokens: actualCalls.reduce((sum, item) => sum + nonNegative(item.total_tokens), 0),
+      actual_cost: actualCost,
+      actual_currency: actualCalls.find((item) => item.currency)?.currency ?? null,
+      actual_usage_status: actualUsageStatus,
     },
     daily_usage: Array.from(dailyMap.values()).map(({ user_ids, ...day }) => ({
       ...day,
@@ -422,6 +533,7 @@ export function buildHaiDashboardData(
     recent_traces: traces,
     recent_work_traces: workTraces,
     daily_reviews: dailyReviews,
+    recent_model_calls: modelCalls.slice(0, 100).map((call) => ({ ...call, profile: profileOf(call.profiles) })),
   };
 }
 

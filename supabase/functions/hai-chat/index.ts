@@ -5,6 +5,9 @@ import {
   createTitle,
   estimateTokens,
   finalizeUsage,
+  recordHaiModelCall,
+  summarizeHaiModelCalls,
+  type HaiProviderUsage,
   type HaiChatCompletionOptions,
   type HaiRuntimeConfig,
   handleCors,
@@ -247,6 +250,12 @@ Deno.serve(async (request) => {
       async start(controller) {
         let output = "";
         let assistantMessageId: string | null = null;
+        let draftUsage: HaiProviderUsage | null = null;
+        let rewriteUsage: HaiProviderUsage | null = null;
+        let draftStartedAt: string | null = null;
+        let rewriteStartedAt: string | null = null;
+        let draftRecorded = false;
+        let rewriteRecorded = false;
         try {
           sendSse(controller, encoder, {
             type: "ready",
@@ -260,12 +269,14 @@ Deno.serve(async (request) => {
           promptModelCalls.push(
             buildPromptSnapshotCall("answer_draft", draftMessages),
           );
+          draftStartedAt = new Date().toISOString();
           for await (
             const token of streamDeepSeek(messages, {
               ...completionOptions,
               userId: auth.user.id,
               admin: auth.admin,
               modelProviderId: module.model_provider_id,
+              onUsage: (usage) => { draftUsage = usage; },
             })
           ) {
             output += token;
@@ -273,6 +284,23 @@ Deno.serve(async (request) => {
             // 再通过 replace 事件让前端清空草稿并显示最终答案。
             sendSse(controller, encoder, { type: "token", token });
           }
+          await recordHaiModelCall({
+            admin: auth.admin,
+            userId: auth.user.id,
+            requestId: clientRequestId,
+            callIndex: 1,
+            stage: "chat_draft",
+            route: "hai-chat",
+            entityType: "conversation",
+            entityId: conversationId,
+            model: completionOptions.model,
+            startedAt: new Date(draftStartedAt ?? new Date(startedAt).toISOString()),
+            completedAt: new Date(),
+            status: "completed",
+            usage: draftUsage,
+            metadata: { module_slug: module.slug },
+          });
+          draftRecorded = true;
 
           const evaluation = runtime.evaluatorEnabled
             ? evaluateResponse(output, undefined, {
@@ -308,6 +336,7 @@ Deno.serve(async (request) => {
             promptModelCalls.push(
               buildPromptSnapshotCall("answer_rewrite", finalMessages),
             );
+            rewriteStartedAt = new Date().toISOString();
             sendSse(controller, encoder, { type: "replace", content: "" });
             for await (
               const token of streamDeepSeek(finalMessages, {
@@ -315,11 +344,29 @@ Deno.serve(async (request) => {
                 userId: auth.user.id,
                 admin: auth.admin,
                 modelProviderId: module.model_provider_id,
+                onUsage: (usage) => { rewriteUsage = usage; },
               })
             ) {
               finalAnswer += token;
               sendSse(controller, encoder, { type: "token", token });
             }
+            await recordHaiModelCall({
+              admin: auth.admin,
+              userId: auth.user.id,
+              requestId: clientRequestId,
+              callIndex: 2,
+              stage: "chat_rewrite",
+              route: "hai-chat",
+              entityType: "conversation",
+              entityId: conversationId,
+              model: completionOptions.model,
+              startedAt: new Date(rewriteStartedAt ?? new Date().toISOString()),
+              completedAt: new Date(),
+              status: "completed",
+              usage: rewriteUsage,
+              metadata: { module_slug: module.slug },
+            });
+            rewriteRecorded = true;
           }
 
           // 流式阶段展示模型草稿；最终答案（包括必要的重写结果）再做一次替换，
@@ -409,6 +456,10 @@ Deno.serve(async (request) => {
               message_id: assistantMessageId,
             }, configSnapshot),
           });
+          const exactUsage = await summarizeHaiModelCalls({
+            admin: auth.admin,
+            requestId: clientRequestId,
+          });
 
           const promptSnapshot: PromptSnapshot | undefined =
             capturePromptSnapshot
@@ -426,6 +477,11 @@ Deno.serve(async (request) => {
               inputTokens,
               outputTokens,
               totalTokens: inputTokens + outputTokens,
+              actualInputTokens: exactUsage?.promptTokens ?? null,
+              actualOutputTokens: exactUsage?.completionTokens ?? null,
+              actualTotalTokens: exactUsage?.totalTokens ?? null,
+              actualCost: exactUsage?.totalCost ?? null,
+              actualUsageStatus: exactUsage?.usageStatus ?? "missing",
             },
             promptSnapshot,
           });
@@ -433,6 +489,42 @@ Deno.serve(async (request) => {
           const message = error instanceof Error
             ? error.message
             : "HAI 响应失败。";
+          if (draftStartedAt && !draftRecorded) {
+            await recordHaiModelCall({
+              admin: auth.admin,
+              userId: auth.user.id,
+              requestId: clientRequestId,
+              callIndex: 1,
+              stage: "chat_draft",
+              route: "hai-chat",
+              entityType: "conversation",
+              entityId: conversationId,
+              model: completionOptions.model,
+              startedAt: new Date(draftStartedAt),
+              completedAt: new Date(),
+              status: "failed",
+              usage: draftUsage,
+              metadata: { module_slug: module.slug, error: message },
+            });
+          }
+          if (rewriteStartedAt && !rewriteRecorded) {
+            await recordHaiModelCall({
+              admin: auth.admin,
+              userId: auth.user.id,
+              requestId: clientRequestId,
+              callIndex: 2,
+              stage: "chat_rewrite",
+              route: "hai-chat",
+              entityType: "conversation",
+              entityId: conversationId,
+              model: completionOptions.model,
+              startedAt: new Date(rewriteStartedAt),
+              completedAt: new Date(),
+              status: "failed",
+              usage: rewriteUsage,
+              metadata: { module_slug: module.slug, error: message },
+            });
+          }
           await finalizeUsage({
             userClient: auth.userClient,
             requestId: clientRequestId,
@@ -451,6 +543,7 @@ Deno.serve(async (request) => {
               error: message,
             }, configSnapshot),
           });
+          await summarizeHaiModelCalls({ admin: auth.admin, requestId: clientRequestId });
           sendSse(controller, encoder, { type: "error", message });
         } finally {
           controller.close();

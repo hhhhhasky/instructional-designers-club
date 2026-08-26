@@ -176,11 +176,13 @@ export default function HaiDashboardSection() {
             </Button>
           </div>
         </div>
-        <div className="relative mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-ds-lg border border-white/10 bg-white/10 lg:grid-cols-4">
+        <div className="relative mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-ds-lg border border-white/10 bg-white/10 lg:grid-cols-6">
           <HeroMetric icon={Activity} label="使用次数" value={formatNumber(summary.request_count)} suffix="次" />
           <HeroMetric icon={Users} label="使用人数" value={formatNumber(summary.active_users)} suffix="人" />
           <HeroMetric icon={Database} label="Token 消耗" value={formatCompactNumber(summary.total_tokens)} suffix="" />
           <HeroMetric icon={Gauge} label="人均 Token" value={formatCompactNumber(summary.average_tokens_per_user)} suffix="" />
+          <HeroMetric icon={Database} label="真实 Token" value={formatCompactNumber(summary.actual_total_tokens ?? 0)} suffix={summary.actual_usage_status === "missing" ? "待接入" : ""} />
+          <HeroMetric icon={Gauge} label="真实成本" value={summary.actual_cost == null ? "-" : `¥${summary.actual_cost.toFixed(4)}`} suffix={summary.actual_usage_status === "partial" ? "部分" : ""} />
         </div>
       </section>
 
@@ -252,6 +254,38 @@ export default function HaiDashboardSection() {
         <SignalCard icon={RefreshCw} label="Work 追改" value={`${summary.work_revision_count ?? 0} 次`} note="已完成的版本迭代" tone="amber" />
         <SignalCard icon={BarChart3} label="平均质检分" value={summary.quality_average === null ? "暂无" : `${summary.quality_average} 分`} note={summary.quality_pass_rate === null ? "尚无 trace 评分" : `通过率 ${formatDecimal(summary.quality_pass_rate)}%`} tone="clay" />
         <SignalCard icon={AlertTriangle} label="未处理告警" value={`${summary.open_alerts} 条`} note={summary.open_alerts > 0 ? "建议优先检查额度与异常调用" : "当前运行平稳"} tone="red" />
+      </section>
+
+      <section className="rounded-ds-lg border border-bd bg-white p-4 shadow-ds-xs md:p-6">
+        <SectionTitle title="真实 Token 与成本" description="来自 DeepSeek 流式 usage 回执；旧记录仍保留估算值并标记为待接入" />
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <MiniMetric label="输入 / Prompt" value={formatNumber(summary.actual_prompt_tokens ?? 0)} />
+          <MiniMetric label="缓存命中 / 未命中" value={`${formatNumber(summary.actual_cache_hit_tokens ?? 0)} / ${formatNumber(summary.actual_cache_miss_tokens ?? 0)}`} />
+          <MiniMetric label="可见输出 / 推理" value={`${formatNumber(summary.actual_visible_output_tokens ?? 0)} / ${formatNumber(summary.actual_reasoning_tokens ?? 0)}`} />
+          <MiniMetric label="调用完整度" value={`${summary.actual_complete_call_count ?? 0}/${summary.actual_call_count ?? 0} · ${summary.actual_usage_status ?? "missing"}`} />
+        </div>
+        <div className="mt-5 overflow-x-auto">
+          <table className="w-full min-w-[980px] text-left text-ds-sm">
+            <thead className="text-txs"><tr className="border-b border-bd"><th className="py-2">时间</th><th>用户</th><th>阶段</th><th>模型</th><th className="text-right">输入</th><th className="text-right">命中</th><th className="text-right">未命中</th><th className="text-right">输出</th><th>价格时段</th><th className="text-right">成本</th></tr></thead>
+            <tbody>
+              {(data.recent_model_calls ?? []).slice(0, 30).map((call) => (
+                <tr key={call.id} className="border-b border-bdl">
+                  <td className="py-2 text-ds-xs text-txs">{formatDateTime(call.started_at)}</td>
+                  <td className="font-ds-semibold text-tx">{call.profile?.nickname ?? "未知用户"}</td>
+                  <td><Badge variant="outline">{modelCallStageLabel(call.stage)}</Badge></td>
+                  <td className="max-w-[180px] truncate text-ds-xs text-txs">{call.model}</td>
+                  <td className="text-right">{formatNumber(call.prompt_tokens ?? 0)}</td>
+                  <td className="text-right text-tl">{formatNumber(call.cache_hit_tokens ?? 0)}</td>
+                  <td className="text-right text-am">{formatNumber(call.cache_miss_tokens ?? 0)}</td>
+                  <td className="text-right">{formatNumber(call.completion_tokens ?? 0)}</td>
+                  <td className="text-ds-xs text-txs">{call.price_band === "peak" ? "高峰" : call.price_band === "off_peak" ? "非高峰" : "未知"}</td>
+                  <td className="text-right font-ds-semibold text-ac">{call.total_cost == null ? "-" : `¥${call.total_cost.toFixed(4)}`}</td>
+                </tr>
+              ))}
+              {(data.recent_model_calls ?? []).length === 0 && <tr><td colSpan={10} className="py-10 text-center text-txs">尚无真实 provider usage 回执；迁移应用并产生新调用后会显示。</td></tr>}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(300px,0.55fr)]">
@@ -662,6 +696,10 @@ function RankMark({ rank }: { rank: number }) {
 function StatusBadge({ status }: { status: "completed" | "cached" | "failed" }) {
   const labels = { completed: "成功", cached: "缓存", failed: "失败" };
   return <Badge variant="outline" className={status === "failed" ? "border-red-200 text-red-600" : "border-tl/30 text-tl"}>{labels[status]}</Badge>;
+}
+
+function modelCallStageLabel(stage: string) {
+  return { chat_draft: "Chat 草稿", chat_rewrite: "Chat 重写", work_initial: "Work 首次", work_repair: "Work 修复", roundtable: "圆桌" }[stage] ?? stage;
 }
 
 function formatNumber(value: number) {

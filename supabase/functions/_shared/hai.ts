@@ -71,6 +71,24 @@ export type HaiChatCompletionOptions = {
   modelProviderId?: string | null;
 };
 
+export type HaiProviderUsage = {
+  promptTokens: number | null;
+  cacheHitTokens: number | null;
+  cacheMissTokens: number | null;
+  completionTokens: number | null;
+  reasoningTokens: number | null;
+  visibleOutputTokens: number | null;
+  totalTokens: number | null;
+  providerRequestId?: string | null;
+};
+
+export type HaiModelCallStage =
+  | "chat_draft"
+  | "chat_rewrite"
+  | "work_initial"
+  | "work_repair"
+  | "roundtable";
+
 const defaultRuntimeConfig: HaiRuntimeConfig = {
   contextWindowTokens: 1000000,
   contextWarningRemainingRatio: 0.2,
@@ -247,6 +265,246 @@ export async function finalizeUsage(params: {
     p_metadata: params.metadata ?? {},
   });
   if (error) console.warn("hai finalize usage failed", error.message);
+}
+
+type HaiPricingRow = {
+  provider: string;
+  model_name: string;
+  effective_from: string;
+  effective_to: string | null;
+  timezone: string;
+  peak_cache_hit_input_per_million: number | string;
+  peak_cache_miss_input_per_million: number | string;
+  peak_output_per_million: number | string;
+  off_peak_cache_hit_input_per_million: number | string;
+  off_peak_cache_miss_input_per_million: number | string;
+  off_peak_output_per_million: number | string;
+  currency: string;
+};
+
+function isDeepSeekPeak(at: Date, timezone = "Asia/Shanghai") {
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    weekday: "short",
+  }).format(at);
+  const day = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(weekday);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(at);
+  const hour = Number(parts.find((part) => part.type === "hour")?.value ?? 0);
+  const minute = Number(parts.find((part) => part.type === "minute")?.value ?? 0);
+  const totalMinutes = hour * 60 + minute;
+  return day >= 1 && day <= 5 && (
+    (totalMinutes >= 9 * 60 && totalMinutes < 12 * 60) ||
+    (totalMinutes >= 14 * 60 && totalMinutes < 18 * 60)
+  );
+}
+
+function money(value: number | null) {
+  return value == null ? null : value.toFixed(8);
+}
+
+export function normalizeProviderUsage(value: unknown, providerRequestId?: string | null): HaiProviderUsage | null {
+  const record = normalizeRecord(value);
+  if (Object.keys(record).length === 0) return null;
+  const details = normalizeRecord(record.completion_tokens_details);
+  const promptTokens = Number.isFinite(Number(record.prompt_tokens)) ? Number(record.prompt_tokens) : null;
+  const cacheHitTokens = Number.isFinite(Number(record.prompt_cache_hit_tokens))
+    ? Number(record.prompt_cache_hit_tokens)
+    : null;
+  const cacheMissTokens = Number.isFinite(Number(record.prompt_cache_miss_tokens))
+    ? Number(record.prompt_cache_miss_tokens)
+    : null;
+  const completionTokens = Number.isFinite(Number(record.completion_tokens))
+    ? Number(record.completion_tokens)
+    : null;
+  const reasoningTokens = Number.isFinite(Number(details.reasoning_tokens))
+    ? Number(details.reasoning_tokens)
+    : null;
+  const totalTokens = Number.isFinite(Number(record.total_tokens)) ? Number(record.total_tokens) : null;
+  return {
+    promptTokens,
+    cacheHitTokens,
+    cacheMissTokens,
+    completionTokens,
+    reasoningTokens,
+    visibleOutputTokens: completionTokens == null || reasoningTokens == null
+      ? null
+      : Math.max(0, completionTokens - reasoningTokens),
+    totalTokens,
+    providerRequestId: providerRequestId ?? null,
+  };
+}
+
+async function loadHaiPricing(
+  admin: SupabaseClient,
+  provider: string,
+  model: string,
+  at: Date,
+): Promise<HaiPricingRow | null> {
+  const { data, error } = await admin
+    .from("hai_model_pricing")
+    .select("provider, model_name, effective_from, effective_to, timezone, peak_cache_hit_input_per_million, peak_cache_miss_input_per_million, peak_output_per_million, off_peak_cache_hit_input_per_million, off_peak_cache_miss_input_per_million, off_peak_output_per_million, currency")
+    .eq("provider", provider)
+    .eq("model_name", model)
+    .eq("enabled", true)
+    .order("effective_from", { ascending: false });
+  if (error) {
+    console.warn("hai pricing lookup failed", error.message);
+    return null;
+  }
+  return ((data ?? []) as HaiPricingRow[]).find((row) => {
+    const from = new Date(row.effective_from).getTime();
+    const to = row.effective_to ? new Date(row.effective_to).getTime() : Number.POSITIVE_INFINITY;
+    const timestamp = at.getTime();
+    return from <= timestamp && timestamp < to;
+  }) ?? null;
+}
+
+export async function recordHaiModelCall(params: {
+  admin: SupabaseClient;
+  userId: string;
+  requestId: string;
+  callIndex: number;
+  stage: HaiModelCallStage;
+  route: string;
+  entityType?: string | null;
+  entityId?: string | null;
+  model: string;
+  modelProviderId?: string | null;
+  startedAt: Date;
+  completedAt?: Date | null;
+  status?: "running" | "completed" | "failed";
+  usage: HaiProviderUsage | null;
+  metadata?: Record<string, unknown>;
+}) {
+  const provider = "deepseek";
+  const pricing = await loadHaiPricing(params.admin, provider, params.model, params.startedAt);
+  const peak = pricing ? isDeepSeekPeak(params.startedAt, pricing.timezone) : false;
+  const priceBand = pricing ? (peak ? "peak" : "off_peak") : "unknown";
+  const hitRate = pricing
+    ? Number(peak ? pricing.peak_cache_hit_input_per_million : pricing.off_peak_cache_hit_input_per_million)
+    : null;
+  const missRate = pricing
+    ? Number(peak ? pricing.peak_cache_miss_input_per_million : pricing.off_peak_cache_miss_input_per_million)
+    : null;
+  const outputRate = pricing
+    ? Number(peak ? pricing.peak_output_per_million : pricing.off_peak_output_per_million)
+    : null;
+  const usage = params.usage;
+  const usageStatus = usage == null
+    ? "missing"
+    : usage.promptTokens != null && usage.cacheHitTokens != null && usage.cacheMissTokens != null &&
+        usage.completionTokens != null && usage.totalTokens != null
+      ? "provider"
+      : "provider_partial";
+  const cacheHitCost = usage?.cacheHitTokens != null && hitRate != null
+    ? usage.cacheHitTokens / 1_000_000 * hitRate
+    : null;
+  const cacheMissCost = usage?.cacheMissTokens != null && missRate != null
+    ? usage.cacheMissTokens / 1_000_000 * missRate
+    : null;
+  const outputCost = usage?.completionTokens != null && outputRate != null
+    ? usage.completionTokens / 1_000_000 * outputRate
+    : null;
+  const totalCost = cacheHitCost != null && cacheMissCost != null && outputCost != null
+    ? cacheHitCost + cacheMissCost + outputCost
+    : null;
+  const { error } = await params.admin.from("hai_model_calls").upsert({
+    user_id: params.userId,
+    request_id: params.requestId,
+    call_index: params.callIndex,
+    stage: params.stage,
+    route: params.route,
+    entity_type: params.entityType ?? null,
+    entity_id: params.entityId ?? null,
+    provider,
+    model: params.model,
+    provider_request_id: usage?.providerRequestId ?? null,
+    status: params.status ?? "completed",
+    started_at: params.startedAt.toISOString(),
+    completed_at: (params.completedAt ?? new Date()).toISOString(),
+    prompt_tokens: usage?.promptTokens ?? null,
+    cache_hit_tokens: usage?.cacheHitTokens ?? null,
+    cache_miss_tokens: usage?.cacheMissTokens ?? null,
+    completion_tokens: usage?.completionTokens ?? null,
+    reasoning_tokens: usage?.reasoningTokens ?? null,
+    visible_output_tokens: usage?.visibleOutputTokens ?? null,
+    total_tokens: usage?.totalTokens ?? null,
+    usage_status: usageStatus,
+    price_band: priceBand,
+    price_snapshot: pricing ? {
+      provider: pricing.provider,
+      model: pricing.model_name,
+      effective_from: pricing.effective_from,
+      timezone: pricing.timezone,
+      cache_hit_input_per_million: hitRate,
+      cache_miss_input_per_million: missRate,
+      output_per_million: outputRate,
+    } : {},
+    cache_hit_cost: money(cacheHitCost),
+    cache_miss_cost: money(cacheMissCost),
+    output_cost: money(outputCost),
+    total_cost: money(totalCost),
+    currency: pricing?.currency ?? "CNY",
+    metadata: params.metadata ?? {},
+  }, { onConflict: "request_id,call_index" });
+  if (error) console.warn("hai model call ledger write failed", error.message);
+}
+
+export async function summarizeHaiModelCalls(params: {
+  admin: SupabaseClient;
+  requestId: string;
+}) {
+  const { data, error } = await params.admin
+    .from("hai_model_calls")
+    .select("prompt_tokens, cache_hit_tokens, cache_miss_tokens, completion_tokens, reasoning_tokens, visible_output_tokens, total_tokens, total_cost, usage_status, currency")
+    .eq("request_id", params.requestId)
+    .order("call_index");
+  if (error) {
+    console.warn("hai model call ledger summary failed", error.message);
+    return null;
+  }
+  const rows = (data ?? []) as Array<Record<string, unknown>>;
+  if (rows.length === 0) return null;
+  const sum = (key: string) => rows.reduce((total, row) => total + (Number(row[key]) || 0), 0);
+  const allProvider = rows.every((row) => row.usage_status === "provider");
+  const anyProvider = rows.some((row) => row.usage_status === "provider" || row.usage_status === "provider_partial");
+  const summary = {
+    promptTokens: sum("prompt_tokens"),
+    cacheHitTokens: sum("cache_hit_tokens"),
+    cacheMissTokens: sum("cache_miss_tokens"),
+    completionTokens: sum("completion_tokens"),
+    reasoningTokens: sum("reasoning_tokens"),
+    visibleOutputTokens: sum("visible_output_tokens"),
+    totalTokens: sum("total_tokens"),
+    totalCost: rows.every((row) => row.total_cost !== null && row.total_cost !== undefined)
+      ? rows.reduce((total, row) => total + (Number(row.total_cost) || 0), 0)
+      : null,
+    currency: String(rows.find((row) => row.currency)?.currency ?? "CNY"),
+    usageStatus: allProvider ? "actual" : anyProvider ? "partial" : "missing",
+  };
+  const { error: updateError } = await params.admin
+    .from("hai_usage_events")
+    .update({
+      actual_prompt_tokens: summary.promptTokens,
+      actual_cache_hit_tokens: summary.cacheHitTokens,
+      actual_cache_miss_tokens: summary.cacheMissTokens,
+      actual_completion_tokens: summary.completionTokens,
+      actual_reasoning_tokens: summary.reasoningTokens,
+      actual_visible_output_tokens: summary.visibleOutputTokens,
+      actual_total_tokens: summary.totalTokens,
+      actual_cost: summary.totalCost === null ? null : summary.totalCost.toFixed(8),
+      actual_currency: summary.currency,
+      actual_usage_status: summary.usageStatus,
+    })
+    .eq("request_id", params.requestId)
+    .neq("status", "started");
+  if (updateError) console.warn("hai usage event actual usage update failed", updateError.message);
+  return summary;
 }
 
 export async function loadHaiRuntimeConfig(admin: SupabaseClient): Promise<HaiRuntimeConfig> {
@@ -493,6 +751,7 @@ export async function* streamDeepSeek(
     userId?: string | null;
     admin?: SupabaseClient | null;
     modelProviderId?: string | null;
+    onUsage?: (usage: HaiProviderUsage) => void | Promise<void>;
   } = {},
 ) {
   const config = options.admin
@@ -515,6 +774,7 @@ export async function* streamDeepSeek(
       response_format: options.responseFormat ? { type: options.responseFormat } : undefined,
       stop: options.stopSequences && options.stopSequences.length > 0 ? options.stopSequences : undefined,
       stream: true,
+      stream_options: { include_usage: true },
       user_id: options.userId ?? undefined,
       thinking: options.thinkingEnabled === true
         ? compactObject({ type: "enabled", reasoning_effort: options.reasoningEffort })
@@ -545,6 +805,8 @@ export async function* streamDeepSeek(
       if (!payload || payload === "[DONE]") continue;
       let data;
       try { data = JSON.parse(payload); } catch { continue; }
+      const providerUsage = normalizeProviderUsage(data?.usage, data?.id);
+      if (providerUsage && options.onUsage) await options.onUsage(providerUsage);
       const delta = data?.choices?.[0]?.delta;
       if (!delta) continue;
       // reasoning_content 是思考过程，不混入输出流（否则会污染 JSON 解析）

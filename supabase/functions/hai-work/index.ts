@@ -3,6 +3,9 @@ import {
   buildChatCompletionOptions,
   estimateTokens,
   finalizeUsage,
+  recordHaiModelCall,
+  summarizeHaiModelCalls,
+  type HaiProviderUsage,
   handleCors,
   HttpError,
   jsonResponse,
@@ -285,6 +288,22 @@ Deno.serve(async (request) => {
             userId: auth.user.id,
             admin: auth.admin,
           });
+          await recordHaiModelCall({
+            admin: auth.admin,
+            userId: auth.user.id,
+            requestId: clientRequestId,
+            callIndex: 1,
+            stage: "work_initial",
+            route: "hai-work",
+            entityType: "work_task",
+            entityId: taskId,
+            model: completionOptions.model,
+            startedAt: new Date(firstAttempt.started_at),
+            completedAt: new Date(firstAttempt.completed_at),
+            status: firstAttempt.error ? "failed" : "completed",
+            usage: firstAttempt.usage,
+            metadata: { tool_slug: toolSlug, run_id: run.id, skill_slug: skill.slug },
+          });
           rawOutput = firstAttempt.output;
           await appendDebugAttempt(auth.admin, run.id, debugTrace, firstAttempt, "initial");
           if (firstAttempt.error) throw new Error(firstAttempt.error);
@@ -312,6 +331,22 @@ Deno.serve(async (request) => {
               completionOptions,
               userId: auth.user.id,
               admin: auth.admin,
+            });
+            await recordHaiModelCall({
+              admin: auth.admin,
+              userId: auth.user.id,
+              requestId: clientRequestId,
+              callIndex: 2,
+              stage: "work_repair",
+              route: "hai-work",
+              entityType: "work_task",
+              entityId: taskId,
+              model: completionOptions.model,
+              startedAt: new Date(repairAttempt.started_at),
+              completedAt: new Date(repairAttempt.completed_at),
+              status: repairAttempt.error ? "failed" : "completed",
+              usage: repairAttempt.usage,
+              metadata: { tool_slug: toolSlug, run_id: run.id, skill_slug: skill.slug },
             });
             rawOutput = repairAttempt.output;
             await appendDebugAttempt(auth.admin, run.id, debugTrace, repairAttempt, "empty_output_repair");
@@ -401,13 +436,26 @@ Deno.serve(async (request) => {
               model_provider_id: module.model_provider_id ?? null,
             },
           });
+          const exactUsage = await summarizeHaiModelCalls({
+            admin: auth.admin,
+            requestId: clientRequestId,
+          });
           sendSse(controller, encoder, {
             type: "done",
             taskId,
             runId: run.id,
             artifactId: artifact.id,
             versionNumber: artifact.version_number,
-            usage: { inputTokens, outputTokens, totalTokens: inputTokens + outputTokens },
+            usage: {
+              inputTokens,
+              outputTokens,
+              totalTokens: inputTokens + outputTokens,
+              actualInputTokens: exactUsage?.promptTokens ?? null,
+              actualOutputTokens: exactUsage?.completionTokens ?? null,
+              actualTotalTokens: exactUsage?.totalTokens ?? null,
+              actualCost: exactUsage?.totalCost ?? null,
+              actualUsageStatus: exactUsage?.usageStatus ?? "missing",
+            },
           });
         } catch (error) {
           const message = error instanceof Error ? error.message : "HAI Work 执行失败。";
@@ -432,6 +480,7 @@ Deno.serve(async (request) => {
             durationMs,
             metadata: { tool_slug: toolSlug, run_id: run.id, error: message },
           });
+          await summarizeHaiModelCalls({ admin: auth.admin, requestId: clientRequestId });
           sendSse(controller, encoder, { type: "error", message, taskId, runId: run.id });
         } finally {
           controller.close();
@@ -898,6 +947,7 @@ async function collectModelOutput(params: {
   const model = params.completionOptions.model;
   console.log("[hai-work] calling DeepSeek with model:", model, "providerId:", params.module.model_provider_id, "moduleSlug:", params.module.slug);
   let output = "";
+  let usage: HaiProviderUsage | null = null;
   // 强制关闭 thinking — Markdown 产出不需要推理步骤。
   const workOptions = { ...params.completionOptions, thinkingEnabled: false };
   try {
@@ -909,6 +959,7 @@ async function collectModelOutput(params: {
       userId: params.userId,
       admin: params.admin,
       modelProviderId: params.module.model_provider_id,
+      onUsage: (value) => { usage = value; },
     })) output += token;
     const finishedAt = new Date();
     return {
@@ -916,6 +967,7 @@ async function collectModelOutput(params: {
       started_at: startedAt.toISOString(),
       completed_at: finishedAt.toISOString(),
       duration_ms: finishedAt.getTime() - startedAt.getTime(),
+      usage,
     };
   } catch (error) {
     const failedAt = new Date();
@@ -924,6 +976,7 @@ async function collectModelOutput(params: {
       started_at: startedAt.toISOString(),
       completed_at: failedAt.toISOString(),
       duration_ms: failedAt.getTime() - startedAt.getTime(),
+      usage,
       error: error instanceof Error ? error.message : "模型调用失败。",
     };
   }
