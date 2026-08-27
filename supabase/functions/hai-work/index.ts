@@ -588,6 +588,10 @@ async function loadTextbookContext(
   let lessonNumber = parseRouteNumber(input.lesson_route_number);
   let frameNumber = parseRouteNumber(input.frame_route_number);
   let hasAnyFixedRouteId = Boolean(collectionSlug || unitNumber || lessonNumber || frameNumber);
+  if (!hasAnyFixedRouteId && allowLegacyRevision) {
+    const snapshotContext = await loadTextbookContextFromSnapshot(admin, input);
+    if (snapshotContext) return snapshotContext;
+  }
   if (!hasAnyFixedRouteId) {
     const recoveredRoute = await recoverTextbookRouteFromSnapshot(admin, input);
     if (recoveredRoute) {
@@ -651,6 +655,85 @@ async function loadTextbookContext(
     length += section.length;
   }
   return { context: sections.join("\n\n"), sources };
+}
+
+async function loadTextbookContextFromSnapshot(admin: any, input: Record<string, unknown>) {
+  const snapshots = Array.isArray(input.textbook_sources)
+    ? input.textbook_sources
+      .map(normalizeRecord)
+      .map((item) => ({ section_id: String(item.section_id ?? "").trim() }))
+      .filter((item) => UUID_PATTERN.test(item.section_id))
+    : [];
+  if (snapshots.length === 0) return null;
+  const sectionIds = [...new Set(snapshots.map((item) => item.section_id))];
+  const { data: sections, error: sectionError } = await admin
+    .from("hai_textbook_sections")
+    .select("id, collection_id, section_level, unit_label, unit_title, lesson_label, lesson_title, frame_label, frame_title, unit_number, lesson_number, frame_number, section_path, content_type, content_markdown, content_hash, verification_status")
+    .in("id", sectionIds);
+  if (sectionError) throw new HttpError(500, `读取历史教材内容失败：${sectionError.message}`);
+  const sectionById = new Map((sections ?? []).map((item: any) => [String(item.id), item]));
+  if (sectionIds.some((id) => !sectionById.has(id))) return null;
+  const collectionIds = [...new Set((sections ?? []).map((item: any) => String(item.collection_id)).filter(Boolean))];
+  if (collectionIds.length !== 1) return null;
+  const { data: collections, error: collectionError } = await admin
+    .from("hai_textbook_collections")
+    .select("id, slug, title, stage, subject, edition_label, publication_status, requires_confirmation, source_hash")
+    .in("id", collectionIds);
+  if (collectionError) throw new HttpError(500, `读取历史教材版本失败：${collectionError.message}`);
+  const collection = (collections ?? [])[0] as Record<string, unknown> | undefined;
+  if (!collection) return null;
+  const subject = String(input.subject ?? "").trim();
+  const collectionStage = String(collection.stage ?? "").trim();
+  const collectionSubject = String(collection.subject ?? "").trim();
+  const politicsSubjects = new Set(["思政", "思想政治", "道德与法治"]);
+  if (
+    collectionStage !== String(input.stage ?? "").trim() ||
+    (collectionSubject !== subject && !(politicsSubjects.has(subject) && politicsSubjects.has(collectionSubject)))
+  ) return null;
+
+  const sources = snapshots.map(({ section_id }) => {
+    const section = sectionById.get(section_id) as Record<string, unknown>;
+    return {
+      section_id,
+      collection_slug: String(collection.slug ?? ""),
+      collection_title: String(collection.title ?? ""),
+      edition_label: String(collection.edition_label ?? ""),
+      publication_status: String(collection.publication_status ?? ""),
+      verification_status: String(section.verification_status ?? ""),
+      requires_confirmation: Boolean(collection.requires_confirmation),
+      section_path: String(section.section_path ?? ""),
+      content_type: String(section.content_type ?? ""),
+      section_level: String(section.section_level ?? "") || null,
+      unit_label: String(section.unit_label ?? "") || null,
+      unit_title: String(section.unit_title ?? "") || null,
+      lesson_label: String(section.lesson_label ?? "") || null,
+      lesson_title: String(section.lesson_title ?? "") || null,
+      frame_label: String(section.frame_label ?? "") || null,
+      frame_title: String(section.frame_title ?? "") || null,
+      content_markdown: String(section.content_markdown ?? ""),
+      source_hash: String(collection.source_hash ?? ""),
+      content_hash: String(section.content_hash ?? ""),
+      unit_number: Number(section.unit_number),
+      lesson_number: Number(section.lesson_number),
+      frame_number: section.frame_number === null ? null : Number(section.frame_number),
+    } as TextbookSource;
+  });
+  let length = 0;
+  const sectionsForPrompt: string[] = [];
+  for (const item of sources) {
+    const warning = item.requires_confirmation
+      ? "\n> 版本边界：该册内容尚待纸质教材复核，生成时必须提醒教师核对。"
+      : "";
+    const section = [
+      `### ${item.section_path}`,
+      `教材版本：${item.edition_label}；内容类型：知识点梳理（非逐字原文）；核验状态：${item.verification_status}${warning}`,
+      item.content_markdown,
+    ].join("\n");
+    if (length + section.length > maxMaterialContextChars) break;
+    sectionsForPrompt.push(section);
+    length += section.length;
+  }
+  return { context: sectionsForPrompt.join("\n\n"), sources };
 }
 
 async function recoverTextbookRouteFromSnapshot(admin: any, input: Record<string, unknown>) {
