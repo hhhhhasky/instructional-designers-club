@@ -321,22 +321,24 @@ describe("HAI personal data isolation", () => {
     const query = createQuery({ data: [], error: null });
     fromMock.mockReturnValue(query);
 
-    await expect(getHaiConversations()).resolves.toEqual([]);
+    await expect(getHaiConversations("admin-user")).resolves.toEqual([]);
 
     expect(fromMock).toHaveBeenCalledWith("hai_conversations");
     expect(query.eq).toHaveBeenCalledWith("user_id", "admin-user");
     expect(query.is).toHaveBeenCalledWith("archived_at", null);
+    expect(getUserMock).not.toHaveBeenCalled();
   });
 
   it("scopes message reads to both conversation id and current user", async () => {
     const query = createQuery({ data: [], error: null });
     fromMock.mockReturnValue(query);
 
-    await expect(getHaiMessages("conversation-from-sidebar")).resolves.toEqual([]);
+    await expect(getHaiMessages("conversation-from-sidebar", "admin-user")).resolves.toEqual([]);
 
     expect(fromMock).toHaveBeenCalledWith("hai_messages");
     expect(query.eq).toHaveBeenCalledWith("conversation_id", "conversation-from-sidebar");
     expect(query.eq).toHaveBeenCalledWith("user_id", "admin-user");
+    expect(getUserMock).not.toHaveBeenCalled();
   });
 });
 

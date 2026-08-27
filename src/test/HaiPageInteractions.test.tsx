@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getHaiAccessStatus,
   getHaiChatModule,
+  getHaiConversations,
   getHaiMemories,
   hasCompletedHaiProfileOnboarding,
   saveHaiProfileMemories,
@@ -164,6 +165,19 @@ describe("HAI mobile chat shell", () => {
 
     unmount();
     expect(document.body).not.toHaveClass("hai-chat-active");
+  });
+
+  it("reuses the authenticated user id while bootstrapping HAI personal data", async () => {
+    render(
+      <MemoryRouter initialEntries={["/hai"]}>
+        <HaiPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByTestId("hai-message-scroll-region")).toBeInTheDocument();
+    expect(getHaiConversations).toHaveBeenCalledWith("user-1");
+    expect(getHaiMemories).toHaveBeenCalledWith("user-1");
+    expect(hasCompletedHaiProfileOnboarding).toHaveBeenCalledWith("user-1");
   });
 
   it("shows an explicit unavailable state when hai-chat cannot be loaded", async () => {

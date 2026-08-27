@@ -113,6 +113,7 @@ export default function HaiPage() {
 
   useEffect(() => {
     if (!user) return;
+    const userId = user.id;
     let cancelled = false;
     (async () => {
       setBooting(true);
@@ -125,9 +126,9 @@ export default function HaiPage() {
         if (access.allowed) {
           const [moduleRow, rows, memoryRows, profileCompleted] = await Promise.all([
             getHaiChatModule(),
-            getHaiConversations(),
-            getHaiMemories(),
-            hasCompletedHaiProfileOnboarding(),
+            getHaiConversations(userId),
+            getHaiMemories(userId),
+            hasCompletedHaiProfileOnboarding(userId),
           ]);
           if (cancelled) return;
           setChatModule(moduleRow);
@@ -150,15 +151,16 @@ export default function HaiPage() {
   }, [user?.id]);
 
   useEffect(() => {
-    if (!activeConversationId) {
+    if (!activeConversationId || !user) {
       setMessages([]);
       setMessageFeedback({});
       return;
     }
+    const userId = user.id;
     let cancelled = false;
     (async () => {
       try {
-        const rows = await getHaiMessages(activeConversationId);
+        const rows = await getHaiMessages(activeConversationId, userId);
         const feedbackRows = await getHaiMessageFeedback(
           rows.filter((message) => message.role === "assistant").map((message) => message.id),
         );
@@ -173,7 +175,7 @@ export default function HaiPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeConversationId]);
+  }, [activeConversationId, user?.id]);
 
   useEffect(() => {
     const scrollRegion = messagesScrollRef.current;
@@ -186,7 +188,8 @@ export default function HaiPage() {
   }, []);
 
   async function refreshConversations(nextActiveId?: string | null) {
-    const rows = await getHaiConversations();
+    if (!user) throw new Error("请先登录。");
+    const rows = await getHaiConversations(user.id);
     setConversations(rows);
     if (nextActiveId !== undefined) {
       setActiveConversationId(nextActiveId);
@@ -205,7 +208,7 @@ export default function HaiPage() {
 
   async function handleRedeemInvite() {
     const code = inviteCode.trim();
-    if (!code || busy) return;
+    if (!code || busy || !user) return;
     setBusy(true);
     setStatus("");
     try {
@@ -218,8 +221,8 @@ export default function HaiPage() {
           const [moduleRow, , memoryRows, profileCompleted] = await Promise.all([
             getHaiChatModule(),
             refreshConversations(null),
-            getHaiMemories(),
-            hasCompletedHaiProfileOnboarding(),
+            getHaiMemories(user.id),
+            hasCompletedHaiProfileOnboarding(user.id),
           ]);
           setChatModule(moduleRow);
           setInitializationError("");
@@ -238,7 +241,7 @@ export default function HaiPage() {
 
   async function handleSend(suggestedQuestion?: string) {
     const text = (suggestedQuestion ?? draft).trim();
-    if (!text || busy || !chatModule) return;
+    if (!text || busy || !chatModule || !user) return;
     if (weeklyQuotaReached) {
       setStatus("本周 HAI 使用额度已达上限，请下周再试。");
       return;
@@ -312,7 +315,7 @@ export default function HaiPage() {
       ]);
       setUsage(accessPayload.usage);
       if (nextConversationId) {
-        const rows = await getHaiMessages(nextConversationId);
+        const rows = await getHaiMessages(nextConversationId, user.id);
         // 如果数据库读模型暂时落后，不要用不完整的历史记录覆盖已经显示的答案。
         if (!completedMessageId || rows.some((row) => row.id === completedMessageId)) {
           setMessages(rows);
@@ -354,7 +357,7 @@ export default function HaiPage() {
         content,
       });
       setMemoryDraft("");
-      setMemories(await getHaiMemories());
+      setMemories(await getHaiMemories(user.id));
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "记忆保存失败。");
     } finally {
@@ -376,7 +379,7 @@ export default function HaiPage() {
         userId: user.id,
         memories: profileMemories,
       });
-      setMemories(await getHaiMemories());
+      setMemories(await getHaiMemories(user.id));
       setProfileOnboardingOpen(false);
       toast.success("个人信息已保存，HAI 会在之后的咨询中记住这些背景");
     } catch (error) {

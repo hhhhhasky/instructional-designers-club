@@ -544,8 +544,8 @@ export async function streamHaiWork(
   });
 }
 
-export async function getHaiConversations(): Promise<HaiConversation[]> {
-  const userId = await requireCurrentUserId();
+export async function getHaiConversations(currentUserId?: string): Promise<HaiConversation[]> {
+  const userId = currentUserId ?? await requireCurrentUserId();
   const { data, error } = await supabase
     .from("hai_conversations")
     .select("*")
@@ -557,8 +557,11 @@ export async function getHaiConversations(): Promise<HaiConversation[]> {
   return (data as HaiConversation[]) ?? [];
 }
 
-export async function getHaiMessages(conversationId: string): Promise<HaiMessage[]> {
-  const userId = await requireCurrentUserId();
+export async function getHaiMessages(
+  conversationId: string,
+  currentUserId?: string,
+): Promise<HaiMessage[]> {
+  const userId = currentUserId ?? await requireCurrentUserId();
   const { data, error } = await supabase
     .from("hai_messages")
     .select("*")
@@ -609,8 +612,8 @@ export async function archiveHaiConversation(conversationId: string): Promise<vo
   if (error) throw error;
 }
 
-export async function getHaiMemories(): Promise<HaiUserMemory[]> {
-  const userId = await requireCurrentUserId();
+export async function getHaiMemories(currentUserId?: string): Promise<HaiUserMemory[]> {
+  const userId = currentUserId ?? await requireCurrentUserId();
   const { data, error } = await supabase
     .from("hai_user_memories")
     .select("*")
@@ -621,8 +624,8 @@ export async function getHaiMemories(): Promise<HaiUserMemory[]> {
   return (data as HaiUserMemory[]) ?? [];
 }
 
-export async function hasCompletedHaiProfileOnboarding(): Promise<boolean> {
-  const userId = await requireCurrentUserId();
+export async function hasCompletedHaiProfileOnboarding(currentUserId?: string): Promise<boolean> {
+  const userId = currentUserId ?? await requireCurrentUserId();
   const { data, error } = await supabase
     .from("hai_user_memories")
     .select("id")
