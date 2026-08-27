@@ -8,6 +8,7 @@ import {
   renderWorkMarkdown,
   selectWorkSkillReferences,
   selectWorkSkill,
+  resolveTextbookRouteFromSnapshots,
   validateWorkInput,
   validateWorkOutput,
   type WorkSkillCandidate,
@@ -77,6 +78,43 @@ Deno.test("filterExactTextbookSources keeps the selected lesson and its unit con
     "1 有理数 / 单元背景",
     "1 有理数 / 1 1 正数和负数",
   ]);
+});
+
+Deno.test("recovers a fixed textbook route from an older run snapshot", () => {
+  const rows = [
+    {
+      id: "unit-id",
+      collection_id: "collection-id",
+      collection_slug: "junior-chinese-v1",
+      stage: "初中",
+      subject: "语文",
+      section_level: "unit",
+      unit_number: 2,
+      lesson_number: 0,
+      frame_number: null,
+    },
+    {
+      id: "lesson-id",
+      collection_id: "collection-id",
+      collection_slug: "junior-chinese-v1",
+      stage: "初中",
+      subject: "语文",
+      section_level: "lesson",
+      unit_number: 2,
+      lesson_number: 5,
+      frame_number: null,
+    },
+  ];
+  const route = resolveTextbookRouteFromSnapshots([
+    { section_id: "unit-id", collection_slug: "junior-chinese-v1" },
+    { section_id: "lesson-id", collection_slug: "junior-chinese-v1" },
+  ], rows, { stage: "初中", subject: "语文" });
+  assertEquals(route, {
+    collectionSlug: "junior-chinese-v1",
+    unitNumber: 2,
+    lessonNumber: 5,
+    frameNumber: null,
+  });
 });
 
 Deno.test("filterExactTextbookSources matches structured fields when the path starts with a textbook volume", () => {

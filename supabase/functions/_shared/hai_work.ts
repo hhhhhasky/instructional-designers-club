@@ -73,6 +73,61 @@ type TextbookRouteSource = {
   frame_title?: string | null;
 };
 
+export type TextbookSnapshotRoute = {
+  section_id: string;
+  collection_slug?: string | null;
+};
+
+export type TextbookRouteRow = {
+  id: string;
+  collection_id: string;
+  collection_slug: string;
+  stage: string;
+  subject: string;
+  section_level: string;
+  unit_number: number;
+  lesson_number: number;
+  frame_number?: number | null;
+};
+
+/**
+ * Older Work runs stored the resolved textbook section ids but predated the
+ * fixed route fields in input_snapshot. Recover the route from those ids so
+ * an existing task can still be revised after the deterministic catalog was
+ * introduced.
+ */
+export function resolveTextbookRouteFromSnapshots(
+  snapshots: TextbookSnapshotRoute[],
+  rows: TextbookRouteRow[],
+  input: Record<string, unknown>,
+) {
+  const snapshotById = new Map(snapshots.map((snapshot) => [snapshot.section_id, snapshot]));
+  const subject = String(input.subject ?? "").trim();
+  const politicsSubjects = new Set(["思政", "思想政治", "道德与法治"]);
+  const matchingRows = rows
+    .filter((row) => snapshotById.has(row.id))
+    .filter((row) => row.stage === String(input.stage ?? "").trim())
+    .filter((row) => row.subject === subject || (politicsSubjects.has(subject) && politicsSubjects.has(row.subject)))
+    .filter((row) => row.section_level === "lesson" || row.section_level === "frame");
+  if (matchingRows.length === 0) return null;
+
+  const collectionIds = new Set(matchingRows.map((row) => row.collection_id));
+  if (collectionIds.size !== 1) return null;
+  const collectionSlug = matchingRows[0].collection_slug;
+  const selected = [...matchingRows].sort((a, b) => {
+    const levelWeight = { frame: 3, lesson: 2, unit: 1 } as Record<string, number>;
+    return (levelWeight[b.section_level] ?? 0) - (levelWeight[a.section_level] ?? 0);
+  })[0];
+  if (!selected || !collectionSlug) return null;
+  if (selected.section_level === "frame" && !selected.frame_number) return null;
+  return {
+    collectionSlug,
+    unitNumber: selected.unit_number,
+    lessonNumber: selected.lesson_number,
+    frameNumber: selected.section_level === "frame" ? selected.frame_number ?? null : null,
+  };
+}
+
 /**
  * The catalog sends exact labels, while the legacy match RPC also supports
  * fuzzy search. Work must not let a fuzzy neighbor become textbook evidence;

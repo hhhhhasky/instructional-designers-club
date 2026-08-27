@@ -24,6 +24,7 @@ import {
   isHaiWorkToolSlug,
   selectWorkSkillReferences,
   selectWorkSkill,
+  resolveTextbookRouteFromSnapshots,
   validateWorkInput,
   type WorkSkillCandidate,
 } from "../_shared/hai_work.ts";
@@ -144,7 +145,7 @@ Deno.serve(async (request) => {
       materialIds,
       buildMaterialQuery(input),
     );
-    const textbook = await loadTextbookContext(auth.admin, input);
+    const textbook = await loadTextbookContext(auth.admin, input, Boolean(body.parentArtifactId));
     const politicsCases = toolSlug === "subject-lesson-design"
       ? await loadPoliticsCaseContext(auth.admin, input)
       : { context: "", sources: [] as PoliticsCaseSource[] };
@@ -577,13 +578,32 @@ async function loadMaterialContext(
   return sections.join("\n\n");
 }
 
-async function loadTextbookContext(admin: any, input: Record<string, unknown>) {
-  const collectionSlug = String(input.collection_slug ?? "").trim();
-  const unitNumber = parseRouteNumber(input.unit_route_number);
-  const lessonNumber = parseRouteNumber(input.lesson_route_number);
-  const frameNumber = parseRouteNumber(input.frame_route_number);
-  const hasAnyFixedRouteId = Boolean(collectionSlug || unitNumber || lessonNumber || frameNumber);
+async function loadTextbookContext(
+  admin: any,
+  input: Record<string, unknown>,
+  allowLegacyRevision = false,
+) {
+  let collectionSlug = String(input.collection_slug ?? "").trim();
+  let unitNumber = parseRouteNumber(input.unit_route_number);
+  let lessonNumber = parseRouteNumber(input.lesson_route_number);
+  let frameNumber = parseRouteNumber(input.frame_route_number);
+  let hasAnyFixedRouteId = Boolean(collectionSlug || unitNumber || lessonNumber || frameNumber);
   if (!hasAnyFixedRouteId) {
+    const recoveredRoute = await recoverTextbookRouteFromSnapshot(admin, input);
+    if (recoveredRoute) {
+      collectionSlug = recoveredRoute.collectionSlug;
+      unitNumber = recoveredRoute.unitNumber;
+      lessonNumber = recoveredRoute.lessonNumber;
+      frameNumber = recoveredRoute.frameNumber;
+      hasAnyFixedRouteId = true;
+    }
+  }
+  if (!hasAnyFixedRouteId) {
+    // Runs created before fixed textbook routing may have been valid because
+    // they used pasted textbook content or uploaded materials. Keep those
+    // existing artifacts revisable; new requests must still choose the catalog
+    // route whenever the selected subject is already covered.
+    if (allowLegacyRevision) return { context: "", sources: [] as TextbookSource[] };
     const { data: catalog, error: catalogError } = await admin.rpc("hai_list_textbook_catalog", {
       p_stage: String(input.stage ?? "").trim(),
       p_subject: normalizeTextbookSubject(input.subject),
@@ -632,6 +652,54 @@ async function loadTextbookContext(admin: any, input: Record<string, unknown>) {
   }
   return { context: sections.join("\n\n"), sources };
 }
+
+async function recoverTextbookRouteFromSnapshot(admin: any, input: Record<string, unknown>) {
+  const snapshots = Array.isArray(input.textbook_sources)
+    ? input.textbook_sources
+      .map(normalizeRecord)
+      .map((item) => ({
+        section_id: String(item.section_id ?? "").trim(),
+        collection_slug: String(item.collection_slug ?? "").trim() || null,
+      }))
+      .filter((item) => UUID_PATTERN.test(item.section_id))
+    : [];
+  if (snapshots.length === 0) return null;
+  const sectionIds = [...new Set(snapshots.map((item) => item.section_id))];
+  const { data: sections, error: sectionError } = await admin
+    .from("hai_textbook_sections")
+    .select("id, collection_id, section_level, unit_number, lesson_number, frame_number")
+    .in("id", sectionIds);
+  if (sectionError) throw new HttpError(500, `恢复历史教材路由失败：${sectionError.message}`);
+  const collectionIds = [...new Set((sections ?? []).map((item: any) => String(item.collection_id)).filter(Boolean))];
+  if (collectionIds.length === 0) return null;
+  const { data: collections, error: collectionError } = await admin
+    .from("hai_textbook_collections")
+    .select("id, slug, stage, subject")
+    .in("id", collectionIds);
+  if (collectionError) throw new HttpError(500, `恢复历史教材版本失败：${collectionError.message}`);
+  const collectionById = new Map<string, Record<string, unknown>>(
+    (collections ?? []).map((item: any) => [String(item.id), normalizeRecord(item)]),
+  );
+  const rows = (sections ?? []).flatMap((section: any) => {
+    const collection = collectionById.get(String(section.collection_id));
+    return collection
+      ? [{
+        id: String(section.id),
+        collection_id: String(section.collection_id),
+        collection_slug: String(collection["slug"] ?? ""),
+        stage: String(collection["stage"] ?? ""),
+        subject: String(collection["subject"] ?? ""),
+        section_level: String(section.section_level ?? ""),
+        unit_number: Number(section.unit_number),
+        lesson_number: Number(section.lesson_number),
+        frame_number: section.frame_number === null ? null : Number(section.frame_number),
+      }]
+      : [];
+  });
+  return resolveTextbookRouteFromSnapshots(snapshots, rows, input);
+}
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function parseRouteNumber(value: unknown) {
   const number = Number.parseInt(String(value ?? "").trim(), 10);
