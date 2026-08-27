@@ -438,7 +438,63 @@ Deno.test("work prompt separates built-in textbook knowledge from user materials
   assertEquals(prompt.user.includes("## 用户指定材料"), true);
   assertEquals(prompt.user.includes("### references/case-mode-v3.md"), true);
   assertEquals(prompt.user.includes("材料—问题—分析—归纳"), true);
+  assertEquals(prompt.user.split("用户粘贴的教材原文").length - 1, 1);
   assertEquals(prompt.system.includes("不是教材逐字原文"), true);
+});
+
+Deno.test("revision prompt keeps the prior artifact but omits duplicated source context", () => {
+  const revisionReference = {
+    id: "references/mainstream-models.md",
+    path: "references/mainstream-models.md",
+    name: "模式",
+    description: "",
+    media_type: "text/markdown",
+    content: "版本化模式全文，不应在续改请求中重复发送",
+    content_hash: "models",
+    load_mode: "always" as const,
+    max_chars: 1000,
+    sort_order: 1,
+    metadata: {},
+  };
+  const skill = candidate({
+    version: {
+      ...candidate({}).version,
+      prompt_template: "专属 Skill",
+      references: [revisionReference],
+    },
+  });
+  const prompt = buildWorkPrompt({
+    toolSlug: "subject-lesson-design",
+    input: {
+      stage: "初中",
+      subject: "语文",
+      topic: "背影",
+      lesson_plan: "原始教案全文，不应在续改请求中重复发送",
+      current_design: "原始环节全文，不应在续改请求中重复发送",
+      desired_outcomes: "原始预期成果，不应在续改请求中重复发送",
+      textbook_content: "用户粘贴的教材正文，不应在续改请求中重复发送",
+    },
+    skill,
+    materialContext: "用户材料全文，不应在续改请求中重复发送",
+    textbookContext: "内置教材全文，不应在续改请求中重复发送",
+    caseContext: "案例库全文，不应在续改请求中重复发送",
+    previousMarkdown: "# 上一版产物\n保留这一版没有被要求修改的内容。",
+    revisionInstruction: "只把导入压缩到 3 分钟。",
+  });
+
+  assertEquals(prompt.user.includes("## 上一版产物"), true);
+  assertEquals(prompt.user.includes("## 本轮追改要求\n只把导入压缩到 3 分钟。"), true);
+  assertEquals(prompt.user.includes("原始教案全文"), false);
+  assertEquals(prompt.user.includes("用户粘贴的教材正文"), false);
+  assertEquals(prompt.user.includes("用户材料全文"), false);
+  assertEquals(prompt.user.includes("内置教材全文"), false);
+  assertEquals(prompt.user.includes("案例库全文"), false);
+  assertEquals(prompt.user.includes("references/mainstream-models.md"), false);
+  assertEquals(prompt.user.includes("lesson_plan"), false);
+  assertEquals(prompt.user.includes("current_design"), false);
+  assertEquals(prompt.user.includes("desired_outcomes"), false);
+  assertEquals(prompt.user.includes("textbook_content"), false);
+  assertEquals(prompt.system.includes("当前是上一版续改"), true);
 });
 
 Deno.test("empty subject skill shell remains usable and explains the pending specialization", () => {

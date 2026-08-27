@@ -398,10 +398,21 @@ export function buildWorkPrompt(params: {
   previousMarkdown?: string;
   revisionInstruction?: string;
 }) {
+  const revisionMode = Boolean(params.previousMarkdown);
   const selectedReferences = selectWorkSkillReferences(params.skill, params.input);
   const referenceContext = selectedReferences.map((reference) =>
     `### ${reference.path}\n${reference.content.slice(0, reference.max_chars)}`
   ).join("\n\n");
+  // A revision is scoped to the prior artifact and the new instruction. The
+  // initial run already established the evidence boundary, so repeating every
+  // source here only inflates the request and gives the model duplicate context.
+  const promptInput = { ...params.input };
+  delete promptInput.textbook_content;
+  if (revisionMode) {
+    delete promptInput.lesson_plan;
+    delete promptInput.current_design;
+    delete promptInput.desired_outcomes;
+  }
   const skillInstructions = params.skill.version.prompt_template.trim();
   const fallbackNotice = !skillInstructions
     ? "当前使用的是空 Skill 壳，具体学科/功能提示词尚未补充。请依据任务输入、教材证据和通用输出要求继续生成，不要因为 Skill 为空而报错，也不要声称使用了尚未提供的方法。"
@@ -414,16 +425,23 @@ export function buildWorkPrompt(params: {
   const system = [
     params.skill.version.prompt_template,
     fallbackNotice,
-    params.textbookContext
+    !revisionMode && params.textbookContext
       ? "精确命中的内置教材知识点梳理可作为本次设计的教材事实依据，无需再要求用户上传教材；它不是教材逐字原文。必须按版本、单元、课题和框题使用；若标注待复核，须在产物中显式提醒。用户补充的教材原文与内置梳理冲突时，以用户补充内容为准。"
       : "没有命中的内置教材内容时，不得依据课名猜测教材事实。",
-    params.caseContext
+    !revisionMode && params.caseContext
       ? "以下案例库候选由后端按本课教材层级检索，仅用于帮助选择教学载体和问题化方向，不是可直接宣读的事实定稿。必须保留案例的核验状态；涉及时间、数据、人物或政策细节时，先要求教师核验或在产物中标注待核实，不得把案例库的候选描述当作教材结论。"
       : "本次没有命中案例库候选，不得凭空补写案例事实。",
+    revisionMode
+      ? "当前是上一版续改：上一版产物是本轮的主要工作对象，只按本轮追改要求做必要修改，并保留未被要求修改的内容。原始教材、案例、用户材料和 Skill reference 不在本轮重复展开；不得借此凭空补充上一版没有的事实。"
+      : "当前是首次生成：使用本轮提供的教材、案例、用户材料和版本化 Skill reference 建立产物。",
     params.skill.version.output_contract.format === "sizheng_public_lesson_v2"
-      ? selectedReferences.length > 0
+      ? revisionMode
+        ? `本轮续改继续保持用户选择的“${String(params.input.teaching_mode ?? "")}”主导模式，不混用另外两套主流程。`
+        : selectedReferences.length > 0
         ? `用户已选择“${String(params.input.teaching_mode ?? "")}”作为唯一主导模式。只执行对应 V3 模板，不得混用另外两套主流程。`
         : "当前思政 Skill 没有加载模式 reference，不得声称使用了对应 V3 模板。"
+      : revisionMode
+      ? "本轮续改不重复注入 Skill reference 正文，沿用上一版已经建立的结构和方法边界。"
       : selectedReferences.length > 0
       ? "当前已加载与本学科、学段匹配的版本化 Reference。按主 Skill 的选择规则使用模板、模式和对应学段样例；样例只作结构参照，不得冒充本课教材事实。"
       : skillInstructions
@@ -437,14 +455,14 @@ export function buildWorkPrompt(params: {
 
   const user = [
     "## 任务输入",
-    JSON.stringify(params.input, null, 2),
-    referenceContext ? `## Skill 版本化参考资料\n${referenceContext}` : "",
-    params.textbookContext ? `## 内置教材知识库（精确命中）\n${params.textbookContext}` : "",
-    String(params.input.textbook_content ?? "").trim()
+    JSON.stringify(promptInput, null, 2),
+    !revisionMode && referenceContext ? `## Skill 版本化参考资料\n${referenceContext}` : "",
+    !revisionMode && params.textbookContext ? `## 内置教材知识库（精确命中）\n${params.textbookContext}` : "",
+    !revisionMode && String(params.input.textbook_content ?? "").trim()
       ? `## 用户粘贴的教材内容\n${String(params.input.textbook_content).trim()}`
       : "",
-    params.caseContext ? `## 思政公开课案例库候选（后端检索）\n${params.caseContext}` : "",
-    params.materialContext ? `## 用户指定材料\n${params.materialContext}` : "",
+    !revisionMode && params.caseContext ? `## 思政公开课案例库候选（后端检索）\n${params.caseContext}` : "",
+    !revisionMode && params.materialContext ? `## 用户指定材料\n${params.materialContext}` : "",
     params.previousMarkdown ? `## 上一版产物\n${params.previousMarkdown}` : "",
     params.revisionInstruction ? `## 本轮追改要求\n${params.revisionInstruction}` : "",
   ].filter(Boolean).join("\n\n");
