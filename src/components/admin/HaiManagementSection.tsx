@@ -186,6 +186,7 @@ export default function HaiManagementSection() {
   const [pointDraft, setPointDraft] = useState({ points: 100, reason: "线下购买积分" });
   const [pointUserSearch, setPointUserSearch] = useState("");
   const [pointUserLevelFilter, setPointUserLevelFilter] = useState<PointUserLevelFilter>("all");
+  const [tokensPerPointDraft, setTokensPerPointDraft] = useState("100");
   const [studentSearch, setStudentSearch] = useState("");
   const [knowledgeDraft, setKnowledgeDraft] = useState({ title: "", topic: "教学设计理论", content: "" });
   const [knowledgeEdit, setKnowledgeEdit] = useState<{ id: string; title: string; topic: string; content: string } | null>(null);
@@ -217,6 +218,10 @@ export default function HaiManagementSection() {
   const tokensPerPoint = useMemo(() => Number(
     runtimeSettings.find((setting) => setting.key === "points.tokens_per_point")?.value ?? 100,
   ), [runtimeSettings]);
+  const tokensPerPointSetting = useMemo(
+    () => runtimeSettings.find((setting) => setting.key === "points.tokens_per_point") ?? null,
+    [runtimeSettings],
+  );
   const newcomerGrantPoints = useMemo(() => Math.max(
     0,
     Math.round(Number(runtimeSettings.find((setting) => setting.key === "points.newcomer_grant_points")?.value ?? 1000)),
@@ -278,6 +283,10 @@ export default function HaiManagementSection() {
   useEffect(() => {
     if (selectedPointUser) setPointLevelDraft(selectedPointUser.access_level);
   }, [selectedPointUser]);
+
+  useEffect(() => {
+    if (tokensPerPointSetting) setTokensPerPointDraft(String(tokensPerPointSetting.value));
+  }, [tokensPerPointSetting]);
 
   useEffect(() => {
     if (creatingMethodCard) return;
@@ -510,12 +519,33 @@ export default function HaiManagementSection() {
       .eq("key", setting.key);
     if (error) {
       setStatus(error.message);
-      return;
+      return false;
     }
     setRuntimeSettings((current) => current.map((item) => (
       item.key === setting.key ? { ...item, value: normalized, enabled } : item
     )));
     setStatus("运行时设置已保存。");
+    return true;
+  }
+
+  async function saveTokensPerPoint() {
+    if (!tokensPerPointSetting || saving) return;
+    const next = normalizeRuntimeValue(tokensPerPointSetting, tokensPerPointDraft);
+    if (typeof next !== "number" || !Number.isFinite(next) || next < 1) {
+      setStatus("每积分对应 Token 必须是大于 0 的整数。");
+      return;
+    }
+
+    setSaving(true);
+    setStatus("");
+    try {
+      const saved = await updateRuntimeSetting(tokensPerPointSetting, next, true);
+      if (!saved) return;
+      setTokensPerPointDraft(String(next));
+      setStatus(`积分换算比例已保存：每 1 积分对应 ${next.toLocaleString("zh-CN")} Token。`);
+    } finally {
+      setSaving(false);
+    }
   }
 
   function updatePackageDraft(index: number, key: keyof HaiPackageConfig, value: string) {
@@ -1426,6 +1456,49 @@ export default function HaiManagementSection() {
         summary={`${localPointPackages.length} 个显示套餐`}
         defaultOpen
       >
+        <div className="rounded-ds-md border border-ac/25 bg-acl/30 p-4">
+          <div>
+            <h3 className="text-ds-base font-ds-bold text-tx">积分与 Token 换算比例</h3>
+            <p className="mt-1 text-ds-xs leading-relaxed text-txs">
+              仅用于后台计费，用户端不会展示这个换算关系。
+            </p>
+          </div>
+          {tokensPerPointSetting ? (
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
+              <label className="min-w-0 flex-1">
+                <span className="mb-1 block text-ds-xs font-ds-semibold text-txs">每 1 积分对应的 Token 数量</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={tokensPerPointSetting.min_value ?? 1}
+                    max={tokensPerPointSetting.max_value ?? undefined}
+                    step={tokensPerPointSetting.step ?? 1}
+                    value={tokensPerPointDraft}
+                    onChange={(event) => setTokensPerPointDraft(event.target.value)}
+                    className="h-10 min-w-0 flex-1 rounded-ds-md border border-bd bg-white px-3 text-ds-sm"
+                    aria-label="每 1 积分对应的 Token 数量"
+                  />
+                  <span className="shrink-0 text-ds-xs text-txs">Token / 积分</span>
+                </div>
+              </label>
+              <Button
+                className="bg-ac text-white hover:bg-acd"
+                disabled={saving || !tokensPerPointDraft.trim() || Number(tokensPerPointDraft) === tokensPerPoint}
+                onClick={saveTokensPerPoint}
+              >
+                保存换算比例
+              </Button>
+            </div>
+          ) : (
+            <p className="mt-3 rounded-ds-md bg-white px-3 py-2 text-ds-sm text-amber-700">
+              未找到换算比例配置，请刷新页面后重试。
+            </p>
+          )}
+          <p className="mt-3 text-ds-xs leading-relaxed text-amber-800">
+            调整后，现有钱包的剩余 Token 总量不变，用户看到的积分余额会按新比例重新换算；之后的积分入账和用量折算将使用新比例。
+          </p>
+        </div>
+
         <div className="mt-5 flex items-end justify-between gap-3">
           <div>
             <h3 className="text-ds-base font-ds-bold text-tx">前端套餐显示</h3>

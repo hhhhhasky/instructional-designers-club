@@ -229,6 +229,15 @@ describe("HAI points wallet migration contract", () => {
     expect(adminSource).toContain("保存显示");
   });
 
+  it("shows an admin-only Token conversion editor while keeping the ratio off user pages", () => {
+    expect(adminSource).toContain("积分与 Token 换算比例");
+    expect(adminSource).toContain("每 1 积分对应的 Token 数量");
+    expect(adminSource).toContain("保存换算比例");
+    expect(adminSource).toContain('.from("hai_runtime_settings")');
+    expect(adminSource).toContain("现有钱包的剩余 Token 总量不变");
+    expect(readFileSync(resolve(process.cwd(), "src/pages/HaiPointsPage.tsx"), "utf8")).not.toContain("Token /");
+  });
+
   it("requires the admin to change membership first and manually grant newcomer points exactly once", () => {
     expect(membershipGrantSql).toContain("create or replace function public.hai_admin_grant_newcomer_points");
     expect(membershipGrantSql).toContain("if v_access_level not in ('plus', 'pro')");
