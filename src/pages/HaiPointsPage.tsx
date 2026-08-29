@@ -8,13 +8,6 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { getHaiAccessStatus, type HaiUsageSummary } from "@/db/hai-api";
 
-const DEFAULT_POINT_PACKAGES = [
-  { points: 10, price_cny: 1 },
-  { points: 100, price_cny: 10 },
-] as const;
-
-const LOCAL_POINT_PACKAGES_KEY = "hai-local-point-packages";
-
 export default function HaiPointsPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -51,12 +44,8 @@ export default function HaiPointsPage() {
 
   const walletPoints = Number(usage?.wallet_points ?? usage?.current_points ?? 0);
   const walletConsumedPoints = Number(usage?.wallet_consumed_points ?? usage?.consumed_points ?? 0);
-  const localPackages = readLocalPointPackages();
-  const pointPackages = localPackages.length > 0
-    ? localPackages
-    : (usage?.point_packages === undefined
-        ? [...DEFAULT_POINT_PACKAGES]
-        : usage.point_packages.filter((pointPackage) => pointPackage.points > 0 && pointPackage.price_cny > 0));
+  const pointPackages = (usage?.point_packages ?? [])
+    .filter((pointPackage) => pointPackage.points > 0 && pointPackage.price_cny > 0);
 
   return (
     <div className="min-h-screen bg-bg text-tx">
@@ -111,13 +100,46 @@ export default function HaiPointsPage() {
 
                 <h2 className="mb-3 text-ds-base font-ds-bold">积分套餐</h2>
                 {pointPackages.length > 0 ? (
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                    {pointPackages.map((pointPackage, index) => (
-                      <article key={`${pointPackage.points}-${pointPackage.price_cny}-${index}`} className="rounded-ds-lg border border-bd bg-bg p-4">
-                        <p className="text-2xl font-ds-black">{formatPoints(pointPackage.points)} 积分</p>
-                        <p className="mt-5 text-xl font-ds-bold text-ac">¥{formatMoney(pointPackage.price_cny)}</p>
-                      </article>
-                    ))}
+                  <div className="overflow-x-auto rounded-ds-lg border border-bd bg-bg">
+                    <table className="w-full min-w-[640px] text-left text-ds-sm">
+                      <thead className="bg-acl/30 text-txs">
+                        <tr>
+                          <th className="px-4 py-3 font-ds-semibold">套餐</th>
+                          <th className="px-4 py-3 font-ds-semibold">积分</th>
+                          <th className="px-4 py-3 font-ds-semibold">价格</th>
+                          <th className="px-4 py-3 font-ds-semibold">可完成内容</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pointPackages.map((pointPackage) => (
+                          <tr key={pointPackage.id} className="border-t border-bd align-top">
+                            <td className="px-4 py-4">
+                              <div className="font-ds-bold text-tx">{pointPackage.name || "HAI 积分包"}</div>
+                              {pointPackage.description && (
+                                <p className="mt-1 text-ds-xs leading-relaxed text-txs">{pointPackage.description}</p>
+                              )}
+                              {pointPackage.is_recommended && (
+                                <span className="mt-2 inline-flex rounded-ds-full bg-ac/10 px-2 py-1 text-ds-xs font-ds-semibold text-ac">
+                                  推荐
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-4 py-4 font-ds-bold">{formatPoints(pointPackage.points)} 积分</td>
+                            <td className="px-4 py-4 font-ds-bold text-ac">¥{formatMoney(pointPackage.price_cny)}</td>
+                            <td className="px-4 py-4">
+                              <ul className="space-y-1 text-ds-xs leading-relaxed text-txt">
+                                {formatValueMetrics(pointPackage.value_metrics).map((metric, metricIndex) => (
+                                  <li key={`${pointPackage.id}-${metricIndex}`} className="flex gap-2">
+                                    <span aria-hidden="true" className="text-ac">•</span>
+                                    <span>{metric}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 ) : (
                   <p className="rounded-ds-lg border border-bd bg-bg px-4 py-8 text-center text-ds-sm text-txs">
@@ -155,26 +177,11 @@ function formatPoints(value?: number) {
   return Number.isInteger(points) ? points.toLocaleString("zh-CN") : points.toLocaleString("zh-CN", { maximumFractionDigits: 2 });
 }
 
-function readLocalPointPackages() {
-  try {
-    const raw = window.localStorage.getItem(LOCAL_POINT_PACKAGES_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as Array<{ points?: number; price?: number; price_cny?: number }>;
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map((item) => ({
-        points: Number(item.points),
-        price_cny: Number(item.price_cny ?? item.price),
-      }))
-      .filter((item) => item.points > 0 && item.price_cny > 0)
-      .slice(0, 3)
-      .map((item) => ({
-        points: Math.max(1, Math.round(item.points)),
-        price_cny: Math.max(0.01, item.price_cny),
-      }));
-  } catch {
-    return [];
-  }
+function formatValueMetrics(value?: string) {
+  return String(value ?? "")
+    .split(/\r?\n/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function formatMoney(value: number) {

@@ -32,13 +32,20 @@ export interface HaiUsageSummary {
   credited_points?: number;
   consumed_points?: number;
   newcomer_grant_points?: number;
-  point_packages?: Array<{
-    points: number;
-    price_cny: number;
-  }>;
+  point_packages?: HaiPointPackage[];
   wecom_qr_url?: string;
   single_request_token_limit?: number;
   max_output_tokens?: number;
+}
+
+export interface HaiPointPackage {
+  id: string;
+  name: string;
+  points: number;
+  price_cny: number;
+  description: string;
+  value_metrics: string;
+  is_recommended: boolean;
 }
 
 export interface HaiFeatureModule {

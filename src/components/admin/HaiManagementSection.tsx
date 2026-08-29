@@ -81,9 +81,16 @@ interface HaiRuntimeSetting {
   enabled: boolean;
 }
 
-interface HaiPackageConfig {
+interface HaiPointPackageRow {
+  id: string;
+  name: string;
   points: number;
-  price: number;
+  price_cny: number;
+  description: string;
+  value_metrics: string;
+  is_enabled: boolean;
+  is_recommended: boolean;
+  sort_order: number;
 }
 
 type HanMethodCardKind =
@@ -205,6 +212,11 @@ export default function HaiManagementSection() {
   const [pointMultiplierDrafts, setPointMultiplierDrafts] = useState<Record<PointBillingMultiplierKey, string>>(
     DEFAULT_POINT_MULTIPLIER_DRAFTS,
   );
+  const [pointPackages, setPointPackages] = useState<HaiPointPackageRow[]>([]);
+  const [pointPackageDraft, setPointPackageDraft] = useState<HaiPointPackageRow>(() => createEmptyPointPackage());
+  const [editingPointPackageId, setEditingPointPackageId] = useState<string | null>(null);
+  const [pointPackageStatus, setPointPackageStatus] = useState("");
+  const [cnyPerPointDraft, setCnyPerPointDraft] = useState("0.10");
   const [studentSearch, setStudentSearch] = useState("");
   const [knowledgeDraft, setKnowledgeDraft] = useState({ title: "", topic: "教学设计理论", content: "" });
   const [knowledgeEdit, setKnowledgeEdit] = useState<{ id: string; title: string; topic: string; content: string } | null>(null);
@@ -253,6 +265,13 @@ export default function HaiManagementSection() {
       !== Number(pointMultiplierSettings.get(item.key)?.value ?? item.fallback)
     ))
   ), [pointMultiplierDrafts, pointMultiplierSettings, tokensPerPoint, tokensPerPointDraft]);
+  const cnyPerPoint = useMemo(() => Number(
+    runtimeSettings.find((setting) => setting.key === "points.cny_per_point")?.value ?? 0.1,
+  ), [runtimeSettings]);
+  const cnyPerPointSetting = useMemo(
+    () => runtimeSettings.find((setting) => setting.key === "points.cny_per_point") ?? null,
+    [runtimeSettings],
+  );
   const newcomerGrantPoints = useMemo(() => Math.max(
     0,
     Math.round(Number(runtimeSettings.find((setting) => setting.key === "points.newcomer_grant_points")?.value ?? 1000)),
@@ -263,19 +282,9 @@ export default function HaiManagementSection() {
       "points.cny_per_point",
       "points.wecom_qr_url",
       ...POINT_BILLING_MULTIPLIERS.map((item) => item.key),
-      ...[1, 2, 3].flatMap((slot) => [
-        `points.package_${slot}_points`,
-        `points.package_${slot}_price_cny`,
-      ]),
     ]);
     return runtimeSettings.filter((setting) => !dedicatedKeys.has(setting.key));
   }, [runtimeSettings]);
-  const [packageDrafts, setPackageDrafts] = useState<HaiPackageConfig[]>([
-    { points: 10, price: 10 },
-    { points: 100, price: 99 },
-  ]);
-  const [packageStatus, setPackageStatus] = useState("");
-  const [localPointPackages, setLocalPointPackages] = useState(() => readLocalPointPackages());
   const methodCardItems = useMemo(
     () => buildMethodCardAdminItems(defaultMethodCards, methodCardConfigRows),
     [defaultMethodCards, methodCardConfigRows],
@@ -303,16 +312,6 @@ export default function HaiManagementSection() {
   }, []);
 
   useEffect(() => {
-    setPackageDrafts((current) =>
-      current.map((currentPackage, index) =>
-        localPointPackages[index]
-          ? { ...currentPackage, ...localPointPackages[index] }
-          : currentPackage,
-      ),
-    );
-  }, [localPointPackages]);
-
-  useEffect(() => {
     if (selectedPointUser) setPointLevelDraft(selectedPointUser.access_level);
   }, [selectedPointUser]);
 
@@ -328,6 +327,10 @@ export default function HaiManagementSection() {
       ]),
     ) as Record<PointBillingMultiplierKey, string>);
   }, [pointMultiplierSettings]);
+
+  useEffect(() => {
+    if (cnyPerPointSetting) setCnyPerPointDraft(String(cnyPerPointSetting.value));
+  }, [cnyPerPointSetting]);
 
   useEffect(() => {
     if (creatingMethodCard) return;
@@ -347,6 +350,7 @@ export default function HaiManagementSection() {
         studentRows,
         accessResult,
         pointWalletResult,
+        pointPackageResult,
         moduleResult,
         quotaResult,
         knowledgeResult,
@@ -365,6 +369,11 @@ export default function HaiManagementSection() {
           .from("hai_point_wallets")
           .select("*, profiles!user_id(nickname, phone, access_level)")
           .order("updated_at", { ascending: false }),
+        supabase
+          .from("hai_point_packages")
+          .select("*")
+          .order("sort_order", { ascending: true })
+          .order("price_cny", { ascending: true }),
         supabase
           .from("hai_feature_modules")
           .select("*")
@@ -392,6 +401,7 @@ export default function HaiManagementSection() {
 
       if (accessResult.error) throw accessResult.error;
       if (pointWalletResult.error) throw pointWalletResult.error;
+      if (pointPackageResult.error) throw pointPackageResult.error;
       if (moduleResult.error) throw moduleResult.error;
       if (quotaResult.error) throw quotaResult.error;
       if (knowledgeResult.error) throw knowledgeResult.error;
@@ -402,6 +412,13 @@ export default function HaiManagementSection() {
       setStudents(studentRows);
       setAccessRows((accessResult.data as HaiUserAccessRow[]) ?? []);
       setPointWallets((pointWalletResult.data as HaiPointWalletRow[]) ?? []);
+      const packageRows = (pointPackageResult.data as HaiPointPackageRow[]) ?? [];
+      setPointPackages(packageRows);
+      setPointPackageDraft((current) => (
+        editingPointPackageId && packageRows.some((row) => row.id === editingPointPackageId)
+          ? current
+          : packageRows.find((row) => row.id === editingPointPackageId) ?? createEmptyPointPackage()
+      ));
       const moduleRows = (moduleResult.data as HaiFeatureModule[]) ?? [];
       // Chat 与 Work 模块的生成参数统一在此面板管理，不再拆分。
       setModules(moduleRows);
@@ -615,22 +632,126 @@ export default function HaiManagementSection() {
     }
   }
 
-  function updatePackageDraft(index: number, key: keyof HaiPackageConfig, value: string) {
-    const next = Math.max(0, Number(value) || 0);
-    setPackageDrafts((current) => current.map((item, itemIndex) => (
-      itemIndex === index ? { ...item, [key]: next } : item
-    )));
+  function updatePointPackageDraft<K extends keyof HaiPointPackageRow>(key: K, value: HaiPointPackageRow[K]) {
+    setPointPackageDraft((current) => ({ ...current, [key]: value }));
   }
 
-  function savePackageDrafts() {
-    const cleaned = packageDrafts.map((item) => ({
-      points: Math.max(1, Math.round(item.points)),
-      price: Math.max(0.01, Number(item.price.toFixed(2))),
-    }));
-    setLocalPointPackages(cleaned);
-    setPackageDrafts(cleaned);
-    window.localStorage.setItem(LOCAL_POINT_PACKAGES_KEY, JSON.stringify(cleaned));
-    setPackageStatus("套餐显示已保存到当前浏览器。");
+  async function savePointPackage() {
+    if (saving) return;
+    if (pointPackages.length >= 8 && !editingPointPackageId) {
+      setPointPackageStatus("最多保留 8 个套餐；请先停用或删除不需要的套餐。");
+      return;
+    }
+    const normalized: HaiPointPackageRow = {
+      ...pointPackageDraft,
+      name: pointPackageDraft.name.trim() || `HAI 积分包 ${pointPackageDraft.points}`,
+      points: Math.max(1, Math.round(Number(pointPackageDraft.points) || 0)),
+      price_cny: Math.max(0.01, Number(pointPackageDraft.price_cny) || 0),
+      description: pointPackageDraft.description.trim(),
+      value_metrics: pointPackageDraft.value_metrics.replace(/\r\n/g, "\n").trim(),
+      is_recommended: pointPackageDraft.is_enabled ? pointPackageDraft.is_recommended : false,
+      sort_order: Math.max(0, Math.round(Number(pointPackageDraft.sort_order) || 0)),
+    };
+    if (!Number.isFinite(normalized.points) || normalized.points < 1) {
+      setPointPackageStatus("积分数量必须大于 0。");
+      return;
+    }
+    if (!Number.isFinite(normalized.price_cny) || normalized.price_cny < 0.01) {
+      setPointPackageStatus("价格必须大于或等于 0.01 元。");
+      return;
+    }
+
+    setSaving(true);
+    setPointPackageStatus("");
+    try {
+      const payload = {
+        name: normalized.name,
+        points: normalized.points,
+        price_cny: normalized.price_cny,
+        description: normalized.description,
+        value_metrics: normalized.value_metrics,
+        is_enabled: normalized.is_enabled,
+        is_recommended: normalized.is_recommended,
+        sort_order: normalized.sort_order,
+      };
+      const { error } = editingPointPackageId
+        ? await supabase.from("hai_point_packages").update(payload).eq("id", editingPointPackageId)
+        : await supabase.from("hai_point_packages").insert(payload);
+      if (error) throw error;
+      setEditingPointPackageId(null);
+      setPointPackageDraft(createEmptyPointPackage());
+      await loadAll();
+      setPointPackageStatus("积分套餐已保存并同步到购买页。");
+    } catch (error) {
+      setPointPackageStatus(error instanceof Error ? error.message : "积分套餐保存失败。");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function updatePointPackage(row: HaiPointPackageRow, updates: Partial<HaiPointPackageRow>) {
+    setSaving(true);
+    setPointPackageStatus("");
+    try {
+      const { error } = await supabase.from("hai_point_packages").update(updates).eq("id", row.id);
+      if (error) throw error;
+      await loadAll();
+      setPointPackageStatus("积分套餐已更新。");
+    } catch (error) {
+      setPointPackageStatus(error instanceof Error ? error.message : "积分套餐更新失败。");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deletePointPackage(row: HaiPointPackageRow) {
+    setSaving(true);
+    setPointPackageStatus("");
+    try {
+      const { error } = await supabase.from("hai_point_packages").delete().eq("id", row.id);
+      if (error) throw error;
+      if (editingPointPackageId === row.id) {
+        setEditingPointPackageId(null);
+        setPointPackageDraft(createEmptyPointPackage());
+      }
+      await loadAll();
+      setPointPackageStatus("积分套餐已删除。");
+    } catch (error) {
+      setPointPackageStatus(error instanceof Error ? error.message : "积分套餐删除失败。");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function editPointPackage(row: HaiPointPackageRow) {
+    setEditingPointPackageId(row.id);
+    setPointPackageDraft({ ...row });
+    setPointPackageStatus("");
+  }
+
+  function startCreatePointPackage() {
+    setEditingPointPackageId(null);
+    setPointPackageDraft(createEmptyPointPackage(Math.max(...[0, ...pointPackages.map((row) => row.sort_order)]) + 10));
+    setPointPackageStatus("");
+  }
+
+  async function saveCnyPerPoint() {
+    if (!cnyPerPointSetting || saving) return;
+    const next = Number(cnyPerPointDraft);
+    if (!Number.isFinite(next) || next < 0.01) {
+      setPointPackageStatus("每积分售价必须大于或等于 0.01 元。");
+      return;
+    }
+    setSaving(true);
+    setPointPackageStatus("");
+    try {
+      const saved = await updateRuntimeSetting(cnyPerPointSetting, next, true);
+      if (!saved) return;
+      setCnyPerPointDraft(String(next));
+      setPointPackageStatus(`金额-积分对应关系已保存：每 1 积分售价 ¥${next.toFixed(2)}。`);
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleSaveProvider() {
@@ -1518,9 +1639,9 @@ export default function HaiManagementSection() {
 
       <CollapsiblePanel
         title="积分与套餐设置"
-        description="前端套餐显示可直接编辑并保存到当前浏览器；其余内部配置仍保存到数据库。"
+        description="积分消耗规则与购买页套餐均保存到数据库，保存后立即同步前端。"
         icon={<Coins className="h-5 w-5" />}
-        summary={`${localPointPackages.length} 个显示套餐`}
+        summary={`${pointPackages.filter((row) => row.is_enabled).length} 个启用套餐`}
         defaultOpen
       >
         <div className="rounded-ds-md border border-ac/25 bg-acl/30 p-4">
@@ -1598,47 +1719,211 @@ export default function HaiManagementSection() {
 
         <div className="mt-5 flex items-end justify-between gap-3">
           <div>
-            <h3 className="text-ds-base font-ds-bold text-tx">前端套餐显示</h3>
-            <p className="mt-1 text-ds-xs text-txs">仅修改购买页文本显示，不写入数据库。当前浏览器保存后立即生效。</p>
+            <h3 className="text-ds-base font-ds-bold text-tx">购买页套餐管理</h3>
+            <p className="mt-1 text-ds-xs text-txs">支持最多 8 个套餐；价格、介绍和“可完成内容”都由这里配置。</p>
           </div>
-          <Button size="sm" className="bg-ac text-white hover:bg-acd" onClick={savePackageDrafts}>
-            保存显示
+          <Button size="sm" className="bg-ac text-white hover:bg-acd" onClick={startCreatePointPackage}>
+            <Plus className="h-4 w-4" />
+            新增套餐
           </Button>
         </div>
-        <div className="mt-3 grid gap-3 lg:grid-cols-3">
-          {packageDrafts.map((pointPackage, index) => (
-            <div key={index} className="rounded-ds-md border border-bd bg-bg p-3">
-              <strong className="text-ds-sm text-tx">套餐 {index + 1}</strong>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                <label className="block">
-                  <span className="mb-1 block text-ds-xs text-txs">积分数量</span>
-                  <input
-                    type="number"
-                    min={1}
-                    step={1}
-                    value={pointPackage.points}
-                    onChange={(event) => updatePackageDraft(index, "points", event.target.value)}
-                    className="h-9 w-full rounded-ds-sm border border-bd bg-white px-2 text-ds-sm"
-                    aria-label={`套餐 ${index + 1} 积分数量`}
-                  />
-                </label>
-                <label className="block">
-                  <span className="mb-1 block text-ds-xs text-txs">套餐价格</span>
-                  <input
-                    type="number"
-                    min={0.01}
-                    step={0.01}
-                    value={pointPackage.price}
-                    onChange={(event) => updatePackageDraft(index, "price", event.target.value)}
-                    className="h-9 w-full rounded-ds-sm border border-bd bg-white px-2 text-ds-sm"
-                    aria-label={`套餐 ${index + 1} 价格`}
-                  />
-                </label>
-              </div>
+
+        <div className="mt-3 flex flex-col gap-2 rounded-ds-md border border-bd bg-white p-3 sm:flex-row sm:items-end">
+          <label className="min-w-0 flex-1">
+            <span className="mb-1 block text-ds-xs font-ds-semibold text-txs">每 1 积分售价</span>
+            <div className="flex items-center gap-2">
+              <span className="text-ds-sm text-txs">¥</span>
+              <input
+                type="number"
+                min={cnyPerPointSetting?.min_value ?? 0.01}
+                step={cnyPerPointSetting?.step ?? 0.01}
+                value={cnyPerPointDraft}
+                onChange={(event) => setCnyPerPointDraft(event.target.value)}
+                className="h-9 min-w-0 flex-1 rounded-ds-sm border border-bd bg-bg px-2 text-ds-sm"
+                aria-label="每 1 积分售价"
+              />
             </div>
-          ))}
+          </label>
+          <Button
+            size="sm"
+            type="button"
+            className="bg-ac text-white hover:bg-acd"
+            disabled={saving || !cnyPerPointSetting || Number(cnyPerPointDraft) === cnyPerPoint}
+            onClick={saveCnyPerPoint}
+          >
+            保存金额-积分
+          </Button>
         </div>
-        <p className="mt-3 text-ds-xs text-txs">{packageStatus || "默认显示 2 档：10 积分 ¥10、100 积分 ¥99。"}</p>
+
+        <div className="mt-3 overflow-x-auto rounded-ds-md border border-bd bg-white">
+          <table className="w-full min-w-[880px] text-left text-ds-sm">
+            <thead className="bg-acl/30 text-txs">
+              <tr>
+                <th className="px-3 py-2">名称 / 介绍</th>
+                <th className="px-3 py-2">积分</th>
+                <th className="px-3 py-2">价格</th>
+                <th className="px-3 py-2">可完成内容</th>
+                <th className="px-3 py-2">排序</th>
+                <th className="px-3 py-2">状态</th>
+                <th className="px-3 py-2">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pointPackages.map((row) => (
+                <tr key={row.id} className="border-t border-bdl align-top">
+                  <td className="px-3 py-3">
+                    <strong className="text-tx">{row.name || "HAI 积分包"}</strong>
+                    {row.description && <p className="mt-1 text-ds-xs text-txs">{row.description}</p>}
+                    {row.is_recommended && <Badge className="mt-2" variant="outline">推荐</Badge>}
+                  </td>
+                  <td className="px-3 py-3">{formatAdminPoints(row.points)}</td>
+                  <td className="px-3 py-3">¥{row.price_cny}</td>
+                  <td className="px-3 py-3 text-ds-xs text-txs">
+                    {row.value_metrics.split(/\r?\n/).filter(Boolean).map((metric, index) => (
+                      <div key={`${row.id}-metric-${index}`}>{metric}</div>
+                    ))}
+                  </td>
+                  <td className="px-3 py-3">{row.sort_order}</td>
+                  <td className="px-3 py-3">
+                    <Badge variant={row.is_enabled ? "default" : "outline"}>{row.is_enabled ? "启用" : "停用"}</Badge>
+                  </td>
+                  <td className="px-3 py-3">
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" variant="outline" onClick={() => editPointPackage(row)}>
+                        编辑
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={saving}
+                        onClick={() => updatePointPackage(row, { is_enabled: !row.is_enabled })}
+                      >
+                        {row.is_enabled ? "停用" : "启用"}
+                      </Button>
+                      <Button size="sm" variant="ghost" disabled={saving} onClick={() => deletePointPackage(row)}>
+                        删除
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {pointPackages.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-3 py-8 text-center text-ds-sm text-txs">
+                    暂无套餐，请点击“新增套餐”。
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <form
+          className="mt-4 rounded-ds-md border border-ac/25 bg-acl/25 p-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void savePointPackage();
+          }}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <h4 className="text-ds-sm font-ds-bold text-tx">
+              {editingPointPackageId ? "编辑套餐" : "新增套餐"}
+            </h4>
+            {editingPointPackageId && (
+              <Button size="sm" variant="ghost" onClick={startCreatePointPackage} type="button">
+                取消编辑
+              </Button>
+            )}
+          </div>
+          <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <label className="block">
+              <span className="mb-1 block text-ds-xs text-txs">套餐名称</span>
+              <input
+                value={pointPackageDraft.name}
+                onChange={(event) => updatePointPackageDraft("name", event.target.value)}
+                className="h-9 w-full rounded-ds-sm border border-bd bg-white px-2 text-ds-sm"
+                aria-label="积分套餐名称"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-ds-xs text-txs">积分数量</span>
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={pointPackageDraft.points}
+                onChange={(event) => updatePointPackageDraft("points", Number(event.target.value) || 0)}
+                className="h-9 w-full rounded-ds-sm border border-bd bg-white px-2 text-ds-sm"
+                aria-label="积分套餐积分数量"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-ds-xs text-txs">价格</span>
+              <input
+                type="number"
+                min={0.01}
+                step={0.01}
+                value={pointPackageDraft.price_cny}
+                onChange={(event) => updatePointPackageDraft("price_cny", Number(event.target.value) || 0)}
+                className="h-9 w-full rounded-ds-sm border border-bd bg-white px-2 text-ds-sm"
+                aria-label="积分套餐价格"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-ds-xs text-txs">排序</span>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                value={pointPackageDraft.sort_order}
+                onChange={(event) => updatePointPackageDraft("sort_order", Number(event.target.value) || 0)}
+                className="h-9 w-full rounded-ds-sm border border-bd bg-white px-2 text-ds-sm"
+                aria-label="积分套餐排序"
+              />
+            </label>
+            <label className="block md:col-span-2">
+              <span className="mb-1 block text-ds-xs text-txs">套餐介绍</span>
+              <input
+                value={pointPackageDraft.description}
+                onChange={(event) => updatePointPackageDraft("description", event.target.value)}
+                className="h-9 w-full rounded-ds-sm border border-bd bg-white px-2 text-ds-sm"
+                aria-label="积分套餐介绍"
+              />
+            </label>
+            <label className="block md:col-span-2">
+              <span className="mb-1 block text-ds-xs text-txs">可完成内容（每行一条）</span>
+              <textarea
+                value={pointPackageDraft.value_metrics}
+                onChange={(event) => updatePointPackageDraft("value_metrics", event.target.value)}
+                rows={3}
+                className="w-full rounded-ds-sm border border-bd bg-white px-2 py-2 text-ds-sm"
+                aria-label="积分套餐可完成内容"
+              />
+            </label>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-4">
+            <label className="flex items-center gap-2 text-ds-sm">
+              <input
+                type="checkbox"
+                checked={pointPackageDraft.is_enabled}
+                onChange={(event) => updatePointPackageDraft("is_enabled", event.target.checked)}
+              />
+              启用套餐
+            </label>
+            <label className="flex items-center gap-2 text-ds-sm">
+              <input
+                type="checkbox"
+                checked={pointPackageDraft.is_recommended}
+                onChange={(event) => updatePointPackageDraft("is_recommended", event.target.checked)}
+              />
+              标记推荐
+            </label>
+            <Button type="submit" size="sm" className="bg-ac text-white hover:bg-acd" disabled={saving}>
+              保存套餐
+            </Button>
+          </div>
+        </form>
+        <p className="mt-3 text-ds-xs text-txs">{pointPackageStatus || "购买页会以表格展示名称、积分、价格和可完成内容。"}</p>
       </CollapsiblePanel>
 
       <section className="grid gap-6 xl:grid-cols-2">
@@ -2173,24 +2458,18 @@ function membershipLabel(level: MembershipType) {
   return "Free";
 }
 
-const LOCAL_POINT_PACKAGES_KEY = "hai-local-point-packages";
-
-function readLocalPointPackages(): HaiPackageConfig[] {
-  try {
-    const raw = window.localStorage.getItem(LOCAL_POINT_PACKAGES_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as Array<{ points?: number; price?: number }>;
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter((item) => Number(item.points) > 0 && Number(item.price) > 0)
-      .slice(0, 3)
-      .map((item) => ({
-        points: Math.max(1, Math.round(Number(item.points))),
-        price: Math.max(0.01, Number(item.price)),
-      }));
-  } catch {
-    return [];
-  }
+function createEmptyPointPackage(sortOrder = 50): HaiPointPackageRow {
+  return {
+    id: "",
+    name: "",
+    points: 100,
+    price_cny: 9.9,
+    description: "",
+    value_metrics: "",
+    is_enabled: true,
+    is_recommended: false,
+    sort_order: sortOrder,
+  };
 }
 
 function chunkKnowledge(content: string) {

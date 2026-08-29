@@ -29,8 +29,24 @@ describe("HAI points purchase page", () => {
         current_points: 15,
         consumed_points: 5,
         point_packages: [
-          { points: 25, price_cny: 18 },
-          { points: 500, price_cny: 299 },
+          {
+            id: "package-answer",
+            name: "体验包",
+            points: 25,
+            price_cny: 18,
+            description: "适合第一次体验。",
+            value_metrics: "约完成 2 次答疑\n约 1 次辅助工作",
+            is_recommended: false,
+          },
+          {
+            id: "package-work",
+            name: "备课包",
+            points: 500,
+            price_cny: 299,
+            description: "适合阶段备课。",
+            value_metrics: "约完成 45 次答疑",
+            is_recommended: true,
+          },
         ],
         wecom_qr_url: "/哈老师企微二维码.png",
       },
@@ -54,23 +70,22 @@ describe("HAI points purchase page", () => {
     expect(screen.getByRole("img", { name: "企业微信购买二维码" })).toHaveAttribute("src", "/哈老师企微二维码.png");
   });
 
-  it("shows package points and prices saved by the frontend-only admin editor", async () => {
-    window.localStorage.setItem("hai-local-point-packages", JSON.stringify([
-      { points: 10, price: 12 },
-      { points: 100, price: 108 },
-    ]));
-
+  it("shows configured package descriptions and value metrics in a comparison table", async () => {
     render(
       <MemoryRouter initialEntries={["/hai/points"]}>
         <HaiPointsPage />
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("10 积分")).toBeInTheDocument();
-    expect(screen.getByText("100 积分")).toBeInTheDocument();
-    expect(screen.getByText("¥12")).toBeInTheDocument();
-    expect(screen.getByText("¥108")).toBeInTheDocument();
-    expect(screen.queryByText("¥18")).not.toBeInTheDocument();
+    expect(await screen.findByText("体验包")).toBeInTheDocument();
+    expect(screen.getByText("备课包")).toBeInTheDocument();
+    expect(screen.getByText("25 积分")).toBeInTheDocument();
+    expect(screen.getByText("500 积分")).toBeInTheDocument();
+    expect(screen.getByText("¥18")).toBeInTheDocument();
+    expect(screen.getByText("¥299")).toBeInTheDocument();
+    expect(screen.getByText("约完成 2 次答疑")).toBeInTheDocument();
+    expect(screen.getByText("约完成 45 次答疑")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "可完成内容" })).toBeInTheDocument();
   });
 
   it("allows an internal beta user to buy while keeping the purchased wallet separate", async () => {
@@ -87,6 +102,15 @@ describe("HAI points purchase page", () => {
         consumed_points: 5,
         wallet_points: 20,
         wallet_consumed_points: 0,
+        point_packages: [{
+          id: "internal-package",
+          name: "体验包",
+          points: 100,
+          price_cny: 9.9,
+          description: "适合体验。",
+          value_metrics: "约完成 9 次答疑",
+          is_recommended: false,
+        }],
       },
     });
 
@@ -112,6 +136,15 @@ describe("HAI points purchase page", () => {
         weekly_limit: 0,
         wallet_points: 0,
         wallet_consumed_points: 0,
+        point_packages: [{
+          id: "pre-package",
+          name: "体验包",
+          points: 10,
+          price_cny: 1,
+          description: "适合体验。",
+          value_metrics: "约完成 1 次答疑",
+          is_recommended: false,
+        }],
       },
     });
 
@@ -175,6 +208,10 @@ describe("HAI points wallet migration contract", () => {
     resolve(process.cwd(), "supabase/migrations/20260829124258_hai_weighted_equivalent_token_billing.sql"),
     "utf8",
   );
+  const dynamicPackageSql = readFileSync(
+    resolve(process.cwd(), "supabase/migrations/20260829132153_hai_dynamic_point_packages.sql"),
+    "utf8",
+  );
   const adminSource = readFileSync(
     resolve(process.cwd(), "src/components/admin/HaiManagementSection.tsx"),
     "utf8",
@@ -233,8 +270,26 @@ describe("HAI points wallet migration contract", () => {
     expect(universalPurchaseSql).toContain("'point_packages', v_point_packages");
     expect(universalPurchaseSql).toContain("'/哈老师企微二维码.png'");
     expect(adminSource).toContain('title="积分与套餐设置"');
-    expect(adminSource).toContain("前端套餐显示");
-    expect(adminSource).toContain("保存显示");
+    expect(adminSource).toContain("购买页套餐管理");
+    expect(adminSource).toContain("新增套餐");
+    expect(adminSource).toContain('supabase.from("hai_point_packages")');
+    expect(adminSource).toContain("可完成内容（每行一条）");
+    expect(adminSource).toContain("每 1 积分售价");
+    expect(adminSource).toContain("保存金额-积分");
+  });
+
+  it("stores dynamic packages with descriptions, value metrics and admin-only writes", () => {
+    expect(dynamicPackageSql).toContain("create table if not exists public.hai_point_packages");
+    expect(dynamicPackageSql).toContain("description text not null default ''");
+    expect(dynamicPackageSql).toContain("value_metrics text not null default ''");
+    expect(dynamicPackageSql).toContain("is_recommended boolean not null default false");
+    expect(dynamicPackageSql).toContain("constraint hai_point_packages_points_price_unique unique (points, price_cny)");
+    expect(dynamicPackageSql).toContain("alter table public.hai_point_packages enable row level security");
+    expect(dynamicPackageSql).toContain("grant select on table public.hai_point_packages to authenticated");
+    expect(dynamicPackageSql).toContain("using ((select public.is_admin()))");
+    expect(dynamicPackageSql).toContain("'约完成 90 次答疑'");
+    expect(dynamicPackageSql).toContain("'point_packages', v_point_packages");
+    expect(adminSource).toContain("最多保留 8 个套餐");
   });
 
   it("shows admin-only weighted billing controls while keeping Token conversion off user pages", () => {
