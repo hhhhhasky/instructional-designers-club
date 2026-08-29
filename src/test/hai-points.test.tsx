@@ -171,10 +171,18 @@ describe("HAI points wallet migration contract", () => {
     resolve(process.cwd(), "supabase/migrations/20260829082605_hai_membership_2015plus_points_grant.sql"),
     "utf8",
   );
+  const weightedBillingSql = readFileSync(
+    resolve(process.cwd(), "supabase/migrations/20260829124258_hai_weighted_equivalent_token_billing.sql"),
+    "utf8",
+  );
   const adminSource = readFileSync(
     resolve(process.cwd(), "src/components/admin/HaiManagementSection.tsx"),
     "utf8",
   );
+  const edgeSources = ["hai-chat", "hai-work", "hai-roundtable-chat"].map((name) => readFileSync(
+    resolve(process.cwd(), `supabase/functions/${name}/index.ts`),
+    "utf8",
+  ));
 
   it("uses the corrected 100 Token per point default and disables the free tier and invites", () => {
     expect(sql).toContain("15 万 Token ÷ 1500 积分 = 100 Token/积分");
@@ -229,13 +237,42 @@ describe("HAI points wallet migration contract", () => {
     expect(adminSource).toContain("保存显示");
   });
 
-  it("shows an admin-only Token conversion editor while keeping the ratio off user pages", () => {
-    expect(adminSource).toContain("积分与 Token 换算比例");
-    expect(adminSource).toContain("每 1 积分对应的 Token 数量");
-    expect(adminSource).toContain("保存换算比例");
-    expect(adminSource).toContain('.from("hai_runtime_settings")');
-    expect(adminSource).toContain("现有钱包的剩余 Token 总量不变");
+  it("shows admin-only weighted billing controls while keeping Token conversion off user pages", () => {
+    expect(adminSource).toContain("积分消耗规则（等价 Token）");
+    expect(adminSource).toContain("每 1 积分对应的基准等价 Token");
+    expect(adminSource).toContain("Flash 未缓存输入");
+    expect(adminSource).toContain("Pro 输出");
+    expect(adminSource).toContain("保存积分消耗规则");
+    expect(adminSource).toContain('supabase.rpc("hai_admin_update_point_billing_config"');
+    expect(adminSource).toContain("用户现有积分余额不变");
     expect(readFileSync(resolve(process.cwd(), "src/pages/HaiPointsPage.tsx"), "utf8")).not.toContain("Token /");
+  });
+
+  it("bills exact provider usage with Flash and Pro cache/input/output multipliers", () => {
+    expect(weightedBillingSql).toContain("v_new_tokens_per_point integer := 1000");
+    expect(weightedBillingSql).toContain("'points.flash_cache_hit_multiplier'");
+    expect(weightedBillingSql).toContain("'points.flash_cache_miss_multiplier'");
+    expect(weightedBillingSql).toContain("'points.flash_output_multiplier'");
+    expect(weightedBillingSql).toContain("'points.pro_cache_hit_multiplier'");
+    expect(weightedBillingSql).toContain("'points.pro_cache_miss_multiplier'");
+    expect(weightedBillingSql).toContain("'points.pro_output_multiplier'");
+    expect(weightedBillingSql).toContain("from public.hai_model_calls call");
+    expect(weightedBillingSql).toContain("call.cache_hit_tokens");
+    expect(weightedBillingSql).toContain("call.cache_miss_tokens");
+    expect(weightedBillingSql).toContain("call.completion_tokens");
+    expect(weightedBillingSql).toContain("'billing_source', v_billing_source");
+  });
+
+  it("reserves weighted points, preserves balances when the base changes and sends model metadata", () => {
+    expect(weightedBillingSql).toContain("points_reserved_equivalent_tokens");
+    expect(weightedBillingSql).toContain("'billing_multipliers', jsonb_build_object");
+    expect(weightedBillingSql).toContain("create or replace function public.hai_admin_update_point_billing_config");
+    expect(weightedBillingSql).toContain("balance_tokens::numeric * p_tokens_per_point / v_old_tokens_per_point");
+    expect(weightedBillingSql).toContain("Permission denied: admin only");
+    for (const source of edgeSources) {
+      expect(source).toContain("model: completionOptions.model");
+      expect(source).toContain("model_provider_id: module.model_provider_id");
+    }
   });
 
   it("requires the admin to change membership first and manually grant newcomer points exactly once", () => {

@@ -153,7 +153,11 @@ Deno.serve(async (request) => {
       estimatedOutputTokens: maxOutputTokens,
       metadata: buildUsageMetadata(
         runtime,
-        buildExecutionMetadata(module.slug, chatSkill),
+        {
+          ...buildExecutionMetadata(module.slug, chatSkill),
+          model: completionOptions.model,
+          model_provider_id: module.model_provider_id,
+        },
         configSnapshot,
       ),
     });

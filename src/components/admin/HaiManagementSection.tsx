@@ -163,6 +163,21 @@ type MethodCardAdminItem = HanMethodCard & {
   updatedAt: string | null;
 };
 
+const POINT_BILLING_MULTIPLIERS = [
+  { key: "points.flash_cache_hit_multiplier", label: "Flash 缓存命中", fallback: 0.033 },
+  { key: "points.flash_cache_miss_multiplier", label: "Flash 未缓存输入", fallback: 1 },
+  { key: "points.flash_output_multiplier", label: "Flash 输出", fallback: 3 },
+  { key: "points.pro_cache_hit_multiplier", label: "Pro 缓存命中", fallback: 0.1 },
+  { key: "points.pro_cache_miss_multiplier", label: "Pro 未缓存输入", fallback: 3 },
+  { key: "points.pro_output_multiplier", label: "Pro 输出", fallback: 9 },
+] as const;
+
+type PointBillingMultiplierKey = typeof POINT_BILLING_MULTIPLIERS[number]["key"];
+
+const DEFAULT_POINT_MULTIPLIER_DRAFTS = Object.fromEntries(
+  POINT_BILLING_MULTIPLIERS.map((item) => [item.key, String(item.fallback)]),
+) as Record<PointBillingMultiplierKey, string>;
+
 export default function HaiManagementSection() {
   const [students, setStudents] = useState<StudentItem[]>([]);
   const [accessRows, setAccessRows] = useState<HaiUserAccessRow[]>([]);
@@ -186,7 +201,10 @@ export default function HaiManagementSection() {
   const [pointDraft, setPointDraft] = useState({ points: 100, reason: "线下购买积分" });
   const [pointUserSearch, setPointUserSearch] = useState("");
   const [pointUserLevelFilter, setPointUserLevelFilter] = useState<PointUserLevelFilter>("all");
-  const [tokensPerPointDraft, setTokensPerPointDraft] = useState("100");
+  const [tokensPerPointDraft, setTokensPerPointDraft] = useState("1000");
+  const [pointMultiplierDrafts, setPointMultiplierDrafts] = useState<Record<PointBillingMultiplierKey, string>>(
+    DEFAULT_POINT_MULTIPLIER_DRAFTS,
+  );
   const [studentSearch, setStudentSearch] = useState("");
   const [knowledgeDraft, setKnowledgeDraft] = useState({ title: "", topic: "教学设计理论", content: "" });
   const [knowledgeEdit, setKnowledgeEdit] = useState<{ id: string; title: string; topic: string; content: string } | null>(null);
@@ -222,6 +240,19 @@ export default function HaiManagementSection() {
     () => runtimeSettings.find((setting) => setting.key === "points.tokens_per_point") ?? null,
     [runtimeSettings],
   );
+  const pointMultiplierSettings = useMemo(
+    () => new Map(runtimeSettings
+      .filter((setting) => POINT_BILLING_MULTIPLIERS.some((item) => item.key === setting.key))
+      .map((setting) => [setting.key, setting])),
+    [runtimeSettings],
+  );
+  const pointBillingChanged = useMemo(() => (
+    Number(tokensPerPointDraft) !== tokensPerPoint
+    || POINT_BILLING_MULTIPLIERS.some((item) => (
+      Number(pointMultiplierDrafts[item.key])
+      !== Number(pointMultiplierSettings.get(item.key)?.value ?? item.fallback)
+    ))
+  ), [pointMultiplierDrafts, pointMultiplierSettings, tokensPerPoint, tokensPerPointDraft]);
   const newcomerGrantPoints = useMemo(() => Math.max(
     0,
     Math.round(Number(runtimeSettings.find((setting) => setting.key === "points.newcomer_grant_points")?.value ?? 1000)),
@@ -231,6 +262,7 @@ export default function HaiManagementSection() {
       "points.tokens_per_point",
       "points.cny_per_point",
       "points.wecom_qr_url",
+      ...POINT_BILLING_MULTIPLIERS.map((item) => item.key),
       ...[1, 2, 3].flatMap((slot) => [
         `points.package_${slot}_points`,
         `points.package_${slot}_price_cny`,
@@ -287,6 +319,15 @@ export default function HaiManagementSection() {
   useEffect(() => {
     if (tokensPerPointSetting) setTokensPerPointDraft(String(tokensPerPointSetting.value));
   }, [tokensPerPointSetting]);
+
+  useEffect(() => {
+    setPointMultiplierDrafts(Object.fromEntries(
+      POINT_BILLING_MULTIPLIERS.map((item) => [
+        item.key,
+        String(pointMultiplierSettings.get(item.key)?.value ?? item.fallback),
+      ]),
+    ) as Record<PointBillingMultiplierKey, string>);
+  }, [pointMultiplierSettings]);
 
   useEffect(() => {
     if (creatingMethodCard) return;
@@ -528,21 +569,47 @@ export default function HaiManagementSection() {
     return true;
   }
 
-  async function saveTokensPerPoint() {
+  async function savePointBillingConfig() {
     if (!tokensPerPointSetting || saving) return;
     const next = normalizeRuntimeValue(tokensPerPointSetting, tokensPerPointDraft);
     if (typeof next !== "number" || !Number.isFinite(next) || next < 1) {
-      setStatus("每积分对应 Token 必须是大于 0 的整数。");
+      setStatus("每积分对应等价 Token 必须是大于 0 的整数。");
+      return;
+    }
+    const multipliers = Object.fromEntries(POINT_BILLING_MULTIPLIERS.map((item) => {
+      const value = Number(pointMultiplierDrafts[item.key]);
+      return [item.key, value];
+    })) as Record<PointBillingMultiplierKey, number>;
+    if (Object.values(multipliers).some((value) => !Number.isFinite(value) || value < 0)) {
+      setStatus("积分消耗倍率必须是大于或等于 0 的数字。");
       return;
     }
 
     setSaving(true);
     setStatus("");
     try {
-      const saved = await updateRuntimeSetting(tokensPerPointSetting, next, true);
-      if (!saved) return;
+      const { error } = await supabase.rpc("hai_admin_update_point_billing_config", {
+        p_tokens_per_point: next,
+        p_flash_cache_hit_multiplier: multipliers["points.flash_cache_hit_multiplier"],
+        p_flash_cache_miss_multiplier: multipliers["points.flash_cache_miss_multiplier"],
+        p_flash_output_multiplier: multipliers["points.flash_output_multiplier"],
+        p_pro_cache_hit_multiplier: multipliers["points.pro_cache_hit_multiplier"],
+        p_pro_cache_miss_multiplier: multipliers["points.pro_cache_miss_multiplier"],
+        p_pro_output_multiplier: multipliers["points.pro_output_multiplier"],
+      });
+      if (error) {
+        setStatus(error.message);
+        return;
+      }
       setTokensPerPointDraft(String(next));
-      setStatus(`积分换算比例已保存：每 1 积分对应 ${next.toLocaleString("zh-CN")} Token。`);
+      setRuntimeSettings((current) => current.map((setting) => {
+        if (setting.key === "points.tokens_per_point") return { ...setting, value: next, enabled: true };
+        if (setting.key in multipliers) {
+          return { ...setting, value: multipliers[setting.key as PointBillingMultiplierKey], enabled: true };
+        }
+        return setting;
+      }));
+      setStatus("积分消耗规则已保存，用户积分余额保持不变。");
     } finally {
       setSaving(false);
     }
@@ -1457,16 +1524,26 @@ export default function HaiManagementSection() {
         defaultOpen
       >
         <div className="rounded-ds-md border border-ac/25 bg-acl/30 p-4">
-          <div>
-            <h3 className="text-ds-base font-ds-bold text-tx">积分与 Token 换算比例</h3>
-            <p className="mt-1 text-ds-xs leading-relaxed text-txs">
-              仅用于后台计费，用户端不会展示这个换算关系。
-            </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="text-ds-base font-ds-bold text-tx">积分消耗规则（等价 Token）</h3>
+              <p className="mt-1 text-ds-xs leading-relaxed text-txs">
+                后台按模型、缓存状态和输入/输出分别计费；用户端只显示积分，不展示 Token 换算关系。
+              </p>
+            </div>
+            <Button
+              className="shrink-0 bg-ac text-white hover:bg-acd"
+              disabled={saving || !tokensPerPointSetting || !tokensPerPointDraft.trim() || !pointBillingChanged}
+              onClick={savePointBillingConfig}
+            >
+              保存积分消耗规则
+            </Button>
           </div>
+
           {tokensPerPointSetting ? (
-            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
-              <label className="min-w-0 flex-1">
-                <span className="mb-1 block text-ds-xs font-ds-semibold text-txs">每 1 积分对应的 Token 数量</span>
+            <>
+              <label className="mt-4 block max-w-xl">
+                <span className="mb-1 block text-ds-xs font-ds-semibold text-txs">每 1 积分对应的基准等价 Token</span>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
@@ -1476,26 +1553,46 @@ export default function HaiManagementSection() {
                     value={tokensPerPointDraft}
                     onChange={(event) => setTokensPerPointDraft(event.target.value)}
                     className="h-10 min-w-0 flex-1 rounded-ds-md border border-bd bg-white px-3 text-ds-sm"
-                    aria-label="每 1 积分对应的 Token 数量"
+                    aria-label="每 1 积分对应的基准等价 Token"
                   />
-                  <span className="shrink-0 text-ds-xs text-txs">Token / 积分</span>
+                  <span className="shrink-0 text-ds-xs text-txs">等价 Token / 积分</span>
                 </div>
               </label>
-              <Button
-                className="bg-ac text-white hover:bg-acd"
-                disabled={saving || !tokensPerPointDraft.trim() || Number(tokensPerPointDraft) === tokensPerPoint}
-                onClick={saveTokensPerPoint}
-              >
-                保存换算比例
-              </Button>
-            </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {POINT_BILLING_MULTIPLIERS.map((item) => {
+                  const setting = pointMultiplierSettings.get(item.key);
+                  return (
+                    <label key={item.key} className="rounded-ds-md border border-bd bg-white p-3">
+                      <span className="mb-1 block text-ds-xs font-ds-semibold text-tx">{item.label}</span>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min={setting?.min_value ?? 0}
+                          max={setting?.max_value ?? 1000}
+                          step={setting?.step ?? 0.001}
+                          value={pointMultiplierDrafts[item.key]}
+                          onChange={(event) => setPointMultiplierDrafts((current) => ({
+                            ...current,
+                            [item.key]: event.target.value,
+                          }))}
+                          className="h-9 min-w-0 flex-1 rounded-ds-sm border border-bd bg-bg px-2 text-ds-sm"
+                          aria-label={`${item.label}积分消耗倍率`}
+                        />
+                        <span className="text-ds-xs text-txs">倍</span>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </>
           ) : (
             <p className="mt-3 rounded-ds-md bg-white px-3 py-2 text-ds-sm text-amber-700">
-              未找到换算比例配置，请刷新页面后重试。
+              未找到积分消耗配置，请刷新页面后重试。
             </p>
           )}
           <p className="mt-3 text-ds-xs leading-relaxed text-amber-800">
-            调整后，现有钱包的剩余 Token 总量不变，用户看到的积分余额会按新比例重新换算；之后的积分入账和用量折算将使用新比例。
+            修改基准等价 Token 时，系统会同步缩放钱包内部计量值，用户现有积分余额不变；修改倍率只影响之后的新请求。
           </p>
         </div>
 

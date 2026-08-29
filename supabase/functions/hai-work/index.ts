@@ -238,6 +238,8 @@ Deno.serve(async (request) => {
           skill_snapshot_hash: skill.version.snapshot_hash || "",
           teaching_mode: String(input.teaching_mode ?? ""),
           fallback_skill: skill.is_fallback,
+          model: completionOptions.model,
+          model_provider_id: module.model_provider_id,
         },
       });
     } catch (error) {

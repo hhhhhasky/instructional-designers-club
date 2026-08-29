@@ -123,6 +123,8 @@ Deno.serve(async (request) => {
       metadata: buildUsageMetadata(runtime, {
         module_slug: module.slug,
         role_ids: roleIds,
+        model: completionOptions.model,
+        model_provider_id: module.model_provider_id,
       }, configSnapshot),
     });
 
@@ -370,7 +372,7 @@ async function loadModule(
   const { data, error } = await admin
     .from("hai_feature_modules")
     .select(
-      "id, slug, name, default_model, default_temperature, default_max_output_tokens, thinking_enabled, default_top_p, reasoning_effort, response_format, stop_sequences, history_message_limit, memory_limit, material_match_count, knowledge_match_count",
+      "id, slug, name, default_model, default_temperature, default_max_output_tokens, thinking_enabled, default_top_p, reasoning_effort, response_format, stop_sequences, history_message_limit, memory_limit, material_match_count, knowledge_match_count, model_provider_id",
     )
     .eq("slug", slug)
     .eq("is_enabled", true)
@@ -393,6 +395,7 @@ async function loadModule(
     memory_limit: number | null;
     material_match_count: number | null;
     knowledge_match_count: number | null;
+    model_provider_id: string | null;
   };
 }
 
