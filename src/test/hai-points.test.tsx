@@ -62,10 +62,10 @@ describe("HAI points purchase page", () => {
 
     expect(await screen.findByText("15 积分")).toBeInTheDocument();
     expect(screen.getByText("已消耗 5 积分")).toBeInTheDocument();
-    expect(screen.getByText("25 积分")).toBeInTheDocument();
-    expect(screen.getByText("500 积分")).toBeInTheDocument();
-    expect(screen.getByText("¥18")).toBeInTheDocument();
-    expect(screen.getByText("¥299")).toBeInTheDocument();
+    expect(screen.getAllByText("25 积分")).toHaveLength(2);
+    expect(screen.getAllByText("500 积分")).toHaveLength(2);
+    expect(screen.getAllByText("¥18")).toHaveLength(2);
+    expect(screen.getAllByText("¥299")).toHaveLength(2);
     expect(screen.queryByText(/Token/i)).not.toBeInTheDocument();
     expect(screen.getByRole("img", { name: "企业微信购买二维码" })).toHaveAttribute("src", "/哈老师企微二维码.png");
   });
@@ -77,14 +77,14 @@ describe("HAI points purchase page", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("体验包")).toBeInTheDocument();
-    expect(screen.getByText("备课包")).toBeInTheDocument();
-    expect(screen.getByText("25 积分")).toBeInTheDocument();
-    expect(screen.getByText("500 积分")).toBeInTheDocument();
-    expect(screen.getByText("¥18")).toBeInTheDocument();
-    expect(screen.getByText("¥299")).toBeInTheDocument();
-    expect(screen.getByText("约完成 2 次答疑")).toBeInTheDocument();
-    expect(screen.getByText("约完成 45 次答疑")).toBeInTheDocument();
+    expect(await screen.findAllByText("体验包")).toHaveLength(2);
+    expect(screen.getAllByText("备课包")).toHaveLength(2);
+    expect(screen.getAllByText("25 积分")).toHaveLength(2);
+    expect(screen.getAllByText("500 积分")).toHaveLength(2);
+    expect(screen.getAllByText("¥18")).toHaveLength(2);
+    expect(screen.getAllByText("¥299")).toHaveLength(2);
+    expect(screen.getAllByText("约完成 2 次答疑")).toHaveLength(2);
+    expect(screen.getAllByText("约完成 45 次答疑")).toHaveLength(2);
     expect(screen.getByRole("columnheader", { name: "可完成内容" })).toBeInTheDocument();
   });
 
@@ -122,7 +122,7 @@ describe("HAI points purchase page", () => {
 
     expect(await screen.findByText("20 积分")).toBeInTheDocument();
     expect(screen.getByText(/当前使用内测额度/)).toBeInTheDocument();
-    expect(screen.getByText("100 积分")).toBeInTheDocument();
+    expect(screen.getAllByText("100 积分")).toHaveLength(2);
   });
 
   it("shows packages to a logged-in user even before HAI access is enabled", async () => {
@@ -155,7 +155,7 @@ describe("HAI points purchase page", () => {
     );
 
     expect(await screen.findByText("可先购买积分；使用 HAI 前仍需由后台开通权限或升级会员。")).toBeInTheDocument();
-    expect(screen.getByText("10 积分")).toBeInTheDocument();
+    expect(screen.getAllByText("10 积分")).toHaveLength(2);
     expect(screen.queryByText(/仅面向/)).not.toBeInTheDocument();
   });
 
