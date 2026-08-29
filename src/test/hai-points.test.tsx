@@ -208,6 +208,10 @@ describe("HAI points wallet migration contract", () => {
     resolve(process.cwd(), "supabase/migrations/20260829124258_hai_weighted_equivalent_token_billing.sql"),
     "utf8",
   );
+  const splitNewcomerSql = readFileSync(
+    resolve(process.cwd(), "supabase/migrations/20260829150441_hai_split_newcomer_points_by_level.sql"),
+    "utf8",
+  );
   const dynamicPackageSql = readFileSync(
     resolve(process.cwd(), "supabase/migrations/20260829132153_hai_dynamic_point_packages.sql"),
     "utf8",
@@ -343,5 +347,19 @@ describe("HAI points wallet migration contract", () => {
     expect(adminSource).toContain("请先完成第 1 步：仅 Plus / Pro 可领取首次赠送");
     expect(adminSource).toContain("按手机号或用户名筛选积分用户");
     expect(adminSource).toContain("按会员等级筛选积分用户");
+  });
+
+  it("grants different newcomer points for Plus and Pro", () => {
+    expect(splitNewcomerSql).toContain("'points.newcomer_plus_points'");
+    expect(splitNewcomerSql).toContain("to_jsonb(200::integer)");
+    expect(splitNewcomerSql).toContain("'points.newcomer_pro_points'");
+    expect(splitNewcomerSql).toContain("to_jsonb(500::integer)");
+    expect(splitNewcomerSql).toContain("then 'points.newcomer_pro_points'");
+    expect(splitNewcomerSql).toContain("then 500 else 200 end");
+    expect(splitNewcomerSql).toContain("where key = 'points.newcomer_grant_points'");
+    expect(adminSource).toContain("newcomerPlusGrantPoints");
+    expect(adminSource).toContain("newcomerProGrantPoints");
+    expect(adminSource).toContain("积分钱包列表");
+    expect(adminSource).toContain("按最近更新排序，仅显示前 12 个");
   });
 });

@@ -272,10 +272,19 @@ export default function HaiManagementSection() {
     () => runtimeSettings.find((setting) => setting.key === "points.cny_per_point") ?? null,
     [runtimeSettings],
   );
-  const newcomerGrantPoints = useMemo(() => Math.max(
+  const newcomerPlusGrantPoints = useMemo(() => Math.max(
     0,
-    Math.round(Number(runtimeSettings.find((setting) => setting.key === "points.newcomer_grant_points")?.value ?? 1000)),
+    Math.round(Number(runtimeSettings.find((setting) => setting.key === "points.newcomer_plus_points")?.value ?? 200)),
   ), [runtimeSettings]);
+  const newcomerProGrantPoints = useMemo(() => Math.max(
+    0,
+    Math.round(Number(runtimeSettings.find((setting) => setting.key === "points.newcomer_pro_points")?.value ?? 500)),
+  ), [runtimeSettings]);
+  const selectedPointNewcomerGrant = useMemo(() => {
+    if (selectedPointUser?.access_level === "pro") return newcomerProGrantPoints;
+    if (selectedPointUser?.access_level === "plus") return newcomerPlusGrantPoints;
+    return 0;
+  }, [newcomerPlusGrantPoints, newcomerProGrantPoints, selectedPointUser]);
   const generalRuntimeSettings = useMemo(() => {
     const dedicatedKeys = new Set([
       "points.tokens_per_point",
@@ -2039,7 +2048,9 @@ export default function HaiManagementSection() {
               >
                 {selectedPointWallet?.newcomer_granted_at
                   ? "已发放首次积分"
-                  : `发放首次 ${formatAdminPoints(newcomerGrantPoints)} 积分`}
+                  : selectedPointUser
+                    ? `发放首次 ${formatAdminPoints(selectedPointNewcomerGrant)} 积分`
+                    : "发放首次积分"}
               </Button>
               <p className="mt-2 text-ds-xs text-txs">
                 {selectedPointUser && !["plus", "pro"].includes(selectedPointUser.access_level)
@@ -2061,6 +2072,10 @@ export default function HaiManagementSection() {
             </div>
           </div>
           <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-ds-sm font-ds-bold text-tx">积分钱包列表</p>
+              <span className="text-ds-xs text-txs">按最近更新排序，仅显示前 12 个</span>
+            </div>
             {pointWallets.slice(0, 12).map((wallet) => {
               const profile = profileOf(wallet.profiles);
               return (
