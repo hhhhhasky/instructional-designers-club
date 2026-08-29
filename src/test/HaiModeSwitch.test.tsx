@@ -14,6 +14,7 @@ describe("HAI 桌面端模式切换", () => {
     const switcher = screen.getByTestId("hai-desktop-mode-switch");
     expect(screen.getByRole("link", { name: "聊聊问题" })).toHaveAttribute("href", "/hai/chat");
     expect(screen.getByRole("link", { name: "帮你干活" })).toHaveAttribute("href", "/hai/work");
+    expect(screen.getByRole("link", { name: "购买积分" })).toHaveAttribute("href", "/hai/points");
     expect(switcher).not.toHaveClass("rounded-ds-full");
     expect(screen.getByRole("link", { name: "聊聊问题" })).not.toHaveClass("rounded-ds-full");
   });

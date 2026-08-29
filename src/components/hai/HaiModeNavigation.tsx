@@ -1,4 +1,4 @@
-import { BriefcaseBusiness, MessageCircleMore } from "lucide-react";
+import { BriefcaseBusiness, Coins, MessageCircleMore } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -9,9 +9,10 @@ export default function HaiModeNavigation() {
       aria-label="HAI 模式导航"
       data-testid="hai-mode-navigation"
     >
-      <div className="mx-auto grid h-16 max-w-sm grid-cols-2 px-3">
+      <div className="mx-auto grid h-16 max-w-md grid-cols-3 px-2">
         <ModeLink to="/hai/chat" label="聊聊问题" description="问答讨论" icon={MessageCircleMore} />
         <ModeLink to="/hai/work" label="帮你干活" description="完成任务" icon={BriefcaseBusiness} divided />
+        <ModeLink to="/hai/points" label="购买积分" description="查看套餐" icon={Coins} divided />
       </div>
     </nav>
   );

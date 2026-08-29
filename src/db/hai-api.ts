@@ -8,16 +8,35 @@ export interface HaiAccessStatus {
   is_admin?: boolean;
   status?: string;
   reason?: string;
+  quota_mode?: "internal" | "points";
+  membership_level?: "plus2015" | "plus" | "pro";
   quota_policy_key?: string;
   expires_at?: string | null;
 }
 
 export interface HaiUsageSummary {
+  quota_mode?: "none" | "internal" | "points";
   policy_key?: string;
+  membership_level?: "plus2015" | "plus" | "pro";
   daily_used: number;
   weekly_used: number;
   daily_limit: number;
   weekly_limit: number;
+  balance_tokens?: number;
+  total_credited_tokens?: number;
+  total_consumed_tokens?: number;
+  current_points?: number;
+  quota_total_points?: number;
+  wallet_points?: number;
+  wallet_consumed_points?: number;
+  credited_points?: number;
+  consumed_points?: number;
+  newcomer_grant_points?: number;
+  point_packages?: Array<{
+    points: number;
+    price_cny: number;
+  }>;
+  wecom_qr_url?: string;
   single_request_token_limit?: number;
   max_output_tokens?: number;
 }
@@ -280,17 +299,6 @@ export async function getHaiAccessStatus(): Promise<{
 }> {
   const { data, error } = await supabase.functions.invoke("hai-access-status");
   if (error) throw new Error(await getFunctionErrorMessage(error, "读取 HAI 权限失败。"));
-  return normalizeAccessPayload(data);
-}
-
-export async function redeemHaiInvite(code: string): Promise<{
-  access: HaiAccessStatus;
-  usage: HaiUsageSummary | null;
-}> {
-  const { data, error } = await supabase.functions.invoke("hai-redeem-invite", {
-    body: { code },
-  });
-  if (error) throw new Error(await getFunctionErrorMessage(error, "邀请码兑换失败。"));
   return normalizeAccessPayload(data);
 }
 

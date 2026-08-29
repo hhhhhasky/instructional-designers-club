@@ -15,8 +15,8 @@ import {
   ThumbsUp,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import Footer from "@/components/common/Footer";
 import MarkdownRenderer from "@/components/common/MarkdownRenderer";
@@ -41,8 +41,8 @@ import {
   archiveHaiConversation,
   archiveHaiMemory,
   createHaiMemory,
-  getHaiChatModule,
   getHaiAccessStatus,
+  getHaiChatModule,
   getHaiConversations,
   getHaiMemories,
   getHaiMessageFeedback,
@@ -55,7 +55,6 @@ import {
   type HaiUsageSummary,
   type HaiUserMemory,
   hasCompletedHaiProfileOnboarding,
-  redeemHaiInvite,
   saveHaiProfileMemories,
   setHaiMessageFeedback,
   streamHaiChat,
@@ -86,7 +85,6 @@ export default function HaiPage() {
   const [draft, setDraft] = useState("");
   const [memoryDraft, setMemoryDraft] = useState("");
   const [memoryCategory, setMemoryCategory] = useState("teaching_preference");
-  const [inviteCode, setInviteCode] = useState("");
   const [status, setStatus] = useState("");
   const [initializationError, setInitializationError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -97,13 +95,11 @@ export default function HaiPage() {
   const [profileOnboardingError, setProfileOnboardingError] = useState("");
   const messagesScrollRef = useRef<HTMLDivElement | null>(null);
 
-  const weeklyUsagePercent = useMemo(() => {
-    if (!usage?.weekly_limit) return 0;
-    return Math.min(100, Math.round((usage.weekly_used / usage.weekly_limit) * 100));
-  }, [usage]);
-  const weeklyQuotaReached = Boolean(
+  const weeklyQuotaReached = usage?.quota_mode !== "points" && Boolean(
     usage?.weekly_limit && usage.weekly_used >= usage.weekly_limit,
   );
+  const pointsExhausted = usage?.quota_mode === "points" && Number(usage.current_points ?? 0) <= 0;
+  const usageBlocked = weeklyQuotaReached || pointsExhausted;
 
   useEffect(() => {
     if (!loading && !user) {
@@ -206,44 +202,11 @@ export default function HaiPage() {
     }
   }
 
-  async function handleRedeemInvite() {
-    const code = inviteCode.trim();
-    if (!code || busy || !user) return;
-    setBusy(true);
-    setStatus("");
-    try {
-      const result = await redeemHaiInvite(code);
-      setAccess(result.access);
-      setUsage(result.usage);
-      setInviteCode("");
-      if (result.access.allowed) {
-        try {
-          const [moduleRow, , memoryRows, profileCompleted] = await Promise.all([
-            getHaiChatModule(),
-            refreshConversations(null),
-            getHaiMemories(user.id),
-            hasCompletedHaiProfileOnboarding(user.id),
-          ]);
-          setChatModule(moduleRow);
-          setInitializationError("");
-          setMemories(memoryRows);
-          setProfileOnboardingOpen(!profileCompleted);
-        } catch (error) {
-          setInitializationError(error instanceof Error ? error.message : "HAI 初始化失败。");
-        }
-      }
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "邀请码兑换失败。");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function handleSend(suggestedQuestion?: string) {
     const text = (suggestedQuestion ?? draft).trim();
     if (!text || busy || !chatModule || !user) return;
-    if (weeklyQuotaReached) {
-      setStatus("本周 HAI 使用额度已达上限，请下周再试。");
+    if (usageBlocked) {
+      setStatus(pointsExhausted ? "积分已用完，请购买积分后继续使用。" : "本周 HAI 使用额度已达上限，请下周再试。");
       return;
     }
     setBusy(true);
@@ -411,7 +374,6 @@ export default function HaiPage() {
   const contextPanel = (
     <UsagePanel
       usage={usage}
-      weeklyUsagePercent={weeklyUsagePercent}
       access={access}
       memories={memories}
       memoryDraft={memoryDraft}
@@ -454,14 +416,7 @@ export default function HaiPage() {
         ) : initializationError ? (
           <UnavailablePanel message={initializationError} />
         ) : !access?.allowed ? (
-          <LockedPanel
-            reason={access?.reason}
-            inviteCode={inviteCode}
-            busy={busy}
-            status={status}
-            onCodeChange={setInviteCode}
-            onSubmit={handleRedeemInvite}
-          />
+          <LockedPanel reason={access?.reason} />
         ) : (
           <>
             <div
@@ -474,7 +429,7 @@ export default function HaiPage() {
                 <EmptyState
                   module={chatModule}
                   busy={busy}
-                  quotaReached={weeklyQuotaReached}
+                  quotaReached={usageBlocked}
                   onQuestionSelect={(question) => void handleSend(question)}
                 />
               ) : (
@@ -506,6 +461,11 @@ export default function HaiPage() {
                   本周 HAI 额度已用完，下周恢复后可继续使用。
                 </p>
               )}
+              {pointsExhausted && (
+                <p className="mb-2 rounded-ds-md border border-amber-200 bg-amber-50 px-3 py-2 text-ds-sm text-amber-800" role="status">
+                  HAI 积分已用完。<Link className="ml-1 font-ds-semibold text-ac underline" to="/hai/points">购买积分</Link>
+                </p>
+              )}
               <div className="mx-auto flex w-full max-w-3xl min-w-0 gap-2">
                 <textarea
                   rows={1}
@@ -517,18 +477,18 @@ export default function HaiPage() {
                       void handleSend();
                     }
                   }}
-                  placeholder={weeklyQuotaReached
-                    ? "本周额度已用完"
+                  placeholder={usageBlocked
+                    ? pointsExhausted ? "积分已用完" : "本周额度已用完"
                     : chatModule
                       ? `发送给「${chatModule.short_label}」`
                       : "输入你的教学问题"}
                   className="h-[52px] min-h-[52px] min-w-0 flex-1 resize-none rounded-ds-md border border-bd bg-bg px-3.5 py-3 text-[16px] leading-relaxed text-tx outline-none transition focus:border-ac focus:ring-2 focus:ring-ac/15 md:h-[72px] md:min-h-[72px] md:rounded-ds-lg md:px-4"
-                  disabled={busy || weeklyQuotaReached}
+                  disabled={busy || usageBlocked}
                   aria-label="输入教学问题"
                 />
                 <Button
                   className="h-[52px] w-[52px] rounded-ds-md bg-ac text-white hover:bg-acd md:h-[72px] md:w-14 md:rounded-ds-lg"
-                  disabled={busy || weeklyQuotaReached || !draft.trim() || !chatModule}
+                  disabled={busy || usageBlocked || !draft.trim() || !chatModule}
                   onClick={() => void handleSend()}
                   aria-label="发送"
                 >
@@ -851,48 +811,17 @@ function UnavailablePanel({ message }: { message: string }) {
   );
 }
 
-function LockedPanel({
-  reason,
-  inviteCode,
-  busy,
-  status,
-  onCodeChange,
-  onSubmit,
-}: {
-  reason?: string;
-  inviteCode: string;
-  busy: boolean;
-  status: string;
-  onCodeChange: (value: string) => void;
-  onSubmit: () => void;
-}) {
+function LockedPanel({ reason }: { reason?: string }) {
   return (
     <div className="flex flex-1 items-center justify-center bg-bg px-4">
       <div className="w-full max-w-md rounded-ds-lg border border-bd bg-white p-6 shadow-ds-md">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-ds-full bg-acl">
           <LockKeyhole className="h-6 w-6 text-ac" />
         </div>
-        <h2 className="text-center text-ds-xl font-ds-black text-tx">HAI 内测中</h2>
-        <p className="mt-2 text-center text-ds-sm text-txs">{reason || "请输入邀请码开通使用权限。"}</p>
-        <div className="mt-5 flex gap-2">
-          <input
-            value={inviteCode}
-            onChange={(event) => onCodeChange(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                onSubmit();
-              }
-            }}
-            className="h-11 min-w-0 flex-1 rounded-ds-md border border-bd bg-bg px-3 text-[16px] outline-none focus:border-ac focus:ring-2 focus:ring-ac/15"
-            placeholder="邀请码"
-            disabled={busy}
-          />
-          <Button className="h-11 bg-ac text-white hover:bg-acd" disabled={busy || !inviteCode.trim()} onClick={onSubmit}>
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "开通"}
-          </Button>
-        </div>
-        {status && <p className="mt-3 text-center text-ds-sm text-red-600">{status}</p>}
+        <h2 className="text-center text-ds-xl font-ds-black text-tx">HAI 权限未开通</h2>
+        <p className="mt-2 text-center text-ds-sm leading-relaxed text-txs">
+          {reason || "HAI 面向 Plus、Pro 和后台开通的内测用户开放，请联系管理员开通权限。"}
+        </p>
       </div>
     </div>
   );
@@ -900,7 +829,6 @@ function LockedPanel({
 
 function UsagePanel({
   usage,
-  weeklyUsagePercent,
   access,
   memories,
   memoryDraft,
@@ -912,7 +840,6 @@ function UsagePanel({
   onArchiveMemory,
 }: {
   usage: HaiUsageSummary | null;
-  weeklyUsagePercent: number;
   access: HaiAccessStatus | null;
   memories: HaiUserMemory[];
   memoryDraft: string;
@@ -923,22 +850,33 @@ function UsagePanel({
   onCreateMemory: () => void;
   onArchiveMemory: (memoryId: string) => void;
 }) {
-  const weeklyRemainingPercent = Math.max(0, 100 - weeklyUsagePercent);
+  const isInternal = usage?.quota_mode === "internal";
+  const membershipLabel = usage?.membership_level === "pro"
+    ? "Pro"
+    : usage?.membership_level === "plus2015"
+      ? "2015Plus"
+      : usage?.membership_level === "plus"
+        ? "Plus"
+        : null;
+  const quotaBadge = isInternal
+    ? "内测"
+    : membershipLabel ?? access?.quota_policy_key ?? "积分";
   return (
     <div className="space-y-4">
-      <div>
+      <div className="rounded-ds-lg border border-ac/20 bg-acl/40 p-3">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-ds-sm font-ds-bold text-tx">周额度</h2>
+          <h2 className="text-ds-sm font-ds-bold text-tx">积分额度</h2>
           <Badge variant="outline" className="border-ac/30 text-ac">
-            {usage?.policy_key ?? access?.quota_policy_key ?? "beta"}
+            {quotaBadge}
           </Badge>
         </div>
-        <div className="h-2 overflow-hidden rounded-ds-pill bg-bd">
-          <div className="h-full bg-ac transition-all" style={{ width: `${weeklyUsagePercent}%` }} />
-        </div>
-        <p className="mt-2 text-ds-xs text-txs">
-          本周已用 {weeklyUsagePercent}% · 剩余 {weeklyRemainingPercent}%
+        <p className="text-2xl font-ds-black text-tx">{formatPoints(usage?.current_points)} 积分</p>
+        <p className="mt-1 text-ds-xs text-txs">
+          {isInternal ? "本周已消耗" : "累计已消耗"} {formatPoints(usage?.consumed_points)} 积分
         </p>
+        <Button asChild size="sm" className="mt-3 w-full bg-ac text-white hover:bg-acd">
+          <Link to="/hai/points">购买积分</Link>
+        </Button>
       </div>
       <div className="rounded-ds-lg border border-bd bg-white p-3">
         <div className="mb-3 flex items-center gap-2">
@@ -999,6 +937,11 @@ function UsagePanel({
       </div>
     </div>
   );
+}
+
+function formatPoints(value?: number) {
+  const points = Number(value ?? 0);
+  return Number.isInteger(points) ? points.toLocaleString("zh-CN") : points.toLocaleString("zh-CN", { maximumFractionDigits: 2 });
 }
 
 function formatDate(value: string) {

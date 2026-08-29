@@ -13,6 +13,7 @@ const PAGE_SIZE = 20;
 const ACCESS_LEVEL_OPTIONS = [
   { value: "all", label: "全部等级" },
   { value: "free", label: "Free" },
+  { value: "plus2015", label: "2015Plus" },
   { value: "plus", label: "Plus" },
   { value: "pro", label: "Pro" },
 ];
@@ -334,6 +335,7 @@ export default function StudentListSection() {
                           autoFocus
                         >
                           <option value="free">Free</option>
+                          <option value="plus2015">2015Plus</option>
                           <option value="plus">Plus</option>
                           <option value="pro">Pro</option>
                         </select>
@@ -622,11 +624,13 @@ function formatDate(dateStr: string): string {
 function LevelBadge({ level }: { level: string }) {
   const styles: Record<string, string> = {
     free: "bg-mint-soft text-tl",
+    plus2015: "bg-warm text-am",
     plus: "bg-yellow-soft text-am",
     pro: "bg-blue-soft text-pp",
   };
   const labels: Record<string, string> = {
     free: "Free",
+    plus2015: "2015Plus",
     plus: "Plus",
     pro: "Pro",
   };

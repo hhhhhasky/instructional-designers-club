@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
 import { ArrowRight, BookOpen, Clock3, LockKeyhole } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import CourseTypeTabs from "@/components/course/CourseTypeTabs";
 import Footer from "@/components/common/Footer";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
 import PageMeta from "@/components/common/PageMeta";
+import CourseTypeTabs from "@/components/course/CourseTypeTabs";
 import Header from "@/components/layout/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { getPublishedV2Outlines, getV2Access, type V2Outline } from "@/db/v2-api";
@@ -27,9 +27,10 @@ export default function CourseV2CatalogPage() {
     async function load() {
       try {
         const manager = profile?.role === "admin";
-        const access = manager ? null : await getV2Access(userId);
+        const is2015Plus = profile?.access_level === "plus2015";
+        const access = manager || is2015Plus ? null : await getV2Access(userId);
         const now = Date.now();
-        const hasAccess = manager || Boolean(
+        const hasAccess = manager || !is2015Plus && Boolean(
           access?.status === "active" &&
           (!access.starts_at || new Date(access.starts_at).getTime() <= now) &&
           (!access.expires_at || new Date(access.expires_at).getTime() > now),

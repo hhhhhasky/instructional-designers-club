@@ -1,62 +1,62 @@
-import { useState, useEffect, useMemo, useCallback, type ReactNode } from "react";
 import {
-  Plus,
-  Edit2,
   Archive,
-  Eye,
-  Search,
   ChevronLeft,
   ChevronRight,
+  Edit2,
   ExternalLink,
-  UploadCloud,
-  Loader2,
-  Trash2,
+  Eye,
+  EyeOff,
+  File,
+  FileAudio,
+  FileImage,
   FileText,
   FileVideo,
-  FileImage,
-  FileAudio,
-  File,
-  EyeOff,
   KeyRound,
+  Loader2,
+  Plus,
+  Search,
+  Trash2,
+  UploadCloud,
 } from "lucide-react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import MarkdownEditor from "@/components/admin/MarkdownEditor";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogDescription,
 } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
 import {
-  getAdminCourseList,
-  adminCreateCourse,
-  adminCreateCourseCategory,
-  adminUpdateCourseTrack,
-  adminUpdateCourseCategory,
-  adminUpdateCourse,
-  adminArchiveCourse,
-  adminDeleteCourseAttachment,
-  adminSetCourseAccessPassword,
-  getAdminCourseCategories,
-  getAdminCourseTracks,
-  getAdminCourseAttachments,
   type AdminCourseCategory,
   type AdminCourseTrack,
+  adminArchiveCourse,
+  adminCreateCourse,
+  adminCreateCourseCategory,
+  adminDeleteCourseAttachment,
+  adminSetCourseAccessPassword,
+  adminUpdateCourse,
+  adminUpdateCourseCategory,
+  adminUpdateCourseTrack,
+  getAdminCourseAttachments,
+  getAdminCourseCategories,
+  getAdminCourseList,
+  getAdminCourseTracks,
 } from "@/db/admin-api";
 import { getPlusCourseStructure } from "@/db/api";
 import { uploadCourseFile, uploadCourseMedia } from "@/db/course-media";
-import MarkdownEditor from "@/components/admin/MarkdownEditor";
 import {
-  PLUS_TRACKS,
   getEffectivePlusTracks,
   getPlusTrack,
-  resolvePlusCoursePlacement,
+  PLUS_TRACKS,
   type PlusTrackConfig,
+  resolvePlusCoursePlacement,
 } from "@/lib/plusCourseStructure";
+import { cn } from "@/lib/utils";
 import type { Course, CourseAttachment, MembershipType } from "@/types/types";
 
 const PAGE_SIZE = 20;
@@ -1724,6 +1724,7 @@ function AttachmentIcon({ attachment }: { attachment: CourseAttachment }) {
 function MembershipBadge({ type }: { type: MembershipType }) {
   const styles: Record<MembershipType, string> = {
     free: "bg-mint-soft text-tl",
+    plus2015: "bg-warm text-am",
     plus: "bg-yellow-soft text-am",
     pro: "bg-blue-soft text-pp",
   };

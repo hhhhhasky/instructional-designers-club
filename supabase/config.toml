@@ -44,9 +44,6 @@ verify_jwt = false
 [functions.hai-method-cards-admin]
 verify_jwt = false
 
-[functions.hai-redeem-invite]
-verify_jwt = false
-
 [functions.hai-roundtable-chat]
 verify_jwt = false
 

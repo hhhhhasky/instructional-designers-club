@@ -7,6 +7,7 @@ import type { LearningRecord, MembershipType, Profile } from '@/types/types';
 
 const LEVEL_HIERARCHY: Record<MembershipType, number> = {
   free: 0,
+  plus2015: 1,
   plus: 1,
   pro: 2,
 };

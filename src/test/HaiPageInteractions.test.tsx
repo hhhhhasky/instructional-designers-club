@@ -58,7 +58,6 @@ vi.mock("@/db/hai-api", () => ({
     is_enabled: true,
   }),
   hasCompletedHaiProfileOnboarding: vi.fn().mockResolvedValue(true),
-  redeemHaiInvite: vi.fn(),
   saveHaiProfileMemories: vi.fn().mockResolvedValue([]),
   setHaiMessageFeedback: vi.fn(),
   streamHaiChat: vi.fn(),
@@ -198,15 +197,18 @@ describe("HAI mobile chat shell", () => {
     expect(screen.queryByLabelText("输入教学问题")).not.toBeInTheDocument();
   });
 
-  it("shows only the weekly quota percentage in the user-facing usage panel", async () => {
+  it("shows the internal weekly quota as points instead of a percentage", async () => {
     vi.mocked(getHaiAccessStatus).mockResolvedValueOnce({
       access: { authenticated: true, allowed: true, quota_policy_key: "beta" },
       usage: {
+        quota_mode: "internal",
         policy_key: "beta",
         daily_used: 10000,
         weekly_used: 45000,
         daily_limit: 30000,
         weekly_limit: 150000,
+        current_points: 1050,
+        consumed_points: 450,
       },
     });
 
@@ -216,9 +218,38 @@ describe("HAI mobile chat shell", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("本周已用 30% · 剩余 70%")).toBeInTheDocument();
-    expect(screen.queryByText(/tokens/i)).not.toBeInTheDocument();
-    expect(screen.queryByText("45,000 / 150,000 tokens")).not.toBeInTheDocument();
+    expect(await screen.findByText("积分额度")).toBeInTheDocument();
+    expect(screen.getByText("1,050 积分")).toBeInTheDocument();
+    expect(screen.getByText("本周已消耗 450 积分")).toBeInTheDocument();
+    expect(screen.queryByText(/本周已用.*%/)).not.toBeInTheDocument();
+  });
+
+  it("shows the point balance and consumed points for Plus and Pro users", async () => {
+    vi.mocked(getHaiAccessStatus).mockResolvedValueOnce({
+      access: { authenticated: true, allowed: true, quota_mode: "points", membership_level: "plus" },
+      usage: {
+        quota_mode: "points",
+        membership_level: "plus",
+        daily_used: 0,
+        weekly_used: 0,
+        daily_limit: 0,
+        weekly_limit: 0,
+        current_points: 15,
+        consumed_points: 3.5,
+      },
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/hai"]}>
+        <HaiPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("15 积分")).toBeInTheDocument();
+    expect(screen.getByText("积分额度")).toBeInTheDocument();
+    expect(screen.getByText("累计已消耗 3.5 积分")).toBeInTheDocument();
+    expect(screen.queryByText(/Token/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("周额度")).not.toBeInTheDocument();
   });
 
   it("disables chat entry points when the weekly quota has been reached", async () => {

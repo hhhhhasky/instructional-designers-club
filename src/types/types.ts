@@ -1,5 +1,5 @@
 // 会员类型
-export type MembershipType = 'free' | 'plus' | 'pro';
+export type MembershipType = 'free' | 'plus2015' | 'plus' | 'pro';
 
 // Plus 课程三层结构。具体篇章 ID 由 Supabase plus_course_tracks 表维护。
 export type PlusCourseTrackId = string;

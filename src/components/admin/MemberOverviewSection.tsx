@@ -1,31 +1,33 @@
-import { useState, useEffect } from "react";
-import { Users, UserPlus, Crown } from "lucide-react";
+import { Crown, UserPlus, Users } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
-  PieChart,
-  Pie,
+  CartesianGrid,
   Cell,
-  Tooltip,
   Legend,
-  LineChart,
   Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  ResponsiveContainer,
 } from "recharts";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
-import { getAdminMemberOverview } from "@/db/admin-api";
 import type { MemberOverviewData } from "@/db/admin-api";
+import { getAdminMemberOverview } from "@/db/admin-api";
 
 // 图表颜色
 const LEVEL_COLORS: Record<string, string> = {
   free: "#2a7a6e", // tl 青绿
+  plus2015: "#8d7f5b",
   plus: "#b8860b", // am 琥珀金
   pro: "#6b4d8a", // pp 紫色
 };
 
 const LEVEL_LABELS: Record<string, string> = {
   free: "免费会员",
+  plus2015: "2015Plus 会员",
   plus: "Plus 会员",
   pro: "Pro 会员",
 };

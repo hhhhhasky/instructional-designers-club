@@ -1,16 +1,17 @@
-import { BriefcaseBusiness, MessageCircleMore } from "lucide-react";
+import { BriefcaseBusiness, Coins, MessageCircleMore } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 export default function HaiDesktopModeSwitch() {
   return (
     <nav
-      className="hidden grid-cols-2 overflow-hidden rounded-[10px] border border-[#d8d0c3] bg-[#f5f0e7] md:grid"
+      className="hidden grid-cols-3 overflow-hidden rounded-[10px] border border-[#d8d0c3] bg-[#f5f0e7] md:grid"
       aria-label="切换 HAI 模式"
       data-testid="hai-desktop-mode-switch"
     >
       <Mode to="/hai/chat" label="聊聊问题" icon={MessageCircleMore} />
       <Mode to="/hai/work" label="帮你干活" icon={BriefcaseBusiness} divided />
+      <Mode to="/hai/points" label="购买积分" icon={Coins} divided />
     </nav>
   );
 }

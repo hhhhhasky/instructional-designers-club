@@ -70,7 +70,9 @@ export default function MemberHomeHero() {
       ? "Pro 专家版"
       : profile?.access_level === "plus"
         ? "Plus 会员版"
-        : "免费版";
+        : profile?.access_level === "plus2015"
+          ? "2015Plus 会员版"
+          : "免费版";
   const nickname = profile?.nickname || "老师";
 
   // 出错静默降级：只保留入口，不影响首页其余部分

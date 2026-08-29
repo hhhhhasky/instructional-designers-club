@@ -1,22 +1,22 @@
+import { ArrowLeft, Award, Bookmark, Check, Clock3, FileDown, Headphones, Image as ImageIcon, LockKeyhole, PlayCircle, Send, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Award, Bookmark, Check, Clock3, FileDown, Headphones, Image as ImageIcon, LockKeyhole, PlayCircle, Send, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import Header from "@/components/layout/Header";
 import Footer from "@/components/common/Footer";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
 import MarkdownRenderer from "@/components/common/MarkdownRenderer";
 import PageMeta from "@/components/common/PageMeta";
+import Header from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { clearLearningDataCache } from "@/db/api";
-import { getV2LessonBundle, saveV2Card, submitV2Attempt, createV2Attempt, saveV2Answers, upsertV2LearningRecord, type V2LessonBundle } from "@/db/v2-api";
+import { createV2Attempt, getV2LessonBundle, saveV2Answers, saveV2Card, submitV2Attempt, upsertV2LearningRecord, type V2LessonBundle } from "@/db/v2-api";
 import { buildV2AssessmentLayout, type V2AssessmentGroup } from "@/lib/v2-assessment-layout";
 
 export default function CourseV2LessonPage() {
   const { lessonId } = useParams<{ lessonId: string }>();
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const [bundle, setBundle] = useState<V2LessonBundle | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +31,11 @@ export default function CourseV2LessonPage() {
     }
     if (!lessonId) {
       setError("缺少课程 ID");
+      setLoading(false);
+      return;
+    }
+    if (profile?.access_level === "plus2015") {
+      setError("教学通识课 V2 仅对 Plus 和 Pro 会员开放。");
       setLoading(false);
       return;
     }
@@ -49,7 +54,7 @@ export default function CourseV2LessonPage() {
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [authLoading, lessonId, navigate, user]);
+  }, [authLoading, lessonId, navigate, profile?.access_level, user]);
 
   const latestAttemptByBlock = useMemo(() => {
     const map = new Map<string, V2LessonBundle["attempts"][number]>();

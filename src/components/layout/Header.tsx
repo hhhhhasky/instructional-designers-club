@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { Bell, CheckCheck, Gift, GraduationCap, Library, LogOut, Menu, MessageCircle, Settings, ShieldCheck, TrendingDown, TrendingUp, User, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,12 +9,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { GraduationCap, Menu, X, Settings, LogOut, User, Library, ShieldCheck, Bell, CheckCheck, Gift, TrendingUp, TrendingDown, MessageCircle } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import routes from "@/routes";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCourseCatalogSnapshot, getMyNotifications, getResources, getUnreadNotificationCount, markNotificationsRead } from "@/db/api";
 import { relativeTime } from "@/lib/time";
+import routes from "@/routes";
 import type { UserNotification } from "@/types/types";
 
 export default function Header() {
@@ -269,7 +269,8 @@ export default function Header() {
                     <p className="text-sm font-ds-semibold text-tx">{profile?.nickname}</p>
                     <p className="text-xs text-txs">
                       {profile?.access_level === 'pro' ? 'Pro 专家版' :
-                       profile?.access_level === 'plus' ? 'Plus 会员版' : '免费版'}
+                       profile?.access_level === 'plus' ? 'Plus 会员版' :
+                       profile?.access_level === 'plus2015' ? '2015Plus 会员版' : '免费版'}
                     </p>
                   </div>
                   <DropdownMenuSeparator />
@@ -335,7 +336,8 @@ export default function Header() {
                         <p className="text-sm font-ds-bold text-tx">{profile?.nickname}</p>
                         <p className="text-xs text-txs">
                           {profile?.access_level === 'pro' ? 'Pro 专家版' :
-                           profile?.access_level === 'plus' ? 'Plus 会员版' : '免费版'}
+                           profile?.access_level === 'plus' ? 'Plus 会员版' :
+                           profile?.access_level === 'plus2015' ? '2015Plus 会员版' : '免费版'}
                         </p>
                       </div>
                     </div>

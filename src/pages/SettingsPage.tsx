@@ -1,16 +1,16 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ArrowLeft, Camera, GraduationCap, Lock, User } from 'lucide-react';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button';
-import { GraduationCap, ArrowLeft, User, Lock, Camera } from 'lucide-react';
-import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
-import { useAuth } from '@/contexts/AuthContext';
 import PageMeta from '@/components/common/PageMeta';
-import { updateNickname, updateAvatar, changePassword } from '@/lib/access-control';
+import Header from '@/components/layout/Header';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import { changePassword, updateAvatar, updateNickname } from '@/lib/access-control';
 
 const nicknameSchema = z.object({
   nickname: z.string().min(2, '昵称至少2个字符').max(20, '昵称最多20个字符'),
@@ -133,7 +133,9 @@ export default function SettingsPage() {
       ? 'Pro 专家版'
       : profile.access_level === 'plus'
         ? 'Plus 会员版'
-        : '免费版';
+        : profile.access_level === 'plus2015'
+          ? '2015Plus 会员版'
+          : '免费版';
 
   return (
     <>

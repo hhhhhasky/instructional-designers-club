@@ -19,6 +19,7 @@ const loadLiveEntryPage = () => import('./pages/LiveEntryPage');
 const loadLiveParticipantPage = () => import('./pages/LiveParticipantPage');
 const loadLiveAudienceDashboardPage = () => import('./pages/LiveAudienceDashboardPage');
 const loadHaiPage = () => import('./pages/HaiPage');
+const loadHaiPointsPage = () => import('./pages/HaiPointsPage');
 const loadHaiWorkPage = () => import('./pages/HaiWorkPage');
 const loadHaiWorkTaskPage = () => import('./pages/HaiWorkTaskPage');
 const loadAdminPage = () => import('./pages/AdminPage');
@@ -42,6 +43,7 @@ const LiveEntryPage = lazy(loadLiveEntryPage);
 const LiveParticipantPage = lazy(loadLiveParticipantPage);
 const LiveAudienceDashboardPage = lazy(loadLiveAudienceDashboardPage);
 const HaiPage = lazy(loadHaiPage);
+const HaiPointsPage = lazy(loadHaiPointsPage);
 const HaiWorkPage = lazy(loadHaiWorkPage);
 const HaiWorkTaskPage = lazy(loadHaiWorkTaskPage);
 const AdminPage = lazy(loadAdminPage);
@@ -137,6 +139,13 @@ const routes: RouteConfig[] = [
     element: <HaiPage />,
     visible: false,
     preload: loadHaiPage
+  },
+  {
+    name: 'HAI 积分',
+    path: '/hai/points',
+    element: <HaiPointsPage />,
+    visible: false,
+    preload: loadHaiPointsPage
   },
   {
     name: 'HAI Work',
