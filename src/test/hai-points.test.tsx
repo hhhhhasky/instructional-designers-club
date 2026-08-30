@@ -88,25 +88,25 @@ describe("HAI points purchase page", () => {
     expect(screen.getByRole("columnheader", { name: "可完成内容" })).toBeInTheDocument();
   });
 
-  it("keeps the points purchase page compatible with an administrator internal quota", async () => {
+  it("keeps the points purchase page compatible with a Pro membership", async () => {
     vi.mocked(getHaiAccessStatus).mockResolvedValueOnce({
-      access: { authenticated: true, allowed: true, quota_mode: "internal", quota_policy_key: "beta" },
+      access: { authenticated: true, allowed: true, quota_mode: "points", membership_level: "pro", can_consume: true },
       usage: {
-        quota_mode: "internal",
-        policy_key: "beta",
+        quota_mode: "points",
+        membership_level: "pro",
         daily_used: 100,
         weekly_used: 500,
-        daily_limit: 30000,
-        weekly_limit: 150000,
+        daily_limit: 0,
+        weekly_limit: 0,
         current_points: 1495,
         consumed_points: 5,
-        wallet_points: 20,
+        wallet_points: 1495,
         wallet_consumed_points: 0,
         point_packages: [{
           id: "internal-package",
           name: "体验包",
-          points: 100,
-          price_cny: 9.9,
+        points: 100,
+        price_cny: 9.9,
           description: "适合体验。",
           value_metrics: "约完成 9 次答疑",
           is_recommended: false,
@@ -120,8 +120,8 @@ describe("HAI points purchase page", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("20 积分")).toBeInTheDocument();
-    expect(screen.getByText(/当前使用内测额度/)).toBeInTheDocument();
+    expect(await screen.findByText("1,495 积分")).toBeInTheDocument();
+    expect(screen.queryByText(/当前使用内测额度/)).not.toBeInTheDocument();
     expect(screen.getAllByText("100 积分")).toHaveLength(2);
   });
 
@@ -224,6 +224,10 @@ describe("HAI points wallet migration contract", () => {
     resolve(process.cwd(), "supabase/migrations/20260830064731_hai_membership_points_access_gate.sql"),
     "utf8",
   );
+  const internalBetaRemovalSql = readFileSync(
+    resolve(process.cwd(), "supabase/migrations/20260830070205_remove_internal_beta_branch.sql"),
+    "utf8",
+  );
   const adminSource = readFileSync(
     resolve(process.cwd(), "src/components/admin/HaiManagementSection.tsx"),
     "utf8",
@@ -242,13 +246,19 @@ describe("HAI points wallet migration contract", () => {
     expect(sql).toContain("revoke execute on function public.hai_redeem_invite_code");
   });
 
-  it("keeps internal quotas ahead of membership points and charges completed point requests once", () => {
+  it("charges completed point requests once in the historical migration", () => {
     expect(sql).toContain("v_access.access_source = 'admin'");
     expect(sql).toContain("v_quota_mode := 'internal'");
     expect(sql).toContain("metadata ->> 'quota_mode' = 'points'");
     expect(sql).toContain("v_reservation.status <> 'active'");
     expect(sql).toContain("transaction_type, token_delta, points_delta");
     expect(sql).toContain("create or replace function public.hai_admin_add_points");
+  });
+
+  it("removes the internal beta branch entirely from the latest migration", () => {
+    expect(internalBetaRemovalSql).not.toContain("v_quota_mode := 'internal'");
+    expect(internalBetaRemovalSql).not.toContain("v_access.access_source = 'admin'");
+    expect(internalBetaRemovalSql).toContain("update public.hai_quota_policies set enabled = false where key in ('beta', 'free')");
   });
 
   it("makes membership points authoritative without deleting historical beta records", () => {

@@ -906,7 +906,6 @@ function UsagePanel({
   onCreateMemory: () => void;
   onArchiveMemory: (memoryId: string) => void;
 }) {
-  const isInternal = usage?.quota_mode === "internal";
   const membershipLabel = usage?.membership_level === "pro"
     ? "Pro"
     : usage?.membership_level === "plus2015"
@@ -914,9 +913,7 @@ function UsagePanel({
       : usage?.membership_level === "plus"
         ? "Plus"
         : null;
-  const quotaBadge = isInternal
-    ? "内测"
-    : membershipLabel ?? access?.quota_policy_key ?? "积分";
+  const quotaBadge = membershipLabel ?? access?.quota_policy_key ?? "积分";
   return (
     <div className="space-y-4">
       <div className="rounded-ds-lg border border-ac/20 bg-acl/40 p-3">
@@ -928,7 +925,7 @@ function UsagePanel({
         </div>
         <p className="text-2xl font-ds-black text-tx">{formatPoints(usage?.current_points)} 积分</p>
         <p className="mt-1 text-ds-xs text-txs">
-          {isInternal ? "本周已消耗" : "累计已消耗"} {formatPoints(usage?.consumed_points)} 积分
+          累计已消耗 {formatPoints(usage?.consumed_points)} 积分
         </p>
         <Button asChild size="sm" className="mt-3 w-full bg-ac text-white hover:bg-acd">
           <Link to="/hai/points">购买积分</Link>

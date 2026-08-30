@@ -245,16 +245,16 @@ describe("HAI mobile chat shell", () => {
     expect(screen.queryByLabelText("输入教学问题")).not.toBeInTheDocument();
   });
 
-  it("shows the internal weekly quota as points instead of a percentage", async () => {
+  it("shows the membership point balance and consumed points instead of a percentage", async () => {
     vi.mocked(getHaiAccessStatus).mockResolvedValueOnce({
-      access: { authenticated: true, allowed: true, quota_policy_key: "beta" },
+      access: { authenticated: true, allowed: true, quota_mode: "points", membership_level: "pro" },
       usage: {
-        quota_mode: "internal",
-        policy_key: "beta",
-        daily_used: 10000,
-        weekly_used: 45000,
-        daily_limit: 30000,
-        weekly_limit: 150000,
+        quota_mode: "points",
+        membership_level: "pro",
+        daily_used: 0,
+        weekly_used: 0,
+        daily_limit: 0,
+        weekly_limit: 0,
         current_points: 1050,
         consumed_points: 450,
       },
@@ -268,7 +268,8 @@ describe("HAI mobile chat shell", () => {
 
     expect(await screen.findByText("积分额度")).toBeInTheDocument();
     expect(screen.getByText("1,050 积分")).toBeInTheDocument();
-    expect(screen.getByText("本周已消耗 450 积分")).toBeInTheDocument();
+    expect(screen.getByText("Pro")).toBeInTheDocument();
+    expect(screen.getByText("累计已消耗 450 积分")).toBeInTheDocument();
     expect(screen.queryByText(/本周已用.*%/)).not.toBeInTheDocument();
   });
 
@@ -326,6 +327,40 @@ describe("HAI mobile chat shell", () => {
     expect(screen.getByRole("button", {
       name: HAI_FALLBACK_STARTER_QUESTIONS[0],
     })).toBeDisabled();
+  });
+
+  it("lets a Plus member open Chat but disables paid entry points at zero points", async () => {
+    vi.mocked(getHaiAccessStatus).mockResolvedValueOnce({
+      access: {
+        authenticated: true,
+        allowed: true,
+        quota_mode: "points",
+        membership_level: "plus",
+        status: "needs_points",
+        can_consume: false,
+      },
+      usage: {
+        quota_mode: "points",
+        membership_level: "plus",
+        can_consume: false,
+        current_points: 0,
+        daily_used: 0,
+        weekly_used: 0,
+        daily_limit: 0,
+        weekly_limit: 0,
+      },
+    });
+
+    render(
+      <MemoryRouter initialEntries={["/hai"]}>
+        <HaiPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole("status")).toHaveTextContent("HAI 积分已用完");
+    expect(screen.getByLabelText("输入教学问题")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "发送" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: HAI_FALLBACK_STARTER_QUESTIONS[0] })).toBeDisabled();
   });
 });
 
