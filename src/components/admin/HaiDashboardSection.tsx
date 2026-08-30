@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
 import {
   Activity,
   AlertTriangle,
   BarChart3,
   Bot,
   Clock3,
+  Coins,
   Database,
   Gauge,
   RefreshCw,
@@ -12,6 +12,7 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
   Bar,
   CartesianGrid,
@@ -27,10 +28,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   getAdminHaiDashboard,
-  triggerHaiDailyReview,
   type HaiDashboardData,
   type HaiDashboardRangeDays,
   type HaiWorkDebugTraceRow,
+  triggerHaiDailyReview,
 } from "@/db/hai-analytics";
 import {
   haiIntentLabel,
@@ -184,6 +185,55 @@ export default function HaiDashboardSection() {
           <HeroMetric icon={Database} label="真实 Token" value={formatCompactNumber(summary.actual_total_tokens ?? 0)} suffix={summary.actual_usage_status === "missing" ? "待接入" : ""} />
           <HeroMetric icon={Gauge} label="真实成本" value={summary.actual_cost == null ? "-" : `¥${summary.actual_cost.toFixed(4)}`} suffix={summary.actual_usage_status === "partial" ? "部分" : ""} />
         </div>
+      </section>
+
+      <section className="rounded-ds-lg border border-bd bg-white p-4 shadow-ds-xs md:p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <Coins className="h-5 w-5 text-ac" />
+              <h3 className="text-ds-lg font-ds-black text-tx">积分钱包列表</h3>
+            </div>
+            <p className="mt-1 text-ds-xs leading-relaxed text-txs">
+              只读展示所有已创建钱包的用户、当前积分与累计消耗；积分发放和入账仍在数据管理的 HAI 配置中操作。
+            </p>
+          </div>
+          <Badge variant="outline">{data.point_wallets.length} 个钱包</Badge>
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <WalletMetric label="钱包数" value={`${data.point_wallets.length}`} note="已创建积分钱包" />
+          <WalletMetric
+            label="当前积分"
+            value={formatPointValue(data.point_wallets.reduce((sum, wallet) => sum + wallet.balance_tokens, 0) / data.tokens_per_point)}
+            note="全部钱包余额合计"
+          />
+          <WalletMetric
+            label="累计消耗"
+            value={formatPointValue(data.point_wallets.reduce((sum, wallet) => sum + wallet.total_consumed_tokens, 0) / data.tokens_per_point)}
+            note="全部钱包消耗合计"
+          />
+        </div>
+
+        {data.point_wallets.length > 0 ? (
+          <div className="mt-4 max-h-[540px] space-y-2 overflow-y-auto pr-1">
+            {data.point_wallets.map((wallet) => (
+              <div key={wallet.user_id} className="flex items-center justify-between gap-3 rounded-ds-md border border-bd bg-bg px-3 py-2 text-ds-sm">
+                <span className="min-w-0">
+                  <strong className="block truncate font-ds-semibold text-tx">{wallet.profile?.nickname ?? wallet.user_id}</strong>
+                  <span className="block truncate text-txs">{wallet.profile?.phone || "未登记手机号"} · {wallet.profile?.access_level || "-"}</span>
+                </span>
+                <span className="shrink-0 text-right">
+                  <strong className="text-ac">{formatPointValue(wallet.balance_tokens / data.tokens_per_point)} 积分</strong>
+                  <br />
+                  <span className="text-txs">已消耗 {formatPointValue(wallet.total_consumed_tokens / data.tokens_per_point)}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-4 rounded-ds-md bg-bg px-3 py-6 text-center text-ds-sm text-txs">暂无积分钱包</p>
+        )}
       </section>
 
       <section className="rounded-ds-lg border border-bd bg-white p-4 shadow-ds-xs md:p-6">
@@ -560,6 +610,21 @@ export default function HaiDashboardSection() {
       </section>
     </div>
   );
+}
+
+function WalletMetric({ label, value, note }: { label: string; value: string; note: string }) {
+  return (
+    <div className="rounded-ds-md border border-bd bg-bg p-3">
+      <p className="text-ds-xs text-txs">{label}</p>
+      <p className="mt-1 font-serif text-ds-xl font-ds-black text-tx">{value}</p>
+      <p className="mt-1 text-[10px] text-txs">{note}</p>
+    </div>
+  );
+}
+
+function formatPointValue(value: number) {
+  if (!Number.isFinite(value)) return "0";
+  return new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 2 }).format(value);
 }
 
 function WorkTraceDetails({ trace, run }: { trace: Record<string, unknown>; run: HaiWorkDebugTraceRow }) {

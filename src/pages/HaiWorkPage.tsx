@@ -955,11 +955,11 @@ function isWorkToolSlug(value: string | undefined): value is HaiWorkToolSlug {
 
 export function resolveWorkToolConfig(slug: HaiWorkToolSlug, module?: HaiFeatureModule): HaiWorkToolVisualConfig {
   const fallback = HAI_WORK_TOOL_CONFIG[slug];
-  const hasLegacyPublicLessonCopy = slug === "subject-lesson-design" && module?.name?.trim() === "思政公开课设计";
+  if (slug === "subject-lesson-design") return fallback;
   return {
     ...fallback,
-    name: hasLegacyPublicLessonCopy ? fallback.name : module?.name?.trim() || fallback.name,
-    description: hasLegacyPublicLessonCopy ? fallback.description : module?.description?.trim() || fallback.description,
+    name: module?.name?.trim() || fallback.name,
+    description: module?.description?.trim() || fallback.description,
   };
 }
 

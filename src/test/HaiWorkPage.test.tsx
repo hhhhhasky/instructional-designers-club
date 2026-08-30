@@ -131,7 +131,7 @@ describe("HAI Work workbench", () => {
     expect(screen.getAllByRole("link", { name: /环节优化/ }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /公开课设计/ }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /研发教学方案/ }).length).toBeGreaterThan(0);
-    expect(screen.getByText("覆盖不同学科的公开课设计入口")).toBeInTheDocument();
+    expect(screen.getByText(/选择学段与学科/)).toBeInTheDocument();
   });
 
   it("removes a tool entry when the backend module is disabled", async () => {

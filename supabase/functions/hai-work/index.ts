@@ -20,6 +20,7 @@ import {
 import {
   assertWorkSkillRuntimeReady,
   buildWorkPrompt,
+  buildWorkTaskTitle,
   createEmptyWorkSkill,
   isHaiWorkToolSlug,
   selectWorkSkillReferences,
@@ -135,7 +136,7 @@ Deno.serve(async (request) => {
     try {
       assertWorkSkillRuntimeReady(skill, input);
     } catch (error) {
-      throw new HttpError(503, error instanceof Error ? error.message : "思政公开课 Skill 运行资料不完整。");
+      throw new HttpError(503, error instanceof Error ? error.message : "公开课设计 Skill 运行资料不完整。");
     }
     const runtime = await loadHaiRuntimeConfig(auth.admin);
     const completionOptions = buildChatCompletionOptions({ module, runtime });
@@ -159,7 +160,7 @@ Deno.serve(async (request) => {
 
     const taskId = body.taskId
       ? await validateTask(auth.admin, auth.user.id, String(body.taskId), toolSlug)
-      : await createTask(auth.admin, auth.user.id, toolSlug, taskTitle(module.name, input));
+      : await createTask(auth.admin, auth.user.id, toolSlug, buildWorkTaskTitle(toolSlug, module.name, input));
     await attachMaterials(auth.admin, auth.user.id, taskId, materialIds);
     const parentArtifact = body.parentArtifactId
       ? await loadArtifact(auth.admin, auth.user.id, taskId, String(body.parentArtifactId))
@@ -384,7 +385,7 @@ Deno.serve(async (request) => {
               user_id: auth.user.id,
               parent_artifact_id: parentArtifact?.id ?? null,
               version_number: versionNumber,
-              title: taskTitle(module.name, input),
+              title: buildWorkTaskTitle(toolSlug, module.name, input),
               content_json: { format: "markdown" },
               content_markdown: markdown,
             })
@@ -1199,11 +1200,6 @@ function validateInputSize(input: Record<string, unknown>) {
     0,
   );
   if (length > maxInputTextChars) throw new HttpError(413, "粘贴内容过长，请改用文件上传或缩小材料范围。");
-}
-
-function taskTitle(moduleName: string, input: Record<string, unknown>) {
-  const topic = String(input.topic ?? "").trim();
-  return `${moduleName}｜${topic || "未命名任务"}`.slice(0, 80);
 }
 
 function buildMaterialQuery(input: Record<string, unknown>) {

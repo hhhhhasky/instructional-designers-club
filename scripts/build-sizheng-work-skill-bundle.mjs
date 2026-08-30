@@ -26,9 +26,16 @@ function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-const instructions = readFileSync(join(sourceDir, "SKILL.md"), "utf8").trim();
+function normalizePublicLessonProductName(value) {
+  const productName = "公开课设计";
+  return value.replaceAll(`思政${productName}`, productName);
+}
+
+const instructions = normalizePublicLessonProductName(
+  readFileSync(join(sourceDir, "SKILL.md"), "utf8").trim(),
+);
 const references = referenceConfigs.map(([path, name, description, loadMode, sortOrder]) => {
-  const content = readFileSync(join(sourceDir, path), "utf8").trim();
+  const content = normalizePublicLessonProductName(readFileSync(join(sourceDir, path), "utf8").trim());
   return {
     path,
     name,

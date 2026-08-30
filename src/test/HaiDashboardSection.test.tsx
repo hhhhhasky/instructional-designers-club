@@ -46,6 +46,9 @@ describe("HAI dashboard", () => {
     expect(screen.getByText("12,000")).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "7 天累计总量" })).toBeInTheDocument();
     expect(screen.getByText("9,000")).toBeInTheDocument();
+    expect(screen.getByText("积分钱包列表")).toBeInTheDocument();
+    expect(screen.getByText("积分老师")).toBeInTheDocument();
+    expect(screen.getByText("已消耗 8")).toBeInTheDocument();
   });
 
   it("reloads the dashboard when the time range changes", async () => {
@@ -169,4 +172,13 @@ const dashboardFixture: HaiDashboardData = {
   }],
   recent_work_traces: [],
   daily_reviews: [],
+  point_wallets: [{
+    user_id: "wallet-user-1",
+    balance_tokens: 12000,
+    total_credited_tokens: 20000,
+    total_consumed_tokens: 8000,
+    updated_at: "2026-07-13T11:00:00.000Z",
+    profile: { nickname: "积分老师", phone: "13700003333", access_level: "plus" },
+  }],
+  tokens_per_point: 1000,
 };

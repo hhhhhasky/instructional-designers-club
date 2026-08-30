@@ -2,6 +2,7 @@ import {
   applyWorkOutputRuntimeTrace,
   assertWorkSkillRuntimeReady,
   buildWorkPrompt,
+  buildWorkTaskTitle,
   createEmptyWorkSkill,
   filterExactTextbookSources,
   parseWorkJson,
@@ -13,6 +14,17 @@ import {
   validateWorkOutput,
   type WorkSkillCandidate,
 } from "./hai_work.ts";
+
+Deno.test("buildWorkTaskTitle uses the canonical public lesson prefix", () => {
+  assertEquals(
+    buildWorkTaskTitle("subject-lesson-design", "旧数据库模块名", { topic: "平行四边形的面积" }),
+    "公开课设计｜平行四边形的面积",
+  );
+  assertEquals(
+    buildWorkTaskTitle("lesson-diagnosis", "教案诊断", { topic: "背影" }),
+    "教案诊断｜背影",
+  );
+});
 
 function assertEquals(actual: unknown, expected: unknown) {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {

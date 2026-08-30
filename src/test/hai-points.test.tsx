@@ -228,8 +228,16 @@ describe("HAI points wallet migration contract", () => {
     resolve(process.cwd(), "supabase/migrations/20260830070205_remove_internal_beta_branch.sql"),
     "utf8",
   );
+  const publicLessonRenameSql = readFileSync(
+    resolve(process.cwd(), "supabase/migrations/20260830122044_rename_public_lesson_design.sql"),
+    "utf8",
+  );
   const adminSource = readFileSync(
     resolve(process.cwd(), "src/components/admin/HaiManagementSection.tsx"),
+    "utf8",
+  );
+  const dashboardSource = readFileSync(
+    resolve(process.cwd(), "src/components/admin/HaiDashboardSection.tsx"),
     "utf8",
   );
   const edgeSources = ["hai-chat", "hai-work", "hai-roundtable-chat"].map((name) => readFileSync(
@@ -387,8 +395,16 @@ describe("HAI points wallet migration contract", () => {
     expect(splitNewcomerSql).toContain("where key = 'points.newcomer_grant_points'");
     expect(adminSource).toContain("newcomerPlusGrantPoints");
     expect(adminSource).toContain("newcomerProGrantPoints");
-    expect(adminSource).toContain("积分钱包列表");
-    expect(adminSource).toContain("按最近更新排序，仅显示前 12 个");
+    expect(adminSource).not.toContain("积分钱包列表");
+    expect(dashboardSource).toContain("积分钱包列表");
+    expect(dashboardSource).toContain("只读展示所有已创建钱包的用户");
+  });
+
+  it("renames the public lesson module in current database metadata", () => {
+    expect(publicLessonRenameSql).toContain("name = '公开课设计'");
+    expect(publicLessonRenameSql).toContain("short_label = '公开课'");
+    expect(publicLessonRenameSql).toContain("when 'subject-lesson-design-general' then '公开课通用设计'");
+    expect(publicLessonRenameSql).not.toContain(["思政", "公开课设计"].join(""));
   });
 
   it("sends exactly one notification for every positive point ledger entry", () => {

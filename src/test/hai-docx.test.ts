@@ -1,8 +1,8 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { renderHaiDocx } from "@/lib/hai-docx";
 
 const sample = [
-  "# 思政公开课设计｜第八课 践行中华传统美德",
+  "# 公开课设计｜第八课 践行中华传统美德",
   "",
   "这是一段普通正文,用于验证段落渲染与中文。Emoji 应保留:✅🎉。",
   "",
@@ -44,11 +44,11 @@ const sample = [
 describe("renderHaiDocx", () => {
   it("生成合法的 .docx(Promise<Blob>,体积合理,zip 头)", async () => {
     const blob = await renderHaiDocx({
-      title: "思政公开课设计｜第八课 践行中华传统美德",
+      title: "公开课设计｜第八课 践行中华传统美德",
       version: 1,
       markdown: sample,
       watermark: "文档来自于教学设计师俱乐部哈老师研发的 HAI 产出",
-      metaRight: "思政公开课设计 · v1 · 2026-07-26",
+      metaRight: "公开课设计 · v1 · 2026-07-26",
     });
     expect(blob).toBeInstanceOf(Blob);
     expect(blob.size).toBeGreaterThan(3000);

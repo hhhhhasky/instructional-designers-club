@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { deleteHaiWorkTask, getHaiWorkTaskDetail, renameHaiWorkTask, streamHaiWork, type HaiWorkTask } from "@/db/hai-api";
+import { deleteHaiWorkTask, getHaiWorkTaskDetail, type HaiWorkTask, renameHaiWorkTask, streamHaiWork } from "@/db/hai-api";
 import { WorkSidebar } from "@/pages/HaiWorkPage";
 import HaiWorkTaskPage from "@/pages/HaiWorkTaskPage";
 
@@ -11,7 +11,7 @@ const { stableUser, detail, tools } = vi.hoisted(() => ({
   tools: [
     { slug: "lesson-diagnosis", name: "教案诊断", description: "诊断教案", is_enabled: true, surface_mode: "work" },
     { slug: "segment-optimization", name: "环节优化", description: "优化环节", is_enabled: true, surface_mode: "work" },
-    { slug: "subject-lesson-design", name: "思政公开课设计", description: "设计公开课", is_enabled: true, surface_mode: "work" },
+    { slug: "subject-lesson-design", name: "公开课设计", description: "设计公开课", is_enabled: true, surface_mode: "work" },
   ],
   detail: {
     task: {

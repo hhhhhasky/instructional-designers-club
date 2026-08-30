@@ -123,6 +123,8 @@ function sourceFixture(): OperationsDashboardSource {
       recent_traces: [],
       recent_work_traces: [],
       daily_reviews: [],
+      point_wallets: [],
+      tokens_per_point: 1000,
     },
     maintenance: {
       published_courses: 20,

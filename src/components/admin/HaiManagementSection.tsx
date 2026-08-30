@@ -1940,7 +1940,7 @@ export default function HaiManagementSection() {
           title="用户积分"
           description="先手动调整会员等级，再单独发放首次 HAI 积分。"
           icon={<Coins className="h-5 w-5" />}
-          summary={`${pointWallets.length} 个钱包`}
+          summary="选人发放与入账"
         >
           <div className="grid gap-2 sm:grid-cols-2">
             <label className="block">
@@ -2070,22 +2070,6 @@ export default function HaiManagementSection() {
               增加积分
             </Button>
             </div>
-          </div>
-          <div className="mt-4 space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-ds-sm font-ds-bold text-tx">积分钱包列表</p>
-              <span className="text-ds-xs text-txs">按最近更新排序，仅显示前 12 个</span>
-            </div>
-            {pointWallets.slice(0, 12).map((wallet) => {
-              const profile = profileOf(wallet.profiles);
-              return (
-              <div key={wallet.user_id} className="flex items-center justify-between gap-3 rounded-ds-md border border-bd bg-bg px-3 py-2 text-ds-sm">
-                <span><strong className="font-ds-semibold text-tx">{profile?.nickname ?? wallet.user_id}</strong><br /><span className="text-txs">{profile?.phone} · {profile?.access_level}</span></span>
-                <span className="text-right"><strong className="text-ac">{formatAdminPoints(wallet.balance_tokens / Math.max(1, tokensPerPoint))} 积分</strong><br /><span className="text-txs">已消耗 {formatAdminPoints(wallet.total_consumed_tokens / Math.max(1, tokensPerPoint))}</span></span>
-              </div>
-              );
-            })}
-            {pointWallets.length === 0 && <p className="rounded-ds-md bg-bg px-3 py-6 text-center text-ds-sm text-txs">暂无积分钱包</p>}
           </div>
         </CollapsiblePanel>
 

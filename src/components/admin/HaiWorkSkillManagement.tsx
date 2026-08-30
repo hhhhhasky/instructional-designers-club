@@ -334,7 +334,7 @@ export default function HaiWorkSkillManagement() {
           <BriefcaseBusiness className="mt-0.5 h-5 w-5 text-ac" />
           <div>
             <h2 className="text-ds-lg font-ds-bold text-tx">Work 工具中心</h2>
-            <p className="mt-1 text-ds-xs leading-relaxed text-txs">集中管理教案诊断、环节优化与思政公开课设计：前端展示、生成参数、Skill 匹配条件与提示词版本都在这里维护，与 Chat 编排完全分离。</p>
+            <p className="mt-1 text-ds-xs leading-relaxed text-txs">集中管理教案诊断、环节优化与公开课设计：前端展示、生成参数、Skill 匹配条件与提示词版本都在这里维护，与 Chat 编排完全分离。</p>
           </div>
         </div>
         <Button size="sm" variant="outline" onClick={() => setShowCreator((current) => !current)}>
@@ -351,8 +351,8 @@ export default function HaiWorkSkillManagement() {
 
       {showCreator && (
         <div className="mt-4 grid gap-3 rounded-ds-md border border-ac/20 bg-ac/5 p-3 md:grid-cols-2">
-          <AdminInput label="Skill 标识" value={createDraft.slug} placeholder="例如 politics-public-lesson" onChange={(value) => setCreateDraft((current) => ({ ...current, slug: value }))} />
-          <AdminInput label="显示名称" value={createDraft.name} placeholder="例如 高中思政公开课" onChange={(value) => setCreateDraft((current) => ({ ...current, name: value }))} />
+          <AdminInput label="Skill 标识" value={createDraft.slug} placeholder="例如 subject-public-lesson" onChange={(value) => setCreateDraft((current) => ({ ...current, slug: value }))} />
+          <AdminInput label="显示名称" value={createDraft.name} placeholder="例如 高中学科公开课" onChange={(value) => setCreateDraft((current) => ({ ...current, name: value }))} />
           <label className="text-ds-xs text-txs">所属工具<select value={createDraft.module_slug} onChange={(event) => setCreateDraft((current) => ({ ...current, module_slug: event.target.value }))} className="mt-1 h-10 w-full rounded-ds-md border border-bd bg-white px-3 text-ds-sm text-tx">{moduleOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
           <AdminInput label="说明" value={createDraft.description} placeholder="适用范围和能力说明" onChange={(value) => setCreateDraft((current) => ({ ...current, description: value }))} />
           <div className="md:col-span-2 flex justify-end"><Button size="sm" disabled={saving} onClick={() => void createSkill()}><Plus className="h-4 w-4" />创建停用草稿</Button></div>

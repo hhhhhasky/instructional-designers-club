@@ -186,6 +186,19 @@ export interface HaiDailyReviewRun {
   created_at: string;
 }
 
+export interface HaiPointWallet {
+  user_id: string;
+  balance_tokens: number;
+  total_credited_tokens: number;
+  total_consumed_tokens: number;
+  updated_at: string;
+  profile: HaiProfile | null;
+}
+
+interface HaiPointWalletRow extends Omit<HaiPointWallet, "profile"> {
+  profiles?: HaiProfileRelation;
+}
+
 export interface HaiDashboardData {
   range_days: HaiDashboardRangeDays;
   summary: {
@@ -225,6 +238,8 @@ export interface HaiDashboardData {
   recent_work_traces: HaiWorkDebugTraceRow[];
   daily_reviews: HaiDailyReviewRun[];
   recent_model_calls?: Array<HaiModelCallRow & { profile: HaiProfile | null }>;
+  point_wallets: HaiPointWallet[];
+  tokens_per_point: number;
 }
 
 const PAGE_SIZE = 1000;
@@ -236,7 +251,7 @@ const MAX_MODEL_CALL_PAGES = 20;
 export async function getAdminHaiDashboard(rangeDays: HaiDashboardRangeDays): Promise<HaiDashboardData> {
   const now = new Date();
   const since = startOfRange(rangeDays, now).toISOString();
-  const [events, modelCalls, alertResult, traceMessages, workTraces, dailyReviews] = await Promise.all([
+  const [events, modelCalls, alertResult, traceMessages, workTraces, dailyReviews, pointWalletResult, pointRatioResult] = await Promise.all([
     fetchUsageEvents(since),
     fetchModelCalls(since),
     supabase
@@ -248,9 +263,20 @@ export async function getAdminHaiDashboard(rangeDays: HaiDashboardRangeDays): Pr
     fetchTraceMessages(since),
     fetchWorkDebugTraces(since),
     fetchDailyReviews(),
+    supabase
+      .from("hai_point_wallets")
+      .select("user_id, balance_tokens, total_credited_tokens, total_consumed_tokens, updated_at, profiles!user_id(nickname, phone, access_level)")
+      .order("updated_at", { ascending: false }),
+    supabase
+      .from("hai_runtime_settings")
+      .select("value")
+      .eq("key", "points.tokens_per_point")
+      .maybeSingle(),
   ]);
 
   if (alertResult.error) throw alertResult.error;
+  if (pointWalletResult.error) throw pointWalletResult.error;
+  if (pointRatioResult.error) throw pointRatioResult.error;
   return buildHaiDashboardData(
     events,
     (alertResult.data as HaiUsageAlertRow[]) ?? [],
@@ -260,6 +286,8 @@ export async function getAdminHaiDashboard(rangeDays: HaiDashboardRangeDays): Pr
     dailyReviews,
     workTraces,
     modelCalls,
+    (pointWalletResult.data as HaiPointWalletRow[]) ?? [],
+    positiveNumber(pointRatioResult.data?.value, 1000),
   );
 }
 
@@ -407,6 +435,8 @@ export function buildHaiDashboardData(
   dailyReviews: HaiDailyReviewRun[] = [],
   workTraces: HaiWorkDebugTraceRow[] = [],
   modelCalls: HaiModelCallRow[] = [],
+  pointWallets: HaiPointWalletRow[] = [],
+  tokensPerPoint = 1000,
 ): HaiDashboardData {
   const dailyMap = createDailyBuckets(rangeDays, now);
   const sevenDayStart = startOfRange(7, now);
@@ -538,7 +568,21 @@ export function buildHaiDashboardData(
     recent_work_traces: workTraces,
     daily_reviews: dailyReviews,
     recent_model_calls: modelCalls.slice(0, 100).map((call) => ({ ...call, profile: profileOf(call.profiles) })),
+    point_wallets: pointWallets.map((wallet) => ({
+      user_id: wallet.user_id,
+      balance_tokens: nonNegative(wallet.balance_tokens),
+      total_credited_tokens: nonNegative(wallet.total_credited_tokens),
+      total_consumed_tokens: nonNegative(wallet.total_consumed_tokens),
+      updated_at: wallet.updated_at,
+      profile: profileOf(wallet.profiles),
+    })),
+    tokens_per_point: positiveNumber(tokensPerPoint, 1000),
   };
+}
+
+function positiveNumber(value: unknown, fallback: number) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 function createDailyBuckets(rangeDays: HaiDashboardRangeDays, now: Date) {

@@ -214,6 +214,18 @@ export function isHaiWorkToolSlug(value: string): value is HaiWorkToolSlug {
   return toolSlugs.has(value as HaiWorkToolSlug);
 }
 
+export function buildWorkTaskTitle(
+  moduleSlug: HaiWorkToolSlug,
+  moduleName: string,
+  input: Record<string, unknown>,
+) {
+  const prefix = moduleSlug === "subject-lesson-design"
+    ? "公开课设计"
+    : moduleName.trim() || "HAI Work";
+  const topic = String(input.topic ?? "").trim();
+  return `${prefix}｜${topic || "未命名任务"}`.slice(0, 80);
+}
+
 export function validateWorkInput(
   toolSlug: HaiWorkToolSlug,
   input: Record<string, unknown>,
