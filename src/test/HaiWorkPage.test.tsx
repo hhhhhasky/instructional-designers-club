@@ -2,7 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getHaiTextbookCatalog, getHaiWorkTools, type HaiFeatureModule, streamHaiWork } from "@/db/hai-api";
+import { getHaiAccessStatus, getHaiTextbookCatalog, getHaiWorkTools, type HaiFeatureModule, streamHaiWork } from "@/db/hai-api";
 import HaiWorkPage from "@/pages/HaiWorkPage";
 
 vi.mock("@/components/layout/Header", () => ({ default: () => <div data-testid="global-header" /> }));
@@ -78,7 +78,50 @@ describe("HAI Work workbench", () => {
   beforeEach(() => {
     cleanup();
     vi.clearAllMocks();
+    vi.mocked(getHaiAccessStatus).mockResolvedValue({
+      access: { authenticated: true, allowed: true, quota_mode: "points", membership_level: "plus" },
+      usage: {
+        quota_mode: "points",
+        membership_level: "plus",
+        can_consume: true,
+        current_points: 100,
+        daily_used: 0,
+        weekly_used: 0,
+        daily_limit: 0,
+        weekly_limit: 0,
+      },
+    });
     vi.mocked(getHaiTextbookCatalog).mockImplementation(defaultGetHaiTextbookCatalog);
+  });
+
+  it("keeps the Work page visible but disables paid actions when a Plus member has no points", async () => {
+    vi.mocked(getHaiAccessStatus).mockResolvedValueOnce({
+      access: {
+        authenticated: true,
+        allowed: true,
+        quota_mode: "points",
+        membership_level: "plus",
+        status: "needs_points",
+        can_consume: false,
+      },
+      usage: {
+        quota_mode: "points",
+        membership_level: "plus",
+        can_consume: false,
+        current_points: 0,
+        daily_used: 0,
+        weekly_used: 0,
+        daily_limit: 0,
+        weekly_limit: 0,
+      },
+    });
+
+    renderAt("/hai/work/lesson-diagnosis");
+
+    expect(await screen.findByText(/当前积分余额为 0/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "开始教案诊断" })).toBeDisabled();
+    expect(screen.getByLabelText("上传补充材料")).toBeDisabled();
+    expect(streamHaiWork).not.toHaveBeenCalled();
   });
 
   it("shows all four enabled work tools", async () => {

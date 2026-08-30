@@ -93,7 +93,7 @@ export default function HaiPointsPage() {
                   )}
                   {usage.quota_mode === "none" && (
                     <p className="mt-2 text-ds-xs leading-relaxed text-amber-700">
-                      可先购买积分；使用 HAI 前仍需由后台开通权限或升级会员。
+                      可先购买积分；使用 HAI 前仍需开通 Plus 或 Pro 会员。
                     </p>
                   )}
                 </div>

@@ -30,6 +30,7 @@ import {
   type HaiAccessStatus,
   type HaiFeatureModule,
   type HaiTextbookCatalogEntry,
+  type HaiUsageSummary,
   type HaiWorkTask,
   type HaiWorkToolSlug,
   streamHaiWork,
@@ -150,6 +151,7 @@ export default function HaiWorkPage() {
   const { user, loading: authLoading } = useAuth();
   const toolSlug = isWorkToolSlug(rawToolSlug) ? rawToolSlug : null;
   const [access, setAccess] = useState<HaiAccessStatus | null>(null);
+  const [usage, setUsage] = useState<HaiUsageSummary | null>(null);
   const [tools, setTools] = useState<HaiFeatureModule[]>([]);
   const [tasks, setTasks] = useState<HaiWorkTask[]>([]);
   const [archivedTasks, setArchivedTasks] = useState<HaiWorkTask[]>([]);
@@ -166,7 +168,7 @@ export default function HaiWorkPage() {
     (async () => {
       setLoading(true);
       try {
-        const [{ access: nextAccess }, nextTools, nextTasks, nextArchivedTasks] = await Promise.all([
+        const [{ access: nextAccess, usage: nextUsage }, nextTools, nextTasks, nextArchivedTasks] = await Promise.all([
           getHaiAccessStatus(),
           getHaiWorkTools(),
           getHaiWorkTasks(),
@@ -174,6 +176,7 @@ export default function HaiWorkPage() {
         ]);
         if (!cancelled) {
           setAccess(nextAccess);
+          setUsage(nextUsage);
           setTools(nextTools);
           setTasks(nextTasks);
           setArchivedTasks(nextArchivedTasks);
@@ -202,6 +205,9 @@ export default function HaiWorkPage() {
   const enabledToolSlugs = useMemo(() => new Set(tools.map((item) => item.slug)), [tools]);
   const activeModule = toolSlug ? tools.find((item) => item.slug === toolSlug) : undefined;
   const activeConfig = toolSlug ? resolveWorkToolConfig(toolSlug, activeModule) : null;
+  const pointsBlocked = usage?.quota_mode === "points" && (
+    usage.can_consume === false || Number(usage.current_points ?? 0) <= 0
+  );
   const sidebar = <WorkSidebar tasks={tasks} archivedTasks={archivedTasks} tools={tools} onTasksChanged={loadTasks} />;
 
   return (
@@ -220,7 +226,11 @@ export default function HaiWorkPage() {
           <WorkLocked reason={access?.reason} />
         ) : toolSlug ? (
           enabledToolSlugs.has(toolSlug) ? (
-            <WorkToolForm toolSlug={toolSlug} config={activeConfig ?? HAI_WORK_TOOL_CONFIG[toolSlug]} />
+            <WorkToolForm
+              toolSlug={toolSlug}
+              config={activeConfig ?? HAI_WORK_TOOL_CONFIG[toolSlug]}
+              pointsBlocked={pointsBlocked}
+            />
           ) : (
             <WorkError message="这项工作功能尚未在后台启用。" />
           )
@@ -311,7 +321,15 @@ function WorkToolCard({ slug, config, index }: {
   );
 }
 
-function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config: HaiWorkToolVisualConfig }) {
+function WorkToolForm({
+  toolSlug,
+  config,
+  pointsBlocked,
+}: {
+  toolSlug: HaiWorkToolSlug;
+  config: HaiWorkToolVisualConfig;
+  pointsBlocked: boolean;
+}) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [form, setForm] = useState<Record<string, string>>(() => initialForm(toolSlug));
@@ -458,6 +476,10 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
 
   async function submit() {
     if (!user || busy) return;
+    if (pointsBlocked) {
+      setError("HAI 积分已用完，请购买积分后继续使用。");
+      return;
+    }
     const validation = validateForm(toolSlug, form, files.length, requiresTeacherTextbook, hierarchyLabels);
     if (validation) {
       setError(validation);
@@ -506,6 +528,13 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
         <span className="h-px w-5 bg-[var(--paper-rule)]" />
         <Badge variant="outline" className="border-[var(--paper-rule)] bg-[var(--annotation-soft)] text-[var(--annotation)]">03 生成产物</Badge>
       </div>
+
+      {pointsBlocked && (
+        <div className="mt-5 rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
+          当前积分余额为 0。你可以浏览和填写页面，但生成、上传与提交操作已暂停。
+          <Link className="ml-1 font-black text-ac underline" to="/hai/points">购买积分</Link>
+        </div>
+      )}
 
       <div className="editorial-paper mt-5 p-5 md:p-7">
         <p className="editorial-kicker" style={{ color: config.accent }}>{config.eyebrow}</p>
@@ -622,7 +651,10 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
         )}
         <TextAreaField label={requiresTeacherTextbook ? "教材内容（必填其一）" : "补充教材内容（可选）"} value={form.textbook_content} placeholder={requiresTeacherTextbook ? "请粘贴本课教材正文、知识点梳理或清晰转写内容；也可以改为上传文件。" : "如教材版本与内置知识点不同，可粘贴本课原文；用户补充内容会与内置教材一起提供给 HAI。"} minRows={6} onChange={(value) => update("textbook_content", value)} />
 
-        <label className="mt-4 flex cursor-pointer items-center justify-between gap-4 rounded-ds-xl border border-dashed border-[var(--paper-rule)] bg-[var(--paper-deep)] p-4 transition hover:border-ac hover:bg-[var(--proof-soft)]">
+        <label className={cn(
+          "mt-4 flex items-center justify-between gap-4 rounded-ds-xl border border-dashed border-[var(--paper-rule)] bg-[var(--paper-deep)] p-4 transition",
+          pointsBlocked ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:border-ac hover:bg-[var(--proof-soft)]",
+        )}>
           <span className="flex min-w-0 items-center gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-ds-md bg-[var(--paper)] text-ac shadow-ds-sm"><UploadCloud className="h-5 w-5" /></span>
             <span className="min-w-0">
@@ -630,7 +662,7 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
               <span className="mt-1 block truncate text-xs text-txs">TXT / MD / DOCX，最多 5 份，每份 20MB</span>
             </span>
           </span>
-          <input type="file" multiple accept={acceptedFileTypes} className="sr-only" onChange={(event) => selectFiles(event.target.files)} />
+          <input aria-label="上传补充材料" type="file" multiple accept={acceptedFileTypes} className="sr-only" disabled={pointsBlocked} onChange={(event) => selectFiles(event.target.files)} />
           <Paperclip className="h-4 w-4 shrink-0 text-txt" />
         </label>
         {files.length > 0 && (
@@ -645,7 +677,7 @@ function WorkToolForm({ toolSlug, config }: { toolSlug: HaiWorkToolSlug; config:
       {error && <div className="mt-4 rounded-[18px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
       <div className="mt-5 flex flex-col-reverse items-stretch justify-between gap-3 sm:flex-row sm:items-center">
         <p className="text-xs leading-5 text-txs">提交后会创建一份独立任务。以后每次追改都会保留旧版本。</p>
-        <Button className="h-12 rounded-ds-lg bg-tl px-6 text-white hover:bg-tl/90" disabled={busy} onClick={() => void submit()}>
+        <Button className="h-12 rounded-ds-lg bg-tl px-6 text-white hover:bg-tl/90" disabled={busy || pointsBlocked} onClick={() => void submit()}>
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           {busy ? progress || "正在执行" : `开始${config.name}`}
         </Button>
@@ -840,7 +872,7 @@ function WorkLocked({ reason }: { reason?: string }) {
   return (
     <div className="mx-auto max-w-xl px-5 py-20 text-center">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-ds-xl bg-[var(--proof-soft)] text-[var(--proof)]"><ClipboardCheck className="h-6 w-6" /></div>
-      <h2 className="mt-5 font-serif text-2xl font-black text-tx">“帮你干活”仍在内测</h2>
+      <h2 className="mt-5 font-serif text-2xl font-black text-tx">需要 Plus 或 Pro 会员</h2>
       <p className="mt-3 text-sm leading-6 text-txs">{reason || "当前账号还没有 HAI 使用权限。"}</p>
       <Button asChild className="mt-6 rounded-ds-lg bg-tl text-white hover:bg-tl/90"><Link to="/hai/chat">先去聊聊问题</Link></Button>
     </div>

@@ -8,10 +8,11 @@ export interface HaiAccessStatus {
   is_admin?: boolean;
   status?: string;
   reason?: string;
-  quota_mode?: "internal" | "points";
+  quota_mode?: "none" | "internal" | "points";
   membership_level?: "plus2015" | "plus" | "pro";
   quota_policy_key?: string;
   expires_at?: string | null;
+  can_consume?: boolean;
 }
 
 export interface HaiUsageSummary {
@@ -36,6 +37,7 @@ export interface HaiUsageSummary {
   wecom_qr_url?: string;
   single_request_token_limit?: number;
   max_output_tokens?: number;
+  can_consume?: boolean;
 }
 
 export interface HaiPointPackage {

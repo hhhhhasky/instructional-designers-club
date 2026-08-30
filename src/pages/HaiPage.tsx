@@ -103,7 +103,9 @@ export default function HaiPage() {
   const weeklyQuotaReached = usage?.quota_mode !== "points" && Boolean(
     usage?.weekly_limit && usage.weekly_used >= usage.weekly_limit,
   );
-  const pointsExhausted = usage?.quota_mode === "points" && Number(usage.current_points ?? 0) <= 0;
+  const pointsExhausted = usage?.quota_mode === "points" && (
+    usage.can_consume === false || Number(usage.current_points ?? 0) <= 0
+  );
   const usageBlocked = weeklyQuotaReached || pointsExhausted;
 
   useEffect(() => {
@@ -874,7 +876,7 @@ function LockedPanel({ reason }: { reason?: string }) {
         </div>
         <h2 className="text-center text-ds-xl font-ds-black text-tx">HAI 权限未开通</h2>
         <p className="mt-2 text-center text-ds-sm leading-relaxed text-txs">
-          {reason || "HAI 面向 Plus、Pro 和后台开通的内测用户开放，请联系管理员开通权限。"}
+          {reason || "HAI 面向 Plus、Pro 会员开放；开通会员并拥有积分后即可使用。"}
         </p>
       </div>
     </div>

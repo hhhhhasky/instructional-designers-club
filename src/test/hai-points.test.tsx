@@ -88,7 +88,7 @@ describe("HAI points purchase page", () => {
     expect(screen.getByRole("columnheader", { name: "可完成内容" })).toBeInTheDocument();
   });
 
-  it("allows an internal beta user to buy while keeping the purchased wallet separate", async () => {
+  it("keeps the points purchase page compatible with an administrator internal quota", async () => {
     vi.mocked(getHaiAccessStatus).mockResolvedValueOnce({
       access: { authenticated: true, allowed: true, quota_mode: "internal", quota_policy_key: "beta" },
       usage: {
@@ -154,7 +154,7 @@ describe("HAI points purchase page", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("可先购买积分；使用 HAI 前仍需由后台开通权限或升级会员。")).toBeInTheDocument();
+    expect(await screen.findByText("可先购买积分；使用 HAI 前仍需开通 Plus 或 Pro 会员。")).toBeInTheDocument();
     expect(screen.getAllByText("10 积分")).toHaveLength(2);
     expect(screen.queryByText(/仅面向/)).not.toBeInTheDocument();
   });
@@ -220,6 +220,10 @@ describe("HAI points wallet migration contract", () => {
     resolve(process.cwd(), "supabase/migrations/20260829132153_hai_dynamic_point_packages.sql"),
     "utf8",
   );
+  const membershipPointsGateSql = readFileSync(
+    resolve(process.cwd(), "supabase/migrations/20260830064731_hai_membership_points_access_gate.sql"),
+    "utf8",
+  );
   const adminSource = readFileSync(
     resolve(process.cwd(), "src/components/admin/HaiManagementSection.tsx"),
     "utf8",
@@ -245,6 +249,16 @@ describe("HAI points wallet migration contract", () => {
     expect(sql).toContain("v_reservation.status <> 'active'");
     expect(sql).toContain("transaction_type, token_delta, points_delta");
     expect(sql).toContain("create or replace function public.hai_admin_add_points");
+  });
+
+  it("makes membership points authoritative without deleting historical beta records", () => {
+    expect(membershipPointsGateSql).toContain("Beta records remain in place for audit/history");
+    expect(membershipPointsGateSql).toContain("profile.access_level::text in ('plus', 'pro')");
+    expect(membershipPointsGateSql).toContain("'status', case when v_wallet.balance_tokens > 0 then 'active' else 'needs_points' end");
+    expect(membershipPointsGateSql).toContain("'can_consume', v_wallet.balance_tokens > 0");
+    expect(membershipPointsGateSql).toContain("if v_wallet.balance_tokens <= 0");
+    expect(membershipPointsGateSql).not.toContain("v_access.access_source = 'admin'");
+    expect(membershipPointsGateSql).not.toContain("你的 HAI 内测资格当前不可用");
   });
 
   it("enables RLS and exposes only read access to wallet tables", () => {
