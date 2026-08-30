@@ -7,11 +7,16 @@ import {
   getHaiChatModule,
   getHaiConversations,
   getHaiMemories,
+  getHaiStarterQuestions,
   hasCompletedHaiProfileOnboarding,
   saveHaiProfileMemories,
 } from "@/db/hai-api";
 import { copyHaiAnswer, createHaiShareImage } from "@/lib/hai-share";
-import HaiPage, { EmptyState, HAI_STARTER_QUESTIONS, MessageBubble } from "@/pages/HaiPage";
+import HaiPage, {
+  EmptyState,
+  HAI_FALLBACK_STARTER_QUESTIONS,
+  MessageBubble,
+} from "@/pages/HaiPage";
 
 vi.mock("@/components/layout/Header", () => ({ default: () => <div data-testid="global-header" /> }));
 vi.mock("@/components/common/Footer", () => ({ default: () => <div data-testid="global-footer" /> }));
@@ -32,6 +37,15 @@ vi.mock("@/db/hai-api", () => ({
   getHaiConversations: vi.fn().mockResolvedValue([]),
   getHaiMemories: vi.fn().mockResolvedValue([]),
   getHaiMessages: vi.fn().mockResolvedValue([]),
+  getHaiStarterQuestions: vi.fn().mockResolvedValue({
+    questions: [
+      "六年级科学课里，我怎样让学生从猜测走向证据？",
+      "学生观察后只报结论，我应该先追问什么？",
+      "我用哪种课堂产出能验证探究环节真正发生？",
+    ],
+    personalized: true,
+    sourceCount: 6,
+  }),
   getHaiMessageFeedback: vi.fn().mockResolvedValue([]),
   getHaiChatModule: vi.fn().mockResolvedValue({
     id: "module-1",
@@ -81,18 +95,52 @@ describe("HAI new conversation guidance", () => {
     vi.mocked(getHaiMemories).mockResolvedValue([]);
     vi.mocked(hasCompletedHaiProfileOnboarding).mockResolvedValue(true);
     vi.mocked(saveHaiProfileMemories).mockResolvedValue([]);
+    vi.mocked(getHaiStarterQuestions).mockResolvedValue({
+      questions: [
+        "六年级科学课里，我怎样让学生从猜测走向证据？",
+        "学生观察后只报结论，我应该先追问什么？",
+        "我用哪种课堂产出能验证探究环节真正发生？",
+      ],
+      personalized: true,
+      sourceCount: 6,
+    });
   });
 
   it("offers three starter questions and selects one with a single tap", async () => {
     const user = userEvent.setup();
     const onQuestionSelect = vi.fn();
-    render(<EmptyState module={null} busy={false} onQuestionSelect={onQuestionSelect} />);
+    const questions = [
+      "六年级科学课里，我怎样让学生从猜测走向证据？",
+      "学生观察后只报结论，我应该先追问什么？",
+      "我用哪种课堂产出能验证探究环节真正发生？",
+    ];
+    render(
+      <EmptyState
+        module={null}
+        busy={false}
+        questions={questions}
+        onQuestionSelect={onQuestionSelect}
+      />,
+    );
 
     expect(screen.getAllByRole("button")).toHaveLength(3);
-    await user.click(screen.getByRole("button", { name: HAI_STARTER_QUESTIONS[1] }));
+    await user.click(screen.getByRole("button", { name: questions[1] }));
 
     expect(onQuestionSelect).toHaveBeenCalledOnce();
-    expect(onQuestionSelect).toHaveBeenCalledWith(HAI_STARTER_QUESTIONS[1]);
+    expect(onQuestionSelect).toHaveBeenCalledWith(questions[1]);
+  });
+
+  it("loads personalized questions when the new conversation is empty", async () => {
+    render(
+      <MemoryRouter initialEntries={["/hai"]}>
+        <HaiPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole("button", {
+      name: "学生观察后只报结论，我应该先追问什么？",
+    })).toBeEnabled();
+    expect(getHaiStarterQuestions).toHaveBeenCalledOnce();
   });
 });
 
@@ -275,7 +323,9 @@ describe("HAI mobile chat shell", () => {
     );
     expect(screen.getByLabelText("输入教学问题")).toBeDisabled();
     expect(screen.getByRole("button", { name: "发送" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: HAI_STARTER_QUESTIONS[0] })).toBeDisabled();
+    expect(screen.getByRole("button", {
+      name: HAI_FALLBACK_STARTER_QUESTIONS[0],
+    })).toBeDisabled();
   });
 });
 

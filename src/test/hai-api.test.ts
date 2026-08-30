@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getHaiConversations,
   getHaiMessages,
+  getHaiStarterQuestions,
   getHaiChatModule,
   getHaiWorkTaskDetail,
   HAI_CHAT_MODULE_SLUG,
@@ -153,6 +154,33 @@ describe("HAI Chat module boundary", () => {
       { type: "token", token: "最终答案" },
       { type: "done", conversationId: "conversation-1", messageId: "message-1" },
     ]);
+  });
+
+  it("requests three personalized starters without creating a chat message", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      questions: ["问题一？", "问题二？", "问题三？"],
+      personalized: true,
+      sourceCount: 5,
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getHaiStarterQuestions()).resolves.toEqual({
+      questions: ["问题一？", "问题二？", "问题三？"],
+      personalized: true,
+      sourceCount: 5,
+      fallback: false,
+    });
+
+    const [, request] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(String(request.body));
+    expect(body).toMatchObject({
+      action: "starter_questions",
+      moduleSlug: "hai-chat",
+    });
+    expect(body).not.toHaveProperty("message");
   });
 });
 

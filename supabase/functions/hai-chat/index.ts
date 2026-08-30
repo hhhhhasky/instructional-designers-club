@@ -5,16 +5,15 @@ import {
   createTitle,
   estimateTokens,
   finalizeUsage,
-  recordHaiModelCall,
-  summarizeHaiModelCalls,
-  type HaiProviderUsage,
   type HaiChatCompletionOptions,
+  type HaiProviderUsage,
   type HaiRuntimeConfig,
   handleCors,
   HttpError,
   jsonResponse,
   loadHaiRuntimeConfig,
   normalizeRecord,
+  recordHaiModelCall,
   rememberExplicitTeacherFacts,
   requireUser,
   reserveUsage,
@@ -22,6 +21,7 @@ import {
   sendSse,
   sseHeaders,
   streamDeepSeek,
+  summarizeHaiModelCalls,
 } from "../_shared/hai.ts";
 import {
   buildHaiChatSkillSystemPrompt,
@@ -52,6 +52,13 @@ import type {
   MemorySelection,
 } from "../_shared/hai_chat/types.ts";
 import type { HaiPromptAssembly } from "../_shared/hai_trace.ts";
+import {
+  buildHaiStarterQuestionsPrompt,
+  buildRecentSceneFallbackQuestions,
+  HAI_FALLBACK_STARTER_QUESTIONS,
+  normalizeRecentHaiQuestions,
+  parseHaiStarterQuestions,
+} from "../_shared/hai_starter_questions.ts";
 
 type ModuleRow = {
   id: string;
@@ -105,8 +112,19 @@ Deno.serve(async (request) => {
     const accessStatus = await assertHaiAccess(auth.userClient);
 
     const body = await request.json().catch(() => ({}));
-    const text = String(body.message || "").trim();
     const moduleSlug = String(body.moduleSlug || "hai-chat").trim();
+    if (body.action === "starter_questions") {
+      return await generateStarterQuestions({
+        admin: auth.admin,
+        userId: auth.user.id,
+        moduleSlug: "hai-chat",
+        requestId: body.clientRequestId
+          ? String(body.clientRequestId)
+          : crypto.randomUUID(),
+      });
+    }
+
+    const text = String(body.message || "").trim();
     const requestedConversationId = body.conversationId
       ? String(body.conversationId)
       : null;
@@ -281,8 +299,12 @@ Deno.serve(async (request) => {
               userId: auth.user.id,
               admin: auth.admin,
               modelProviderId: module.model_provider_id,
-              onUsage: (usage) => { draftUsage = usage; },
-              onProviderResolved: (value) => { providerCode = value; },
+              onUsage: (usage) => {
+                draftUsage = usage;
+              },
+              onProviderResolved: (value) => {
+                providerCode = value;
+              },
             })
           ) {
             output += token;
@@ -301,7 +323,9 @@ Deno.serve(async (request) => {
             entityId: conversationId,
             model: completionOptions.model,
             provider: providerCode,
-            startedAt: new Date(draftStartedAt ?? new Date(startedAt).toISOString()),
+            startedAt: new Date(
+              draftStartedAt ?? new Date(startedAt).toISOString(),
+            ),
             completedAt: new Date(),
             status: "completed",
             usage: draftUsage,
@@ -351,8 +375,12 @@ Deno.serve(async (request) => {
                 userId: auth.user.id,
                 admin: auth.admin,
                 modelProviderId: module.model_provider_id,
-                onUsage: (usage) => { rewriteUsage = usage; },
-                onProviderResolved: (value) => { providerCode = value; },
+                onUsage: (usage) => {
+                  rewriteUsage = usage;
+                },
+                onProviderResolved: (value) => {
+                  providerCode = value;
+                },
               })
             ) {
               finalAnswer += token;
@@ -554,7 +582,10 @@ Deno.serve(async (request) => {
               error: message,
             }, configSnapshot),
           });
-          await summarizeHaiModelCalls({ admin: auth.admin, requestId: clientRequestId });
+          await summarizeHaiModelCalls({
+            admin: auth.admin,
+            requestId: clientRequestId,
+          });
           sendSse(controller, encoder, { type: "error", message });
         } finally {
           controller.close();
@@ -569,6 +600,160 @@ Deno.serve(async (request) => {
     return jsonResponse({ message }, status);
   }
 });
+
+async function generateStarterQuestions(params: {
+  admin: any;
+  userId: string;
+  moduleSlug: string;
+  requestId: string;
+}) {
+  const module = await loadModule(params.admin, params.moduleSlug);
+  const recentQuestions = await loadRecentUserQuestions(
+    params.admin,
+    params.userId,
+  );
+  if (recentQuestions.length === 0) {
+    return jsonResponse({
+      questions: [...HAI_FALLBACK_STARTER_QUESTIONS],
+      personalized: false,
+      sourceCount: 0,
+    });
+  }
+
+  const runtime = await loadHaiRuntimeConfig(params.admin);
+  const completionOptions = buildChatCompletionOptions({ module, runtime });
+  const starterOptions = {
+    ...completionOptions,
+    temperature: Math.max(0.45, completionOptions.temperature),
+    maxTokens: 360,
+    thinkingEnabled: false,
+    reasoningEffort: undefined,
+    responseFormat: "json_object" as const,
+    stopSequences: [],
+  };
+  const messages: ChatMessage[] = [
+    {
+      role: "system",
+      content: buildHaiStarterQuestionsPrompt(recentQuestions),
+    },
+    { role: "user", content: "请生成三个新对话问题。" },
+  ];
+  const startedAt = new Date();
+  let output = "";
+  let usage: HaiProviderUsage | null = null;
+  let providerCode = "deepseek";
+
+  try {
+    for await (
+      const token of streamDeepSeek(messages, {
+        ...starterOptions,
+        userId: params.userId,
+        admin: params.admin,
+        modelProviderId: module.model_provider_id,
+        onUsage: (value) => {
+          usage = value;
+        },
+        onProviderResolved: (value) => {
+          providerCode = value;
+        },
+      })
+    ) {
+      output += token;
+    }
+    const generated = parseHaiStarterQuestions(output);
+    const questions = generated ??
+      buildRecentSceneFallbackQuestions(recentQuestions);
+    await recordHaiModelCall({
+      admin: params.admin,
+      userId: params.userId,
+      requestId: params.requestId,
+      callIndex: 1,
+      stage: "chat_starter_questions",
+      route: "hai-chat-starters",
+      entityType: "user",
+      entityId: params.userId,
+      model: starterOptions.model,
+      provider: providerCode,
+      startedAt,
+      completedAt: new Date(),
+      status: "completed",
+      usage,
+      metadata: {
+        module_slug: module.slug,
+        source_question_count: recentQuestions.length,
+        used_model_output: Boolean(generated),
+      },
+    });
+    return jsonResponse({
+      questions,
+      personalized: true,
+      sourceCount: recentQuestions.length,
+      fallback: !generated,
+    });
+  } catch (error) {
+    await recordHaiModelCall({
+      admin: params.admin,
+      userId: params.userId,
+      requestId: params.requestId,
+      callIndex: 1,
+      stage: "chat_starter_questions",
+      route: "hai-chat-starters",
+      entityType: "user",
+      entityId: params.userId,
+      model: starterOptions.model,
+      provider: providerCode,
+      startedAt,
+      completedAt: new Date(),
+      status: "failed",
+      usage,
+      metadata: {
+        module_slug: module.slug,
+        source_question_count: recentQuestions.length,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    });
+    return jsonResponse({
+      questions: buildRecentSceneFallbackQuestions(recentQuestions),
+      personalized: true,
+      sourceCount: recentQuestions.length,
+      fallback: true,
+    });
+  }
+}
+
+async function loadRecentUserQuestions(
+  admin: { from: (table: string) => any },
+  userId: string,
+) {
+  const { data: conversations, error: conversationError } = await admin
+    .from("hai_conversations")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("mode", "chat")
+    .order("updated_at", { ascending: false })
+    .limit(12);
+  if (conversationError) {
+    throw new HttpError(500, conversationError.message);
+  }
+
+  const conversationIds = (conversations ?? []).map(
+    (item: { id: string }) => item.id,
+  );
+  if (conversationIds.length === 0) return [];
+
+  const { data: messages, error: messageError } = await admin
+    .from("hai_messages")
+    .select("content")
+    .eq("user_id", userId)
+    .eq("role", "user")
+    .in("conversation_id", conversationIds)
+    .order("created_at", { ascending: false })
+    .limit(16);
+  if (messageError) throw new HttpError(500, messageError.message);
+  return normalizeRecentHaiQuestions(
+    (messages ?? []).map((item: { content: string }) => item.content),
+  );
+}
 
 async function loadModule(
   admin: { from: (table: string) => any },

@@ -47,6 +47,7 @@ import {
   getHaiMemories,
   getHaiMessageFeedback,
   getHaiMessages,
+  getHaiStarterQuestions,
   type HaiAccessStatus,
   type HaiConversation,
   type HaiFeatureModule,
@@ -65,10 +66,10 @@ type DraftMessage = Pick<HaiMessage, "id" | "role" | "content" | "created_at"> &
   pending?: boolean;
 };
 
-export const HAI_STARTER_QUESTIONS = [
-  "公开课设计太平，应该先改哪里？",
-  "学生参与度低，怎么判断问题原因？",
-  "如何检查目标、活动和评价是否对齐？",
+export const HAI_FALLBACK_STARTER_QUESTIONS = [
+  "我最近遇到的教学问题，最该先判断哪一处？",
+  "这个课堂现象背后，可能是哪种学习断点？",
+  "我可以收集什么证据，验证下一步改法？",
 ] as const;
 
 export default function HaiPage() {
@@ -80,6 +81,10 @@ export default function HaiPage() {
   const [conversations, setConversations] = useState<HaiConversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<DraftMessage[]>([]);
+  const [starterQuestions, setStarterQuestions] = useState<readonly string[]>(
+    HAI_FALLBACK_STARTER_QUESTIONS,
+  );
+  const [starterQuestionsLoading, setStarterQuestionsLoading] = useState(true);
   const [messageFeedback, setMessageFeedback] = useState<Record<string, HaiMessageFeedback["rating"]>>({});
   const [memories, setMemories] = useState<HaiUserMemory[]>([]);
   const [draft, setDraft] = useState("");
@@ -172,6 +177,43 @@ export default function HaiPage() {
       cancelled = true;
     };
   }, [activeConversationId, user?.id]);
+
+  useEffect(() => {
+    if (
+      booting || !user || !access?.allowed || !chatModule ||
+      activeConversationId || messages.length > 0
+    ) return;
+    if (usageBlocked) {
+      setStarterQuestionsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setStarterQuestionsLoading(true);
+    void getHaiStarterQuestions()
+      .then((result) => {
+        if (!cancelled) setStarterQuestions(result.questions);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setStarterQuestions(HAI_FALLBACK_STARTER_QUESTIONS);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setStarterQuestionsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    access?.allowed,
+    activeConversationId,
+    booting,
+    chatModule,
+    messages.length,
+    usageBlocked,
+    user?.id,
+  ]);
 
   useEffect(() => {
     const scrollRegion = messagesScrollRef.current;
@@ -353,6 +395,8 @@ export default function HaiPage() {
   }
 
   function startNewConversation() {
+    setStarterQuestions(HAI_FALLBACK_STARTER_QUESTIONS);
+    setStarterQuestionsLoading(true);
     setActiveConversationId(null);
     setMessages([]);
     setHistoryOpen(false);
@@ -430,6 +474,8 @@ export default function HaiPage() {
                   module={chatModule}
                   busy={busy}
                   quotaReached={usageBlocked}
+                  questions={starterQuestions}
+                  questionsLoading={starterQuestionsLoading}
                   onQuestionSelect={(question) => void handleSend(question)}
                 />
               ) : (
@@ -749,11 +795,15 @@ export function EmptyState({
   module,
   busy,
   quotaReached = false,
+  questions = HAI_FALLBACK_STARTER_QUESTIONS,
+  questionsLoading = false,
   onQuestionSelect,
 }: {
   module: HaiFeatureModule | null;
   busy: boolean;
   quotaReached?: boolean;
+  questions?: readonly string[];
+  questionsLoading?: boolean;
   onQuestionSelect: (question: string) => void;
 }) {
   return (
@@ -770,15 +820,19 @@ export function EmptyState({
         </div>
       </div>
       <div className="mt-4 w-full text-left sm:mt-6">
-        <p className="mb-2 text-ds-xs font-ds-semibold tracking-[0.08em] text-txt sm:text-center sm:tracking-[0.12em]">不知道从哪问？试试这些</p>
+        <p className="mb-2 text-ds-xs font-ds-semibold tracking-[0.08em] text-txt sm:text-center sm:tracking-[0.12em]">
+          {questionsLoading
+            ? "正在结合你最近的问题场景…"
+            : "结合你最近的问题，可以继续聊"}
+        </p>
         <div className="grid gap-2 sm:grid-cols-3 sm:gap-2.5">
-          {HAI_STARTER_QUESTIONS.map((question, index) => (
+          {questions.map((question, index) => (
             <button
               key={question}
               type="button"
               aria-label={question}
               onClick={() => onQuestionSelect(question)}
-              disabled={busy || quotaReached}
+              disabled={busy || quotaReached || questionsLoading}
               className="group flex min-h-11 min-w-0 items-center gap-2.5 rounded-ds-md border border-bd bg-white px-3 py-2 text-left shadow-ds-xs transition hover:-translate-y-0.5 hover:border-ac/40 hover:shadow-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/30 disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-[96px] sm:items-start sm:gap-3 sm:rounded-ds-lg sm:p-4"
             >
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-ds-full bg-acl text-[11px] font-ds-bold text-ac transition group-hover:bg-ac group-hover:text-white sm:h-6 sm:w-6 sm:text-ds-xs">

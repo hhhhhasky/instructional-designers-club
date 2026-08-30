@@ -83,6 +83,7 @@ export type HaiProviderUsage = {
 };
 
 export type HaiModelCallStage =
+  | "chat_starter_questions"
   | "chat_draft"
   | "chat_rewrite"
   | "work_initial"

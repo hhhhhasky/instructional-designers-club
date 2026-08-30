@@ -300,6 +300,13 @@ export type HaiStreamEvent =
   | { type: "done"; conversationId: string; messageId: string; usage?: { inputTokens: number; outputTokens: number; totalTokens: number }; promptSnapshot?: HaiPromptSnapshot }
   | { type: "error"; message: string };
 
+export interface HaiStarterQuestionsResult {
+  questions: [string, string, string];
+  personalized: boolean;
+  sourceCount: number;
+  fallback?: boolean;
+}
+
 export async function getHaiAccessStatus(): Promise<{
   access: HaiAccessStatus;
   usage: HaiUsageSummary | null;
@@ -850,6 +857,45 @@ export async function streamHaiChat(
     fallbackErrorMessage: "HAI 请求失败。",
     onEvent: handlers.onEvent,
   });
+}
+
+export async function getHaiStarterQuestions(): Promise<HaiStarterQuestionsResult> {
+  const { data } = await supabase.auth.getSession();
+  const accessToken = data.session?.access_token;
+  if (!accessToken) throw new Error("请先登录。");
+
+  const response = await fetch(`${getFunctionsBaseUrl()}/hai-chat`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      action: "starter_questions",
+      moduleSlug: HAI_CHAT_MODULE_SLUG,
+      clientRequestId: crypto.randomUUID(),
+    }),
+  });
+  const payload = await response.json().catch(() => ({})) as Partial<HaiStarterQuestionsResult> & {
+    message?: string;
+  };
+  if (!response.ok) {
+    throw new Error(payload.message || "个性化问题生成失败。");
+  }
+  if (
+    !Array.isArray(payload.questions) || payload.questions.length !== 3 ||
+    payload.questions.some((item) =>
+      typeof item !== "string" || !item.trim()
+    )
+  ) {
+    throw new Error("个性化问题返回格式不正确。");
+  }
+  return {
+    questions: payload.questions as [string, string, string],
+    personalized: payload.personalized === true,
+    sourceCount: Number(payload.sourceCount || 0),
+    fallback: payload.fallback === true,
+  };
 }
 
 function getFunctionsBaseUrl(): string {
