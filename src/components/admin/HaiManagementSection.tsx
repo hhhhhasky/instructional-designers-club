@@ -503,7 +503,7 @@ export default function HaiManagementSection() {
       if (error) throw error;
       await loadAll();
       const result = data as { current_points?: number } | null;
-      setStatus(`积分已增加，用户当前持有 ${formatAdminPoints(result?.current_points)} 积分。`);
+      setStatus(`积分已增加并发送站内通知，用户当前持有 ${formatAdminPoints(result?.current_points)} 积分。`);
     } catch (error) {
       const msg = error instanceof Error ? error.message : "未知错误";
       setStatus(`增加积分失败：${msg}`);
@@ -2062,7 +2062,7 @@ export default function HaiManagementSection() {
 
           <div className="mt-4 border-t border-bd pt-4">
             <p className="mb-2 text-ds-sm font-ds-bold text-tx">其他积分入账</p>
-            <p className="mb-2 text-ds-xs text-txs">用于线下购买、补发等场景；2015Plus 用户购买积分后也可使用 HAI。</p>
+            <p className="mb-2 text-ds-xs text-txs">用于线下购买、补发等场景；每次增加成功后都会发送站内通知。2015Plus 用户购买积分后也可使用 HAI。</p>
             <div className="grid gap-2 md:grid-cols-[110px_minmax(0,1fr)_auto]">
             <input className="h-10 rounded-ds-md border border-bd bg-bg px-3 text-ds-sm" type="number" min={1} step={1} value={pointDraft.points} onChange={(event) => setPointDraft((current) => ({ ...current, points: Math.max(0, Number(event.target.value) || 0) }))} aria-label="增加积分" />
             <input className="h-10 rounded-ds-md border border-bd bg-bg px-3 text-ds-sm" placeholder="增加原因" value={pointDraft.reason} onChange={(event) => setPointDraft((current) => ({ ...current, reason: event.target.value }))} />

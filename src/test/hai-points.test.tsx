@@ -212,6 +212,10 @@ describe("HAI points wallet migration contract", () => {
     resolve(process.cwd(), "supabase/migrations/20260829150441_hai_split_newcomer_points_by_level.sql"),
     "utf8",
   );
+  const pointNotificationSql = readFileSync(
+    resolve(process.cwd(), "supabase/migrations/20260830051812_hai_notify_all_positive_point_credits.sql"),
+    "utf8",
+  );
   const dynamicPackageSql = readFileSync(
     resolve(process.cwd(), "supabase/migrations/20260829132153_hai_dynamic_point_packages.sql"),
     "utf8",
@@ -361,5 +365,19 @@ describe("HAI points wallet migration contract", () => {
     expect(adminSource).toContain("newcomerProGrantPoints");
     expect(adminSource).toContain("积分钱包列表");
     expect(adminSource).toContain("按最近更新排序，仅显示前 12 个");
+  });
+
+  it("sends exactly one notification for every positive point ledger entry", () => {
+    expect(pointNotificationSql).toContain("create or replace function private.hai_notify_positive_point_transaction");
+    expect(pointNotificationSql).toContain("after insert on public.hai_point_transactions");
+    expect(pointNotificationSql).toContain("when (new.points_delta > 0)");
+    expect(pointNotificationSql).toContain("new.transaction_type = 'newcomer_gift'");
+    expect(pointNotificationSql).toContain("new.transaction_type = 'refund'");
+    expect(pointNotificationSql).toContain("'HAI 积分到账'");
+    expect(pointNotificationSql).toContain("insert into public.user_notifications");
+    expect(pointNotificationSql.match(/insert into public\.user_notifications/g)).toHaveLength(1);
+    expect(pointNotificationSql).toContain("revoke execute on function private.hai_notify_positive_point_transaction()");
+    expect(adminSource).toContain("积分已增加并发送站内通知");
+    expect(adminSource).toContain("每次增加成功后都会发送站内通知");
   });
 });
