@@ -805,6 +805,7 @@ export async function* streamDeepSeek(
         ? compactObject({ type: "enabled", reasoning_effort: options.reasoningEffort })
         : { type: "disabled" },
     })),
+    signal: AbortSignal.timeout(300_000),
   });
 
   if (!response.ok || !response.body) {
