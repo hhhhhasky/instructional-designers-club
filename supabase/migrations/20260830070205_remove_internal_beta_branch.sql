@@ -33,7 +33,6 @@ $$;
 create or replace function public.hai_access_status()
 returns jsonb
 language plpgsql
-stable
 security definer
 set search_path = public
 as $$
@@ -289,7 +288,6 @@ $$;
 create or replace function public.hai_usage_summary(p_user_id uuid default auth.uid())
 returns jsonb
 language plpgsql
-stable
 security definer
 set search_path = public
 as $$
