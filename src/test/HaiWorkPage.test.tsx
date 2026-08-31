@@ -283,7 +283,7 @@ describe("HAI Work workbench", () => {
   it("submits a pasted lesson plan and opens the durable task", async () => {
     const user = userEvent.setup();
     vi.mocked(streamHaiWork).mockImplementation(async (_payload, handlers) => {
-      handlers.onEvent({ type: "done", taskId: "task-1", runId: "run-1", artifactId: "artifact-1", versionNumber: 1 });
+      handlers.onEvent({ type: "ready", taskId: "task-1", runId: "run-1" });
     });
     renderAt("/hai/work/lesson-diagnosis");
 

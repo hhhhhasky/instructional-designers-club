@@ -31,7 +31,7 @@
 
 用户只能读取自己的任务、运行和产物，并只能归档自己的任务。运行与产物由 Edge Function 写入，浏览器不能伪造版本或 Token 数据。Skill 提示词对普通用户不可见，仅管理员可管理。
 
-`hai_match_selected_material_chunks` 只检索调用者明确选中的材料 ID，并再次校验素材所有权。`hai_mark_stale_work_runs` 会把超过 10 分钟仍处于 queued/running 的运行转为可重试失败。
+`hai_match_selected_material_chunks` 只检索调用者明确选中的材料 ID，并再次校验素材所有权。`hai_mark_stale_work_runs` 会把超过 3 分钟仍处于 queued/running 的运行转为可重试失败；HAI Work 的模型调用会在 140 秒主动停止，为约 150 秒的生产墙钟限制预留失败落库时间。
 
 ## Skill 与诊断标准
 

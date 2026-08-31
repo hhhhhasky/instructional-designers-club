@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { deleteHaiWorkTask, getHaiWorkTaskDetail, type HaiWorkTask, renameHaiWorkTask, streamHaiWork } from "@/db/hai-api";
+import { deleteHaiWorkTask, getHaiWorkTaskDetail, type HaiWorkTask, type HaiWorkTaskDetail, renameHaiWorkTask, streamHaiWork } from "@/db/hai-api";
 import { WorkSidebar } from "@/pages/HaiWorkPage";
 import HaiWorkTaskPage from "@/pages/HaiWorkTaskPage";
 
@@ -98,6 +98,30 @@ describe("HAI Work task page", () => {
     expect(screen.getByRole("button", { name: "打印" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "导出 Word" })).toBeInTheDocument();
   });
+
+  it("polls a running task and shows the artifact as soon as it completes", async () => {
+    const completedDetail = detail as unknown as HaiWorkTaskDetail;
+    const runningDetail: HaiWorkTaskDetail = {
+      ...completedDetail,
+      task: { ...completedDetail.task, latest_artifact_id: null },
+      runs: [{
+        ...completedDetail.runs[0],
+        id: "run-pending",
+        status: "running",
+        parent_artifact_id: null,
+        completed_at: null,
+      }],
+      artifacts: [],
+    };
+    vi.mocked(getHaiWorkTaskDetail)
+      .mockResolvedValueOnce(runningDetail)
+      .mockResolvedValueOnce(completedDetail);
+
+    renderPage();
+    expect(await screen.findByText("产物正在生成")).toBeInTheDocument();
+    expect(await screen.findByText("# 第二版诊断", {}, { timeout: 4500 })).toBeInTheDocument();
+    expect(getHaiWorkTaskDetail).toHaveBeenCalledTimes(2);
+  }, 6000);
 
   it("renames the task from the action menu", async () => {
     const user = userEvent.setup({ pointerEventsCheck: 0 });

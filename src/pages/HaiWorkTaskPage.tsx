@@ -93,7 +93,7 @@ export default function HaiWorkTaskPage() {
   const activeRun = detail?.runs.find((run) => run.status === "queued" || run.status === "running");
   useEffect(() => {
     if (!activeRun) return;
-    const timer = window.setInterval(() => void loadDetail(), 4000);
+    const timer = window.setInterval(() => void loadDetail(), 3000);
     return () => window.clearInterval(timer);
   }, [activeRun, loadDetail]);
 

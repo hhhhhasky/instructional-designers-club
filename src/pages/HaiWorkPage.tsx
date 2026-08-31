@@ -505,11 +505,19 @@ function WorkToolForm({
             teaching_mode: isPoliticsSubject(form.subject) ? form.teaching_mode.trim() : "",
           }
         : form;
+      let openedTask = false;
       await streamHaiWork({ toolSlug, input, materialIds }, {
         onEvent: (event) => {
           if (event.type === "progress") setProgress(event.message);
           if (event.type === "error") setError(event.message);
-          if (event.type === "done") navigate(`/hai/work/tasks/${event.taskId}`);
+          if (event.type === "ready" && !openedTask) {
+            openedTask = true;
+            navigate(`/hai/work/tasks/${event.taskId}`);
+          }
+          if (event.type === "done" && !openedTask) {
+            openedTask = true;
+            navigate(`/hai/work/tasks/${event.taskId}`);
+          }
         },
       });
     } catch (nextError) {

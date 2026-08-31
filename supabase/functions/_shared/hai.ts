@@ -774,6 +774,7 @@ export async function* streamDeepSeek(
     userId?: string | null;
     admin?: SupabaseClient | null;
     modelProviderId?: string | null;
+    timeoutMs?: number | null;
     onUsage?: (usage: HaiProviderUsage) => void | Promise<void>;
     onProviderResolved?: (providerCode: string) => void;
     onReasoningDelta?: (delta: string) => void | Promise<void>;
@@ -808,7 +809,7 @@ export async function* streamDeepSeek(
         ? { type: "enabled" }
         : { type: "disabled" },
     })),
-    signal: AbortSignal.timeout(300_000),
+    signal: AbortSignal.timeout(Math.max(1_000, options.timeoutMs ?? 300_000)),
   });
 
   if (!response.ok || !response.body) {

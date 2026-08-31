@@ -18,10 +18,12 @@ import {
   streamDeepSeek,
 } from "../_shared/hai.ts";
 import {
+  applyWorkCompletionPolicy,
   assertWorkSkillRuntimeReady,
   buildWorkPrompt,
   buildWorkTaskTitle,
   createEmptyWorkSkill,
+  HAI_WORK_PROVIDER_TIMEOUT_MS,
   isHaiWorkToolSlug,
   selectWorkSkillReferences,
   selectWorkSkill,
@@ -139,7 +141,10 @@ Deno.serve(async (request) => {
       throw new HttpError(503, error instanceof Error ? error.message : "公开课设计 Skill 运行资料不完整。");
     }
     const runtime = await loadHaiRuntimeConfig(auth.admin);
-    const completionOptions = buildChatCompletionOptions({ module, runtime });
+    const completionOptions = applyWorkCompletionPolicy(
+      toolSlug,
+      buildChatCompletionOptions({ module, runtime }),
+    );
     const materialContext = await loadMaterialContext(
       auth.admin,
       auth.user.id,
@@ -1143,6 +1148,7 @@ async function collectModelOutput(params: {
       userId: params.userId,
       admin: params.admin,
       modelProviderId: params.module.model_provider_id,
+      timeoutMs: HAI_WORK_PROVIDER_TIMEOUT_MS,
       onUsage: (value) => { usage = value; },
       onProviderResolved: (value) => { providerCode = value; },
       onReasoningDelta: (value) => {
@@ -1167,6 +1173,11 @@ async function collectModelOutput(params: {
     };
   } catch (error) {
     const failedAt = new Date();
+    const timedOut = error instanceof Error && (
+      error.name === "TimeoutError" ||
+      error.name === "AbortError" ||
+      /timed?\s*out|timeout|aborted/i.test(error.message)
+    );
     return {
       output,
       started_at: startedAt.toISOString(),
@@ -1177,7 +1188,9 @@ async function collectModelOutput(params: {
       reasoning_chars: reasoningChars,
       first_reasoning_at: firstReasoningAt,
       first_content_at: firstContentAt,
-      error: error instanceof Error ? error.message : "模型调用失败。",
+      error: timedOut
+        ? "HAI 模型生成超过 140 秒，本次已停止。请直接重试；若持续超时，请改用 Flash 模型。"
+        : error instanceof Error ? error.message : "模型调用失败。",
     };
   }
 }

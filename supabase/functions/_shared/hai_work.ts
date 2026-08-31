@@ -4,6 +4,26 @@ export type HaiWorkToolSlug =
   | "subject-lesson-design"
   | "teaching-design";
 
+export const HAI_WORK_PROVIDER_TIMEOUT_MS = 140_000;
+
+/**
+ * HAI Work 会生成长文档，生产环境的实际 Edge Function 墙钟约为 150 秒。
+ * Work 不启用 reasoning，避免推理 Token 挤占正文与执行时间；公开课再设置
+ * 12k 输出上限，覆盖历史完整教案的实际长度，同时阻止异常长输出拖垮运行。
+ */
+export function applyWorkCompletionPolicy<T extends { maxTokens: number; thinkingEnabled: boolean }>(
+  toolSlug: HaiWorkToolSlug,
+  options: T,
+): T {
+  return {
+    ...options,
+    thinkingEnabled: false,
+    maxTokens: toolSlug === "subject-lesson-design"
+      ? Math.min(options.maxTokens, 12_000)
+      : options.maxTokens,
+  };
+}
+
 export type WorkSkillCandidate = {
   id: string;
   slug: string;

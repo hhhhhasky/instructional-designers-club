@@ -1,4 +1,5 @@
 import {
+  applyWorkCompletionPolicy,
   applyWorkOutputRuntimeTrace,
   assertWorkSkillRuntimeReady,
   buildWorkPrompt,
@@ -14,6 +15,25 @@ import {
   validateWorkOutput,
   type WorkSkillCandidate,
 } from "./hai_work.ts";
+
+Deno.test("Work completion policy disables thinking and caps public lesson output", () => {
+  assertEquals(applyWorkCompletionPolicy("subject-lesson-design", {
+    model: "deepseek-v4-pro",
+    maxTokens: 30_000,
+    thinkingEnabled: true,
+  }), {
+    model: "deepseek-v4-pro",
+    maxTokens: 12_000,
+    thinkingEnabled: false,
+  });
+  assertEquals(applyWorkCompletionPolicy("lesson-diagnosis", {
+    maxTokens: 8_000,
+    thinkingEnabled: true,
+  }), {
+    maxTokens: 8_000,
+    thinkingEnabled: false,
+  });
+});
 
 Deno.test("buildWorkTaskTitle uses the canonical public lesson prefix", () => {
   assertEquals(
