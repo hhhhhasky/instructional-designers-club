@@ -3624,6 +3624,7 @@ export type Database = {
       }
       hai_trigger_daily_review: { Args: never; Returns: number }
       hai_usage_summary: { Args: { p_user_id?: string }; Returns: Json }
+      hai_point_ledger: { Args: { p_limit?: number; p_offset?: number }; Returns: Json }
       home_page_snapshot: {
         Args: {
           activity_limit?: number

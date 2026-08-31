@@ -1,4 +1,4 @@
-import { ArrowLeft, Coins, Loader2, MessageCircleMore } from "lucide-react";
+import { ArrowDownLeft, ArrowLeft, ArrowUpRight, CheckCircle2, ChevronDown, Coins, Loader2, MessageCircleMore, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Footer from "@/components/common/Footer";
@@ -6,7 +6,7 @@ import PageMeta from "@/components/common/PageMeta";
 import Header from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { getHaiAccessStatus, type HaiUsageSummary } from "@/db/hai-api";
+import { getHaiAccessStatus, getHaiPointLedger, type HaiPointLedgerEntry, type HaiUsageSummary } from "@/db/hai-api";
 
 export default function HaiPointsPage() {
   const navigate = useNavigate();
@@ -14,6 +14,12 @@ export default function HaiPointsPage() {
   const [usage, setUsage] = useState<HaiUsageSummary | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [ledgerOpen, setLedgerOpen] = useState(false);
+  const [ledger, setLedger] = useState<HaiPointLedgerEntry[]>([]);
+  const [ledgerLoading, setLedgerLoading] = useState(false);
+  const [ledgerHasMore, setLedgerHasMore] = useState(false);
+  const [ledgerLoadingMore, setLedgerLoadingMore] = useState(false);
+  const [ledgerError, setLedgerError] = useState("");
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/login", { state: { from: "/hai/points" } });
@@ -41,6 +47,37 @@ export default function HaiPointsPage() {
       cancelled = true;
     };
   }, [user?.id]);
+
+  const handleLedgerToggle = () => {
+    const nextOpen = !ledgerOpen;
+    setLedgerOpen(nextOpen);
+    if (!nextOpen || ledger.length > 0 || ledgerLoading) return;
+    setLedgerLoading(true);
+    setLedgerError("");
+    void getHaiPointLedger()
+      .then((entries) => {
+        setLedger(entries);
+        setLedgerHasMore(entries.length >= 100);
+      })
+      .catch((loadError: unknown) => {
+        setLedgerError(loadError instanceof Error ? loadError.message : "积分账本加载失败，请稍后重试。");
+      })
+      .finally(() => setLedgerLoading(false));
+  };
+
+  const handleLedgerLoadMore = () => {
+    if (!ledgerHasMore || ledgerLoadingMore) return;
+    setLedgerLoadingMore(true);
+    void getHaiPointLedger(100, ledger.length)
+      .then((entries) => {
+        setLedger((current) => [...current, ...entries]);
+        setLedgerHasMore(entries.length >= 100);
+      })
+      .catch((loadError: unknown) => {
+        setLedgerError(loadError instanceof Error ? loadError.message : "更多积分记录加载失败，请稍后重试。");
+      })
+      .finally(() => setLedgerLoadingMore(false));
+  };
 
   const walletPoints = Number(usage?.wallet_points ?? usage?.current_points ?? 0);
   const walletConsumedPoints = Number(usage?.wallet_consumed_points ?? usage?.consumed_points ?? 0);
@@ -92,6 +129,48 @@ export default function HaiPointsPage() {
                     </p>
                   )}
                 </div>
+
+                <section className="mb-6 rounded-ds-lg border border-bd bg-white">
+                  <button
+                    type="button"
+                    aria-expanded={ledgerOpen}
+                    onClick={handleLedgerToggle}
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                  >
+                    <span>
+                      <span className="block text-ds-base font-ds-bold">积分账本</span>
+                      <span className="mt-0.5 block text-ds-xs text-txs">查看购买、赠送、使用和退款记录</span>
+                    </span>
+                    <ChevronDown className={`h-5 w-5 shrink-0 text-txs transition-transform ${ledgerOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  {ledgerOpen && (
+                    <div className="border-t border-bd px-4 py-3">
+                      {ledgerLoading ? (
+                        <div className="flex items-center justify-center py-6 text-ds-sm text-txs">
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />正在加载积分账本
+                        </div>
+                      ) : ledgerError ? (
+                        <p className="rounded-ds-md border border-amber-200 bg-amber-50 px-3 py-3 text-ds-xs text-amber-900">{ledgerError}</p>
+                      ) : ledger.length === 0 ? (
+                        <p className="py-6 text-center text-ds-sm text-txs">暂无积分变动记录</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {ledger.map((entry) => <PointLedgerRow key={entry.id} entry={entry} />)}
+                          {ledgerHasMore && (
+                            <button
+                              type="button"
+                              onClick={handleLedgerLoadMore}
+                              disabled={ledgerLoadingMore}
+                              className="flex w-full items-center justify-center rounded-ds-md border border-bd bg-white px-3 py-3 text-ds-sm font-ds-semibold text-ac disabled:cursor-wait disabled:opacity-60"
+                            >
+                              {ledgerLoadingMore ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />正在加载</> : "加载更多记录"}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </section>
 
                 <h2 className="mb-3 text-ds-base font-ds-bold">积分套餐</h2>
                 {pointPackages.length > 0 ? (
@@ -200,6 +279,45 @@ export default function HaiPointsPage() {
       <Footer />
     </div>
   );
+}
+
+function PointLedgerRow({ entry }: { entry: HaiPointLedgerEntry }) {
+  const isIncrease = entry.points_delta > 0;
+  const isUsage = entry.transaction_type === "usage";
+  const isFailed = entry.result === "failed";
+  return (
+    <article className="rounded-ds-md border border-bd bg-bg px-3 py-3">
+      <div className="flex items-start gap-3">
+        <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-ds-full ${isFailed ? "bg-red-50 text-red-600" : isIncrease ? "bg-emerald-50 text-emerald-600" : "bg-acl/60 text-ac"}`}>
+          {isFailed ? <XCircle className="h-4 w-4" /> : isIncrease ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <p className="text-ds-sm font-ds-semibold text-tx">{entry.purpose}</p>
+            <p className={`text-ds-sm font-ds-bold ${isIncrease ? "text-emerald-600" : isFailed ? "text-txs" : "text-ac"}`}>
+              {isIncrease ? "+" : ""}{formatPoints(entry.points_delta)} 积分
+            </p>
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-ds-xs text-txs">
+            <time dateTime={entry.created_at}>{formatLedgerTime(entry.created_at)}</time>
+            <span className={`inline-flex items-center gap-1 ${isFailed ? "text-red-600" : "text-emerald-600"}`}>
+              {isFailed ? <XCircle className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+              {isFailed ? "失败，未扣分" : isUsage ? "成功" : "已入账"}
+            </span>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function formatLedgerTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit",
+  }).format(date);
 }
 
 function formatPoints(value?: number) {

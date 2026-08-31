@@ -40,6 +40,15 @@ export interface HaiUsageSummary {
   can_consume?: boolean;
 }
 
+export interface HaiPointLedgerEntry {
+  id: string;
+  transaction_type: "newcomer_gift" | "admin_add" | "purchase" | "usage" | "refund";
+  points_delta: number;
+  purpose: string;
+  result: "success" | "failed";
+  created_at: string;
+}
+
 export interface HaiPointPackage {
   id: string;
   name: string;
@@ -317,6 +326,32 @@ export async function getHaiAccessStatus(): Promise<{
   const { data, error } = await supabase.functions.invoke("hai-access-status");
   if (error) throw new Error(await getFunctionErrorMessage(error, "读取 HAI 权限失败。"));
   return normalizeAccessPayload(data);
+}
+
+export async function getHaiPointLedger(limit = 100, offset = 0): Promise<HaiPointLedgerEntry[]> {
+  const { data, error } = await typedSupabase.rpc("hai_point_ledger", { p_limit: limit, p_offset: offset });
+  if (error) throw new Error(error.message || "读取积分账本失败。");
+  if (!Array.isArray(data)) return [];
+  return data.flatMap((entry) => {
+    if (!isRecord(entry)) return [];
+    const result = entry.result === "failed" ? "failed" : "success";
+    const transactionType = entry.transaction_type;
+    if (
+      transactionType !== "newcomer_gift" &&
+      transactionType !== "admin_add" &&
+      transactionType !== "purchase" &&
+      transactionType !== "usage" &&
+      transactionType !== "refund"
+    ) return [];
+    return [{
+      id: String(entry.id ?? ""),
+      transaction_type: transactionType,
+      points_delta: Number(entry.points_delta ?? 0),
+      purpose: String(entry.purpose ?? "积分变动"),
+      result,
+      created_at: String(entry.created_at ?? ""),
+    }];
+  });
 }
 
 export async function getHaiChatModule(): Promise<HaiFeatureModule> {

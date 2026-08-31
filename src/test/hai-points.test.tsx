@@ -1,9 +1,9 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getHaiAccessStatus } from "@/db/hai-api";
+import { getHaiAccessStatus, getHaiPointLedger } from "@/db/hai-api";
 import HaiPointsPage from "@/pages/HaiPointsPage";
 
 vi.mock("@/components/layout/Header", () => ({ default: () => <div data-testid="global-header" /> }));
@@ -12,11 +12,12 @@ vi.mock("@/components/common/PageMeta", () => ({ default: () => null }));
 vi.mock("@/contexts/AuthContext", () => ({
   useAuth: () => ({ user: { id: "user-1" }, loading: false }),
 }));
-vi.mock("@/db/hai-api", () => ({ getHaiAccessStatus: vi.fn() }));
+vi.mock("@/db/hai-api", () => ({ getHaiAccessStatus: vi.fn(), getHaiPointLedger: vi.fn() }));
 
 describe("HAI points purchase page", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    vi.mocked(getHaiPointLedger).mockResolvedValue([]);
     vi.mocked(getHaiAccessStatus).mockResolvedValue({
       access: { authenticated: true, allowed: true, quota_mode: "points", membership_level: "plus" },
       usage: {
@@ -181,6 +182,52 @@ describe("HAI points purchase page", () => {
     expect(await screen.findByText("暂无可购买套餐，请联系管理员。")).toBeInTheDocument();
     expect(screen.queryByText("10 积分")).not.toBeInTheDocument();
   });
+
+  it("loads a points-only ledger on demand and shows successful and failed uses", async () => {
+    vi.mocked(getHaiPointLedger).mockResolvedValueOnce([
+      {
+        id: "usage-1",
+        transaction_type: "usage",
+        points_delta: -2.5,
+        purpose: "HAI Chat 聊天",
+        result: "success",
+        created_at: "2026-08-31T08:00:00.000Z",
+      },
+      {
+        id: "usage-2",
+        transaction_type: "usage",
+        points_delta: 0,
+        purpose: "HAI Work · 教案诊断",
+        result: "failed",
+        created_at: "2026-08-30T08:00:00.000Z",
+      },
+      {
+        id: "purchase-1",
+        transaction_type: "purchase",
+        points_delta: 100,
+        purpose: "购买积分",
+        result: "success",
+        created_at: "2026-08-29T08:00:00.000Z",
+      },
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={["/hai/points"]}>
+        <HaiPointsPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole("button", { name: /积分账本/ })).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(await screen.findByRole("button", { name: /积分账本/ }));
+    expect(await screen.findByText("HAI Chat 聊天")).toBeInTheDocument();
+    expect(screen.getByText("HAI Work · 教案诊断")).toBeInTheDocument();
+    expect(screen.getByText("购买积分")).toBeInTheDocument();
+    expect(screen.getByText("失败，未扣分")).toBeInTheDocument();
+    expect(screen.getByText("-2.5 积分")).toBeInTheDocument();
+    expect(screen.getByText("+100 积分")).toBeInTheDocument();
+    expect(screen.queryByText(/Token/i)).not.toBeInTheDocument();
+    expect(getHaiPointLedger).toHaveBeenCalledWith();
+  });
 });
 
 describe("HAI points wallet migration contract", () => {
@@ -214,6 +261,10 @@ describe("HAI points wallet migration contract", () => {
   );
   const pointNotificationSql = readFileSync(
     resolve(process.cwd(), "supabase/migrations/20260830051812_hai_notify_all_positive_point_credits.sql"),
+    "utf8",
+  );
+  const ledgerSql = readFileSync(
+    resolve(process.cwd(), "supabase/migrations/20260831031844_hai_point_ledger_read_model.sql"),
     "utf8",
   );
   const dynamicPackageSql = readFileSync(
@@ -419,5 +470,17 @@ describe("HAI points wallet migration contract", () => {
     expect(pointNotificationSql).toContain("revoke execute on function private.hai_notify_positive_point_transaction()");
     expect(adminSource).toContain("积分已增加并发送站内通知");
     expect(adminSource).toContain("每次增加成功后都会发送站内通知");
+  });
+
+  it("exposes a user-safe points ledger and includes failed uses without token fields", () => {
+    expect(ledgerSql).toContain("create or replace function public.hai_point_ledger");
+    expect(ledgerSql).toContain("event.status in ('completed', 'cached', 'failed')");
+    expect(ledgerSql).toContain("0::numeric as points_delta");
+    expect(ledgerSql).toContain("not exists");
+    expect(ledgerSql).toContain("'purpose', entries.purpose");
+    expect(ledgerSql).toContain("'result', entries.result");
+    expect(ledgerSql).not.toContain("'input_tokens'");
+    expect(ledgerSql).not.toContain("'output_tokens'");
+    expect(ledgerSql).toContain("grant execute on function public.hai_point_ledger(integer, integer) to authenticated");
   });
 });
