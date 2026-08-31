@@ -210,6 +210,7 @@ export interface HaiWorkTaskDetail {
 export type HaiWorkStreamEvent =
   | { type: "ready"; taskId: string; runId: string; skill?: string; skillVersion?: string; fallback?: boolean; replayed?: boolean }
   | { type: "progress"; stage: string; message: string }
+  | { type: "heartbeat"; stage: "generating"; elapsedSeconds: number }
   | { type: "done"; taskId: string; runId: string; artifactId: string; versionNumber: number; usage?: { inputTokens: number; outputTokens: number; totalTokens: number }; replayed?: boolean }
   | { type: "error"; message: string; taskId?: string; runId?: string; replayed?: boolean };
 

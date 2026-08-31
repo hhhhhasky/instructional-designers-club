@@ -776,6 +776,8 @@ export async function* streamDeepSeek(
     modelProviderId?: string | null;
     onUsage?: (usage: HaiProviderUsage) => void | Promise<void>;
     onProviderResolved?: (providerCode: string) => void;
+    onReasoningDelta?: (delta: string) => void | Promise<void>;
+    onContentDelta?: (delta: string) => void | Promise<void>;
   } = {},
 ) {
   const config = options.admin
@@ -801,8 +803,9 @@ export async function* streamDeepSeek(
       stream: true,
       stream_options: { include_usage: true },
       user_id: options.userId ?? undefined,
+      reasoning_effort: options.thinkingEnabled === true ? options.reasoningEffort : undefined,
       thinking: options.thinkingEnabled === true
-        ? compactObject({ type: "enabled", reasoning_effort: options.reasoningEffort })
+        ? { type: "enabled" }
         : { type: "disabled" },
     })),
     signal: AbortSignal.timeout(300_000),
@@ -835,8 +838,16 @@ export async function* streamDeepSeek(
       if (providerUsage && options.onUsage) await options.onUsage(providerUsage);
       const delta = data?.choices?.[0]?.delta;
       if (!delta) continue;
-      // reasoning_content 是思考过程，不混入输出流（否则会污染 JSON 解析）
-      if (delta.content) yield String(delta.content as string);
+      // reasoning_content 由 Edge Function 显式接收，但不混入最终正文。
+      // 调用方可用回调记录流活动与时序；不要默认持久化原始思维链。
+      if (delta.reasoning_content) {
+        await options.onReasoningDelta?.(String(delta.reasoning_content));
+      }
+      if (delta.content) {
+        const content = String(delta.content);
+        await options.onContentDelta?.(content);
+        yield content;
+      }
     }
   }
 }

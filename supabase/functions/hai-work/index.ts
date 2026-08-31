@@ -259,6 +259,7 @@ Deno.serve(async (request) => {
       async start(controller) {
         const startedAt = Date.now();
         let rawOutput = "";
+        let heartbeatId: number | undefined;
         try {
           await auth.admin.from("hai_work_runs").update({
             status: "running",
@@ -283,6 +284,18 @@ Deno.serve(async (request) => {
             message: evidenceStatus(materials, materialContext, textbook.sources, politicsCases.sources),
           });
           sendSse(controller, encoder, { type: "progress", stage: "generating", message: "HAI 正在形成第一版工作产物" });
+          heartbeatId = setInterval(() => {
+            try {
+              sendSse(controller, encoder, {
+                type: "heartbeat",
+                stage: "generating",
+                elapsedSeconds: Math.max(1, Math.round((Date.now() - startedAt) / 1000)),
+              });
+            } catch {
+              if (heartbeatId !== undefined) clearInterval(heartbeatId);
+              heartbeatId = undefined;
+            }
+          }, 15_000);
 
           const firstAttempt = await collectModelOutput({
             system: prompt.system,
@@ -489,6 +502,7 @@ Deno.serve(async (request) => {
           await summarizeHaiModelCalls({ admin: auth.admin, requestId: clientRequestId });
           sendSse(controller, encoder, { type: "error", message, taskId, runId: run.id });
         } finally {
+          if (heartbeatId !== undefined) clearInterval(heartbeatId);
           controller.close();
         }
       },
@@ -1012,7 +1026,7 @@ function createDebugTrace(params: {
       model: params.module.default_model,
       temperature: params.completionOptions.temperature,
       max_output_tokens: params.completionOptions.maxTokens,
-      thinking_enabled: false,
+      thinking_enabled: params.completionOptions.thinkingEnabled,
       top_p: params.completionOptions.topP,
       reasoning_effort: params.completionOptions.reasoningEffort,
       response_format: params.completionOptions.responseFormat,
@@ -1068,7 +1082,16 @@ async function appendDebugAttempt(
   admin: any,
   runId: string,
   trace: WorkDebugTrace,
-  attempt: { output: string; started_at: string; completed_at: string; duration_ms: number; error?: string },
+  attempt: {
+    output: string;
+    started_at: string;
+    completed_at: string;
+    duration_ms: number;
+    reasoning_chars?: number;
+    first_reasoning_at?: string | null;
+    first_content_at?: string | null;
+    error?: string;
+  },
   purpose: string,
 ) {
   trace.model_attempts.push({
@@ -1079,6 +1102,9 @@ async function appendDebugAttempt(
     duration_ms: attempt.duration_ms,
     raw_output: attempt.output,
     output_chars: attempt.output.length,
+    reasoning_chars: attempt.reasoning_chars ?? 0,
+    first_reasoning_at: attempt.first_reasoning_at ?? null,
+    first_content_at: attempt.first_content_at ?? null,
     error: attempt.error ?? null,
   });
   await saveRunDebugTrace(admin, runId, trace);
@@ -1105,19 +1131,27 @@ async function collectModelOutput(params: {
   let output = "";
   let usage: HaiProviderUsage | null = null;
   let providerCode = "deepseek";
-  // 强制关闭 thinking — Markdown 产出不需要推理步骤。
-  const workOptions = { ...params.completionOptions, thinkingEnabled: false };
+  let reasoningChars = 0;
+  let firstReasoningAt: string | null = null;
+  let firstContentAt: string | null = null;
   try {
     for await (const token of streamDeepSeek([
       { role: "system", content: params.system },
       { role: "user", content: params.user },
     ], {
-      ...workOptions,
+      ...params.completionOptions,
       userId: params.userId,
       admin: params.admin,
       modelProviderId: params.module.model_provider_id,
       onUsage: (value) => { usage = value; },
       onProviderResolved: (value) => { providerCode = value; },
+      onReasoningDelta: (value) => {
+        if (!firstReasoningAt) firstReasoningAt = new Date().toISOString();
+        reasoningChars += value.length;
+      },
+      onContentDelta: () => {
+        if (!firstContentAt) firstContentAt = new Date().toISOString();
+      },
     })) output += token;
     const finishedAt = new Date();
     return {
@@ -1127,6 +1161,9 @@ async function collectModelOutput(params: {
       duration_ms: finishedAt.getTime() - startedAt.getTime(),
       usage,
       provider_code: providerCode,
+      reasoning_chars: reasoningChars,
+      first_reasoning_at: firstReasoningAt,
+      first_content_at: firstContentAt,
     };
   } catch (error) {
     const failedAt = new Date();
@@ -1137,6 +1174,9 @@ async function collectModelOutput(params: {
       duration_ms: failedAt.getTime() - startedAt.getTime(),
       usage,
       provider_code: providerCode,
+      reasoning_chars: reasoningChars,
+      first_reasoning_at: firstReasoningAt,
+      first_content_at: firstContentAt,
       error: error instanceof Error ? error.message : "模型调用失败。",
     };
   }
