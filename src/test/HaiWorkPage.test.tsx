@@ -342,7 +342,8 @@ describe("HAI Work workbench", () => {
     expect(Array.from(subjectSelect.options).map((option) => option.textContent)).toEqual([
       "请选择",
       "语文",
-      "数学",
+      "高中数学 A版",
+      "高中数学 B版",
       "英语",
       "物理",
       "化学",
