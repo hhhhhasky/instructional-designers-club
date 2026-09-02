@@ -26,6 +26,7 @@ import {
   TableCell,
   TableRow,
   Table,
+  TableLayoutType,
   TextRun,
   WidthType,
 } from "docx";
@@ -84,7 +85,11 @@ const MATH_SYMBOLS: Record<string, string> = {
   supset: "⊃", supseteq: "⊇", emptyset: "∅", cup: "∪", cap: "∩", le: "≤", leq: "≤", ge: "≥", geq: "≥",
   neq: "≠", ne: "≠", approx: "≈", times: "×", cdot: "⋅", pm: "±", mp: "∓", to: "→", rightarrow: "→",
   leftarrow: "←", Leftrightarrow: "⇔", leftrightarrow: "↔", Rightarrow: "⇒", implies: "⇒", therefore: "∴",
-  infinity: "∞", ell: "…", cdots: "⋯", ldots: "…", mid: "∣", vert: "|", parallel: "∥", perp: "⊥", angle: "∠", degree: "°",
+  infinity: "∞", infty: "∞", ell: "…", cdots: "⋯", dots: "…", dotsb: "⋯", dotsc: "…", dotso: "…",
+  mid: "∣", vert: "|", parallel: "∥", perp: "⊥", angle: "∠", degree: "°", lbrace: "{", rbrace: "}",
+  circ: "∘", star: "⋆", prime: "′", cdotp: "⋅", nmid: "∤", geqslant: "≥", leqslant: "≤",
+  sin: "sin", cos: "cos", tan: "tan", cot: "cot", sec: "sec", csc: "csc", ln: "ln", log: "log", exp: "exp",
+  lim: "lim", max: "max", min: "min", sup: "sup", inf: "inf",
 };
 
 export async function renderHaiDocx(input: RenderHaiDocxInput): Promise<Blob> {
@@ -196,7 +201,7 @@ function inlineChildren(text: string, font: string, size: number, color: string,
 }
 
 function parseMathComponents(source: string): MathComponent[] {
-  const input = source.replace(/\s+/g, " ").trim();
+  const input = normalizeMathSource(source).replace(/\s+/g, " ").trim();
   const components: MathComponent[] = [];
   let index = 0;
   while (index < input.length) {
@@ -228,7 +233,17 @@ function parseMathComponents(source: string): MathComponent[] {
         continue;
       }
       index += command.length + 1;
-      if (["left", "right", "displaystyle", "limits", "mathbf", "boldsymbol", "mathrm", "mathbb", "mathcal", "operatorname"].includes(command)) continue;
+      if (["overrightarrow", "vec", "overline", "bar", "widehat", "hat"].includes(command)) {
+        const decorated = readMathAtom(input, index);
+        components.push(...decorated.components, new MathRun(["overrightarrow", "vec"].includes(command) ? "→" : ["widehat", "hat"].includes(command) ? "^" : "¯"));
+        index = decorated.next;
+        continue;
+      }
+      if ([
+        "left", "right", "displaystyle", "limits", "mathbf", "boldsymbol", "mathrm", "mathbb", "mathcal", "operatorname",
+        "big", "Big", "bigl", "bigr", "Bigl", "Bigr", "bigg", "Bigg", "biggl", "biggr", "Biggl", "Biggr",
+        "quad", "qquad", "enspace", "enskip", "thinspace", "medspace", "thickspace",
+      ].includes(command)) continue;
       if (command === "frac") {
         const numerator = readMathAtom(input, index);
         const denominator = readMathAtom(input, numerator.next);
@@ -248,13 +263,26 @@ function parseMathComponents(source: string): MathComponent[] {
         index = content.next;
         continue;
       }
-      components.push(new MathRun(MATH_SYMBOLS[command] ?? command));
+      // 未识别命令不再把命令名写入 Word(例如 `\\foo`)，后续分组内容仍会继续解析。
+      const symbol = MATH_SYMBOLS[command];
+      if (symbol) components.push(new MathRun(symbol));
       continue;
     }
     components.push(new MathRun(char));
     index++;
   }
   return components.length > 0 ? components : [new MathRun(" ")];
+}
+
+/** 将常见的装饰命令降级为可读的 Unicode 符号，避免未支持的 LaTeX 命令原样写入 Word。 */
+function normalizeMathSource(source: string): string {
+  return source
+    .replace(/\\overrightarrow\s*\{([^{}]*)\}/g, "$1→")
+    .replace(/\\vec\s*\{([^{}]*)\}/g, "$1→")
+    .replace(/\\overline\s*\{([^{}]*)\}/g, "$1¯")
+    .replace(/\\bar\s*\{([^{}]*)\}/g, "$1¯")
+    .replace(/\\widehat\s*\{([^{}]*)\}/g, "$1^")
+    .replace(/\\hat\s*\{([^{}]*)\}/g, "$1^");
 }
 
 function readMathAtom(source: string, start: number): { components: MathComponent[]; next: number } {
@@ -382,19 +410,23 @@ function listItemParagraph(bullet: string, text: string, indent: number): Paragr
 function buildTable(rows: string[][]): Table {
   const cols = rows[0]?.length ?? 0;
   if (cols === 0) return new Paragraph({ children: [] });
+  const widths = tableColumnWidths(rows, cols);
+  const tableFontSize = cols >= 5 ? 18 : 20;
   const tableRows = rows.map((row, r) => {
     const isHeader = r === 0;
     const fill = isHeader ? C.tableHeaderBg : r % 2 === 0 ? C.tableZebra : undefined;
     return new TableRow({
       tableHeader: isHeader,
-      children: row.slice(0, cols).map(
-        (cell) =>
+      children: Array.from({ length: cols }, (_, index) => row[index] ?? "").map(
+        (cell, index) =>
           new TableCell({
+            width: { size: widths[index], type: WidthType.DXA },
+            margins: { top: 70, bottom: 70, left: 90, right: 90 },
             shading: fill ? { type: ShadingType.CLEAR, color: "auto", fill } : undefined,
             children: [
               new Paragraph({
                 spacing: { before: 40, after: 40 },
-                children: inlineChildren(cell ?? "", FONT_BODY, 20, C.ink, isHeader),
+                children: inlineChildren(cell, FONT_BODY, tableFontSize, C.ink, isHeader),
               }),
             ],
           }),
@@ -403,10 +435,33 @@ function buildTable(rows: string[][]): Table {
   });
   const border = { style: BorderStyle.SINGLE, size: 4, color: C.tableBorder };
   return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
+    width: { size: CONTENT_W_TWIP, type: WidthType.DXA },
+    columnWidths: widths,
+    layout: TableLayoutType.FIXED,
+    margins: { top: 70, bottom: 70, left: 90, right: 90 },
+    alignment: AlignmentType.CENTER,
     borders: { top: border, bottom: border, left: border, right: border, insideHorizontal: border, insideVertical: border },
     rows: tableRows,
   });
+}
+
+/** 根据内容长度分配固定列宽，保证首列可读且长文本在正文区域内换行。 */
+function tableColumnWidths(rows: string[][], cols: number): number[] {
+  const minRatio = cols >= 5 ? 0.1 : cols === 4 ? 0.12 : 0.16;
+  const maxRatio = cols === 2 ? 0.72 : 0.42;
+  const raw = Array.from({ length: cols }, (_, index) =>
+    Math.max(4, ...rows.map((row) => visualTextLength(row[index] ?? ""))),
+  );
+  const total = raw.reduce((sum, value) => sum + value, 0);
+  const ratios = raw.map((value) => Math.min(maxRatio, Math.max(minRatio, value / total)));
+  const ratioTotal = ratios.reduce((sum, value) => sum + value, 0);
+  const widths = ratios.map((ratio) => Math.floor((CONTENT_W_TWIP * ratio) / ratioTotal));
+  widths[widths.length - 1] += CONTENT_W_TWIP - widths.reduce((sum, value) => sum + value, 0);
+  return widths;
+}
+
+function visualTextLength(value: string): number {
+  return Array.from(value.replace(/\$[^$]+\$/g, "公式")).reduce((length, char) => length + (/[^\u0000-\u00ff]/u.test(char) ? 2 : 1), 0);
 }
 
 /** 仅去控制字符(保留换行/制表由调用方先拆行)。Word 支持 emoji 与 BMP 外字符,无需像 pdf-lib 那样过滤。 */
@@ -431,12 +486,72 @@ function stripInline(s: string): string {
 }
 
 function parseTableRow(line: string): string[] {
-  return line
-    .trim()
-    .replace(/^\s*\|/, "")
-    .replace(/\|\s*$/, "")
-    .split("|")
-    .map((c) => stripInline(c.trim()));
+  const trimmed = line.trim().replace(/^\s*\|/, "").replace(/\|\s*$/, "");
+  return splitTableCells(trimmed).map((c) => stripInline(c.trim()));
+}
+
+/** 只在数学定界符之外拆分 GFM 表格，避免公式中的 `|a|` 被误判为列分隔符。 */
+function splitTableCells(line: string): string[] {
+  const cells: string[] = [];
+  let current = "";
+  let mathDelimiter: "$" | "$$" | "\\(" | "\\[" | null = null;
+  for (let index = 0; index < line.length; index++) {
+    const two = line.slice(index, index + 2);
+    if (mathDelimiter === "$$" && two === "$$") {
+      current += two;
+      index++;
+      mathDelimiter = null;
+      continue;
+    }
+    if (mathDelimiter === "$" && line[index] === "$" && line[index - 1] !== "\\") {
+      current += "$";
+      mathDelimiter = null;
+      continue;
+    }
+    if (mathDelimiter === "\\(" && two === "\\)") {
+      current += two;
+      index++;
+      mathDelimiter = null;
+      continue;
+    }
+    if (mathDelimiter === "\\[" && two === "\\]") {
+      current += two;
+      index++;
+      mathDelimiter = null;
+      continue;
+    }
+    if (!mathDelimiter && two === "$$") {
+      current += two;
+      index++;
+      mathDelimiter = "$$";
+      continue;
+    }
+    if (!mathDelimiter && line[index] === "$") {
+      current += "$";
+      mathDelimiter = "$";
+      continue;
+    }
+    if (!mathDelimiter && two === "\\(") {
+      current += two;
+      index++;
+      mathDelimiter = "\\(";
+      continue;
+    }
+    if (!mathDelimiter && two === "\\[") {
+      current += two;
+      index++;
+      mathDelimiter = "\\[";
+      continue;
+    }
+    if (line[index] === "|" && line[index - 1] !== "\\" && !mathDelimiter) {
+      cells.push(current);
+      current = "";
+      continue;
+    }
+    current += line[index];
+  }
+  cells.push(current);
+  return cells;
 }
 
 function parseMarkdown(md: string): Block[] {

@@ -79,6 +79,33 @@ describe("renderHaiDocx", () => {
     expect(xml).toContain("<m:f>");
     expect(xml).not.toContain("$A=");
   });
+
+  it("处理数学装饰命令并为表格写入固定列宽", async () => {
+    const blob = await renderHaiDocx({
+      title: "数学表格导出",
+      version: 1,
+      markdown: [
+        "向量：$\\overrightarrow{AB}=\\boldsymbol{a}$，长度：$\\big|\\vec{a}\\big|$，角度：$A\\circ B$。",
+        "",
+        "| 教学环节 | 教师活动与关键提问 | 学生活动与预期产出 | 评价与调整 |",
+        "| --- | --- | --- | --- |",
+        "| 导入 | 观察向量图示并写出 $\\overrightarrow{AB}$，比较模长 $\\big|\\vec{a}\\big|$。 | 小组讨论并记录结论。 | 根据表达准确性追问。 |",
+      ].join("\n"),
+      watermark: "HAI",
+      metaRight: "数学表格导出 · v1",
+    });
+    const xml = extractZipEntry(new Uint8Array(await blob.arrayBuffer()), "word/document.xml");
+    expect(xml).toContain("<m:oMath");
+    expect(xml).toContain("∘");
+    expect(xml).toContain("→");
+    expect(xml).not.toContain("$");
+    expect(xml).not.toContain("overrightarrow");
+    expect(xml).not.toContain("boldsymbol");
+    expect(xml).not.toContain("\\big");
+    expect(xml).toContain("<w:tblGrid>");
+    expect((xml.match(/<w:gridCol /g) ?? []).length).toBe(4);
+    expect(xml).toContain('w:tblLayout w:type="fixed"');
+  });
 });
 
 function extractZipEntry(bytes: Uint8Array, entryName: string): string {
