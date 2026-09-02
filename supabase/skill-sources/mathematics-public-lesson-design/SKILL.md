@@ -1,6 +1,6 @@
 ---
 name: mathematics-public-lesson-design
-description: Design complete Chinese primary, junior-secondary, or senior-secondary mathematics public lessons from precisely matched textbook content, selecting a discipline-specific pathway for concept formation, rule or algorithm construction, geometric inquiry and proof, problem solving and modelling, statistics and probability inquiry, or review and integration. Use for 数学公开课、优质课、展示课、赛课 and complete mathematics lesson-plan requests that require textbook analysis, learner analysis, observable objectives, a rigorous lesson flow, assessment evidence, board design, differentiation, and reflection.
+description: Design concise Chinese primary, junior-secondary, or senior-secondary mathematics public lessons from precisely matched textbook content, selecting a discipline-specific pathway for concept formation, rule or algorithm construction, geometric inquiry and proof, problem solving and modelling, statistics and probability inquiry, or review and integration. Use for 数学公开课、优质课、展示课、赛课 and complete mathematics lesson-plan requests that require eight core sections, observable objectives, a compact lesson flow, assessment evidence, and board design.
 ---
 
 # 数学公开课设计
@@ -70,16 +70,12 @@ description: Design complete Chinese primary, junior-secondary, or senior-second
 
 ### 6. 写出可执行流程
 
-每个主体环节写清：
+教学流程最多 4 个环节。每个环节只写四个字段：
 
-- 环节功能与时间；
-- 数学材料、问题或任务；
-- 教师可直接执行的问题、追问、示范、反馈与分支决策；
-- 学生的独立行动、合作必要性与表达要求；
-- 预期正确策略、不同策略和典型错误；
-- 阶段性数学产出；
-- 目标对应的评价证据和成功标准；
-- 数学知识/思想落点与过渡。
+- **环节功能/对应目标**：解决哪个认知问题；
+- **核心问题/任务**：材料、任务指令和时间合并描述；
+- **学生行动与产出**：独立行动、关键策略和可见结果合并描述；
+- **教师反馈与评价**：追问、典型错误、成功标准和即时分支合并描述。
 
 学生先独立产生可见想法，再进行有必要的合作。技术只能用于呈现难以观察的变化、批量处理数据、比较多种表征或即时收集全体证据；不能替代猜想、计算、解释、证明和方法选择。
 
@@ -99,4 +95,4 @@ description: Design complete Chinese primary, junior-secondary, or senior-second
 
 ## 输出要求
 
-严格使用 [输出模板](references/output-template.md) 的八个一级标题：课标分析、教材分析、学情分析、教学目标、教学重难点、教学流程、教学评估、板书。课程信息、主导模式、准备、作业、反思等内容必须并入这八项，不得另设一级标题。保留教材分析、学情证据、目标—任务—证据表、典型错误与反馈、完整流程、评价量规、差异化支持、板书、作业和复盘；输出 Markdown，不使用代码围栏。数学公式使用 `$...$` 或独立行 `$$...$$`，不确定的教材事实、班情、课标原文或数据标注“待核实/请教师补充”。
+严格使用 [输出模板](references/output-template.md) 的八个一级标题：课标分析、教材分析、学情分析、教学目标、教学重难点、教学流程、教学评估、板书。课程信息、主导模式、准备、作业、反思和差异化支持不得另设标题；需要时各用一句话并入对应要素。教学流程最多 4 个环节，每环节只保留四个字段。输出 Markdown，不使用代码围栏，全文控制在约 6,000 tokens 内。数学公式使用 `$...$` 或独立行 `$$...$$`，不确定的教材事实、班情、课标原文或数据标注“待核实/请教师补充”。

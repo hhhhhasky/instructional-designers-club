@@ -1,4 +1,4 @@
 interface:
   display_name: "数学公开课设计"
-  short_description: "按数学知识类型选择教学模式，生成八要素公开课教案"
-  default_prompt: "使用 $mathematics-public-lesson-design，依据指定教材内容设计一节完整的数学公开课。"
+  short_description: "按数学知识类型生成八要素、四环节精简数学教案"
+  default_prompt: "使用 $mathematics-public-lesson-design，依据指定教材内容生成一节八要素、四环节的精简数学公开课教案。"

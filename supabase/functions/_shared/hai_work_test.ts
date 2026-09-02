@@ -23,7 +23,7 @@ Deno.test("Work completion policy disables thinking and caps public lesson outpu
     thinkingEnabled: true,
   }), {
     model: "deepseek-v4-pro",
-    maxTokens: 12_000,
+    maxTokens: 6_000,
     thinkingEnabled: false,
   });
   assertEquals(applyWorkCompletionPolicy("lesson-diagnosis", {
@@ -630,6 +630,27 @@ Deno.test("mathematics references load the shared method and only the matching s
   assertEquals(prompt.user.includes("初中全等样例"), false);
   assertEquals(prompt.system.includes("学科、学段匹配"), true);
   assertEquals(prompt.system.includes("对应 V3 模板"), false);
+});
+
+Deno.test("mathematics public lesson prompt uses the concise flow directive", () => {
+  const skill = candidate({
+    slug: "subject-lesson-design-mathematics",
+    version: {
+      ...candidate({}).version,
+      prompt_template: "数学公开课 Skill",
+      references: [],
+    },
+  });
+  const prompt = buildWorkPrompt({
+    toolSlug: "subject-lesson-design",
+    input: { stage: "高中", subject: "高中数学 A版", topic: "函数" },
+    skill,
+    materialContext: "",
+    textbookContext: "教材知识点",
+  });
+  assertEquals(prompt.system.includes("教学流程最多 4 个环节"), true);
+  assertEquals(prompt.system.includes("每个环节只写四个字段"), true);
+  assertEquals(prompt.system.includes("全文控制在约 6,000 tokens 内"), true);
 });
 
 Deno.test("chinese references load only the matching stage example and retain language-practice guidance", () => {

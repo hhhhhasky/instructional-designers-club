@@ -12,6 +12,12 @@ import {
   convertMillimetersToTwip,
   Document,
   Footer,
+  Math as MathElement,
+  MathFraction,
+  MathRadical,
+  MathSubScript,
+  MathSuperScript,
+  MathRun,
   PageNumber,
   Packer,
   Paragraph,
@@ -23,6 +29,7 @@ import {
   TextRun,
   WidthType,
 } from "docx";
+import type { MathComponent } from "docx";
 
 // 字体(均为中文 Windows/Mac 通用):正文宋体(衬线、书卷气),标题微软雅黑,代码等宽。
 const FONT_BODY = "宋体";
@@ -67,6 +74,18 @@ type Block =
   | { type: "code"; text: string }
   | { type: "table"; rows: string[][] }
   | { type: "hr" };
+
+type InlineChild = TextRun | MathElement;
+
+const MATH_SYMBOLS: Record<string, string> = {
+  alpha: "α", beta: "β", gamma: "γ", delta: "δ", epsilon: "ε", theta: "θ", lambda: "λ", mu: "μ",
+  pi: "π", sigma: "σ", phi: "φ", omega: "ω", Gamma: "Γ", Delta: "Δ", Theta: "Θ", Lambda: "Λ",
+  Pi: "Π", Sigma: "Σ", Phi: "Φ", Omega: "Ω", in: "∈", notin: "∉", subset: "⊂", subseteq: "⊆",
+  supset: "⊃", supseteq: "⊇", emptyset: "∅", cup: "∪", cap: "∩", le: "≤", leq: "≤", ge: "≥", geq: "≥",
+  neq: "≠", ne: "≠", approx: "≈", times: "×", cdot: "⋅", pm: "±", mp: "∓", to: "→", rightarrow: "→",
+  leftarrow: "←", Leftrightarrow: "⇔", leftrightarrow: "↔", Rightarrow: "⇒", implies: "⇒", therefore: "∴",
+  infinity: "∞", ell: "…", cdots: "⋯", ldots: "…", mid: "∣", vert: "|", parallel: "∥", perp: "⊥", angle: "∠", degree: "°",
+};
 
 export async function renderHaiDocx(input: RenderHaiDocxInput): Promise<Blob> {
   const body = parseMarkdown(input.markdown).map(blockToParagraphs).flat();
@@ -156,6 +175,133 @@ function bodyFooter(watermark: string, metaRight: string): Footer {
   });
 }
 
+/** 将 Markdown 数学定界符转换为 Word 原生 OMML，避免把 `$...$` 或 LaTeX 原文写进 DOCX。 */
+function inlineChildren(text: string, font: string, size: number, color: string, bold = false): InlineChild[] {
+  const children: InlineChild[] = [];
+  const pattern = /\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$|\\\[([\s\S]+?)\\\]|\\\(([\s\S]+?)\\\)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(text))) {
+    if (match.index > lastIndex) {
+      children.push(new TextRun({ text: sanitize(text.slice(lastIndex, match.index)), font, size, color, bold }));
+    }
+    const formula = match[1] ?? match[2] ?? match[3] ?? match[4] ?? "";
+    children.push(new MathElement({ children: parseMathComponents(formula) }));
+    lastIndex = pattern.lastIndex;
+  }
+  if (lastIndex < text.length) {
+    children.push(new TextRun({ text: sanitize(text.slice(lastIndex)), font, size, color, bold }));
+  }
+  return children.length > 0 ? children : [new TextRun({ text: sanitize(text), font, size, color, bold })];
+}
+
+function parseMathComponents(source: string): MathComponent[] {
+  const input = source.replace(/\s+/g, " ").trim();
+  const components: MathComponent[] = [];
+  let index = 0;
+  while (index < input.length) {
+    const char = input[index];
+    if (char === " ") { index++; continue; }
+    if (char === "^") {
+      const script = readMathAtom(input, index + 1);
+      index = script.next;
+      attachMathScript(components, script.components, "super");
+      continue;
+    }
+    if (char === "_") {
+      const script = readMathAtom(input, index + 1);
+      index = script.next;
+      attachMathScript(components, script.components, "sub");
+      continue;
+    }
+    if (char === "{") {
+      const group = readMathGroup(input, index);
+      components.push(...group.components);
+      index = group.next;
+      continue;
+    }
+    if (char === "\\") {
+      const command = input.slice(index + 1).match(/^[A-Za-z]+/u)?.[0] ?? "";
+      if (!command) {
+        components.push(new MathRun(input[index + 1] ?? ""));
+        index += 2;
+        continue;
+      }
+      index += command.length + 1;
+      if (["left", "right", "displaystyle", "limits", "mathbf", "boldsymbol", "mathrm", "mathbb", "mathcal", "operatorname"].includes(command)) continue;
+      if (command === "frac") {
+        const numerator = readMathAtom(input, index);
+        const denominator = readMathAtom(input, numerator.next);
+        components.push(new MathFraction({ numerator: numerator.components, denominator: denominator.components }));
+        index = denominator.next;
+        continue;
+      }
+      if (command === "sqrt") {
+        const radicand = readMathAtom(input, index);
+        components.push(new MathRadical({ children: radicand.components }));
+        index = radicand.next;
+        continue;
+      }
+      if (["text", "textbf", "textrm"].includes(command)) {
+        const content = readMathTextAtom(input, index);
+        components.push(new MathRun(content.text));
+        index = content.next;
+        continue;
+      }
+      components.push(new MathRun(MATH_SYMBOLS[command] ?? command));
+      continue;
+    }
+    components.push(new MathRun(char));
+    index++;
+  }
+  return components.length > 0 ? components : [new MathRun(" ")];
+}
+
+function readMathAtom(source: string, start: number): { components: MathComponent[]; next: number } {
+  if (source[start] === "{") return readMathGroup(source, start);
+  if (source[start] === "\\") {
+    const command = source.slice(start + 1).match(/^[A-Za-z]+/u)?.[0] ?? "";
+    if (command) {
+      const parsed = parseMathComponents(source.slice(start, start + command.length + 1));
+      return { components: parsed, next: start + command.length + 1 };
+    }
+  }
+  return { components: [new MathRun(source[start] ?? " ")], next: Math.min(source.length, start + 1) };
+}
+
+function readMathGroup(source: string, start: number): { components: MathComponent[]; next: number } {
+  let depth = 0;
+  for (let index = start; index < source.length; index++) {
+    if (source[index] === "{") depth++;
+    if (source[index] === "}") {
+      depth--;
+      if (depth === 0) return { components: parseMathComponents(source.slice(start + 1, index)), next: index + 1 };
+    }
+  }
+  return { components: parseMathComponents(source.slice(start + 1)), next: source.length };
+}
+
+function attachMathScript(components: MathComponent[], script: MathComponent[], kind: "sub" | "super") {
+  const base = components.pop() ?? new MathRun(" ");
+  if (kind === "sub") components.push(new MathSubScript({ children: [base], subScript: script }));
+  else components.push(new MathSuperScript({ children: [base], superScript: script }));
+}
+
+function readMathTextAtom(source: string, start: number): { text: string; next: number } {
+  if (source[start] === "{") {
+    let depth = 0;
+    for (let index = start; index < source.length; index++) {
+      if (source[index] === "{") depth++;
+      if (source[index] === "}") {
+        depth--;
+        if (depth === 0) return { text: source.slice(start + 1, index), next: index + 1 };
+      }
+    }
+    return { text: source.slice(start + 1), next: source.length };
+  }
+  return { text: source[start] ?? " ", next: Math.min(source.length, start + 1) };
+}
+
 function blockToParagraphs(block: Block): Array<Paragraph | Table> {
   switch (block.type) {
     case "h": {
@@ -163,15 +309,7 @@ function blockToParagraphs(block: Block): Array<Paragraph | Table> {
       return [
         new Paragraph({
           spacing: { before: block.level <= 1 ? 400 : block.level === 2 ? 320 : 240, after: 120 },
-          children: [
-            new TextRun({
-              text: sanitize(block.text),
-              font: FONT_HEADING,
-              size,
-              bold: true,
-              color: block.level <= 1 ? C.accent : C.ink,
-            }),
-          ],
+          children: inlineChildren(stripInline(block.text), FONT_HEADING, size, block.level <= 1 ? C.accent : C.ink, true),
         }),
       ];
     }
@@ -179,7 +317,7 @@ function blockToParagraphs(block: Block): Array<Paragraph | Table> {
       return [
         new Paragraph({
           spacing: { before: 120, after: 120, line: 300 },
-          children: [new TextRun({ text: sanitize(block.text), font: FONT_BODY, size: 22, color: C.ink })],
+          children: inlineChildren(block.text, FONT_BODY, 22, C.ink),
         }),
       ];
     }
@@ -196,7 +334,7 @@ function blockToParagraphs(block: Block): Array<Paragraph | Table> {
           indent: { left: 320 },
           border: { left: { style: BorderStyle.SINGLE, color: C.quoteBar, size: 18, space: 12 } },
           shading: { type: ShadingType.CLEAR, color: "auto", fill: C.quoteBg },
-          children: [new TextRun({ text: sanitize(block.text), font: FONT_BODY, size: 22, color: C.muted })],
+          children: inlineChildren(block.text, FONT_BODY, 22, C.muted),
         }),
       ];
     }
@@ -235,7 +373,7 @@ function listItemParagraph(bullet: string, text: string, indent: number): Paragr
     indent: { left: leftIndent, hanging: 280 },
     children: [
       new TextRun({ text: `${bullet} `, font: FONT_BODY, size: 22, color: C.accent, bold: true }),
-      new TextRun({ text: sanitize(text), font: FONT_BODY, size: 22, color: C.ink }),
+      ...inlineChildren(text, FONT_BODY, 22, C.ink),
     ],
   });
 }
@@ -256,15 +394,7 @@ function buildTable(rows: string[][]): Table {
             children: [
               new Paragraph({
                 spacing: { before: 40, after: 40 },
-                children: [
-                  new TextRun({
-                    text: sanitize(cell ?? ""),
-                    font: FONT_BODY,
-                    size: 20,
-                    color: C.ink,
-                    bold: isHeader,
-                  }),
-                ],
+                children: inlineChildren(cell ?? "", FONT_BODY, 20, C.ink, isHeader),
               }),
             ],
           }),

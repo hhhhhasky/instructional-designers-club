@@ -13,8 +13,8 @@ const configs = {
     sourceSkillName: "mathematics-public-lesson-design",
     sourceDir: join(repoRoot, "supabase/skill-sources/mathematics-public-lesson-design"),
     seedPath: join(repoRoot, "supabase/seed-data/mathematics-public-lesson-design-work-skill.json"),
-    migrationPath: join(repoRoot, "supabase/migrations/20260902090000_hai_mathematics_public_lesson_skill_v3.sql"),
-    skillDescription: "精简数学公开课设计 Skill：把课标、教材、学情、目标、重难点、流程、评估和板书整合为八要素教案，按数学知识类型选择主导模式。",
+    migrationPath: join(repoRoot, "supabase/migrations/20260902093000_hai_mathematics_public_lesson_skill_v4.sql"),
+    skillDescription: "超精简数学公开课设计 Skill：用八要素和四环节流程生成约 6,000 tokens 内的高中及中小学数学教案。",
     matchCriteria: { subjects: ["数学"], lesson_types: ["公开课"] },
     references: [
       ["references/mainstream-models.md", "数学公开课主流教学模式", "六类模式的选择规则、核心循环、证据与失败信号", "always", 10, {}],
@@ -30,13 +30,12 @@ const configs = {
       supported_stages: ["小学", "初中", "高中"],
     },
     outputContract: {
-      format: "mathematics_public_lesson_markdown_v2",
+      format: "mathematics_public_lesson_markdown_v3",
       required_sections: [
         "课标分析", "教材分析", "学情分析", "教学目标", "教学重难点", "教学流程", "教学评估", "板书",
       ],
       lesson_flow_required: [
-        "环节功能/对应目标", "材料与核心问题/任务指令", "独立思考与学生行动", "教师行为与反馈",
-        "预期产出/不同策略", "典型错误或异常", "评价证据、成功标准与反馈", "数学落点与过渡", "时间核算",
+        "环节功能/对应目标", "核心问题/任务", "学生行动与产出", "教师反馈与评价",
       ],
     },
   },

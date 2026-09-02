@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { inflateRawSync } from "node:zlib";
 import { renderHaiDocx } from "@/lib/hai-docx";
 
 const sample = [
@@ -39,6 +40,7 @@ const sample = [
   "---",
   "",
   "结束段。",
+  "数学符号：$A=\\{x\\in\\mathbb R\\mid x>0\\}$，公式：$$S=\\frac{1}{2}ah$$。",
 ].join("\n");
 
 describe("renderHaiDocx", () => {
@@ -62,4 +64,39 @@ describe("renderHaiDocx", () => {
     expect(text).toContain("word/document.xml");
     expect(text).toContain("word/footer"); // 正文节带页脚(水印 + 页码)
   });
+
+  it("将 Markdown 数学定界符转换为 Word OMML，而不是写入原始 MD", async () => {
+    const blob = await renderHaiDocx({
+      title: "数学公开课",
+      version: 1,
+      markdown: "# 数学\n\n集合 $A=\\{x\\in\\mathbb R\\mid x>0\\}$。\n\n$$S=\\frac{1}{2}ah$$",
+      watermark: "HAI",
+      metaRight: "数学公开课 · v1",
+    });
+    const xml = extractZipEntry(new Uint8Array(await blob.arrayBuffer()), "word/document.xml");
+    expect(xml).toContain("<m:oMath");
+    expect(xml).toContain("∈");
+    expect(xml).toContain("<m:f>");
+    expect(xml).not.toContain("$A=");
+  });
 });
+
+function extractZipEntry(bytes: Uint8Array, entryName: string): string {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  for (let offset = 0; offset + 30 <= bytes.length;) {
+    if (view.getUint32(offset, true) !== 0x04034b50) break;
+    const method = view.getUint16(offset + 8, true);
+    const compressedSize = view.getUint32(offset + 18, true);
+    const nameLength = view.getUint16(offset + 26, true);
+    const extraLength = view.getUint16(offset + 28, true);
+    const name = new TextDecoder().decode(bytes.slice(offset + 30, offset + 30 + nameLength));
+    const dataStart = offset + 30 + nameLength + extraLength;
+    const data = bytes.slice(dataStart, dataStart + compressedSize);
+    if (name === entryName) {
+      const raw = method === 8 ? inflateRawSync(data) : data;
+      return new TextDecoder().decode(raw);
+    }
+    offset = dataStart + compressedSize;
+  }
+  throw new Error(`ZIP entry not found: ${entryName}`);
+}

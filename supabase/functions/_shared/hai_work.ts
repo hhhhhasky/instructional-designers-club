@@ -9,7 +9,7 @@ export const HAI_WORK_PROVIDER_TIMEOUT_MS = 140_000;
 /**
  * HAI Work 会生成长文档，生产环境的实际 Edge Function 墙钟约为 150 秒。
  * Work 不启用 reasoning，避免推理 Token 挤占正文与执行时间；公开课再设置
- * 12k 输出上限，覆盖历史完整教案的实际长度，同时阻止异常长输出拖垮运行。
+ * 6k 输出上限，保留八要素教案的最小可用内容，同时阻止异常长输出拖垮运行。
  */
 export function applyWorkCompletionPolicy<T extends { maxTokens: number; thinkingEnabled: boolean }>(
   toolSlug: HaiWorkToolSlug,
@@ -19,7 +19,7 @@ export function applyWorkCompletionPolicy<T extends { maxTokens: number; thinkin
     ...options,
     thinkingEnabled: false,
     maxTokens: toolSlug === "subject-lesson-design"
-      ? Math.min(options.maxTokens, 12_000)
+      ? Math.min(options.maxTokens, 6_000)
       : options.maxTokens,
   };
 }
@@ -448,10 +448,13 @@ const MARKDOWN_DIRECTIVE: Record<HaiWorkToolSlug, string> = {
   "segment-optimization":
     "请直接输出 Markdown 环节优化方案，不要输出 JSON。结构依次为：核心问题、优化原则（要点列表）、优化后的环节（可直接替换使用的完整改写稿）、教师行动（列表）、学生行动（列表）、时间安排、学习证据（列表）、为什么这样改（理由）、使用提醒（列表）。优化后的环节必须让教学目标、学生行动与学习证据三者一致。",
   "subject-lesson-design":
-    "请直接输出完整的 Markdown 教案，不要输出 JSON。若已加载学科输出模板，必须保留其完整章节与必要字段，并根据课题特点调整各部分详略；没有学科模板时按教学设计的自然结构组织。",
+    "请直接输出 Markdown 教案，不要输出 JSON。若已加载学科输出模板，严格遵守其章节、字段和篇幅要求，不要额外扩展；没有学科模板时按教学设计的自然结构组织。",
   "teaching-design":
     "请直接输出 Markdown 单元/课程设计方案，不要输出 JSON。按所选设计方法的自然结构组织：先确定预期结果（学生应理解/知道/能做什么）与评估证据，再排列学习活动，确保教-学-评一致并对齐核心素养。",
 };
+
+const MATHEMATICS_MARKDOWN_DIRECTIVE =
+  "数学公开课只输出八个二级标题：课标分析、教材分析、学情分析、教学目标、教学重难点、教学流程、教学评估、板书。教学流程最多 4 个环节，每个环节只写四个字段：环节功能/目标、核心问题/任务、学生行动与产出、教师反馈与评价。删除课后延伸、复盘和单独的差异化章节；需要时各用一句话并入教学评估。全文控制在约 6,000 tokens 内。";
 
 /** 环节优化的开放环节方法论。前端当前开放课程导入、问题链、任务活动、评价反馈；其余旧类型保留兼容。 */
 const SEGMENT_METHODOLOGY: Record<string, string> = {
@@ -536,6 +539,10 @@ export function buildWorkPrompt(params: {
       : "当前学科 Skill 壳没有 reference；后续补充 Skill 内容后才会增加学科专属方法。",
     params.toolSlug === "segment-optimization" && segmentType
       ? `本次要优化的环节类型是「${segmentType}」。该类型的优化要点：\n${SEGMENT_METHODOLOGY[segmentType] ?? SEGMENT_METHODOLOGY["其他"]}`
+      : "",
+    params.toolSlug === "subject-lesson-design" &&
+      String(params.skill.slug).includes("mathematics")
+      ? MATHEMATICS_MARKDOWN_DIRECTIVE
       : "",
     `${MARKDOWN_DIRECTIVE[params.toolSlug]}\n不要用代码围栏（\`\`\`）包裹整个输出。`,
   ].filter(Boolean).join("\n\n");
