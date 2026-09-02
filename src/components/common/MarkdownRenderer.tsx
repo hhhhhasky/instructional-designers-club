@@ -1,5 +1,8 @@
+import 'katex/dist/katex.min.css';
 import ReactMarkdown from 'react-markdown';
+import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
 import { cn } from '@/lib/utils';
 
 type MarkdownSegment =
@@ -57,6 +60,7 @@ export default function MarkdownRenderer({
         'font-body text-tx text-ds-md leading-relaxed break-words',
         className
       )}
+      data-markdown-content
     >
       {segments.map((segment, index) => {
         if (segment.type === 'details') {
@@ -115,7 +119,8 @@ function MarkdownBlock({ content, onVideoSeek, onAudioSeek }: { content: string;
 
   return (
     <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
+      remarkPlugins={[remarkGfm, remarkMath]}
+      rehypePlugins={[rehypeKatex]}
       components={{
         h1: ({ children }) => (
           <h1 className="font-serif text-2xl md:text-3xl font-black text-tx mt-7 mb-3 leading-tight">

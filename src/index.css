@@ -478,6 +478,13 @@
   color: #343630;
 }
 
+/* KaTeX 对长公式默认允许横向溢出；在教案阅读区保留公式本身，改由其容器横向滚动。 */
+[data-markdown-content] .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5rem 0;
+}
+
 @media print {
   body {
     background: #fff !important;

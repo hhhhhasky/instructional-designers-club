@@ -63,6 +63,25 @@ describe('MarkdownRenderer', () => {
     expect(screen.getByText('旧答案').tagName.toLowerCase()).toBe('del');
   });
 
+  it('renders inline mathematical notation with KaTeX', () => {
+    const { container } = render(
+      <MarkdownRenderer content={'函数 $f(x)=\\sqrt{x^2+1}$ 的定义域为 $x\\in\\mathbb{R}$。'} />,
+    );
+
+    expect(container.querySelectorAll('.katex')).toHaveLength(2);
+    expect(container.querySelectorAll('.katex annotation')[0]).toHaveTextContent('f(x)=\\sqrt{x^2+1}');
+    expect(container.querySelectorAll('.katex annotation')[1]).toHaveTextContent('x\\in\\mathbb{R}');
+  });
+
+  it('renders block mathematical notation with KaTeX', () => {
+    const { container } = render(
+      <MarkdownRenderer content={'$$\n\\frac{a+b}{c}=\\sqrt{d}\n$$'} />,
+    );
+
+    expect(container.querySelector('.katex-display')).toBeInTheDocument();
+    expect(container.querySelector('.katex annotation')).toHaveTextContent('\\frac{a+b}{c}=\\sqrt{d}');
+  });
+
   it('does not enable arbitrary raw html', () => {
     const { container } = render(<MarkdownRenderer content={'<script>alert("xss")</script>'} />);
 
