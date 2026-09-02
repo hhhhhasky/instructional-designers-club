@@ -1,6 +1,6 @@
 ---
 name: mathematics-public-lesson-design
-description: Design complete Chinese primary or junior-secondary mathematics public lessons from precisely matched textbook content, selecting a discipline-specific pathway for concept formation, rule or algorithm construction, geometric inquiry and proof, problem solving and modelling, statistics and probability inquiry, or review and integration. Use for 数学公开课、优质课、展示课、赛课 and complete mathematics lesson-plan requests that require textbook analysis, learner analysis, observable objectives, a rigorous lesson flow, assessment evidence, board design, differentiation, and reflection.
+description: Design complete Chinese primary, junior-secondary, or senior-secondary mathematics public lessons from precisely matched textbook content, selecting a discipline-specific pathway for concept formation, rule or algorithm construction, geometric inquiry and proof, problem solving and modelling, statistics and probability inquiry, or review and integration. Use for 数学公开课、优质课、展示课、赛课 and complete mathematics lesson-plan requests that require textbook analysis, learner analysis, observable objectives, a rigorous lesson flow, assessment evidence, board design, differentiation, and reflection.
 ---
 
 # 数学公开课设计
@@ -12,7 +12,7 @@ description: Design complete Chinese primary or junior-secondary mathematics pub
 1. 核对学段、年级、教材版本、册次、单元、课题、课时位置和实际教材内容。
 2. 同时读取所选课题和父级单元信息，说明本课从哪里来、为后续什么学习奠基。
 3. 只有课题名或教材证据不足时，停止生成正式完整教案，先列缺失证据；不得猜写例题、数据、图形条件、教材栏目或课标条款。
-4. 读取 [主流教学模式](references/mainstream-models.md) 和 [输出模板](references/output-template.md)。按学段读取且只读取对应的优秀样例：小学读 [小学样例](references/excellent-example-primary.md)，初中读 [初中样例](references/excellent-example-junior.md)。需要核查研究依据或使用边界时读 [来源说明](references/sources-and-boundaries.md)。
+4. 读取 [主流教学模式](references/mainstream-models.md) 和 [输出模板](references/output-template.md)。小学、初中任务分别读取对应优秀样例；高中数学不读取不匹配的义务教育样例。需要核查研究依据或使用边界时读 [来源说明](references/sources-and-boundaries.md)。
 
 ## 核心工作流
 
@@ -66,7 +66,7 @@ description: Design complete Chinese primary or junior-secondary mathematics pub
 
 > 真实起点/问题 → 独立尝试 → 表征或操作 → 比较与交流 → 抽象/推理/建模 → 形式化表达 → 变式辨析 → 新情境迁移 → 回看增长
 
-小学强调经验—实物/动作—图示—语言—符号之间的往返，不把操作停在“做过了”。初中强调直观感知、合情推理和演绎论证之间的台阶，不把动态几何或测量结果当作证明。
+小学强调经验—实物/动作—图示—语言—符号之间的往返，不把操作停在“做过了”。初中强调直观感知、合情推理和演绎论证之间的台阶，不把动态几何或测量结果当作证明。高中强调定义域/条件、符号化表达、一般化论证、函数或统计模型的解释边界；不把复杂符号堆叠、软件输出或特殊值验证当作一般证明。
 
 ### 6. 写出可执行流程
 
@@ -99,4 +99,4 @@ description: Design complete Chinese primary or junior-secondary mathematics pub
 
 ## 输出要求
 
-严格使用 [输出模板](references/output-template.md) 的章节和字段，不得删去教材分析、学情证据、目标—证据表、典型错误与反馈、完整流程、评价量规、差异化支持、板书设计、作业和反思。输出 Markdown，不使用代码围栏。不确定的教材事实、班情、课标原文或数据标注“待核实/请教师补充”。
+严格使用 [输出模板](references/output-template.md) 的八个一级标题：课标分析、教材分析、学情分析、教学目标、教学重难点、教学流程、教学评估、板书。课程信息、主导模式、准备、作业、反思等内容必须并入这八项，不得另设一级标题。保留教材分析、学情证据、目标—任务—证据表、典型错误与反馈、完整流程、评价量规、差异化支持、板书、作业和复盘；输出 Markdown，不使用代码围栏。数学公式使用 `$...$` 或独立行 `$$...$$`，不确定的教材事实、班情、课标原文或数据标注“待核实/请教师补充”。

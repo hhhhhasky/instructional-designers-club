@@ -615,6 +615,10 @@ Deno.test("mathematics references load the shared method and only the matching s
     "references/mainstream-models.md",
     "references/excellent-example-primary.md",
   ]);
+  const seniorSelected = selectWorkSkillReferences(skill, { stage: "高中", subject: "高中数学 A版" });
+  assertEquals(seniorSelected.map((item) => item.path), [
+    "references/mainstream-models.md",
+  ]);
   const prompt = buildWorkPrompt({
     toolSlug: "subject-lesson-design",
     input: { stage: "小学", subject: "数学", topic: "平行四边形的面积" },

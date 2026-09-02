@@ -13,33 +13,30 @@ const configs = {
     sourceSkillName: "mathematics-public-lesson-design",
     sourceDir: join(repoRoot, "supabase/skill-sources/mathematics-public-lesson-design"),
     seedPath: join(repoRoot, "supabase/seed-data/mathematics-public-lesson-design-work-skill.json"),
-    migrationPath: join(repoRoot, "supabase/migrations/20260813220000_hai_mathematics_public_lesson_skill_v2.sql"),
-    skillDescription: "完整数学公开课设计 Skill：按数学知识类型选择六类主导模式，生成教材、学情、目标、流程、证据、评价与反思齐全的教案。",
+    migrationPath: join(repoRoot, "supabase/migrations/20260902090000_hai_mathematics_public_lesson_skill_v3.sql"),
+    skillDescription: "精简数学公开课设计 Skill：把课标、教材、学情、目标、重难点、流程、评估和板书整合为八要素教案，按数学知识类型选择主导模式。",
     matchCriteria: { subjects: ["数学"], lesson_types: ["公开课"] },
     references: [
       ["references/mainstream-models.md", "数学公开课主流教学模式", "六类模式的选择规则、核心循环、证据与失败信号", "always", 10, {}],
-      ["references/output-template.md", "数学公开课完整输出模板", "十二部分教案结构、完整流程字段与质量硬约束", "always", 20, {}],
-      ["references/excellent-example-primary.md", "小学数学优秀教案样例", "依据权威课例主题重构的完整小学数学示范", "always", 30, { stages: ["小学"] }],
-      ["references/excellent-example-junior.md", "初中数学优秀教案样例", "依据权威课例主题重构的完整初中数学示范", "always", 40, { stages: ["初中"] }],
+      ["references/output-template.md", "数学公开课八要素输出模板", "八要素教案结构、紧凑流程字段与质量硬约束", "always", 20, {}],
+      ["references/excellent-example-primary.md", "小学数学八要素教案样例", "依据权威课例主题重构的小学数学八要素示范", "always", 30, { stages: ["小学"] }],
+      ["references/excellent-example-junior.md", "初中数学八要素教案样例", "依据权威课例主题重构的初中数学八要素示范", "always", 40, { stages: ["初中"] }],
       ["references/sources-and-boundaries.md", "数学 Skill 来源与边界", "权威来源、课例使用方式、版权与事实核验边界", "always", 50, {}],
       ["agents/openai.yaml", "OpenAI Skill 界面配置", "源包界面元数据，不进入生成上下文", "evaluation_only", 60, {}],
     ],
     inputContract: {
       format: "mathematics_public_lesson_input_v1",
       required: ["stage", "subject", "grade", "volume", "unit", "topic", "lesson_type"],
-      supported_stages: ["小学", "初中"],
+      supported_stages: ["小学", "初中", "高中"],
     },
     outputContract: {
-      format: "mathematics_public_lesson_markdown_v1",
+      format: "mathematics_public_lesson_markdown_v2",
       required_sections: [
-        "课程基本信息", "教材与数学内容分析", "学情与学习起点", "目标—任务—证据设计",
-        "重难点与突破策略", "公开课主线与模式", "教学准备", "教学流程", "板书设计",
-        "评价量规与差异化支持", "作业设计", "教学反思",
+        "课标分析", "教材分析", "学情分析", "教学目标", "教学重难点", "教学流程", "教学评估", "板书",
       ],
       lesson_flow_required: [
-        "环节功能", "数学材料/情境", "核心问题/任务指令", "独立思考", "教师行为",
-        "学生数学行动", "预期产出/策略", "典型错误或分歧", "评价证据与反馈分支",
-        "数学知识/思想落点", "阶段成果", "过渡", "时间核算",
+        "环节功能/对应目标", "材料与核心问题/任务指令", "独立思考与学生行动", "教师行为与反馈",
+        "预期产出/不同策略", "典型错误或异常", "评价证据、成功标准与反馈", "数学落点与过渡", "时间核算",
       ],
     },
   },
@@ -700,12 +697,13 @@ const sqlPayload = JSON.stringify({
   match_criteria: config.matchCriteria,
 });
 if (sqlPayload.includes("$subjectskill$")) throw new Error("Skill 数据与 SQL 分隔符冲突。");
+const sqlPayloadBase64 = Buffer.from(sqlPayload, "utf8").toString("base64");
 
 const migration = `begin;
 
 do $$
 declare
-  v_payload jsonb := $subjectskill$${sqlPayload}$subjectskill$::jsonb;
+  v_payload jsonb := convert_from(decode('${sqlPayloadBase64}', 'base64'), 'UTF8')::jsonb;
   v_skill_id uuid;
   v_version_id uuid;
 begin
