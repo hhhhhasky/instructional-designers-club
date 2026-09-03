@@ -1,6 +1,6 @@
 ---
 name: english-public-lesson-design
-description: Design complete primary or junior-secondary English public lessons from precisely matched textbook discourse, choosing a discipline-specific pathway for listening-viewing-speaking, discourse reading, reading-writing integration, story or drama, phonics and pronunciation, grammar or vocabulary in context, or thematic project learning. Use for 小学英语、初中英语公开课、优质课、展示课、赛课 and complete lesson-plan requests requiring unit and discourse analysis, observable language-use objectives, activity-view progression, teaching-assessment alignment, detailed flow, board design, assignments, and reflection.
+description: Design complete primary or junior-secondary English public lessons from precisely matched textbook discourse, choosing a discipline-specific pathway for listening-viewing-speaking, discourse reading, reading-writing integration, story or drama, phonics and pronunciation, grammar or vocabulary in context, or thematic project learning. Use for 小学英语、初中英语公开课、优质课、展示课、赛课 and complete lesson-plan requests requiring the shared nine-section Markdown format, unit and discourse analysis, observable language-use objectives, activity-view progression, teaching-assessment alignment, and board design.
 ---
 
 # 英语公开课设计
@@ -94,4 +94,4 @@ description: Design complete primary or junior-secondary English public lessons 
 
 ## 输出要求
 
-严格使用 [输出模板](references/output-template.md) 的九个部分：课标分析、教材分析、学情分析、教学目标、教学重难点、教学环节、教学评估、教学反思、板书设计。只输出这九个一级标题，不另设单元蓝图、语篇研读、主导模式、教学准备或作业标题；相关内容分别并入教材分析、课标分析、教学环节和教学评估。输出 Markdown，不使用代码围栏。全文控制在约 8,000—10,000 字符，教学流程最多 6 个环节，避免重复和长篇示例。教材原文、录音、图片、班情或外部文化事实不确定时标注“待核实/请教师补充”；样例只示范结构与决策，不得替代当前教材证据。
+严格使用 [输出模板](references/output-template.md) 的九个部分，直接输出 Markdown 教案，不输出 JSON，不使用代码围栏包裹全文。教学流程设置 5—6 个环节，每环只使用“设计意图＋五列表格＋过渡语”；五列依次为对应目标、核心问题、核心任务、教师活动/教学活动、评估方式。学科样例只参考方法、内容和证据，其旧章节结构不再适用。主 Skill、主流模式和来源边界中的教材事实、学科方法、安全、伦理、版权、隐私与证据限制继续有效，但不另设统一一级章节，只在实际需要处简洁呈现。

@@ -448,13 +448,10 @@ const MARKDOWN_DIRECTIVE: Record<HaiWorkToolSlug, string> = {
   "segment-optimization":
     "请直接输出 Markdown 环节优化方案，不要输出 JSON。结构依次为：核心问题、优化原则（要点列表）、优化后的环节（可直接替换使用的完整改写稿）、教师行动（列表）、学生行动（列表）、时间安排、学习证据（列表）、为什么这样改（理由）、使用提醒（列表）。优化后的环节必须让教学目标、学生行动与学习证据三者一致。",
   "subject-lesson-design":
-    "请直接输出 Markdown 教案，不要输出 JSON。若已加载学科输出模板，严格遵守其章节、字段和篇幅要求，不要额外扩展；没有学科模板时按教学设计的自然结构组织。",
+    "请直接输出 Markdown 教案，不要输出 JSON。所有学科统一使用九个二级标题：课程基本信息、课标分析、教材分析、学情分析、教学目标、教学重难点、教学流程、教学评估、板书设计。教学流程设 5—6 个环节，每环依次呈现表格上方的设计意图、由对应目标/核心问题/核心任务/教师活动或教学活动/评估方式组成的五列表格，以及表格下方的过渡语。若已加载学科输出模板，严格遵守其学科内容和板书要求；没有学科模板时也使用上述统一结构。",
   "teaching-design":
     "请直接输出 Markdown 单元/课程设计方案，不要输出 JSON。按所选设计方法的自然结构组织：先确定预期结果（学生应理解/知道/能做什么）与评估证据，再排列学习活动，确保教-学-评一致并对齐核心素养。",
 };
-
-const MATHEMATICS_MARKDOWN_DIRECTIVE =
-  "数学公开课只输出八个二级标题：课标分析、教材分析、学情分析、教学目标、教学重难点、教学流程、教学评估、板书。教学流程最多 4 个环节，每个环节只写四个字段：环节功能/目标、核心问题/任务、学生行动与产出、教师反馈与评价。删除课后延伸、复盘和单独的差异化章节；需要时各用一句话并入教学评估。全文控制在约 6,000 tokens 内。";
 
 /** 环节优化的开放环节方法论。前端当前开放课程导入、问题链、任务活动、评价反馈；其余旧类型保留兼容。 */
 const SEGMENT_METHODOLOGY: Record<string, string> = {
@@ -524,7 +521,7 @@ export function buildWorkPrompt(params: {
     revisionMode
       ? "当前是上一版续改：上一版产物是本轮的主要工作对象，只按本轮追改要求做必要修改，并保留未被要求修改的内容。原始教材、案例、用户材料和 Skill reference 不在本轮重复展开；不得借此凭空补充上一版没有的事实。"
       : "当前是首次生成：使用本轮提供的教材、案例、用户材料和版本化 Skill reference 建立产物。",
-    params.skill.version.output_contract.format === "sizheng_public_lesson_v2"
+    params.skill.slug === "politics-public-lesson"
       ? revisionMode
         ? `本轮续改继续保持用户选择的“${String(params.input.teaching_mode ?? "")}”主导模式，不混用另外两套主流程。`
         : selectedReferences.length > 0
@@ -539,10 +536,6 @@ export function buildWorkPrompt(params: {
       : "当前学科 Skill 壳没有 reference；后续补充 Skill 内容后才会增加学科专属方法。",
     params.toolSlug === "segment-optimization" && segmentType
       ? `本次要优化的环节类型是「${segmentType}」。该类型的优化要点：\n${SEGMENT_METHODOLOGY[segmentType] ?? SEGMENT_METHODOLOGY["其他"]}`
-      : "",
-    params.toolSlug === "subject-lesson-design" &&
-      String(params.skill.slug).includes("mathematics")
-      ? MATHEMATICS_MARKDOWN_DIRECTIVE
       : "",
     `${MARKDOWN_DIRECTIVE[params.toolSlug]}\n不要用代码围栏（\`\`\`）包裹整个输出。`,
   ].filter(Boolean).join("\n\n");
@@ -602,7 +595,7 @@ export function assertWorkSkillRuntimeReady(
   skill: WorkSkillCandidate,
   input: Record<string, unknown>,
 ) {
-  if (skill.version.output_contract.format !== "sizheng_public_lesson_v2") return;
+  if (skill.slug !== "politics-public-lesson") return;
   const selected = selectWorkSkillReferences(skill, input);
   const selectedPaths = new Set(selected.map((item) => item.path));
   const commonPaths = [

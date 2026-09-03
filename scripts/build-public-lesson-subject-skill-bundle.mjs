@@ -5,6 +5,25 @@ import { dirname, join, resolve } from "node:path";
 const repoRoot = resolve(import.meta.dirname, "..");
 const subject = String(process.argv[2] || "mathematics").trim();
 const versionLabel = String(process.argv[3] || "v2.0.0").trim();
+const seedOnly = process.argv.includes("--seed-only");
+
+const unifiedOutputContract = {
+  format: "public_lesson_markdown_v2",
+  required_sections: [
+    "课程基本信息", "课标分析", "教材分析", "学情分析", "教学目标",
+    "教学重难点", "教学流程", "教学评估", "板书设计",
+  ],
+  lesson_flow_required: [
+    "设计意图", "对应目标", "核心问题", "核心任务", "教师活动/教学活动", "评估方式", "过渡语",
+  ],
+  lesson_flow_table_columns: [
+    "对应目标", "核心问题", "核心任务", "教师活动/教学活动", "评估方式",
+  ],
+  rubric_columns: {
+    primary: ["评价维度", "合格（1分）", "良好（2分）", "优秀（3分）"],
+    secondary: ["评价维度", "新手（1分）", "入门（2分）", "熟练（3分）", "专家（4分）"],
+  },
+};
 
 const configs = {
   mathematics: {
@@ -14,7 +33,7 @@ const configs = {
     sourceDir: join(repoRoot, "supabase/skill-sources/mathematics-public-lesson-design"),
     seedPath: join(repoRoot, "supabase/seed-data/mathematics-public-lesson-design-work-skill.json"),
     migrationPath: join(repoRoot, "supabase/migrations/20260902093000_hai_mathematics_public_lesson_skill_v4.sql"),
-    skillDescription: "超精简数学公开课设计 Skill：用八要素和四环节流程生成约 6,000 tokens 内的高中及中小学数学教案。",
+    skillDescription: "数学公开课设计 Skill：在统一九部分 Markdown 结构中保留数学表征、推理、证明、建模和迁移要求。",
     matchCriteria: { subjects: ["数学"], lesson_types: ["公开课"] },
     references: [
       ["references/mainstream-models.md", "数学公开课主流教学模式", "六类模式的选择规则、核心循环、证据与失败信号", "always", 10, {}],
@@ -119,7 +138,7 @@ const configs = {
     sourceDir: join(repoRoot, "supabase/skill-sources/english-public-lesson-design"),
     seedPath: join(repoRoot, "supabase/seed-data/english-public-lesson-design-work-skill.json"),
     migrationPath: join(repoRoot, "supabase/migrations/20260831033729_hai_english_public_lesson_skill_v3.sql"),
-    skillDescription: "精简英语公开课设计 Skill：把课标、教材、学情、目标、重难点、环节、评估、反思和板书合并为九部分，按活动观组织可实施、可评价的完整教案。",
+    skillDescription: "英语公开课设计 Skill：在统一九部分 Markdown 结构中按活动观组织语篇理解、语言实践、迁移表达与评估。",
     matchCriteria: { subjects: ["英语"], lesson_types: ["公开课"] },
     references: [
       ["references/mainstream-models.md", "英语公开课主流教学模式", "七类课型模式、活动观进阶、学段适配、证据和失败信号", "always", 10, {}],
@@ -629,8 +648,24 @@ const configs = {
   },
 };
 
-const config = configs[subject];
-if (!config) throw new Error(`未知学科配置：${subject}`);
+const baseConfig = configs[subject];
+if (!baseConfig) throw new Error(`未知学科配置：${subject}`);
+const config = {
+  ...baseConfig,
+  outputContract: unifiedOutputContract,
+  references: baseConfig.references.map((reference) =>
+    reference[0] === "references/output-template.md"
+      ? [
+        reference[0],
+        `${baseConfig.displayName.replace(/\s*Skill$/, "")} 统一输出模板`,
+        "九部分 Markdown 教案、五列教学流程与分学段评价量规",
+        reference[3],
+        reference[4],
+        reference[5],
+      ]
+      : reference
+  ),
+};
 
 function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
@@ -790,8 +825,8 @@ $$;
 commit;
 `;
 
-writeFileSync(config.migrationPath, migration);
-console.log(`已生成 ${config.sourceSkillName} 快照与迁移`);
+if (!seedOnly) writeFileSync(config.migrationPath, migration);
+console.log(`已生成 ${config.sourceSkillName} 快照${seedOnly ? "" : "与迁移"}`);
 console.log(`snapshot_hash=${payload.snapshot_hash}`);
 console.log(config.seedPath);
-console.log(config.migrationPath);
+if (!seedOnly) console.log(config.migrationPath);

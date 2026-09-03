@@ -15,7 +15,7 @@ const versionLabel = String(process.argv[3] || "v1.2.0").trim();
 const referenceConfigs = [
   ["references/mode-selection.md", "三种模式判断表", "共同模式判断规则", "always", 10],
   ["references/carrier-selection.md", "中国特色教学载体选择", "共同载体选择与事实核验规则", "always", 20],
-  ["references/output-template.md", "思政公开课教案输出模板", "固定输出顺序、JSON 结构与教学流程字段", "always", 25],
+  ["references/output-template.md", "思政公开课统一输出模板", "九部分 Markdown 教案、五列教学流程与分学段评价量规", "always", 25],
   ["references/case-mode-v3.md", "案例式教学 V3", "案例式唯一主模板", "case", 30],
   ["references/task-mode-v3.md", "任务式教学 V3", "任务式唯一主模板", "task", 40],
   ["references/issue-mode-v3.md", "议题式教学 V3", "议题式唯一主模板", "issue", 50],
@@ -79,29 +79,21 @@ const payload = {
     teaching_modes: ["案例式", "任务式", "议题式"],
   },
   output_contract: {
-    format: "sizheng_public_lesson_v2",
-    required: [
-      "title", "basic_info", "textbook_analysis", "learner_analysis",
-      "objectives", "key_points", "difficult_points", "lesson_flow",
-      "board_design", "teaching_reflection",
-    ],
-    basic_info_required: [
-      "subject", "stage", "grade", "textbook_edition", "unit", "lesson",
-      "frame", "class_size", "duration", "lesson_type", "teaching_mode",
-      "topic", "textbook_source_path", "mode_template_path",
-    ],
-    textbook_analysis_required: [
-      "unit_analysis", "lesson_analysis", "curriculum_standard_analysis",
+    format: "public_lesson_markdown_v2",
+    required_sections: [
+      "课程基本信息", "课标分析", "教材分析", "学情分析", "教学目标",
+      "教学重难点", "教学流程", "教学评估", "板书设计",
     ],
     lesson_flow_required: [
-      "phase", "title", "minutes", "purpose", "materials",
-      "key_question_or_task", "steps", "knowledge_landing", "transition",
+      "设计意图", "对应目标", "核心问题", "核心任务", "教师活动/教学活动", "评估方式", "过渡语",
     ],
-    lesson_step_required: [
-      "step", "teacher_behavior", "student_behavior", "expected_output", "evaluation",
+    lesson_flow_table_columns: [
+      "对应目标", "核心问题", "核心任务", "教师活动/教学活动", "评估方式",
     ],
-    minimum_flow_items: 5,
-    minimum_steps_per_flow: 2,
+    rubric_columns: {
+      primary: ["评价维度", "合格（1分）", "良好（2分）", "优秀（3分）"],
+      secondary: ["评价维度", "新手（1分）", "入门（2分）", "熟练（3分）", "专家（4分）"],
+    },
   },
   source_metadata: {
     source_package: "sizheng-public-lesson-design",

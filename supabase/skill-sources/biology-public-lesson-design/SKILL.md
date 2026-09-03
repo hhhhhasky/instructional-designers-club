@@ -61,4 +61,4 @@ description: Design complete junior-secondary biology public lessons from precis
 
 ## 输出要求
 
-严格使用 [输出模板](references/output-template.md) 十三部分，Markdown 输出。教材仅目录、图表/数据缺失、外部健康事实或伦理条件不明时明确停止并列补充项；样例只示范机制。
+严格使用 [输出模板](references/output-template.md) 的九个部分，直接输出 Markdown 教案，不输出 JSON，不使用代码围栏包裹全文。教学流程设置 5—6 个环节，每环只使用“设计意图＋五列表格＋过渡语”；五列依次为对应目标、核心问题、核心任务、教师活动/教学活动、评估方式。学科样例只参考方法、内容和证据，其旧章节结构不再适用。主 Skill、主流模式和来源边界中的教材事实、学科方法、安全、伦理、版权、隐私与证据限制继续有效，但不另设统一一级章节，只在实际需要处简洁呈现。

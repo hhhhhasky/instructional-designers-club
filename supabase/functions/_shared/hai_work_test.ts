@@ -431,7 +431,7 @@ Deno.test("politics work skill refuses generation when the selected mode referen
     metadata: {},
   });
   const skill = candidate({ slug: "politics-public-lesson" });
-  skill.version.output_contract = { format: "sizheng_public_lesson_v2" };
+  skill.version.output_contract = { format: "public_lesson_markdown_v2" };
   skill.version.references = [
     reference("references/mode-selection.md", "always"),
     reference("references/carrier-selection.md", "always"),
@@ -632,7 +632,7 @@ Deno.test("mathematics references load the shared method and only the matching s
   assertEquals(prompt.system.includes("对应 V3 模板"), false);
 });
 
-Deno.test("mathematics public lesson prompt uses the concise flow directive", () => {
+Deno.test("all public lesson prompts use the unified nine-section flow directive", () => {
   const skill = candidate({
     slug: "subject-lesson-design-mathematics",
     version: {
@@ -648,9 +648,11 @@ Deno.test("mathematics public lesson prompt uses the concise flow directive", ()
     materialContext: "",
     textbookContext: "教材知识点",
   });
-  assertEquals(prompt.system.includes("教学流程最多 4 个环节"), true);
-  assertEquals(prompt.system.includes("每个环节只写四个字段"), true);
-  assertEquals(prompt.system.includes("全文控制在约 6,000 tokens 内"), true);
+  assertEquals(prompt.system.includes("九个二级标题"), true);
+  assertEquals(prompt.system.includes("课程基本信息、课标分析、教材分析"), true);
+  assertEquals(prompt.system.includes("教学流程设 5—6 个环节"), true);
+  assertEquals(prompt.system.includes("评估方式组成的五列表格"), true);
+  assertEquals(prompt.system.includes("最多 4 个环节"), false);
 });
 
 Deno.test("chinese references load only the matching stage example and retain language-practice guidance", () => {

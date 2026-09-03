@@ -76,4 +76,4 @@ description: Design complete primary, junior-secondary, or senior-secondary info
 
 ## 输出要求
 
-严格使用 [输出模板](references/output-template.md) 十三部分，以 Markdown 输出。只加载与当前学段匹配的样例；样例示范结构和学科判断，不能替代当前教材。证据不足时停止完整生成并列出最小补充清单。
+严格使用 [输出模板](references/output-template.md) 的九个部分，直接输出 Markdown 教案，不输出 JSON，不使用代码围栏包裹全文。教学流程设置 5—6 个环节，每环只使用“设计意图＋五列表格＋过渡语”；五列依次为对应目标、核心问题、核心任务、教师活动/教学活动、评估方式。学科样例只参考方法、内容和证据，其旧章节结构不再适用。主 Skill、主流模式和来源边界中的教材事实、学科方法、安全、伦理、版权、隐私与证据限制继续有效，但不另设统一一级章节，只在实际需要处简洁呈现。
