@@ -117,11 +117,14 @@ export default function HaiWorkTaskPage() {
   const config = detail
     ? resolveWorkToolConfig(detail.task.module_slug, tools.find((item) => item.slug === detail.task.module_slug))
     : null;
+  const selectedArtifactKind = String(selectedArtifact?.content_json.artifact_kind ?? "");
+  const isLessonPlanOptimizationArtifact = selectedArtifactKind === "lesson_plan_optimization"
+    || selectedArtifact?.title.startsWith("优化教案｜") === true;
   const canOptimizeLessonPlan = Boolean(
     detail?.task.module_slug === "lesson-diagnosis" &&
     selectedArtifact &&
     selectedRun &&
-    selectedRun.input_snapshot.output_mode !== "lesson-plan-optimization" &&
+    !isLessonPlanOptimizationArtifact &&
     String(selectedRun.input_snapshot.lesson_plan ?? "").trim(),
   );
 

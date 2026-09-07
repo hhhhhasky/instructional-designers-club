@@ -29,7 +29,7 @@ const { stableUser, detail, tools } = vi.hoisted(() => ({
       {
         id: "run-2", task_id: "task-1", user_id: "user-1", skill_version_id: "skill-v1",
         parent_artifact_id: "artifact-1", client_request_id: "request-2", status: "completed",
-        input_snapshot: { stage: "初中", subject: "语文", topic: "背影", lesson_plan: "教案", material_ids: [] },
+        input_snapshot: { stage: "初中", subject: "语文", topic: "背影", lesson_plan: "教案", material_ids: [], output_mode: "lesson-plan-optimization" },
         skill_snapshot: { slug: "lesson-diagnosis-general", name: "通用七要素教案诊断", version: "v1", fallback: true },
         revision_instruction: "补充评价证据", error_message: null, input_tokens: 100, output_tokens: 200,
         duration_ms: 1200, started_at: "2026-07-21T08:09:00.000Z", completed_at: "2026-07-21T08:10:00.000Z",
