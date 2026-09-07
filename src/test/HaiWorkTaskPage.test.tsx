@@ -188,4 +188,30 @@ describe("HAI Work task page", () => {
     );
     expect(getHaiWorkTaskDetail).toHaveBeenCalledTimes(2);
   });
+
+  it("confirms a diagnosis before generating an optimized lesson plan", async () => {
+    const user = userEvent.setup();
+    vi.mocked(streamHaiWork).mockImplementation(async (_payload, handlers) => {
+      handlers.onEvent({ type: "done", taskId: "task-1", runId: "run-3", artifactId: "artifact-3", versionNumber: 3 });
+    });
+    renderPage();
+    await screen.findByText("# 第二版诊断");
+
+    await user.click(screen.getByRole("button", { name: /确认报告无误，生成优化教案/ }));
+    expect(screen.getByText("确认生成优化教案？")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "确认生成" }));
+
+    expect(streamHaiWork).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taskId: "task-1",
+        parentArtifactId: "artifact-2",
+        revisionInstruction: expect.stringContaining("诊断报告已确认无误"),
+        input: expect.objectContaining({
+          lesson_plan: "教案",
+          output_mode: "lesson-plan-optimization",
+        }),
+      }),
+      expect.any(Object),
+    );
+  });
 });

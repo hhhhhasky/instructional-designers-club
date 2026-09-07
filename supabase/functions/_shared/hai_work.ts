@@ -4,6 +4,8 @@ export type HaiWorkToolSlug =
   | "subject-lesson-design"
   | "teaching-design";
 
+export type HaiWorkGenerationMode = "diagnosis" | "lesson-plan-optimization";
+
 export const HAI_WORK_PROVIDER_TIMEOUT_MS = 140_000;
 
 /**
@@ -246,6 +248,18 @@ export function buildWorkTaskTitle(
   return `${prefix}｜${topic || "未命名任务"}`.slice(0, 80);
 }
 
+export function buildWorkArtifactTitle(
+  moduleSlug: HaiWorkToolSlug,
+  moduleName: string,
+  input: Record<string, unknown>,
+) {
+  if (moduleSlug === "lesson-diagnosis" && input.output_mode === "lesson-plan-optimization") {
+    const topic = String(input.topic ?? "").trim();
+    return `优化教案｜${topic || "未命名任务"}`.slice(0, 80);
+  }
+  return buildWorkTaskTitle(moduleSlug, moduleName, input);
+}
+
 export function validateWorkInput(
   toolSlug: HaiWorkToolSlug,
   input: Record<string, unknown>,
@@ -303,6 +317,14 @@ export function validateWorkInput(
     materialCount === 0
   ) {
     throw new Error("请粘贴教案正文或上传教案文件。");
+  }
+
+  if (
+    toolSlug === "lesson-diagnosis" &&
+    input.output_mode === "lesson-plan-optimization" &&
+    !String(input.lesson_plan ?? "").trim()
+  ) {
+    throw new Error("生成优化教案时必须保留原始教案正文。");
   }
 
   if (
@@ -453,6 +475,9 @@ const MARKDOWN_DIRECTIVE: Record<HaiWorkToolSlug, string> = {
     "请直接输出 Markdown 单元/课程设计方案，不要输出 JSON。按所选设计方法的自然结构组织：先确定预期结果（学生应理解/知道/能做什么）与评估证据，再排列学习活动，确保教-学-评一致并对齐核心素养。",
 };
 
+const LESSON_PLAN_OPTIMIZATION_DIRECTIVE =
+  "请直接输出一份完整的 Markdown 优化后教案，不要输出诊断报告、修改清单或 JSON。必须保留并正确使用原始教案的课题、学段、学科、教材边界和课时约束；按教材与学情证据重写课程基本信息、教材分析、学情分析、教学目标、教学重难点、教学流程、教学评估和板书设计。教学流程要把诊断报告中的优先问题落实为具体的教师行为、学生行为、核心问题/任务、预期产出、学习证据、评价反馈和时间安排；内容不足时明确标注待教师核验，不得杜撰教材事实。输出只包含可直接下载使用的 Markdown 教案。";
+
 /** 环节优化的开放环节方法论。前端当前开放课程导入、问题链、任务活动、评价反馈；其余旧类型保留兼容。 */
 const SEGMENT_METHODOLOGY: Record<string, string> = {
   "课程导入":
@@ -484,8 +509,12 @@ export function buildWorkPrompt(params: {
   caseContext?: string;
   previousMarkdown?: string;
   revisionInstruction?: string;
+  generationMode?: HaiWorkGenerationMode;
+  previousArtifactKind?: string;
 }) {
   const revisionMode = Boolean(params.previousMarkdown);
+  const optimizationMode = params.generationMode === "lesson-plan-optimization";
+  const optimizingFromDiagnosis = optimizationMode && params.previousArtifactKind !== "lesson_plan_optimization";
   const selectedReferences = selectWorkSkillReferences(params.skill, params.input);
   const referenceContext = selectedReferences.map((reference) =>
     `### ${reference.path}\n${reference.content.slice(0, reference.max_chars)}`
@@ -495,10 +524,19 @@ export function buildWorkPrompt(params: {
   // source here only inflates the request and gives the model duplicate context.
   const promptInput = { ...params.input };
   delete promptInput.textbook_content;
+  delete promptInput.output_mode;
   if (revisionMode) {
     delete promptInput.lesson_plan;
     delete promptInput.current_design;
     delete promptInput.desired_outcomes;
+  }
+  if (optimizationMode) {
+    // The optimization round has its own two-source contract below. Do not
+    // leak the diagnosis round's source snapshots or attached-material IDs
+    // into a prompt that should be driven by the original plan and report.
+    delete promptInput.material_ids;
+    delete promptInput.textbook_sources;
+    delete promptInput.case_sources;
   }
   const skillInstructions = params.skill.version.prompt_template.trim();
   const fallbackNotice = !skillInstructions
@@ -509,7 +547,15 @@ export function buildWorkPrompt(params: {
     ? "当前已匹配专属 Skill。仍须遵守教材事实边界。"
     : "";
   const segmentType = String(params.input.segment_type ?? "").trim();
-  const system = [
+  const optimizationSystem = [
+    "你现在只负责根据已确认的诊断报告优化教案，不执行教案诊断任务。优化本轮的核心输入只有‘原始教案’和‘已确认的诊断报告’；不要追加诊断方法说明或版本化参考资料。",
+    optimizingFromDiagnosis
+      ? "用户已确认诊断报告无误。本轮必须基于原始教案和已确认的诊断报告，直接重写一份完整、可使用的优化后教案；不要再次输出诊断报告，不要只列修改建议，也不要解释你正在做什么。诊断报告中的问题必须落实到教案的目标、重难点、教学流程、师生活动、学习证据和评价中；无法从输入确认的教材事实不得凭空补充。"
+      : "当前是在上一版优化教案基础上的续改。本轮仍然只输出完整的优化后教案，保留未被要求修改的内容，并把本轮要求落实到具体教学流程和学习证据中。",
+    LESSON_PLAN_OPTIMIZATION_DIRECTIVE,
+    "不要用代码围栏包裹整个输出。",
+  ];
+  const system = (optimizationMode ? optimizationSystem : [
     params.skill.version.prompt_template,
     fallbackNotice,
     !revisionMode && params.textbookContext
@@ -538,19 +584,24 @@ export function buildWorkPrompt(params: {
       ? `本次要优化的环节类型是「${segmentType}」。该类型的优化要点：\n${SEGMENT_METHODOLOGY[segmentType] ?? SEGMENT_METHODOLOGY["其他"]}`
       : "",
     `${MARKDOWN_DIRECTIVE[params.toolSlug]}\n不要用代码围栏（\`\`\`）包裹整个输出。`,
-  ].filter(Boolean).join("\n\n");
+  ]).filter(Boolean).join("\n\n");
 
   const user = [
     "## 任务输入",
     JSON.stringify(promptInput, null, 2),
-    !revisionMode && referenceContext ? `## Skill 版本化参考资料\n${referenceContext}` : "",
-    !revisionMode && params.textbookContext ? `## 内置教材知识库（精确命中）\n${params.textbookContext}` : "",
-    !revisionMode && String(params.input.textbook_content ?? "").trim()
+    !revisionMode && !optimizationMode && referenceContext ? `## Skill 版本化参考资料\n${referenceContext}` : "",
+    !revisionMode && !optimizationMode && params.textbookContext ? `## 内置教材知识库（精确命中）\n${params.textbookContext}` : "",
+    !revisionMode && !optimizationMode && String(params.input.textbook_content ?? "").trim()
       ? `## 用户粘贴的教材内容\n${String(params.input.textbook_content).trim()}`
       : "",
-    !revisionMode && params.caseContext ? `## 思政公开课案例库候选（后端检索）\n${params.caseContext}` : "",
-    !revisionMode && params.materialContext ? `## 用户指定材料\n${params.materialContext}` : "",
-    params.previousMarkdown ? `## 上一版产物\n${params.previousMarkdown}` : "",
+    !revisionMode && !optimizationMode && params.caseContext ? `## 思政公开课案例库候选（后端检索）\n${params.caseContext}` : "",
+    !revisionMode && !optimizationMode && params.materialContext ? `## 用户指定材料\n${params.materialContext}` : "",
+    params.previousMarkdown
+      ? `${optimizingFromDiagnosis ? "## 已确认的诊断报告" : optimizationMode ? "## 上一版优化教案" : "## 上一版产物"}\n${params.previousMarkdown}`
+      : "",
+    optimizationMode && String(params.input.lesson_plan ?? "").trim()
+      ? `## 原始教案（待优化）\n${String(params.input.lesson_plan).trim()}`
+      : "",
     params.revisionInstruction ? `## 本轮追改要求\n${params.revisionInstruction}` : "",
   ].filter(Boolean).join("\n\n");
   return { system, user };

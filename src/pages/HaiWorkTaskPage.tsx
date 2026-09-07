@@ -16,6 +16,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import MarkdownRenderer from "@/components/common/MarkdownRenderer";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import PageMeta from "@/components/common/PageMeta";
 import HaiWorkShell from "@/components/hai/HaiWorkShell";
 import TaskActionMenu from "@/components/hai/TaskActionMenu";
@@ -55,6 +56,7 @@ export default function HaiWorkTaskPage() {
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [optimizeConfirmOpen, setOptimizeConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/login", { state: { from: `/hai/work/tasks/${taskId}` } });
@@ -115,6 +117,13 @@ export default function HaiWorkTaskPage() {
   const config = detail
     ? resolveWorkToolConfig(detail.task.module_slug, tools.find((item) => item.slug === detail.task.module_slug))
     : null;
+  const canOptimizeLessonPlan = Boolean(
+    detail?.task.module_slug === "lesson-diagnosis" &&
+    selectedArtifact &&
+    selectedRun &&
+    selectedRun.input_snapshot.output_mode !== "lesson-plan-optimization" &&
+    String(selectedRun.input_snapshot.lesson_plan ?? "").trim(),
+  );
 
   async function revise() {
     if (!detail || !selectedArtifact || !selectedRun || !revision.trim() || busy) return;
@@ -122,6 +131,21 @@ export default function HaiWorkTaskPage() {
       run: selectedRun,
       parentArtifact: selectedArtifact,
       revisionInstruction: revision.trim(),
+    });
+  }
+
+  async function optimizeLessonPlan() {
+    if (!detail || !selectedArtifact || !selectedRun || busy) return;
+    const lessonPlan = String(selectedRun.input_snapshot.lesson_plan ?? "").trim();
+    if (!lessonPlan) {
+      setError("这份诊断任务没有保留原始教案正文，暂时无法生成优化教案。");
+      return;
+    }
+    await executeRun({
+      run: selectedRun,
+      parentArtifact: selectedArtifact,
+      revisionInstruction: "诊断报告已确认无误。请基于原始教案和这份诊断报告，直接生成一份完整、可直接使用的优化后教案。不要输出诊断说明或修改清单，只输出 Markdown 教案。",
+      generationMode: "lesson-plan-optimization",
     });
   }
 
@@ -137,10 +161,11 @@ export default function HaiWorkTaskPage() {
     });
   }
 
-  async function executeRun({ run, parentArtifact, revisionInstruction }: {
+  async function executeRun({ run, parentArtifact, revisionInstruction, generationMode }: {
     run: HaiWorkRun;
     parentArtifact: HaiWorkArtifact | null;
     revisionInstruction: string;
+    generationMode?: "lesson-plan-optimization";
   }) {
     if (!detail) return;
     setBusy(true);
@@ -149,6 +174,9 @@ export default function HaiWorkTaskPage() {
     const snapshot = { ...run.input_snapshot };
     const materialIds = Array.isArray(snapshot.material_ids) ? snapshot.material_ids.map(String) : [];
     delete snapshot.material_ids;
+    // Keep the mode in the immutable run input so the server can distinguish
+    // a confirmed diagnosis-to-lesson pass from ordinary version revisions.
+    if (generationMode) snapshot.output_mode = generationMode;
     try {
       await streamHaiWork({
         toolSlug: detail.task.module_slug,
@@ -301,6 +329,7 @@ export default function HaiWorkTaskPage() {
               <article className="hai-work-artifact mx-auto max-w-4xl px-5 py-7 md:px-10 md:py-10 print:max-w-none print:p-0">
                 <div className="mb-7 flex flex-wrap items-center gap-2 border-b border-[var(--paper-rule)] pb-5 print:hidden">
                   <Badge className="bg-tl text-white">版本 v{selectedArtifact.version_number}</Badge>
+                  {selectedArtifact.content_json.artifact_kind === "lesson_plan_optimization" && <Badge className="bg-[var(--annotation)] text-white">优化教案</Badge>}
                   <Badge variant="outline" className="border-[var(--paper-rule)] bg-[var(--paper-deep)] text-txs">{selectedRun?.skill_snapshot.name || "工作技能"} · {selectedRun?.skill_snapshot.version || "v1"}</Badge>
                   {selectedRun?.skill_snapshot.fallback && <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800">通用 Skill 模式</Badge>}
                 </div>
@@ -308,6 +337,21 @@ export default function HaiWorkTaskPage() {
               </article>
             ) : (
               <EmptyArtifact runs={detail.runs} busy={busy} onRetry={(run) => void retry(run)} />
+            )}
+
+            {canOptimizeLessonPlan && selectedArtifact && (
+              <section className="mx-4 mb-5 rounded-ds-xl border border-[var(--annotation)]/25 bg-[var(--annotation-soft)] p-5 md:mx-7 md:p-6 print:hidden">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-ds-md bg-[var(--annotation)] text-white"><Sparkles className="h-4 w-4" /></span>
+                  <div className="min-w-0">
+                    <h3 className="font-serif text-base font-black text-tx">诊断报告已生成，是否继续优化教案？</h3>
+                    <p className="mt-1 text-xs leading-5 text-txs">请先确认报告中的判断和证据基本准确。确认后，HAI 会同时参考原始教案与这份报告，直接生成一份完整的优化后教案；诊断报告会保留为当前版本。</p>
+                    <Button className="mt-4 h-10 rounded-ds-lg bg-[var(--annotation)] px-4 text-white hover:bg-[var(--annotation)]/90" disabled={busy} onClick={() => setOptimizeConfirmOpen(true)}>
+                      <Sparkles className="h-4 w-4" />确认报告无误，生成优化教案
+                    </Button>
+                  </div>
+                </div>
+              </section>
             )}
 
             {selectedArtifact && (
@@ -327,6 +371,16 @@ export default function HaiWorkTaskPage() {
                 </div>
               </section>
             )}
+            <ConfirmDialog
+              open={optimizeConfirmOpen}
+              onOpenChange={setOptimizeConfirmOpen}
+              title="确认生成优化教案？"
+              description="HAI 将以当前诊断报告和原始教案为依据生成新版本，不会覆盖已有诊断报告。生成结果可继续下载 Markdown 或导出 Word。"
+              confirmText="确认生成"
+              cancelText="暂不生成"
+              variant="primary"
+              onConfirm={optimizeLessonPlan}
+            />
           </div>
         ) : null}
       </HaiWorkShell>

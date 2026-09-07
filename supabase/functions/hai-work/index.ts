@@ -20,6 +20,7 @@ import {
 import {
   applyWorkCompletionPolicy,
   assertWorkSkillRuntimeReady,
+  buildWorkArtifactTitle,
   buildWorkPrompt,
   buildWorkTaskTitle,
   createEmptyWorkSkill,
@@ -30,6 +31,7 @@ import {
   resolveTextbookRouteFromSnapshots,
   validateWorkInput,
   type WorkSkillCandidate,
+  type HaiWorkGenerationMode,
 } from "../_shared/hai_work.ts";
 
 type ModuleRow = {
@@ -111,6 +113,13 @@ Deno.serve(async (request) => {
     const toolSlug = String(body.toolSlug ?? "").trim();
     if (!isHaiWorkToolSlug(toolSlug)) throw new HttpError(400, "未知的 HAI Work 功能。");
     const input = normalizeRecord(body.input);
+    const requestedGenerationMode = String(input.output_mode ?? "diagnosis").trim();
+    if (!['diagnosis', 'lesson-plan-optimization'].includes(requestedGenerationMode)) {
+      throw new HttpError(400, "未知的 HAI Work 生成模式。");
+    }
+    if (requestedGenerationMode === "lesson-plan-optimization" && toolSlug !== "lesson-diagnosis") {
+      throw new HttpError(400, "只有教案诊断支持基于诊断报告生成优化教案。");
+    }
     if (toolSlug === "subject-lesson-design") {
       const subject = String(input.subject ?? "").trim();
       const isPoliticsSubject = subject === "道德与法治" || subject === "思想政治";
@@ -170,6 +179,10 @@ Deno.serve(async (request) => {
     const parentArtifact = body.parentArtifactId
       ? await loadArtifact(auth.admin, auth.user.id, taskId, String(body.parentArtifactId))
       : null;
+    const generationMode = requestedGenerationMode as HaiWorkGenerationMode;
+    if (generationMode === "lesson-plan-optimization" && !parentArtifact) {
+      throw new HttpError(400, "生成优化教案时必须先确认一份诊断报告。");
+    }
     const revisionInstruction = String(body.revisionInstruction ?? "").trim();
     if (parentArtifact && !revisionInstruction) {
       throw new HttpError(400, "继续追改时请填写本轮修改要求。");
@@ -184,6 +197,8 @@ Deno.serve(async (request) => {
       caseContext: politicsCases.context,
       previousMarkdown: parentArtifact?.content_markdown,
       revisionInstruction,
+      generationMode,
+      previousArtifactKind: String(parentArtifact?.content_json?.artifact_kind ?? ""),
     });
     const textbookSourcePaths = textbook.sources.length > 0
       ? textbook.sources.map((source) => source.section_path)
@@ -265,12 +280,35 @@ Deno.serve(async (request) => {
         const startedAt = Date.now();
         let rawOutput = "";
         let heartbeatId: number | undefined;
+        let streamClosed = false;
+        const safeSendSse = (payload: unknown) => {
+          if (streamClosed) return false;
+          try {
+            sendSse(controller, encoder, payload);
+            return true;
+          } catch {
+            // The browser may disconnect after the artifact has already been
+            // persisted. Do not turn a successful run into a failed run just
+            // because its final SSE event has nowhere left to go.
+            streamClosed = true;
+            return false;
+          }
+        };
+        const safeCloseStream = () => {
+          if (streamClosed) return;
+          streamClosed = true;
+          try {
+            controller.close();
+          } catch {
+            // The client may have closed the stream already.
+          }
+        };
         try {
           await auth.admin.from("hai_work_runs").update({
             status: "running",
             started_at: new Date().toISOString(),
           }).eq("id", run.id);
-          sendSse(controller, encoder, {
+          safeSendSse({
             type: "ready",
             taskId,
             runId: run.id,
@@ -283,20 +321,18 @@ Deno.serve(async (request) => {
             at: new Date().toISOString(),
             status: "running",
           });
-          sendSse(controller, encoder, {
+          safeSendSse({
             type: "progress",
             stage: "material",
             message: evidenceStatus(materials, materialContext, textbook.sources, politicsCases.sources),
           });
-          sendSse(controller, encoder, { type: "progress", stage: "generating", message: "HAI 正在形成第一版工作产物" });
+          safeSendSse({ type: "progress", stage: "generating", message: "HAI 正在形成第一版工作产物" });
           heartbeatId = setInterval(() => {
-            try {
-              sendSse(controller, encoder, {
+            if (!safeSendSse({
                 type: "heartbeat",
                 stage: "generating",
                 elapsedSeconds: Math.max(1, Math.round((Date.now() - startedAt) / 1000)),
-              });
-            } catch {
+              })) {
               if (heartbeatId !== undefined) clearInterval(heartbeatId);
               heartbeatId = undefined;
             }
@@ -346,7 +382,7 @@ Deno.serve(async (request) => {
 
           if (!markdown) {
             // 空输出重试一次
-            sendSse(controller, encoder, { type: "progress", stage: "repairing", message: "产物为空，正在重试" });
+            safeSendSse({ type: "progress", stage: "repairing", message: "产物为空，正在重试" });
             const repairAttempt = await collectModelOutput({
               system: prompt.system,
               user: prompt.user,
@@ -403,8 +439,11 @@ Deno.serve(async (request) => {
               user_id: auth.user.id,
               parent_artifact_id: parentArtifact?.id ?? null,
               version_number: versionNumber,
-              title: buildWorkTaskTitle(toolSlug, module.name, input),
-              content_json: { format: "markdown" },
+              title: buildWorkArtifactTitle(toolSlug, module.name, input),
+              content_json: {
+                format: "markdown",
+                artifact_kind: generationMode === "lesson-plan-optimization" ? "lesson_plan_optimization" : "diagnosis_report",
+              },
               content_markdown: markdown,
             })
             .select("id, version_number")
@@ -464,7 +503,7 @@ Deno.serve(async (request) => {
             admin: auth.admin,
             requestId: clientRequestId,
           });
-          sendSse(controller, encoder, {
+          safeSendSse({
             type: "done",
             taskId,
             runId: run.id,
@@ -505,10 +544,10 @@ Deno.serve(async (request) => {
             metadata: { tool_slug: toolSlug, run_id: run.id, error: message },
           });
           await summarizeHaiModelCalls({ admin: auth.admin, requestId: clientRequestId });
-          sendSse(controller, encoder, { type: "error", message, taskId, runId: run.id });
+          safeSendSse({ type: "error", message, taskId, runId: run.id });
         } finally {
           if (heartbeatId !== undefined) clearInterval(heartbeatId);
-          controller.close();
+          safeCloseStream();
         }
       },
     });
@@ -914,11 +953,11 @@ async function validateTask(admin: any, userId: string, taskId: string, moduleSl
 }
 
 async function loadArtifact(admin: any, userId: string, taskId: string, artifactId: string) {
-  const { data, error } = await admin.from("hai_work_artifacts").select("id, content_markdown")
+  const { data, error } = await admin.from("hai_work_artifacts").select("id, content_markdown, content_json")
     .eq("id", artifactId).eq("task_id", taskId).eq("user_id", userId).maybeSingle();
   if (error) throw new HttpError(500, error.message);
   if (!data) throw new HttpError(404, "上一版产物不存在。");
-  return data as { id: string; content_markdown: string };
+  return data as { id: string; content_markdown: string; content_json?: Record<string, unknown> };
 }
 
 async function attachMaterials(admin: any, userId: string, taskId: string, materialIds: string[]) {

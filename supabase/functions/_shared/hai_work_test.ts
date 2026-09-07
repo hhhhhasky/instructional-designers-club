@@ -567,6 +567,38 @@ Deno.test("revision prompt keeps the prior artifact but omits duplicated source 
   assertEquals(prompt.system.includes("当前是上一版续改"), true);
 });
 
+Deno.test("confirmed diagnosis optimization prompt carries both the report and original lesson plan", () => {
+  const prompt = buildWorkPrompt({
+    toolSlug: "lesson-diagnosis",
+    input: {
+      stage: "初中",
+      subject: "语文",
+      topic: "背影",
+      lesson_plan: "原始教案：目标、环节和评价。",
+      textbook_content: "不应重复注入的教材正文",
+      output_mode: "lesson-plan-optimization",
+    },
+    skill: candidate({ version: { ...candidate({}).version, prompt_template: "诊断 Skill" } }),
+    materialContext: "用户材料不应重复注入",
+    textbookContext: "内置教材不应重复注入",
+    previousMarkdown: "# 诊断报告\n优先修复目标与评价的断裂。",
+    revisionInstruction: "诊断报告已确认无误，请生成优化教案。",
+    generationMode: "lesson-plan-optimization",
+  });
+
+  assertEquals(prompt.system.includes("直接重写一份完整、可使用的优化后教案"), true);
+  assertEquals(prompt.system.includes("不要再次输出诊断报告"), true);
+  assertEquals(prompt.system.includes("诊断 Skill"), false);
+  assertEquals(prompt.system.includes("当前已匹配专属 Skill"), false);
+  assertEquals(prompt.user.includes("## 已确认的诊断报告"), true);
+  assertEquals(prompt.user.includes("## 原始教案（待优化）\n原始教案：目标、环节和评价。"), true);
+  assertEquals(prompt.user.includes('"lesson_plan"'), false);
+  assertEquals(prompt.user.includes("Skill 版本化参考资料"), false);
+  assertEquals(prompt.user.includes("不应重复注入的教材正文"), false);
+  assertEquals(prompt.user.includes("用户材料不应重复注入"), false);
+  assertEquals(prompt.user.includes('"output_mode"'), false);
+});
+
 Deno.test("empty subject skill shell remains usable and explains the pending specialization", () => {
   const prompt = buildWorkPrompt({
     toolSlug: "subject-lesson-design",
