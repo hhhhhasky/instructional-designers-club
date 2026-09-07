@@ -599,6 +599,38 @@ Deno.test("confirmed diagnosis optimization prompt carries both the report and o
   assertEquals(prompt.user.includes('"output_mode"'), false);
 });
 
+Deno.test("confirmed diagnosis optimization can use an uploaded original lesson plan", () => {
+  const prompt = buildWorkPrompt({
+    toolSlug: "lesson-diagnosis",
+    input: {
+      stage: "高中",
+      subject: "思想政治",
+      topic: "我国的经济发展",
+      output_mode: "lesson-plan-optimization",
+    },
+    skill: candidate({ version: { ...candidate({}).version, prompt_template: "诊断 Skill" } }),
+    materialContext: "上传教案：原始目标、教学活动与评价证据。",
+    previousMarkdown: "# 诊断报告\n需要补齐目标与评价的对应关系。",
+    revisionInstruction: "诊断报告已确认无误，请生成优化教案。",
+    generationMode: "lesson-plan-optimization",
+  });
+
+  assertEquals(prompt.user.includes("## 原始教案（来自用户上传材料，待优化）\n上传教案：原始目标、教学活动与评价证据。"), true);
+});
+
+Deno.test("lesson diagnosis optimization accepts a lesson plan upload without pasted text", () => {
+  validateWorkInput("lesson-diagnosis", {
+    stage: "高中",
+    subject: "思想政治",
+    grade: "高中",
+    volume: "必修2",
+    unit: "第一单元",
+    topic: "第一课",
+    lesson_plan: "",
+    output_mode: "lesson-plan-optimization",
+  }, 1);
+});
+
 Deno.test("empty subject skill shell remains usable and explains the pending specialization", () => {
   const prompt = buildWorkPrompt({
     toolSlug: "subject-lesson-design",

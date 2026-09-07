@@ -120,12 +120,17 @@ export default function HaiWorkTaskPage() {
   const selectedArtifactKind = String(selectedArtifact?.content_json.artifact_kind ?? "");
   const isLessonPlanOptimizationArtifact = selectedArtifactKind === "lesson_plan_optimization"
     || selectedArtifact?.title.startsWith("优化教案｜") === true;
+  const isDiagnosisReportArtifact = !isLessonPlanOptimizationArtifact;
+  const selectedMaterialIds = Array.isArray(selectedRun?.input_snapshot.material_ids)
+    ? selectedRun.input_snapshot.material_ids.map(String).filter(Boolean)
+    : [];
   const canOptimizeLessonPlan = Boolean(
     detail?.task.module_slug === "lesson-diagnosis" &&
     selectedArtifact &&
     selectedRun &&
+    isDiagnosisReportArtifact &&
     !isLessonPlanOptimizationArtifact &&
-    String(selectedRun.input_snapshot.lesson_plan ?? "").trim(),
+    (String(selectedRun.input_snapshot.lesson_plan ?? "").trim() || selectedMaterialIds.length > 0),
   );
 
   async function revise() {
@@ -140,7 +145,10 @@ export default function HaiWorkTaskPage() {
   async function optimizeLessonPlan() {
     if (!detail || !selectedArtifact || !selectedRun || busy) return;
     const lessonPlan = String(selectedRun.input_snapshot.lesson_plan ?? "").trim();
-    if (!lessonPlan) {
+    const materialIds = Array.isArray(selectedRun.input_snapshot.material_ids)
+      ? selectedRun.input_snapshot.material_ids.map(String).filter(Boolean)
+      : [];
+    if (!lessonPlan && materialIds.length === 0) {
       setError("这份诊断任务没有保留原始教案正文，暂时无法生成优化教案。");
       return;
     }

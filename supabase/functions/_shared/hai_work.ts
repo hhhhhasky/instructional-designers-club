@@ -322,9 +322,10 @@ export function validateWorkInput(
   if (
     toolSlug === "lesson-diagnosis" &&
     input.output_mode === "lesson-plan-optimization" &&
-    !String(input.lesson_plan ?? "").trim()
+    !String(input.lesson_plan ?? "").trim() &&
+    materialCount === 0
   ) {
-    throw new Error("生成优化教案时必须保留原始教案正文。");
+    throw new Error("生成优化教案时必须保留原始教案正文或上传教案文件。");
   }
 
   if (
@@ -601,6 +602,9 @@ export function buildWorkPrompt(params: {
       : "",
     optimizationMode && String(params.input.lesson_plan ?? "").trim()
       ? `## 原始教案（待优化）\n${String(params.input.lesson_plan).trim()}`
+      : "",
+    optimizationMode && !String(params.input.lesson_plan ?? "").trim() && params.materialContext
+      ? `## 原始教案（来自用户上传材料，待优化）\n${params.materialContext}`
       : "",
     params.revisionInstruction ? `## 本轮追改要求\n${params.revisionInstruction}` : "",
   ].filter(Boolean).join("\n\n");

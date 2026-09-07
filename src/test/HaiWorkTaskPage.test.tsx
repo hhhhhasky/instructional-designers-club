@@ -214,4 +214,21 @@ describe("HAI Work task page", () => {
       expect.any(Object),
     );
   });
+
+  it("shows the optimization action when the original lesson plan was uploaded", async () => {
+    const uploadedLessonPlanDetail = {
+      ...detail,
+      task: { ...detail.task, latest_artifact_id: "artifact-1" },
+      runs: [{
+        ...detail.runs[1],
+        input_snapshot: { ...detail.runs[1].input_snapshot, lesson_plan: "", material_ids: ["material-1"] },
+      }],
+      artifacts: [detail.artifacts[1]],
+    } as unknown as HaiWorkTaskDetail;
+    vi.mocked(getHaiWorkTaskDetail).mockResolvedValueOnce(uploadedLessonPlanDetail);
+
+    renderPage();
+
+    expect(await screen.findByRole("button", { name: /确认报告无误，生成优化教案/ })).toBeInTheDocument();
+  });
 });
