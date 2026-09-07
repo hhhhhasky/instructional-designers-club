@@ -5,6 +5,7 @@ import {
   ClipboardCheck,
   Clock3,
   FileText,
+  ImagePlus,
   LayoutTemplate,
   Loader2,
   NotebookPen,
@@ -36,6 +37,7 @@ import {
   streamHaiWork,
   uploadHaiMaterial,
 } from "@/db/hai-api";
+import type { HaiImageGenerationTask } from "@/db/hai-image-generation";
 import {
   HAI_PUBLIC_LESSON_STAGES,
   workSubjectsForStage,
@@ -85,6 +87,14 @@ export const HAI_WORK_TOOL_CONFIG: Record<HaiWorkToolSlug, HaiWorkToolVisualConf
     icon: LayoutTemplate,
     accent: "var(--ac)",
   },
+  "image-generation": {
+    name: "图片生成",
+    eyebrow: "提示词 · 视觉 · 生成",
+    description: "结合图片尺寸、PPT 艺术风格和教学图片类型，生成可直接保存、下载并继续调整的教学图片。",
+    promise: "交付可追踪的教学图片与完整生成记录",
+    icon: ImagePlus,
+    accent: "var(--proof)",
+  },
 };
 
 /** 各工具表单顶部的引导标题与说明，按功能本身定制，替代原先所有工具共用的同一句话。 */
@@ -104,6 +114,10 @@ const WORK_INTRO: Record<HaiWorkToolSlug, { title: string; subtitle: string }> =
   "teaching-design": {
     title: "先把设计目标交给 HAI",
     subtitle: "先按年级、教材、单元和课题定位内容，再说明预期成果与课时范围。HAI 会结合教材背景生成完整方案，对齐核心素养与教-学-评一致性。",
+  },
+  "image-generation": {
+    title: "把教学画面交给 HAI",
+    subtitle: "描述你想让学生看到的画面，选择尺寸、艺术风格和图片类型，HAI 会生成可保存、可下载并可继续调整的图片。",
   },
 };
 
@@ -694,13 +708,15 @@ function WorkToolForm({
   );
 }
 
-export function WorkSidebar({ tasks, archivedTasks, tools = [], selectedToolSlug, onTasksChanged }: { tasks: HaiWorkTask[]; archivedTasks: HaiWorkTask[]; tools?: HaiFeatureModule[]; selectedToolSlug?: HaiWorkToolSlug | null; onTasksChanged?: () => void }) {
+export function WorkSidebar({ tasks, archivedTasks, tools = [], selectedToolSlug, onTasksChanged, imageTasks = [], selectedImageTaskId, onImageTaskSelected }: { tasks: HaiWorkTask[]; archivedTasks: HaiWorkTask[]; tools?: HaiFeatureModule[]; selectedToolSlug?: HaiWorkToolSlug | null; onTasksChanged?: () => void; imageTasks?: HaiImageGenerationTask[]; selectedImageTaskId?: string; onImageTaskSelected?: (taskId: string) => void }) {
   const visibleTools = getSupportedWorkTools(tools);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [showAllActive, setShowAllActive] = useState(false);
   const scopedTasks = selectedToolSlug ? tasks.filter((task) => task.module_slug === selectedToolSlug) : tasks;
   const scopedArchivedTasks = selectedToolSlug ? archivedTasks.filter((task) => task.module_slug === selectedToolSlug) : archivedTasks;
   const visibleActive = showAllActive ? scopedTasks : scopedTasks.slice(0, 10); // 超过 10 条折叠,避免侧栏过长
+  const visibleImageTasks = showAllActive ? imageTasks : imageTasks.slice(0, 10);
+  const imageMode = selectedToolSlug === "image-generation";
   return (
     <div>
       <p className="editorial-kicker px-1">工作工具</p>
@@ -708,7 +724,7 @@ export function WorkSidebar({ tasks, archivedTasks, tools = [], selectedToolSlug
         {visibleTools.map(({ slug, config }) => {
           const Icon = config.icon;
           return (
-            <Link key={slug} to={`/hai/work/${slug}`} className="flex items-center gap-3 rounded-ds-lg px-3 py-2.5 text-sm font-bold text-txs transition hover:bg-[var(--paper)] hover:text-[var(--annotation)]">
+            <Link key={slug} to={`/hai/work/${slug}`} className={cn("flex items-center gap-3 rounded-ds-lg px-3 py-2.5 text-sm font-bold transition hover:bg-[var(--paper)] hover:text-[var(--annotation)]", slug === selectedToolSlug ? "bg-[var(--paper)] text-[var(--annotation)]" : "text-txs")}>
               <Icon className="h-4 w-4" />{config.name}
             </Link>
           );
@@ -720,21 +736,23 @@ export function WorkSidebar({ tasks, archivedTasks, tools = [], selectedToolSlug
         <Clock3 className="h-3.5 w-3.5 text-txt" />
       </div>
       <div className="mt-3 space-y-1">
-        {visibleActive.map((task) => <TaskRow key={task.id} task={task} onTasksChanged={onTasksChanged} />)}
-        {scopedTasks.length === 0 && <p className="px-3 py-4 text-xs leading-5 text-txt">任务完成后会出现在这里。</p>}
+        {imageMode
+          ? visibleImageTasks.map((task) => <ImageTaskRow key={task.id} task={task} selected={task.id === selectedImageTaskId} onSelect={onImageTaskSelected} />)
+          : visibleActive.map((task) => <TaskRow key={task.id} task={task} onTasksChanged={onTasksChanged} />)}
+        {imageMode ? imageTasks.length === 0 && <p className="px-3 py-4 text-xs leading-5 text-txt">生成后会出现在这里。</p> : scopedTasks.length === 0 && <p className="px-3 py-4 text-xs leading-5 text-txt">任务完成后会出现在这里。</p>}
       </div>
-      {scopedTasks.length > 10 && (
+      {((imageMode && imageTasks.length > 10) || (!imageMode && scopedTasks.length > 10)) && (
         <button
           type="button"
           onClick={() => setShowAllActive((open) => !open)}
           className="mt-2 flex w-full items-center justify-center gap-1 rounded-ds-md px-3 py-2 text-[11px] font-bold text-txt transition hover:bg-[var(--paper)] hover:text-ac"
           aria-expanded={showAllActive}
         >
-          {showAllActive ? "收起" : `展示全部(${scopedTasks.length})`}
+          {showAllActive ? "收起" : `展示全部(${imageMode ? imageTasks.length : scopedTasks.length})`}
           <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showAllActive && "rotate-180")} />
         </button>
       )}
-      {scopedArchivedTasks.length > 0 && (
+      {!imageMode && scopedArchivedTasks.length > 0 && (
         <>
           <div className="my-5 h-px bg-[var(--paper-rule)]" />
           <button
@@ -754,6 +772,22 @@ export function WorkSidebar({ tasks, archivedTasks, tools = [], selectedToolSlug
         </>
       )}
     </div>
+  );
+}
+
+function ImageTaskRow({ task, selected, onSelect }: { task: HaiImageGenerationTask; selected: boolean; onSelect?: (taskId: string) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect?.(task.id)}
+      className={cn("group flex w-full min-w-0 items-center rounded-ds-md px-3 py-2.5 text-left transition hover:bg-[var(--paper)]", selected && "bg-[var(--paper)]")}
+    >
+      <span className="min-w-0 flex-1">
+        <span className={cn("block truncate text-xs font-bold", selected ? "text-[var(--annotation)]" : "text-tx")}>{task.title}</span>
+        <span className="mt-1 block text-[10px] text-txt">{formatDate(task.updated_at)} · 图片任务</span>
+      </span>
+      <ImagePlus className={cn("ml-2 h-3.5 w-3.5 shrink-0", selected ? "text-[var(--annotation)]" : "text-txt")} />
+    </button>
   );
 }
 
@@ -960,7 +994,7 @@ function unique(values: string[]) {
 }
 
 function isWorkToolSlug(value: string | undefined): value is HaiWorkToolSlug {
-  return value === "lesson-diagnosis" || value === "segment-optimization" || value === "subject-lesson-design" || value === "teaching-design";
+  return value === "lesson-diagnosis" || value === "segment-optimization" || value === "subject-lesson-design" || value === "teaching-design" || value === "image-generation";
 }
 
 export function resolveWorkToolConfig(slug: HaiWorkToolSlug, module?: HaiFeatureModule): HaiWorkToolVisualConfig {
@@ -974,9 +1008,11 @@ export function resolveWorkToolConfig(slug: HaiWorkToolSlug, module?: HaiFeature
 }
 
 function getSupportedWorkTools(tools: HaiFeatureModule[] = []) {
-  return tools.flatMap((module) => {
-    if (!isWorkToolSlug(module.slug)) return [];
-    return [{ slug: module.slug, config: resolveWorkToolConfig(module.slug, module) }];
+  const modules = new Map(tools.filter((module) => isWorkToolSlug(module.slug)).map((module) => [module.slug, module]));
+  const stableOrder: HaiWorkToolSlug[] = ["lesson-diagnosis", "segment-optimization", "subject-lesson-design", "teaching-design", "image-generation"];
+  return stableOrder.flatMap((slug) => {
+    const module = modules.get(slug);
+    return module ? [{ slug, config: resolveWorkToolConfig(slug, module) }] : [];
   });
 }
 

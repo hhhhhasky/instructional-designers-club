@@ -88,6 +88,7 @@ export type HaiModelCallStage =
   | "chat_rewrite"
   | "work_initial"
   | "work_repair"
+  | "image_prompt_optimization"
   | "roundtable";
 
 const defaultRuntimeConfig: HaiRuntimeConfig = {
@@ -266,6 +267,43 @@ export async function finalizeUsage(params: {
     p_metadata: params.metadata ?? {},
   });
   if (error) console.warn("hai finalize usage failed", error.message);
+}
+
+export async function reserveImageGeneration(params: {
+  userClient: SupabaseClient;
+  requestId: string;
+  route: string;
+  metadata?: Record<string, unknown>;
+}) {
+  const { data, error } = await params.userClient.rpc("hai_check_and_reserve_image_generation", {
+    p_request_id: params.requestId,
+    p_route: params.route,
+    p_metadata: params.metadata ?? {},
+  });
+  if (error) throw new HttpError(500, error.message);
+  const result = normalizeRecord(data);
+  if (!result.allowed) throw new HttpError(429, String(result.reason || "图片生成积分不足，请稍后再试。"));
+  return result;
+}
+
+export async function finalizeImageGeneration(params: {
+  userClient: SupabaseClient;
+  requestId: string;
+  status: "completed" | "failed";
+  route: string;
+  entityId?: string | null;
+  durationMs?: number | null;
+  metadata?: Record<string, unknown>;
+}) {
+  const { error } = await params.userClient.rpc("hai_finalize_image_generation", {
+    p_request_id: params.requestId,
+    p_status: params.status,
+    p_route: params.route,
+    p_entity_id: params.entityId ?? null,
+    p_duration_ms: params.durationMs ?? null,
+    p_metadata: params.metadata ?? {},
+  });
+  if (error) console.warn("hai finalize image generation failed", error.message);
 }
 
 type HaiPricingRow = {
