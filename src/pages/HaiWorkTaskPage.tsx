@@ -63,7 +63,12 @@ export default function HaiWorkTaskPage() {
   const loadDetail = useCallback(async (preserveSelection = true) => {
     if (!user || !taskId) return;
     try {
-      const [nextDetail, nextTasks, nextTools, nextArchivedTasks] = await Promise.all([getHaiWorkTaskDetail(taskId), getHaiWorkTasks(), getHaiWorkTools(), getArchivedHaiWorkTasks()]);
+      const nextDetail = await getHaiWorkTaskDetail(taskId);
+      const [nextTasks, nextTools, nextArchivedTasks] = await Promise.all([
+        getHaiWorkTasks(nextDetail.task.module_slug),
+        getHaiWorkTools(),
+        getArchivedHaiWorkTasks(nextDetail.task.module_slug),
+      ]);
       setDetail(nextDetail);
       setTasks(nextTasks);
       setTools(nextTools);
@@ -81,7 +86,10 @@ export default function HaiWorkTaskPage() {
 
   const reloadTaskList = useCallback(async () => {
     try {
-      const [nextTasks, nextArchivedTasks] = await Promise.all([getHaiWorkTasks(), getArchivedHaiWorkTasks()]);
+      const [nextTasks, nextArchivedTasks] = await Promise.all([
+        getHaiWorkTasks(detail?.task.module_slug),
+        getArchivedHaiWorkTasks(detail?.task.module_slug),
+      ]);
       setTasks(nextTasks);
       setArchivedTasks(nextArchivedTasks);
     } catch {
@@ -225,7 +233,7 @@ export default function HaiWorkTaskPage() {
     <>
       <PageMeta title={detail?.task.title ?? "HAI 工作任务"} description="HAI 版本化任务产物" canonicalPath={`/hai/work/tasks/${taskId}`} />
       <HaiWorkShell
-        sidebar={<WorkSidebar tasks={tasks} archivedTasks={archivedTasks} tools={tools} onTasksChanged={reloadTaskList} />}
+        sidebar={<WorkSidebar tasks={tasks} archivedTasks={archivedTasks} tools={tools} selectedToolSlug={detail?.task.module_slug} onTasksChanged={reloadTaskList} />}
         inspector={inspector}
         workspaceMode="proof"
         title={config?.name ?? "工作任务"}

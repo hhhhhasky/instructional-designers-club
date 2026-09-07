@@ -446,26 +446,30 @@ export async function getHaiTextbookCatalog(
   return (data as HaiTextbookCatalogEntry[]) ?? [];
 }
 
-export async function getHaiWorkTasks(): Promise<HaiWorkTask[]> {
+export async function getHaiWorkTasks(moduleSlug?: HaiWorkToolSlug): Promise<HaiWorkTask[]> {
   const userId = await requireCurrentUserId();
-  const { data, error } = await supabase
+  let query = supabase
     .from("hai_work_tasks")
     .select("*, latest_artifact:hai_work_artifacts!hai_work_tasks_latest_artifact_id_fkey(id, version_number, created_at)")
     .eq("user_id", userId)
-    .eq("status", "active")
+    .eq("status", "active");
+  if (moduleSlug) query = query.eq("module_slug", moduleSlug);
+  const { data, error } = await query
     .order("updated_at", { ascending: false })
     .limit(200); // 侧栏「最近任务」展示全部,200 覆盖个人教研工作台
   if (error) throw error;
   return (data as unknown as HaiWorkTask[]) ?? [];
 }
 
-export async function getArchivedHaiWorkTasks(): Promise<HaiWorkTask[]> {
+export async function getArchivedHaiWorkTasks(moduleSlug?: HaiWorkToolSlug): Promise<HaiWorkTask[]> {
   const userId = await requireCurrentUserId();
-  const { data, error } = await supabase
+  let query = supabase
     .from("hai_work_tasks")
     .select("*, latest_artifact:hai_work_artifacts!hai_work_tasks_latest_artifact_id_fkey(id, version_number, created_at)")
     .eq("user_id", userId)
-    .eq("status", "archived")
+    .eq("status", "archived");
+  if (moduleSlug) query = query.eq("module_slug", moduleSlug);
+  const { data, error } = await query
     .order("archived_at", { ascending: false, nullsFirst: false })
     .limit(200);
   if (error) throw error;

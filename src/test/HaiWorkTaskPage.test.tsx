@@ -87,6 +87,22 @@ describe("HAI Work task page", () => {
     expect(screen.getByText(detail.task.title)).toBeInTheDocument();
   });
 
+  it("shows only tasks from the selected work tool", () => {
+    const otherTask = { ...detail.task, id: "task-2", module_slug: "segment-optimization", title: "环节优化｜导入" } as HaiWorkTask;
+    render(
+      <MemoryRouter>
+        <WorkSidebar
+          tasks={[detail.task as HaiWorkTask, otherTask]}
+          archivedTasks={[]}
+          selectedToolSlug="lesson-diagnosis"
+        />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(detail.task.title)).toBeInTheDocument();
+    expect(screen.queryByText(otherTask.title)).not.toBeInTheDocument();
+  });
+
   it("restores the latest durable artifact and version navigation", async () => {
     renderPage();
 

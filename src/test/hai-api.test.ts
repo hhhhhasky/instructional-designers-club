@@ -5,6 +5,8 @@ import {
   getHaiStarterQuestions,
   getHaiChatModule,
   getHaiWorkTaskDetail,
+  getHaiWorkTasks,
+  getArchivedHaiWorkTasks,
   HAI_CHAT_MODULE_SLUG,
   HaiApiError,
   saveHaiModelProvider,
@@ -336,6 +338,24 @@ describe("HAI Work task detail reliability", () => {
         message: "该 HAI Work 任务不存在或你无权访问。",
       } satisfies Partial<HaiApiError>),
     );
+  });
+});
+
+describe("HAI Work task tool scoping", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
+  });
+
+  it("scopes active and archived task queries to a selected tool", async () => {
+    const query = createQuery({ data: [], error: null });
+    fromMock.mockReturnValue(query);
+
+    await getHaiWorkTasks("lesson-diagnosis");
+    expect(query.eq).toHaveBeenCalledWith("module_slug", "lesson-diagnosis");
+
+    await getArchivedHaiWorkTasks("segment-optimization");
+    expect(query.eq).toHaveBeenCalledWith("module_slug", "segment-optimization");
   });
 });
 

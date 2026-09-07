@@ -171,8 +171,8 @@ export default function HaiWorkPage() {
         const [{ access: nextAccess, usage: nextUsage }, nextTools, nextTasks, nextArchivedTasks] = await Promise.all([
           getHaiAccessStatus(),
           getHaiWorkTools(),
-          getHaiWorkTasks(),
-          getArchivedHaiWorkTasks(),
+          getHaiWorkTasks(toolSlug ?? undefined),
+          getArchivedHaiWorkTasks(toolSlug ?? undefined),
         ]);
         if (!cancelled) {
           setAccess(nextAccess);
@@ -188,27 +188,27 @@ export default function HaiWorkPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [user]);
+  }, [toolSlug, user]);
 
   const loadTasks = useCallback(async () => {
     try {
       const [nextTasks, nextArchivedTasks] = await Promise.all([
-        getHaiWorkTasks(),
-        getArchivedHaiWorkTasks(),
+        getHaiWorkTasks(toolSlug ?? undefined),
+        getArchivedHaiWorkTasks(toolSlug ?? undefined),
       ]);
       setTasks(nextTasks);
       setArchivedTasks(nextArchivedTasks);
     } catch {
       // 列表刷新失败不阻断,静默处理。
     }
-  }, []);
+  }, [toolSlug]);
   const enabledToolSlugs = useMemo(() => new Set(tools.map((item) => item.slug)), [tools]);
   const activeModule = toolSlug ? tools.find((item) => item.slug === toolSlug) : undefined;
   const activeConfig = toolSlug ? resolveWorkToolConfig(toolSlug, activeModule) : null;
   const pointsBlocked = usage?.quota_mode === "points" && (
     usage.can_consume === false || Number(usage.current_points ?? 0) <= 0
   );
-  const sidebar = <WorkSidebar tasks={tasks} archivedTasks={archivedTasks} tools={tools} onTasksChanged={loadTasks} />;
+  const sidebar = <WorkSidebar tasks={tasks} archivedTasks={archivedTasks} tools={tools} selectedToolSlug={toolSlug} onTasksChanged={loadTasks} />;
 
   return (
     <>
@@ -694,11 +694,13 @@ function WorkToolForm({
   );
 }
 
-export function WorkSidebar({ tasks, archivedTasks, tools = [], onTasksChanged }: { tasks: HaiWorkTask[]; archivedTasks: HaiWorkTask[]; tools?: HaiFeatureModule[]; onTasksChanged?: () => void }) {
+export function WorkSidebar({ tasks, archivedTasks, tools = [], selectedToolSlug, onTasksChanged }: { tasks: HaiWorkTask[]; archivedTasks: HaiWorkTask[]; tools?: HaiFeatureModule[]; selectedToolSlug?: HaiWorkToolSlug | null; onTasksChanged?: () => void }) {
   const visibleTools = getSupportedWorkTools(tools);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [showAllActive, setShowAllActive] = useState(false);
-  const visibleActive = showAllActive ? tasks : tasks.slice(0, 10); // 超过 10 条折叠,避免侧栏过长
+  const scopedTasks = selectedToolSlug ? tasks.filter((task) => task.module_slug === selectedToolSlug) : tasks;
+  const scopedArchivedTasks = selectedToolSlug ? archivedTasks.filter((task) => task.module_slug === selectedToolSlug) : archivedTasks;
+  const visibleActive = showAllActive ? scopedTasks : scopedTasks.slice(0, 10); // 超过 10 条折叠,避免侧栏过长
   return (
     <div>
       <p className="editorial-kicker px-1">工作工具</p>
@@ -719,20 +721,20 @@ export function WorkSidebar({ tasks, archivedTasks, tools = [], onTasksChanged }
       </div>
       <div className="mt-3 space-y-1">
         {visibleActive.map((task) => <TaskRow key={task.id} task={task} onTasksChanged={onTasksChanged} />)}
-        {tasks.length === 0 && <p className="px-3 py-4 text-xs leading-5 text-txt">任务完成后会出现在这里。</p>}
+        {scopedTasks.length === 0 && <p className="px-3 py-4 text-xs leading-5 text-txt">任务完成后会出现在这里。</p>}
       </div>
-      {tasks.length > 10 && (
+      {scopedTasks.length > 10 && (
         <button
           type="button"
           onClick={() => setShowAllActive((open) => !open)}
           className="mt-2 flex w-full items-center justify-center gap-1 rounded-ds-md px-3 py-2 text-[11px] font-bold text-txt transition hover:bg-[var(--paper)] hover:text-ac"
           aria-expanded={showAllActive}
         >
-          {showAllActive ? "收起" : `展示全部(${tasks.length})`}
+          {showAllActive ? "收起" : `展示全部(${scopedTasks.length})`}
           <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showAllActive && "rotate-180")} />
         </button>
       )}
-      {archivedTasks.length > 0 && (
+      {scopedArchivedTasks.length > 0 && (
         <>
           <div className="my-5 h-px bg-[var(--paper-rule)]" />
           <button
@@ -741,12 +743,12 @@ export function WorkSidebar({ tasks, archivedTasks, tools = [], onTasksChanged }
             className="flex w-full items-center justify-between px-1 text-left"
             aria-expanded={archivedOpen}
           >
-            <span className="text-[11px] font-black tracking-[0.16em] text-txt">已归档 · {archivedTasks.length}</span>
+            <span className="text-[11px] font-black tracking-[0.16em] text-txt">已归档 · {scopedArchivedTasks.length}</span>
             <ChevronDown className={cn("h-3.5 w-3.5 text-txt transition-transform", archivedOpen && "rotate-180")} />
           </button>
           {archivedOpen && (
             <div className="mt-3 space-y-1">
-              {archivedTasks.map((task) => <TaskRow key={task.id} task={task} onTasksChanged={onTasksChanged} />)}
+              {scopedArchivedTasks.map((task) => <TaskRow key={task.id} task={task} onTasksChanged={onTasksChanged} />)}
             </div>
           )}
         </>
