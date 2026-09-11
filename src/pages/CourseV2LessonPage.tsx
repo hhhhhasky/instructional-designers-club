@@ -6,12 +6,14 @@ import Footer from "@/components/common/Footer";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
 import MarkdownRenderer from "@/components/common/MarkdownRenderer";
 import PageMeta from "@/components/common/PageMeta";
+import V2SubjectExampleExplorer from "@/components/course/V2SubjectExampleExplorer";
 import Header from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { clearLearningDataCache } from "@/db/api";
 import { createV2Attempt, getV2LessonBundle, saveV2Answers, saveV2Card, submitV2Attempt, upsertV2LearningRecord, type V2LessonBundle } from "@/db/v2-api";
 import { buildV2AssessmentLayout, type V2AssessmentGroup } from "@/lib/v2-assessment-layout";
+import { isSubjectExplorerResource } from "@/lib/v2-subject-explorer";
 
 export default function CourseV2LessonPage() {
   const { lessonId } = useParams<{ lessonId: string }>();
@@ -110,6 +112,8 @@ export default function CourseV2LessonPage() {
   const { lesson, unit, module, resources, cards, assessments, learningRecord } = bundle;
   const assessmentLayout = buildV2AssessmentLayout(assessments, bundle.dictionaryItems);
   const currentUserId = user?.id ?? "";
+  const subjectExplorer = resources.find(isSubjectExplorerResource);
+  const fileResources = resources.filter((resource) => !isSubjectExplorerResource(resource));
   return (
     <>
       <PageMeta title={`${lesson.title}｜V2课程`} description={lesson.description ?? lesson.subtitle ?? "教学通识课 V2"} noIndex />
@@ -144,31 +148,18 @@ export default function CourseV2LessonPage() {
             </div>
           </section>
 
-          <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-            <div className="space-y-6">
+          <div className="mx-auto mt-6 max-w-4xl space-y-6">
               <LessonDesign lesson={lesson} />
               <AssessmentGroups groups={assessmentLayout.beforeContent} bundle={bundle} latestAttemptByBlock={latestAttemptByBlock} answerDrafts={answerDrafts} setAnswerDrafts={setAnswerDrafts} onSubmit={submitAssessment} saving={saving} />
               <section className="rounded-3xl border border-[#173d39]/10 bg-white/75 p-6 shadow-ds-sm sm:p-8">
                 <SectionHeading eyebrow="核心课程内容" title="把判断变成可以复用的动作" />
                 {lesson.body_markdown ? <MarkdownRenderer content={lesson.body_markdown} /> : <p className="mt-5 text-sm text-txs">课程正文还在整理中。</p>}
-                {resources.length > 0 && <ResourceList resources={resources} />}
+                {fileResources.length > 0 && <ResourceList resources={fileResources} />}
               </section>
+              {subjectExplorer && <V2SubjectExampleExplorer resource={subjectExplorer} />}
               <AssessmentGroups groups={assessmentLayout.afterContent} bundle={bundle} latestAttemptByBlock={latestAttemptByBlock} answerDrafts={answerDrafts} setAnswerDrafts={setAnswerDrafts} onSubmit={submitAssessment} saving={saving} />
               {cards.length > 0 && <KnowledgeCards cards={cards} savedCardIds={bundle.savedCardIds} userId={currentUserId} onSaved={(cardId, saved) => setBundle((current) => current ? { ...current, savedCardIds: saved ? [...current.savedCardIds, cardId] : current.savedCardIds.filter((id) => id !== cardId) } : current)} />}
               <AssessmentGroups groups={assessmentLayout.afterLearning} bundle={bundle} latestAttemptByBlock={latestAttemptByBlock} answerDrafts={answerDrafts} setAnswerDrafts={setAnswerDrafts} onSubmit={submitAssessment} saving={saving} />
-            </div>
-            <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
-              <div className="rounded-3xl border border-[#173d39]/10 bg-white/75 p-5 shadow-ds-sm">
-                <p className="text-[10px] font-ds-black tracking-[.16em] text-ac">LESSON MAP</p>
-                <p className="mt-2 font-serif text-lg font-ds-black text-tx">{unit.title}</p>
-                <p className="mt-1 text-xs leading-5 text-txs">本页状态只属于当前登录账号，课程正文与资源对所有有权限用户一致。</p>
-                <Link to="/course-v2" className="mt-4 inline-flex text-xs font-ds-bold text-ac hover:underline">查看 V2 课程目录 →</Link>
-              </div>
-              <div className="rounded-3xl border border-[#173d39]/10 bg-[#fffaf2] p-5">
-                <div className="flex items-center gap-2 text-ac"><LockKeyhole className="h-4 w-4" /><span className="text-xs font-ds-bold">V2 独立记录</span></div>
-                <p className="mt-2 text-xs leading-5 text-txs">不会覆盖 V1 的课程进度、作答或收藏。</p>
-              </div>
-            </aside>
           </div>
         </div>
       </main>
@@ -205,11 +196,10 @@ function KnowledgeCards({ cards, savedCardIds, userId, onSaved }: { cards: V2Les
 }
 
 function AssessmentGroups({ groups, bundle, latestAttemptByBlock, answerDrafts, setAnswerDrafts, onSubmit, saving }: { groups: V2AssessmentGroup[]; bundle: V2LessonBundle; latestAttemptByBlock: Map<string, V2LessonBundle["attempts"][number]>; answerDrafts: Record<string, string | string[]>; setAnswerDrafts: (value: Record<string, string | string[]>) => void; onSubmit: (blockId: string, items: V2LessonBundle["assessments"][number]["items"]) => void; saving: boolean }) {
-  return groups.map((group) => (
+  return groups.flatMap((group) => group.assessments.map((assessment) => (
     <V2AssessmentSection
-      key={group.key}
-      title={group.label}
-      assessments={group.assessments}
+      key={assessment.id}
+      assessment={assessment}
       dictionaryItems={bundle.dictionaryItems}
       latestAttemptByBlock={latestAttemptByBlock}
       answers={bundle.answers}
@@ -219,27 +209,23 @@ function AssessmentGroups({ groups, bundle, latestAttemptByBlock, answerDrafts, 
       onSubmit={onSubmit}
       saving={saving}
     />
-  ));
+  )));
 }
 
-function V2AssessmentSection({ title, assessments, dictionaryItems, latestAttemptByBlock, answers, reviews, answerDrafts, setAnswerDrafts, onSubmit, saving }: { title: string; assessments: V2LessonBundle["assessments"]; dictionaryItems: V2LessonBundle["dictionaryItems"]; latestAttemptByBlock: Map<string, V2LessonBundle["attempts"][number]>; answers: V2LessonBundle["answers"]; reviews: V2LessonBundle["reviews"]; answerDrafts: Record<string, string | string[]>; setAnswerDrafts: (value: Record<string, string | string[]>) => void; onSubmit: (blockId: string, items: V2LessonBundle["assessments"][number]["items"]) => void; saving: boolean }) {
+export function V2AssessmentSection({ assessment, dictionaryItems, latestAttemptByBlock, answers, reviews, answerDrafts, setAnswerDrafts, onSubmit, saving }: { assessment: V2LessonBundle["assessments"][number]; dictionaryItems: V2LessonBundle["dictionaryItems"]; latestAttemptByBlock: Map<string, V2LessonBundle["attempts"][number]>; answers: V2LessonBundle["answers"]; reviews: V2LessonBundle["reviews"]; answerDrafts: Record<string, string | string[]>; setAnswerDrafts: (value: Record<string, string | string[]>) => void; onSubmit: (blockId: string, items: V2LessonBundle["assessments"][number]["items"]) => void; saving: boolean }) {
   const itemTypeKey = (itemTypeId: string | null) => dictionaryItems.find((item) => item.id === itemTypeId)?.key ?? "";
+  const itemTypeLabel = (itemTypeId: string | null) => dictionaryItems.find((item) => item.id === itemTypeId)?.label ?? "题目";
+  const latest = latestAttemptByBlock.get(assessment.id);
+  const review = latest ? reviews.find((row) => row.attempt_id === latest.id && row.answer_id === null) : null;
+  const locked = latest?.status === "submitted" || latest?.status === "reviewed";
   return (
     <section className="rounded-3xl border border-[#173d39]/10 bg-white/75 p-6 sm:p-8">
-      <SectionHeading eyebrow="CHECK & PRACTICE" title={title} />
-      <div className="mt-5 space-y-6">
-        {assessments.map((assessment) => {
-          const latest = latestAttemptByBlock.get(assessment.id);
-          const review = latest ? reviews.find((row) => row.attempt_id === latest.id && row.answer_id === null) : null;
-          const locked = latest?.status === "submitted" || latest?.status === "reviewed";
-          return (
-            <div key={assessment.id} className="rounded-2xl border border-bdl p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div><h3 className="font-serif text-xl font-ds-black text-tx">{assessment.title}</h3>{assessment.instructions_markdown && <div className="mt-2 text-sm leading-6 text-txs"><MarkdownRenderer content={assessment.instructions_markdown} /></div>}</div>
-                {latest && <span className={`rounded-full px-2.5 py-1 text-[10px] font-ds-bold ${latest.status === "revision_required" ? "bg-[#fff0e8] text-[#bb704c]" : "bg-bgs text-ac"}`}>{latest.status === "submitted" ? "等待批阅" : latest.status === "reviewed" ? "已批阅" : latest.status === "revision_required" ? "要求修改" : "草稿"}</span>}
-              </div>
-              {review && <div className="mt-4 rounded-xl bg-[#fffaf2] p-4 text-sm text-txs"><p className="font-ds-bold text-tx">教师反馈{review.score != null ? ` · ${review.score} 分` : ""}</p>{review.feedback_markdown && <MarkdownRenderer content={review.feedback_markdown} />}</div>}
-              <div className="mt-5 space-y-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div><h2 className="font-serif text-2xl font-ds-black text-tx sm:text-3xl">{assessment.title}</h2>{assessment.instructions_markdown && <div className="mt-2 text-sm leading-6 text-txs"><MarkdownRenderer content={assessment.instructions_markdown} /></div>}</div>
+        {latest && <span className={`rounded-full px-2.5 py-1 text-[10px] font-ds-bold ${latest.status === "revision_required" ? "bg-[#fff0e8] text-[#bb704c]" : "bg-bgs text-ac"}`}>{latest.status === "submitted" ? "等待批阅" : latest.status === "reviewed" ? "已批阅" : latest.status === "revision_required" ? "要求修改" : "草稿"}</span>}
+      </div>
+      {review && <div className="mt-4 rounded-xl bg-[#fffaf2] p-4 text-sm text-txs"><p className="font-ds-bold text-tx">教师反馈{review.score != null ? ` · ${review.score} 分` : ""}</p>{review.feedback_markdown && <MarkdownRenderer content={review.feedback_markdown} />}</div>}
+      <div className="mt-5 space-y-5">
                 {assessment.items.map((item, index) => {
                   const previous = latest ? answers.find((answer) => answer.attempt_id === latest.id && answer.item_id === item.id) : null;
                   const typeKey = itemTypeKey(item.item_type_id);
@@ -249,7 +235,10 @@ function V2AssessmentSection({ title, assessments, dictionaryItems, latestAttemp
                   const value = answerDrafts[item.id] ?? previousValue;
                   return (
                     <div key={item.id}>
-                      <div className="text-sm font-ds-bold text-tx">{index + 1}. <MarkdownRenderer content={item.prompt_markdown} /></div>
+                      <div className="text-sm font-ds-bold leading-6 text-tx">
+                        <span>{assessment.items.length > 1 ? `${index + 1}. ` : ""}{itemTypeLabel(item.item_type_id)}：</span>
+                        <MarkdownRenderer content={item.prompt_markdown} className="inline text-sm font-ds-bold [&_p]:my-0 [&_p]:inline" />
+                      </div>
                       {item.case_markdown && <div className="mt-2 rounded-xl bg-bgs/45 p-3 text-sm text-txs"><MarkdownRenderer content={item.case_markdown} /></div>}
                       {item.options.length > 0 ? (
                         <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -283,12 +272,8 @@ function V2AssessmentSection({ title, assessments, dictionaryItems, latestAttemp
                     </div>
                   );
                 })}
-              </div>
-              {!locked && <Button onClick={() => onSubmit(assessment.id, assessment.items)} disabled={saving} className="mt-5 bg-[#173d39] text-white hover:bg-[#24554e]"><Send className="h-4 w-4" />{latest?.status === "revision_required" ? "再次提交" : "保存并提交"}</Button>}
-            </div>
-          );
-        })}
       </div>
+      {!locked && <Button onClick={() => onSubmit(assessment.id, assessment.items)} disabled={saving} className="mt-5 bg-[#173d39] text-white hover:bg-[#24554e]"><Send className="h-4 w-4" />{latest?.status === "revision_required" ? "再次提交" : "保存并提交"}</Button>}
     </section>
   );
 }
