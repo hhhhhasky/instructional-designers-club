@@ -4,6 +4,12 @@ import { describe, expect, it, vi } from 'vitest';
 import MarkdownRenderer, { parseVideoTimestamp } from '@/components/common/MarkdownRenderer';
 
 describe('MarkdownRenderer', () => {
+  it('renders the safe ++text++ underline extension', () => {
+    render(<MarkdownRenderer content="这是 ++需要重点关注++ 的判断。" />);
+
+    expect(screen.getByText('需要重点关注').tagName).toBe('U');
+  });
+
   it('parses supported video timestamp formats', () => {
     expect(parseVideoTimestamp('01:15')).toBe(75);
     expect(parseVideoTimestamp('1:02:03')).toBe(3723);

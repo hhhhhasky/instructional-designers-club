@@ -9,7 +9,50 @@ type MarkdownSegment =
   | { type: 'markdown'; content: string }
   | { type: 'details'; summary: string; content: string };
 
+type MarkdownAstNode = {
+  type: string;
+  value?: string;
+  children?: MarkdownAstNode[];
+  data?: { hName?: string };
+};
+
 const DETAILS_BLOCK_RE = /<details>\s*<summary>([\s\S]*?)<\/summary>\s*([\s\S]*?)<\/details>/gi;
+
+function remarkUnderline() {
+  return (tree: MarkdownAstNode) => {
+    const visit = (node: MarkdownAstNode) => {
+      if (!node.children) return;
+
+      node.children = node.children.flatMap((child) => {
+        if (child.type !== 'text' || !child.value?.includes('++')) {
+          visit(child);
+          return [child];
+        }
+
+        const parts: MarkdownAstNode[] = [];
+        const pattern = /\+\+([^+\n]+?)\+\+/g;
+        let cursor = 0;
+        let match: RegExpExecArray | null;
+
+        while ((match = pattern.exec(child.value)) !== null) {
+          if (match.index > cursor) parts.push({ type: 'text', value: child.value.slice(cursor, match.index) });
+          parts.push({
+            type: 'underline',
+            data: { hName: 'u' },
+            children: [{ type: 'text', value: match[1] }],
+          });
+          cursor = match.index + match[0].length;
+        }
+
+        if (cursor === 0) return [child];
+        if (cursor < child.value.length) parts.push({ type: 'text', value: child.value.slice(cursor) });
+        return parts;
+      });
+    };
+
+    visit(tree);
+  };
+}
 
 function splitDetailsBlocks(content: string): MarkdownSegment[] {
   const segments: MarkdownSegment[] = [];
@@ -119,7 +162,7 @@ function MarkdownBlock({ content, onVideoSeek, onAudioSeek }: { content: string;
 
   return (
     <ReactMarkdown
-      remarkPlugins={[remarkGfm, remarkMath]}
+      remarkPlugins={[remarkGfm, remarkMath, remarkUnderline]}
       rehypePlugins={[rehypeKatex]}
       components={{
         h1: ({ children }) => (
@@ -190,6 +233,9 @@ function MarkdownBlock({ content, onVideoSeek, onAudioSeek }: { content: string;
         hr: () => <hr className="border-bdl my-6" />,
         strong: ({ children }) => (
           <strong className="font-semibold text-tx">{children}</strong>
+        ),
+        u: ({ children }) => (
+          <u className="decoration-ac/60 decoration-2 underline-offset-4">{children}</u>
         ),
         em: ({ children }) => <em className="italic">{children}</em>,
         // 行内代码

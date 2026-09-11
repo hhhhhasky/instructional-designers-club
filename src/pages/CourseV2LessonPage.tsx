@@ -148,7 +148,7 @@ export default function CourseV2LessonPage() {
             </div>
           </section>
 
-          <div className="mx-auto mt-6 max-w-4xl space-y-6">
+          <div className="mt-6 space-y-6">
               <LessonDesign lesson={lesson} />
               <AssessmentGroups groups={assessmentLayout.beforeContent} bundle={bundle} latestAttemptByBlock={latestAttemptByBlock} answerDrafts={answerDrafts} setAnswerDrafts={setAnswerDrafts} onSubmit={submitAssessment} saving={saving} />
               <section className="rounded-3xl border border-[#173d39]/10 bg-white/75 p-6 shadow-ds-sm sm:p-8">
