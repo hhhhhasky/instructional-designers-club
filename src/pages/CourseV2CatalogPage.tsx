@@ -7,7 +7,8 @@ import PageMeta from "@/components/common/PageMeta";
 import CourseTypeTabs from "@/components/course/CourseTypeTabs";
 import Header from "@/components/layout/Header";
 import { useAuth } from "@/contexts/AuthContext";
-import { getPublishedV2Outlines, getV2Access, type V2Outline } from "@/db/v2-api";
+import { getPublishedV2Outlines, type V2Outline } from "@/db/v2-api";
+import { canAccessV2, V2_PREVIEW_ACCESS_MESSAGE } from "@/lib/v2-access";
 
 export default function CourseV2CatalogPage() {
   const { user, profile, loading: authLoading } = useAuth();
@@ -22,23 +23,14 @@ export default function CourseV2CatalogPage() {
       navigate("/login", { replace: true, state: { from: "/course-v2" } });
       return;
     }
-    const userId = user.id;
     let cancelled = false;
     async function load() {
       try {
-        const manager = profile?.role === "admin";
-        const is2015Plus = profile?.access_level === "plus2015";
-        const access = manager || is2015Plus ? null : await getV2Access(userId);
-        const now = Date.now();
-        const hasAccess = manager || !is2015Plus && Boolean(
-          access?.status === "active" &&
-          (!access.starts_at || new Date(access.starts_at).getTime() <= now) &&
-          (!access.expires_at || new Date(access.expires_at).getTime() > now),
-        );
-        if (!hasAccess) {
+        if (!canAccessV2(profile)) {
           if (!cancelled) setDenied(true);
           return;
         }
+        if (!cancelled) setDenied(false);
         const result = await getPublishedV2Outlines();
         if (!cancelled) setOutlines(result);
       } catch (error) {
@@ -50,7 +42,7 @@ export default function CourseV2CatalogPage() {
     }
     void load();
     return () => { cancelled = true; };
-  }, [authLoading, navigate, profile?.role, user]);
+  }, [authLoading, navigate, profile, user]);
 
   return (
     <>
@@ -66,7 +58,7 @@ export default function CourseV2CatalogPage() {
               <div className="rounded-3xl border border-[#173d39]/10 bg-white/75 p-8">
                 <LockKeyhole className="mx-auto h-10 w-10 text-ac" />
                 <h1 className="mt-4 font-serif text-2xl font-ds-black text-tx">尚未开通 V2 课程</h1>
-                <p className="mt-3 text-sm leading-6 text-txs">当前账号还没有有效的 V2 访问权限，请联系管理员开通。</p>
+                <p className="mt-3 text-sm leading-6 text-txs">{V2_PREVIEW_ACCESS_MESSAGE}</p>
               </div>
             </div>
           ) : (

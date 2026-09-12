@@ -3,16 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import {
-  getV2AccessRows,
-  getV2ReviewDetail,
-  getV2ReviewQueue,
-  saveV2Access,
-  saveV2Review,
-  type V2AccessRow,
-  type V2ReviewDetail,
-  type V2ReviewQueueItem,
-} from "@/db/v2-api";
+import { getV2ReviewDetail, getV2ReviewQueue, saveV2Review, type V2ReviewDetail, type V2ReviewQueueItem } from "@/db/v2-api";
 
 export function V2ReviewPanel() {
   const { user } = useAuth();
@@ -94,34 +85,6 @@ export function V2ReviewPanel() {
           <div className="mt-3 flex flex-wrap gap-2"><Button onClick={() => void submitReview("reviewed")} className="bg-[#173d39] text-white hover:bg-[#24554e]"><Check className="h-4 w-4" />通过并保存</Button><Button onClick={() => void submitReview("revision_required")} variant="outline" className="border-[#bb704c] bg-white text-[#bb704c]">要求修改</Button></div>
         </div>
       )}
-    </div>
-  );
-}
-
-export function V2AccessPanel() {
-  const [rows, setRows] = useState<V2AccessRow[]>([]);
-  const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(true);
-  const load = useCallback(async () => { setLoading(true); try { setRows(await getV2AccessRows()); } catch (error) { console.error(error); toast.error("V2 权限列表加载失败"); } finally { setLoading(false); } }, []);
-  useEffect(() => { void load(); }, [load]);
-  const filtered = rows.filter((row) => `${row.nickname} ${row.phone}`.toLowerCase().includes(query.toLowerCase()));
-
-  async function toggle(row: V2AccessRow) {
-    const status = row.access_status === "active" ? "suspended" : "active";
-    try {
-      await saveV2Access(row.user_id, status, row.notes ?? "", row.expires_at);
-      toast.success(status === "active" ? "已开通 V2" : "已暂停 V2");
-      await load();
-    } catch (error) {
-      console.error(error);
-      toast.error("权限更新失败");
-    }
-  }
-
-  return (
-    <div className="rounded-3xl border border-bdl bg-white/65 p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-[10px] font-ds-black tracking-[.16em] text-ac">V2 ACCESS</p><h3 className="mt-2 font-serif text-2xl font-ds-black text-tx">新版访问权限</h3><p className="mt-1 text-xs text-txs">有效权限用户会在顶部导航看到“教学通识课 V2”。</p></div><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索昵称 / 手机号" className="rounded-xl border border-bdl bg-white px-3 py-2 text-xs text-tx outline-none focus:border-ac" /></div>
-      {loading ? <p className="py-10 text-center text-xs text-txs">加载会员权限...</p> : <div className="mt-5 overflow-x-auto"><table className="w-full min-w-[620px] text-left text-xs"><thead><tr className="border-b border-bdl text-[10px] tracking-wide text-txs"><th className="px-3 py-2">会员</th><th className="px-3 py-2">账号状态</th><th className="px-3 py-2">V2 状态</th><th className="px-3 py-2">有效期</th><th className="px-3 py-2" /></tr></thead><tbody>{filtered.map((row) => <tr key={row.user_id} className="border-b border-bdl/70"><td className="px-3 py-3"><p className="font-ds-bold text-tx">{row.nickname}</p><p className="mt-1 text-[10px] text-txs">{row.phone}</p></td><td className="px-3 py-3 text-txs">{row.profile_status}</td><td className="px-3 py-3"><span className={`rounded-full px-2 py-1 text-[10px] font-ds-bold ${row.access_status === "active" ? "bg-bgs text-ac" : row.access_status === "suspended" ? "bg-[#fff0e8] text-[#bb704c]" : "bg-bgs text-txs"}`}>{row.access_status === "active" ? "已开通" : row.access_status === "suspended" ? "已暂停" : "未开通"}</span></td><td className="px-3 py-3 text-txs">{row.expires_at ? new Date(row.expires_at).toLocaleDateString("zh-CN") : "不限期"}</td><td className="px-3 py-3 text-right"><Button size="sm" variant="outline" onClick={() => void toggle(row)} className="border-bdl bg-white text-tx">{row.access_status === "active" ? "暂停" : "开通"}</Button></td></tr>)}</tbody></table></div>}
     </div>
   );
 }

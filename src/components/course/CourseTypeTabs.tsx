@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
 import { BookOpen, GraduationCap, Library } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { getV2Access } from "@/db/v2-api";
+import { canAccessV2 } from "@/lib/v2-access";
 
 const COURSE_TABS = [
   {
@@ -21,37 +20,13 @@ const COURSE_TABS = [
 
 export default function CourseTypeTabs() {
   const { pathname } = useLocation();
-  const { user, profile } = useAuth();
-  const [hasV2Access, setHasV2Access] = useState(profile?.role === "admin");
+  const { profile } = useAuth();
+  const hasV2Access = canAccessV2(profile);
   const activePath = pathname.startsWith("/course-v2")
     ? "/course-v2"
     : pathname === "/teacher-ai-courses"
       ? "/teacher-ai-courses"
       : "/courses";
-
-  useEffect(() => {
-    if (!user) {
-      setHasV2Access(false);
-      return;
-    }
-    if (profile?.role === "admin") {
-      setHasV2Access(true);
-      return;
-    }
-    let cancelled = false;
-    getV2Access(user.id)
-      .then((access) => {
-        const now = Date.now();
-        const active = Boolean(
-          access?.status === "active" &&
-          (!access.starts_at || new Date(access.starts_at).getTime() <= now) &&
-          (!access.expires_at || new Date(access.expires_at).getTime() > now),
-        );
-        if (!cancelled) setHasV2Access(active);
-      })
-      .catch(() => { if (!cancelled) setHasV2Access(false); });
-    return () => { cancelled = true; };
-  }, [profile?.role, user]);
 
   const tabs = hasV2Access
     ? [

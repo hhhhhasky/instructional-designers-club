@@ -8,13 +8,12 @@ import {
   FolderPlus,
   Library,
   Plus,
-  ShieldCheck,
   SlidersHorizontal,
   Trash2,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { V2AccessPanel, V2ReviewPanel } from "@/components/admin/V2AdminSecondaryPanels";
+import { V2ReviewPanel } from "@/components/admin/V2AdminSecondaryPanels";
 import V2CourseWorkbookImport from "@/components/admin/V2CourseWorkbookImport";
 import V2DictionaryPanel from "@/components/admin/V2DictionaryPanel";
 import V2LessonEditor from "@/components/admin/V2LessonEditor";
@@ -38,7 +37,7 @@ import {
   type V2Outline,
 } from "@/db/v2-api";
 
-type V2Panel = "outline" | "reviews" | "dictionary" | "access";
+type V2Panel = "outline" | "reviews" | "dictionary";
 
 export default function V2CourseManagementSection() {
   const [panel, setPanel] = useState<V2Panel>("outline");
@@ -46,12 +45,11 @@ export default function V2CourseManagementSection() {
     ["outline", "课程大纲", BookOpen],
     ["reviews", "批阅中心", ClipboardCheck],
     ["dictionary", "数据字典", SlidersHorizontal],
-    ["access", "V2 权限", ShieldCheck],
   ] as const;
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-2 sm:grid-cols-4">
+      <div className="grid gap-2 sm:grid-cols-3">
         {panels.map(([value, label, Icon]) => (
           <button
             key={value}
@@ -70,7 +68,6 @@ export default function V2CourseManagementSection() {
       {panel === "outline" && <V2OutlinePanel />}
       {panel === "reviews" && <V2ReviewPanel />}
       {panel === "dictionary" && <V2DictionaryPanel />}
-      {panel === "access" && <V2AccessPanel />}
     </div>
   );
 }

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { clearLearningDataCache } from "@/db/api";
 import { createV2Attempt, getV2LessonBundle, saveV2Answers, saveV2Card, submitV2Attempt, upsertV2LearningRecord, type V2LessonBundle } from "@/db/v2-api";
+import { canAccessV2, V2_PREVIEW_ACCESS_MESSAGE } from "@/lib/v2-access";
 import { buildV2AssessmentLayout, type V2AssessmentGroup } from "@/lib/v2-assessment-layout";
 import { isSubjectExplorerResource } from "@/lib/v2-subject-explorer";
 
@@ -36,12 +37,13 @@ export default function CourseV2LessonPage() {
       setLoading(false);
       return;
     }
-    if (profile?.access_level === "plus2015") {
-      setError("教学通识课 V2 仅对 Plus 和 Pro 会员开放。");
+    if (!canAccessV2(profile)) {
+      setError(V2_PREVIEW_ACCESS_MESSAGE);
       setLoading(false);
       return;
     }
     let cancelled = false;
+    setError(null);
     setLoading(true);
     getV2LessonBundle(lessonId, user.id)
       .then((data) => {
@@ -56,7 +58,7 @@ export default function CourseV2LessonPage() {
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [authLoading, lessonId, navigate, profile?.access_level, user]);
+  }, [authLoading, lessonId, navigate, profile, user]);
 
   const latestAttemptByBlock = useMemo(() => {
     const map = new Map<string, V2LessonBundle["attempts"][number]>();

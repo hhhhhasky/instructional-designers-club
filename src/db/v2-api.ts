@@ -216,17 +216,6 @@ export interface V2ReviewDetail {
   reviews: V2ManualReview[];
 }
 
-export interface V2AccessRow {
-  user_id: string;
-  nickname: string;
-  phone: string;
-  profile_status: string;
-  access_status: "active" | "suspended" | "none";
-  starts_at: string | null;
-  expires_at: string | null;
-  notes: string | null;
-}
-
 export interface V2AssessmentItemAdminPayload {
   assessment_block_id: string;
   item_type_id: string | null;
@@ -257,15 +246,6 @@ function throwIfError<T>(result: { data: T; error: unknown }, message: string): 
     throw result.error;
   }
   return result.data;
-}
-
-export async function getV2Access(userId: string): Promise<{ status: string; starts_at: string | null; expires_at: string | null } | null> {
-  const { data, error } = await table("v2_course_access")
-    .select("status, starts_at, expires_at")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (error) throw error;
-  return data;
 }
 
 async function loadV2LessonBundle(lessonId: string, userId: string, adminMode: boolean): Promise<V2LessonBundle | null> {
@@ -564,22 +544,4 @@ export async function saveV2Review(attemptId: string, reviewerId: string, payloa
   throwIfError(reviewResult, "saveV2Review insert error");
   const attemptResult = await table("v2_submission_attempts").update({ status: payload.status }).eq("id", attemptId);
   throwIfError(attemptResult, "saveV2Review attempt update error");
-}
-
-export async function getV2AccessRows(): Promise<V2AccessRow[]> {
-  const [profilesResult, accessResult] = await Promise.all([
-    table("profiles").select("id, nickname, phone, status").order("created_at", { ascending: false }),
-    table("v2_course_access").select("user_id, status, starts_at, expires_at, notes"),
-  ]);
-  const profiles = (throwIfError(profilesResult, "getV2AccessRows profiles error") ?? []) as Array<{ id: string; nickname: string; phone: string; status: string }>;
-  const access = (throwIfError(accessResult, "getV2AccessRows access error") ?? []) as Array<{ user_id: string; status: "active" | "suspended"; starts_at: string | null; expires_at: string | null; notes: string | null }>;
-  return profiles.map((profile) => {
-    const row = access.find((item) => item.user_id === profile.id);
-    return { user_id: profile.id, nickname: profile.nickname, phone: profile.phone, profile_status: profile.status, access_status: row?.status ?? "none", starts_at: row?.starts_at ?? null, expires_at: row?.expires_at ?? null, notes: row?.notes ?? null };
-  });
-}
-
-export async function saveV2Access(userId: string, status: "active" | "suspended", notes: string, expiresAt: string | null): Promise<void> {
-  const result = await table("v2_course_access").upsert({ user_id: userId, status, notes: notes || null, expires_at: expiresAt || null }, { onConflict: "user_id" });
-  throwIfError(result, "saveV2Access error");
 }
