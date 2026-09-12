@@ -1,23 +1,11 @@
+import type { V2ImportPayload } from "@/components/admin/v2-course-import";
 import { supabase } from "@/db/supabase";
 
 export type V2Status = "draft" | "published" | "archived";
 export type V2SubmissionStatus = "draft" | "submitted" | "reviewed" | "revision_required";
 
-export interface V2Module {
-  id: string;
-  slug: string;
-  title: string;
-  description_markdown: string | null;
-  sort_order: number;
-  status: V2Status;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface V2Unit {
   id: string;
-  module_id: string;
   slug: string;
   title: string;
   description_markdown: string | null;
@@ -193,7 +181,6 @@ export interface V2ManualReview {
 export interface V2LessonBundle {
   lesson: V2Lesson;
   unit: V2Unit;
-  module: V2Module;
   resources: V2Resource[];
   cards: V2KnowledgeCard[];
   assessments: Array<V2AssessmentBlock & { items: Array<V2AssessmentItem & { options: V2AssessmentOption[] }> }>;
@@ -206,8 +193,8 @@ export interface V2LessonBundle {
 }
 
 export interface V2Outline {
-  module: V2Module;
-  units: Array<V2Unit & { lessons: V2Lesson[] }>;
+  unit: V2Unit;
+  lessons: V2Lesson[];
 }
 
 export interface V2ReviewQueueItem extends V2Attempt {
@@ -216,7 +203,6 @@ export interface V2ReviewQueueItem extends V2Attempt {
   assessment_title: string;
   lesson_title: string;
   unit_title: string;
-  module_title: string;
 }
 
 export interface V2ReviewDetail {
@@ -306,8 +292,6 @@ async function loadV2LessonBundle(lessonId: string, userId: string, adminMode: b
     table("v2_dictionary_items").select("*").eq("is_active", true).order("sort_order"),
   ]);
   const unit = throwIfError(unitResult, "getV2LessonBundle unit error") as V2Unit;
-  const moduleResult = await table("v2_course_modules").select("*").eq("id", unit.module_id).single();
-  const module = throwIfError(moduleResult, "getV2LessonBundle module error") as V2Module;
   const resources = (throwIfError(resourcesResult, "getV2LessonBundle resources error") ?? []) as V2Resource[];
   const cards = (throwIfError(cardsResult, "getV2LessonBundle cards error") ?? []) as V2KnowledgeCard[];
   const blocks = (throwIfError(blocksResult, "getV2LessonBundle blocks error") ?? []) as V2AssessmentBlock[];
@@ -335,7 +319,7 @@ async function loadV2LessonBundle(lessonId: string, userId: string, adminMode: b
     return { ...block, items: items.map((item) => ({ ...item, options: options.filter((option) => option.item_id === item.id) })) };
   }));
 
-  return { lesson, unit, module, resources, cards, assessments, learningRecord, attempts, answers, reviews, savedCardIds, dictionaryItems };
+  return { lesson, unit, resources, cards, assessments, learningRecord, attempts, answers, reviews, savedCardIds, dictionaryItems };
 }
 
 export async function getV2LessonBundle(lessonId: string, userId: string): Promise<V2LessonBundle | null> {
@@ -386,46 +370,28 @@ export async function submitV2Attempt(attemptId: string): Promise<V2Attempt> {
 }
 
 export async function getV2Outlines(): Promise<V2Outline[]> {
-  const [modulesResult, unitsResult, lessonsResult] = await Promise.all([
-    table("v2_course_modules").select("*").order("sort_order").order("created_at"),
+  const [unitsResult, lessonsResult] = await Promise.all([
     table("v2_course_units").select("*").order("sort_order").order("created_at"),
     table("v2_course_lessons").select("*").order("sort_order").order("created_at"),
   ]);
-  const modules = (throwIfError(modulesResult, "getV2Outlines modules error") ?? []) as V2Module[];
   const units = (throwIfError(unitsResult, "getV2Outlines units error") ?? []) as V2Unit[];
   const lessons = (throwIfError(lessonsResult, "getV2Outlines lessons error") ?? []) as V2Lesson[];
-  return modules.map((module) => ({
-    module,
-    units: units.filter((unit) => unit.module_id === module.id).map((unit) => ({ ...unit, lessons: lessons.filter((lesson) => lesson.unit_id === unit.id) })),
-  }));
+  return units.map((unit) => ({ unit, lessons: lessons.filter((lesson) => lesson.unit_id === unit.id) }));
 }
 
 export async function getPublishedV2Outlines(): Promise<V2Outline[]> {
-  const [modulesResult, unitsResult, lessonsResult] = await Promise.all([
-    table("v2_course_modules").select("*").eq("status", "published").eq("is_active", true).order("sort_order").order("created_at"),
+  const [unitsResult, lessonsResult] = await Promise.all([
     table("v2_course_units").select("*").eq("status", "published").eq("is_active", true).order("sort_order").order("created_at"),
     table("v2_course_lessons").select("*").eq("status", "published").order("sort_order").order("created_at"),
   ]);
-  const modules = (throwIfError(modulesResult, "getPublishedV2Outlines modules error") ?? []) as V2Module[];
   const units = (throwIfError(unitsResult, "getPublishedV2Outlines units error") ?? []) as V2Unit[];
   const lessons = (throwIfError(lessonsResult, "getPublishedV2Outlines lessons error") ?? []) as V2Lesson[];
-  return modules
-    .map((module) => ({
-      module,
-      units: units
-        .filter((unit) => unit.module_id === module.id)
-        .map((unit) => ({ ...unit, lessons: lessons.filter((lesson) => lesson.unit_id === unit.id) }))
-        .filter((unit) => unit.lessons.length > 0),
-    }))
-    .filter((outline) => outline.units.length > 0);
+  return units
+    .map((unit) => ({ unit, lessons: lessons.filter((lesson) => lesson.unit_id === unit.id) }))
+    .filter((outline) => outline.lessons.length > 0);
 }
 
-export async function saveV2Module(payload: Partial<V2Module> & Pick<V2Module, "title" | "slug">, id?: string): Promise<V2Module> {
-  const result = id ? await table("v2_course_modules").update(payload).eq("id", id).select("*").single() : await table("v2_course_modules").insert(payload).select("*").single();
-  return throwIfError(result, "saveV2Module error") as V2Module;
-}
-
-export async function saveV2Unit(payload: Partial<V2Unit> & Pick<V2Unit, "title" | "slug" | "module_id">, id?: string): Promise<V2Unit> {
+export async function saveV2Unit(payload: Partial<V2Unit> & Pick<V2Unit, "title" | "slug">, id?: string): Promise<V2Unit> {
   const result = id ? await table("v2_course_units").update(payload).eq("id", id).select("*").single() : await table("v2_course_units").insert(payload).select("*").single();
   return throwIfError(result, "saveV2Unit error") as V2Unit;
 }
@@ -433,6 +399,21 @@ export async function saveV2Unit(payload: Partial<V2Unit> & Pick<V2Unit, "title"
 export async function saveV2Lesson(payload: Partial<V2Lesson> & Pick<V2Lesson, "title" | "unit_id">, id?: string): Promise<V2Lesson> {
   const result = id ? await table("v2_course_lessons").update(payload).eq("id", id).select("*").single() : await table("v2_course_lessons").insert(payload).select("*").single();
   return throwIfError(result, "saveV2Lesson error") as V2Lesson;
+}
+
+export async function deleteV2UnitAdmin(id: string): Promise<void> {
+  const result = await table("v2_course_units").delete().eq("id", id);
+  throwIfError(result, "deleteV2UnitAdmin error");
+}
+
+export async function deleteV2LessonAdmin(id: string): Promise<void> {
+  const result = await table("v2_course_lessons").delete().eq("id", id);
+  throwIfError(result, "deleteV2LessonAdmin error");
+}
+
+export async function importV2CourseWorkbook(payload: V2ImportPayload): Promise<{ unit_count: number; lesson_count: number; resource_count: number; card_count: number; assessment_count: number; item_count: number }> {
+  const result = await v2.rpc("v2_import_course_workbook", { p_payload: payload });
+  return throwIfError(result, "importV2CourseWorkbook error") as { unit_count: number; lesson_count: number; resource_count: number; card_count: number; assessment_count: number; item_count: number };
 }
 
 export async function publishV2LessonAdmin(lessonId: string): Promise<V2Lesson> {
@@ -547,16 +528,12 @@ export async function getV2ReviewQueue(): Promise<V2ReviewQueueItem[]> {
   const unitIds = [...new Set(lessons.map((lesson) => lesson.unit_id))];
   const unitsResult = unitIds.length ? await table("v2_course_units").select("*").in("id", unitIds) : { data: [], error: null };
   const units = (throwIfError(unitsResult, "getV2ReviewQueue units error") ?? []) as V2Unit[];
-  const moduleIds = [...new Set(units.map((unit) => unit.module_id))];
-  const modulesResult = moduleIds.length ? await table("v2_course_modules").select("*").in("id", moduleIds) : { data: [], error: null };
-  const modules = (throwIfError(modulesResult, "getV2ReviewQueue modules error") ?? []) as V2Module[];
   return attempts.map((attempt) => {
     const block = blocks.find((row) => row.id === attempt.assessment_block_id);
     const lesson = lessons.find((row) => row.id === block?.lesson_id);
     const unit = units.find((row) => row.id === lesson?.unit_id);
-    const module = modules.find((row) => row.id === unit?.module_id);
     const profile = profiles.find((row) => row.id === attempt.user_id);
-    return { ...attempt, learner_name: profile?.nickname ?? "未命名学员", learner_phone: profile?.phone ?? "", assessment_title: block?.title ?? "未知评估", lesson_title: lesson?.title ?? "单元任务", unit_title: unit?.title ?? "未知单元", module_title: module?.title ?? "未知模块" };
+    return { ...attempt, learner_name: profile?.nickname ?? "未命名学员", learner_phone: profile?.phone ?? "", assessment_title: block?.title ?? "未知评估", lesson_title: lesson?.title ?? "单元任务", unit_title: unit?.title ?? "未知单元" };
   });
 }
 

@@ -1,8 +1,7 @@
-export type V2CreateType = "module" | "unit" | "lesson";
+export type V2CreateType = "unit" | "lesson";
 
 type V2CreateOutline = {
-  module: { id: string };
-  units: Array<{ id: string }>;
+  unit: { id: string };
 };
 
 export function resolveV2CreateParentId(
@@ -11,19 +10,13 @@ export function resolveV2CreateParentId(
   initialParentId?: string,
 ): string {
   if (initialParentId) return initialParentId;
-  if (type === "unit") return outlines[0]?.module.id ?? "";
-  if (type === "lesson") {
-    return outlines.flatMap((outline) => outline.units)[0]?.id ?? "";
-  }
+  if (type === "lesson") return outlines[0]?.unit.id ?? "";
   return "";
 }
 
 export function buildV2OutlineExpansion(outlines: V2CreateOutline[]): Record<string, boolean> {
   const expanded: Record<string, boolean> = {};
-  outlines.forEach((outline) => {
-    expanded[outline.module.id] = true;
-    outline.units.forEach((unit) => { expanded[unit.id] = true; });
-  });
+  outlines.forEach((outline) => { expanded[outline.unit.id] = true; });
   return expanded;
 }
 

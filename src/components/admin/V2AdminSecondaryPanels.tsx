@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
 import { Check } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -75,7 +75,7 @@ export function V2ReviewPanel() {
         <div className="mt-5 overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-xs">
             <thead><tr className="border-b border-bdl text-[10px] tracking-wide text-txs"><th className="px-3 py-2">学员</th><th className="px-3 py-2">课程路径</th><th className="px-3 py-2">任务</th><th className="px-3 py-2">提交时间</th><th className="px-3 py-2">状态</th><th className="px-3 py-2" /></tr></thead>
-            <tbody>{queue.map((item) => <tr key={item.id} className="border-b border-bdl/70"><td className="px-3 py-3"><p className="font-ds-bold text-tx">{item.learner_name}</p><p className="mt-1 text-[10px] text-txs">{item.learner_phone}</p></td><td className="px-3 py-3 text-txs">{item.module_title} / {item.unit_title} / {item.lesson_title}</td><td className="px-3 py-3 text-txs">{item.assessment_title} · 第 {item.attempt_no} 次</td><td className="px-3 py-3 text-txs">{item.submitted_at ? new Date(item.submitted_at).toLocaleString("zh-CN") : "—"}</td><td className="px-3 py-3"><StatusPill status={item.status} /></td><td className="px-3 py-3 text-right"><Button size="sm" onClick={() => getV2ReviewDetail(item.id).then(setDetail).catch(() => toast.error("详情加载失败"))}>打开</Button></td></tr>)}</tbody>
+            <tbody>{queue.map((item) => <tr key={item.id} className="border-b border-bdl/70"><td className="px-3 py-3"><p className="font-ds-bold text-tx">{item.learner_name}</p><p className="mt-1 text-[10px] text-txs">{item.learner_phone}</p></td><td className="px-3 py-3 text-txs">{item.unit_title} / {item.lesson_title}</td><td className="px-3 py-3 text-txs">{item.assessment_title} · 第 {item.attempt_no} 次</td><td className="px-3 py-3 text-txs">{item.submitted_at ? new Date(item.submitted_at).toLocaleString("zh-CN") : "—"}</td><td className="px-3 py-3"><StatusPill status={item.status} /></td><td className="px-3 py-3 text-right"><Button size="sm" onClick={() => getV2ReviewDetail(item.id).then(setDetail).catch(() => toast.error("详情加载失败"))}>打开</Button></td></tr>)}</tbody>
           </table>
         </div>
       )}

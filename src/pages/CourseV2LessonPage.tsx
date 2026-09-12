@@ -109,7 +109,7 @@ export default function CourseV2LessonPage() {
   if (authLoading || loading) return <LoadingScreen />;
   if (error || !bundle) return <ErrorScreen message={error ?? "课程暂不可用"} />;
 
-  const { lesson, unit, module, resources, cards, assessments, learningRecord } = bundle;
+  const { lesson, unit, resources, cards, assessments, learningRecord } = bundle;
   const assessmentLayout = buildV2AssessmentLayout(assessments, bundle.dictionaryItems);
   const currentUserId = user?.id ?? "";
   const subjectExplorer = resources.find(isSubjectExplorerResource);
@@ -122,13 +122,13 @@ export default function CourseV2LessonPage() {
         <div className="mx-auto max-w-6xl">
           <div className="mb-6 flex flex-wrap items-center gap-2 text-xs text-txs">
             <Link to="/course-v2" className="inline-flex items-center gap-1 transition-colors hover:text-ac"><ArrowLeft className="h-3.5 w-3.5" />回到 V2 课程目录</Link>
-            <span>/</span><span>{module.title}</span><span>/</span><span>{unit.title}</span>
+            <span>/</span><span>{unit.title}</span>
           </div>
 
           <section className="overflow-hidden rounded-[28px] border border-[#173d39]/10 bg-[#173d39] px-6 py-8 text-white shadow-ds-lg sm:px-10 sm:py-10">
             <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
               <div className="max-w-3xl">
-                <p className="text-[10px] font-ds-black tracking-[.18em] text-[#efb393]">V2 · {module.title}</p>
+                <p className="text-[10px] font-ds-black tracking-[.18em] text-[#efb393]">V2 · {unit.title}</p>
                 <h1 className="mt-3 font-serif text-3xl font-ds-black leading-tight sm:text-5xl">{lesson.title}</h1>
                 {lesson.subtitle && <p className="mt-3 text-sm leading-7 text-white/65">{lesson.subtitle}</p>}
                 <div className="mt-5 flex flex-wrap gap-3 text-xs text-white/60">

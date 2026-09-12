@@ -8,21 +8,14 @@ import {
 } from "@/components/admin/v2-course-form-utils";
 
 const outlines = [
-  {
-    module: { id: "module-1" },
-    units: [{ id: "unit-1" }, { id: "unit-2" }],
-  },
-  {
-    module: { id: "module-2" },
-    units: [{ id: "unit-3" }],
-  },
+  { unit: { id: "unit-1" } },
+  { unit: { id: "unit-2" } },
+  { unit: { id: "unit-3" } },
 ];
 
 describe("V2 course create form", () => {
-  it("expands every module and unit when the outline first loads", () => {
+  it("expands every unit when the outline first loads", () => {
     expect(buildV2OutlineExpansion(outlines)).toEqual({
-      "module-1": true,
-      "module-2": true,
       "unit-1": true,
       "unit-2": true,
       "unit-3": true,
@@ -33,10 +26,7 @@ describe("V2 course create form", () => {
     expect(resolveV2CreateParentId("lesson", outlines)).toBe("unit-1");
   });
 
-  it("keeps the parent selected by the clicked module or unit", () => {
-    expect(resolveV2CreateParentId("unit", outlines, "module-2")).toBe(
-      "module-2",
-    );
+  it("keeps the unit selected by the clicked action", () => {
     expect(resolveV2CreateParentId("lesson", outlines, "unit-3")).toBe(
       "unit-3",
     );
