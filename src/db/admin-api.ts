@@ -294,6 +294,7 @@ const COURSE_WRITE_COLUMNS: readonly (keyof CourseWritePayload)[] = [
   "credits",
   "status",
   "membership_type",
+  "course_type",
   "is_trial",
   "image_url",
   "video_url",
@@ -362,6 +363,7 @@ function normalizeCourseWritePayload(
   if (!partial || "duration" in course) payload.duration = Number.isFinite(Number(course.duration)) ? Number(course.duration) : 0;
   if (!partial || "status" in course) payload.status = course.status ?? "draft";
   if (!partial || "membership_type" in course) payload.membership_type = course.membership_type ?? "plus";
+  if (!partial || "course_type" in course) payload.course_type = course.course_type ?? "article";
   if (!partial || "is_trial" in course) payload.is_trial = Boolean(course.is_trial);
   if (!partial || "plus_representative" in course) payload.plus_representative = Boolean(course.plus_representative);
   if (!partial || "sort_order" in course) payload.sort_order = Number.isFinite(Number(course.sort_order)) ? Number(course.sort_order) : 0;

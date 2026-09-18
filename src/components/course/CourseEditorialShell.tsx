@@ -97,6 +97,8 @@ interface CourseEditorialCatalogLayoutProps {
   toc: ReactNode;
   children: ReactNode;
   mobile: ReactNode;
+  toolbar?: ReactNode;
+  emptyState?: ReactNode;
   tocStatic?: boolean;
 }
 
@@ -106,10 +108,24 @@ export function CourseEditorialCatalogLayout({
   toc,
   children,
   mobile,
+  toolbar,
+  emptyState,
   tocStatic = false,
 }: CourseEditorialCatalogLayoutProps) {
   return (
-    <section className="mx-auto max-w-7xl px-4 pb-16 pt-8 md:pt-10" aria-label={`${label}课程目录`}>
+    <section className="mx-auto max-w-7xl px-4 pb-16 pt-6 md:pt-8" aria-label={`${label}课程目录`}>
+      <header className="mb-5 flex flex-col gap-4 border-b border-dashed border-bd pb-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <span className="editorial-kicker">COURSE INDEX · 课程目录</span>
+          <div className="mt-1.5 flex items-baseline gap-2.5">
+            <h2 className="font-ds-bold text-tx" style={{ fontFamily: "var(--fd)" }}>{label}</h2>
+            <span className="text-xs text-txt">{countLabel}</span>
+          </div>
+        </div>
+        {toolbar}
+      </header>
+
+      {emptyState ?? <>
       <div className="hidden gap-6 lg:grid lg:grid-cols-[280px_minmax(0,1fr)]">
         <aside className={cn(
           "course-editorial-toc sticky top-24 self-start",
@@ -117,10 +133,6 @@ export function CourseEditorialCatalogLayout({
         )}>
           <div className="border-b border-dashed border-bd pb-3">
             <span className="editorial-kicker">CONTENTS · 目录</span>
-            <div className="mt-2 flex items-end justify-between gap-3">
-              <h2 className="font-ds-bold text-tx" style={{ fontFamily: "var(--fd)" }}>{label}</h2>
-              <span className="text-xs text-txt">{countLabel}</span>
-            </div>
           </div>
           <nav className="mt-3 space-y-1" aria-label={`${label}导航`}>
             {toc}
@@ -131,6 +143,7 @@ export function CourseEditorialCatalogLayout({
       </div>
 
       <div className="lg:hidden">{mobile}</div>
+      </>}
     </section>
   );
 }

@@ -407,6 +407,7 @@ export type Database = {
           body: string | null
           category: string | null
           category_id: string | null
+          course_type: string
           created_at: string | null
           credits: number | null
           description: string | null
@@ -441,6 +442,7 @@ export type Database = {
           body?: string | null
           category?: string | null
           category_id?: string | null
+          course_type?: string
           created_at?: string | null
           credits?: number | null
           description?: string | null
@@ -475,6 +477,7 @@ export type Database = {
           body?: string | null
           category?: string | null
           category_id?: string | null
+          course_type?: string
           created_at?: string | null
           credits?: number | null
           description?: string | null

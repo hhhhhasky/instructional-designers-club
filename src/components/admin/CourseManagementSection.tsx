@@ -121,6 +121,7 @@ const EMPTY_FORM: Omit<Course, "id" | "view_count" | "created_at" | "updated_at"
   credits: "0",
   status: "draft",
   membership_type: "plus",
+  course_type: "article",
   is_trial: false,
   image_url: null,
   video_url: null,
@@ -465,6 +466,7 @@ export default function CourseManagementSection() {
       credits: course.credits,
       status: course.status,
       membership_type: course.membership_type,
+      course_type: course.course_type ?? (course.has_video ? "video" : "article"),
       is_trial: course.is_trial,
       image_url: course.image_url,
       video_url: course.video_url,
@@ -1240,6 +1242,17 @@ export default function CourseManagementSection() {
                         {opt.label}
                       </option>
                     ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-ds-xs text-txs mb-1">课程类型</label>
+                  <select
+                    value={form.course_type}
+                    onChange={(e) => updateForm("course_type", e.target.value as CourseForm["course_type"])}
+                    className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+                  >
+                    <option value="article">图文</option>
+                    <option value="video">视频</option>
                   </select>
                 </div>
                 <div>

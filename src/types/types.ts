@@ -1,6 +1,9 @@
 // 会员类型
 export type MembershipType = 'free' | 'plus2015' | 'plus' | 'pro';
 
+// 课程目录筛选使用的内容形态。旧缓存可能暂时没有该字段，页面会回退到 has_video。
+export type CourseType = 'article' | 'video';
+
 // Plus 课程三层结构。具体篇章 ID 由 Supabase plus_course_tracks 表维护。
 export type PlusCourseTrackId = string;
 
@@ -35,6 +38,7 @@ export interface Course {
   credits: string | null;
   status: 'draft' | 'published' | 'archived';
   membership_type: MembershipType; // 会员类型
+  course_type?: CourseType; // 课程类型：图文 / 视频
   is_trial: boolean; // 是否试看课程
   password_access_enabled?: boolean; // 是否允许使用单课密码试看（密码摘要不在公开课程数据中）
   has_video?: boolean; // 公开目录只暴露内容形态，不暴露受保护 URL

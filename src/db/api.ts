@@ -25,7 +25,7 @@ import { isMissingBackendContract, toDataAccessError } from "./errors";
 import { supabase } from "./supabase";
 
 const COURSE_PUBLIC_COLUMNS =
-  'id, title, description, instructor, category_id, category, level, duration, credits, status, membership_type, is_trial, password_access_enabled, image_url, plus_lesson_order, plus_representative, sort_order, view_count, created_at, updated_at, has_video, has_audio, has_body, has_essence, has_images, has_meeting';
+  'id, title, description, instructor, category_id, category, level, duration, credits, status, membership_type, course_type, is_trial, password_access_enabled, image_url, plus_lesson_order, plus_representative, sort_order, view_count, created_at, updated_at, has_video, has_audio, has_body, has_essence, has_images, has_meeting';
 
 /**
  * 获取 Plus 课程篇章 / 分类定义。
@@ -1039,7 +1039,7 @@ async function fetchCourseCatalogSnapshotRestFallback(): Promise<CourseCatalogSn
 }
 
 const courseCatalogSnapshotCache = createAsyncCache<CourseCatalogSnapshot>({
-  key: 'club.courseCatalogSnapshot.v3',
+  key: 'club.courseCatalogSnapshot.v4',
   ttlMs: 10 * 60 * 1000,
   storage: 'session',
   fetcher: async () => {
@@ -1182,7 +1182,7 @@ function getCourseDetailCache(courseId: string) {
   const existing = courseDetailSnapshotCaches.get(courseId);
   if (existing) return existing;
   const cache = createAsyncCache<CourseDetailSnapshot>({
-    key: `club.courseDetailSnapshot.v3.${courseId}`,
+    key: `club.courseDetailSnapshot.v4.${courseId}`,
     ttlMs: 5 * 60 * 1000,
     storage: 'session',
     fetcher: async () => {

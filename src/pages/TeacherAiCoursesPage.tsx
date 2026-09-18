@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,7 @@ import {
   CourseEditorialVolume,
 } from '@/components/course/CourseEditorialShell';
 import CourseTypeTabs from '@/components/course/CourseTypeTabs';
+import CourseFormatFilter, { resolveCourseType, type CourseTypeFilterValue } from '@/components/course/CourseFormatFilter';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCourseCatalogSnapshot, getCourseDetailSnapshot, subscribeToCourseCatalogUpdates } from '@/db/api';
 import { canAccessCourse } from '@/lib/access-control';
@@ -28,6 +29,7 @@ export default function TeacherAiCoursesPage() {
   const { user, accessLevel } = useAuth();
   const [categories, setCategories] = useState<string[]>([]);
   const [coursesByCategory, setCoursesByCategory] = useState<Record<string, Course[]>>({});
+  const [courseTypeFilter, setCourseTypeFilter] = useState<CourseTypeFilterValue>('all');
   const [categoryTags, setCategoryTags] = useState<Record<string, {
     applicable_audience: string[];
     applicable_scenarios: string[];
@@ -39,6 +41,26 @@ export default function TeacherAiCoursesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const lastCatalogRefreshAt = useRef(0);
+  const allCourses = useMemo(
+    () => categories.flatMap((category) => coursesByCategory[category] ?? []),
+    [categories, coursesByCategory],
+  );
+  const visibleCategories = useMemo(
+    () => courseTypeFilter === 'all'
+      ? categories
+      : categories.filter((category) =>
+          (coursesByCategory[category] ?? []).some((course) => resolveCourseType(course) === courseTypeFilter)),
+    [categories, courseTypeFilter, coursesByCategory],
+  );
+  const visibleCoursesByCategory = useMemo(
+    () => Object.fromEntries(visibleCategories.map((category) => [
+      category,
+      courseTypeFilter === 'all'
+        ? coursesByCategory[category] ?? []
+        : (coursesByCategory[category] ?? []).filter((course) => resolveCourseType(course) === courseTypeFilter),
+    ])),
+    [courseTypeFilter, coursesByCategory, visibleCategories],
+  );
 
   const loadData = useCallback(async (background = false) => {
       try {
@@ -155,11 +177,13 @@ export default function TeacherAiCoursesPage() {
 
           {!isLoading && !error && (
             <CourseSeriesList
-              categories={categories}
-              coursesByCategory={coursesByCategory}
+              categories={visibleCategories}
+              coursesByCategory={visibleCoursesByCategory}
               categoryTags={categoryTags}
               clickedCourseId={clickedCourseId}
               onCourseClick={handleCourseClick}
+              emptyMessage={courseTypeFilter === 'all' ? '暂无教师 AI 课系列' : '暂无该类型的教师 AI 课'}
+              toolbar={<CourseFormatFilter courses={allCourses} value={courseTypeFilter} onChange={setCourseTypeFilter} />}
             />
           )}
         </main>
@@ -182,6 +206,8 @@ interface CourseSeriesListProps {
   categoryTags: Record<string, CategoryTagInfo>;
   clickedCourseId: string | null;
   onCourseClick: (course: Course) => void;
+  emptyMessage: string;
+  toolbar: React.ReactNode;
 }
 
 function CourseSeriesList({
@@ -190,6 +216,8 @@ function CourseSeriesList({
   categoryTags,
   clickedCourseId,
   onCourseClick,
+  emptyMessage,
+  toolbar,
 }: CourseSeriesListProps) {
   // 锚点跳转：URL hash 指向某系列时滚动定位（SPA 下手动处理）
   useEffect(() => {
@@ -200,21 +228,19 @@ function CourseSeriesList({
     });
   }, []);
 
-  if (categories.length === 0) {
-    return (
-      <div className="max-w-5xl mx-auto px-4 py-16 text-center">
-        <BookOpen className="w-12 h-12 text-txt mx-auto mb-3" />
-        <p className="text-txs text-lg">暂无教师 AI 课系列</p>
-      </div>
-    );
-  }
-
   const initialMobileValue = [categories[0]];
 
   return (
     <CourseEditorialCatalogLayout
       label="系列卷册"
       countLabel={`${categories.length} 卷`}
+      toolbar={toolbar}
+      emptyState={categories.length === 0 ? (
+        <div className="py-14 text-center">
+          <BookOpen className="mx-auto mb-3 h-12 w-12 text-txt" />
+          <p className="text-lg text-txs">{emptyMessage}</p>
+        </div>
+      ) : undefined}
       toc={categories.map((category, index) => {
         const count = (coursesByCategory[category] || []).length;
         const Icon = getCategoryIcon(category);

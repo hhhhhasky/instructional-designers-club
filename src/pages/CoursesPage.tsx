@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import {
   CourseEditorialVolume,
 } from '@/components/course/CourseEditorialShell';
 import CourseTypeTabs from '@/components/course/CourseTypeTabs';
+import CourseFormatFilter, { resolveCourseType, type CourseTypeFilterValue } from '@/components/course/CourseFormatFilter';
 import { getCourseCatalogSnapshot, getCourseDetailSnapshot, subscribeToCourseCatalogUpdates } from '@/db/api';
 import type { Course } from '@/types/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,11 +39,18 @@ export default function CoursesPage() {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeLevel, setUpgradeLevel] = useState<'plus' | 'pro'>('plus');
   const [allCourses, setAllCourses] = useState<Course[]>([]);
+  const [courseTypeFilter, setCourseTypeFilter] = useState<CourseTypeFilterValue>('all');
   const [plusTracks, setPlusTracks] = useState<PlusTrackConfig[]>(PLUS_TRACKS);
   const [isNavigating, setIsNavigating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const lastCatalogRefreshAt = useRef(0);
+  const visibleCourses = useMemo(
+    () => courseTypeFilter === 'all'
+      ? allCourses
+      : allCourses.filter((course) => resolveCourseType(course) === courseTypeFilter),
+    [allCourses, courseTypeFilter],
+  );
 
   const loadData = useCallback(async (background = false) => {
       try {
@@ -156,7 +164,19 @@ export default function CoursesPage() {
           )}
 
           {!isLoading && !error && (
-            <PlusCourseMap courses={allCourses} tracks={plusTracks} onCourseOpen={handleCourseClick} />
+            <PlusCourseMap
+              courses={visibleCourses}
+              tracks={plusTracks}
+              onCourseOpen={handleCourseClick}
+              toolbar={<CourseFormatFilter courses={allCourses} value={courseTypeFilter} onChange={setCourseTypeFilter} />}
+              emptyState={visibleCourses.length === 0 ? (
+                <div className="py-14 text-center">
+                  <BookOpen className="mx-auto h-10 w-10 text-txt" aria-hidden="true" />
+                  <p className="mt-3 font-semibold text-tx">暂无该类型的教学通识课</p>
+                  <p className="mt-1 text-sm text-txs">请切换到其他课程类型查看。</p>
+                </div>
+              ) : undefined}
+            />
           )}
         </main>
         <Footer />
@@ -170,22 +190,30 @@ function PlusCourseMap({
   courses,
   tracks,
   onCourseOpen,
+  toolbar,
+  emptyState,
 }: {
   courses: Course[];
   tracks: PlusTrackConfig[];
   onCourseOpen: (course: Course) => void;
+  toolbar: React.ReactNode;
+  emptyState?: React.ReactNode;
 }) {
-  return <PlusCourseCatalog courses={courses} tracks={tracks} onCourseOpen={onCourseOpen} />;
+  return <PlusCourseCatalog courses={courses} tracks={tracks} onCourseOpen={onCourseOpen} toolbar={toolbar} emptyState={emptyState} />;
 }
 
 function PlusCourseCatalog({
   courses,
   tracks,
   onCourseOpen,
+  toolbar,
+  emptyState,
 }: {
   courses: Course[];
   tracks: PlusTrackConfig[];
   onCourseOpen: (course: Course) => void;
+  toolbar: React.ReactNode;
+  emptyState?: React.ReactNode;
 }) {
   const renderTrack = (track: PlusTrackConfig, index: number) => (
     <CourseEditorialVolume
@@ -225,6 +253,8 @@ function PlusCourseCatalog({
     <CourseEditorialCatalogLayout
       label="系列课"
       countLabel={`${tracks.length} 篇`}
+      toolbar={toolbar}
+      emptyState={emptyState}
       tocStatic
       toc={tracks.map((track, index) => {
         const Icon = track.icon;
