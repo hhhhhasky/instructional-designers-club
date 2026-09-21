@@ -16,7 +16,7 @@ describe("V2 当前访问策略", () => {
     expect(canAccessV2(profile("member", "plus"))).toBe(false);
     expect(canAccessV2(profile("member", "pro"))).toBe(false);
     expect(canAccessV2(profile("member", "free"))).toBe(false);
-    expect(canAccessV2(profile("member", "plus2015"))).toBe(false);
+    expect(canAccessV2(profile("member", "plus2025"))).toBe(false);
     expect(canAccessV2(profile("admin", "pro", "banned"))).toBe(false);
   });
 

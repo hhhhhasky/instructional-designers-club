@@ -121,6 +121,7 @@ const EMPTY_FORM: Omit<Course, "id" | "view_count" | "created_at" | "updated_at"
   credits: "0",
   status: "draft",
   membership_type: "plus",
+  access_product_code: "teaching-general-v1",
   course_type: "article",
   is_trial: false,
   image_url: null,
@@ -466,6 +467,10 @@ export default function CourseManagementSection() {
       credits: course.credits,
       status: course.status,
       membership_type: course.membership_type,
+      access_product_code: course.access_product_code ?? (
+        course.membership_type === "pro" ? "teacher-ai" :
+          course.membership_type === "plus" ? "teaching-general-v1" : null
+      ),
       course_type: course.course_type ?? (course.has_video ? "video" : "article"),
       is_trial: course.is_trial,
       image_url: course.image_url,
@@ -629,6 +634,11 @@ export default function CourseManagementSection() {
     setForm((prev) => ({
       ...prev,
       membership_type: value,
+      access_product_code: value === "free"
+        ? null
+        : value === "pro"
+          ? "teacher-ai"
+          : "teaching-general-v1",
       ...(value === "plus"
         ? {}
         : {
@@ -1231,7 +1241,7 @@ export default function CourseManagementSection() {
                   />
                 </div>
                 <div>
-                  <label className="block text-ds-xs text-txs mb-1">会员类型</label>
+                  <label className="block text-ds-xs text-txs mb-1">兼容会员栏目</label>
                   <select
                     value={form.membership_type}
                     onChange={(e) => handleMembershipChange(e.target.value as MembershipType)}
@@ -1242,6 +1252,19 @@ export default function CourseManagementSection() {
                         {opt.label}
                       </option>
                     ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-ds-xs text-txs mb-1">课程权限产品</label>
+                  <select
+                    value={form.access_product_code ?? ""}
+                    onChange={(e) => updateForm("access_product_code", (e.target.value || null) as CourseForm["access_product_code"])}
+                    className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+                  >
+                    <option value="">无（仅免费/试看）</option>
+                    <option value="teaching-general-v1">教学通识课</option>
+                    <option value="teacher-ai">教师 AI 课</option>
+                    <option value="daofa-textbook">道法教材解读课</option>
                   </select>
                 </div>
                 <div>
@@ -1737,7 +1760,7 @@ function AttachmentIcon({ attachment }: { attachment: CourseAttachment }) {
 function MembershipBadge({ type }: { type: MembershipType }) {
   const styles: Record<MembershipType, string> = {
     free: "bg-mint-soft text-tl",
-    plus2015: "bg-warm text-am",
+    plus2025: "bg-warm text-am",
     plus: "bg-yellow-soft text-am",
     pro: "bg-blue-soft text-pp",
   };

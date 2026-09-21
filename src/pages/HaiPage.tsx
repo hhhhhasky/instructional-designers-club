@@ -420,7 +420,6 @@ export default function HaiPage() {
   const contextPanel = (
     <UsagePanel
       usage={usage}
-      access={access}
       memories={memories}
       memoryDraft={memoryDraft}
       memoryCategory={memoryCategory}
@@ -874,9 +873,9 @@ function LockedPanel({ reason }: { reason?: string }) {
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-ds-full bg-acl">
           <LockKeyhole className="h-6 w-6 text-ac" />
         </div>
-        <h2 className="text-center text-ds-xl font-ds-black text-tx">HAI 权限未开通</h2>
+        <h2 className="text-center text-ds-xl font-ds-black text-tx">HAI 暂时不可用</h2>
         <p className="mt-2 text-center text-ds-sm leading-relaxed text-txs">
-          {reason || "HAI 面向 Plus、Pro 会员开放；开通会员并拥有积分后即可使用。"}
+          {reason || "请先登录；登录后只要账户有积分即可使用 HAI。"}
         </p>
       </div>
     </div>
@@ -885,7 +884,6 @@ function LockedPanel({ reason }: { reason?: string }) {
 
 function UsagePanel({
   usage,
-  access,
   memories,
   memoryDraft,
   memoryCategory,
@@ -896,7 +894,6 @@ function UsagePanel({
   onArchiveMemory,
 }: {
   usage: HaiUsageSummary | null;
-  access: HaiAccessStatus | null;
   memories: HaiUserMemory[];
   memoryDraft: string;
   memoryCategory: string;
@@ -906,21 +903,13 @@ function UsagePanel({
   onCreateMemory: () => void;
   onArchiveMemory: (memoryId: string) => void;
 }) {
-  const membershipLabel = usage?.membership_level === "pro"
-    ? "Pro"
-    : usage?.membership_level === "plus2015"
-      ? "2015Plus"
-      : usage?.membership_level === "plus"
-        ? "Plus"
-        : null;
-  const quotaBadge = membershipLabel ?? access?.quota_policy_key ?? "积分";
   return (
     <div className="space-y-4">
       <div className="rounded-ds-lg border border-ac/20 bg-acl/40 p-3">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-ds-sm font-ds-bold text-tx">积分额度</h2>
           <Badge variant="outline" className="border-ac/30 text-ac">
-            {quotaBadge}
+            积分
           </Badge>
         </div>
         <p className="text-2xl font-ds-black text-tx">{formatPoints(usage?.current_points)} 积分</p>

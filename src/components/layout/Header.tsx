@@ -270,7 +270,7 @@ export default function Header() {
                     <p className="text-xs text-txs">
                       {profile?.access_level === 'pro' ? 'Pro 专家版' :
                        profile?.access_level === 'plus' ? 'Plus 会员版' :
-                       profile?.access_level === 'plus2015' ? '2015Plus 会员版' : '免费版'}
+                       profile?.access_level === 'plus2025' ? '2025Plus 会员版' : '免费版'}
                     </p>
                   </div>
                   <DropdownMenuSeparator />
@@ -337,7 +337,7 @@ export default function Header() {
                         <p className="text-xs text-txs">
                           {profile?.access_level === 'pro' ? 'Pro 专家版' :
                            profile?.access_level === 'plus' ? 'Plus 会员版' :
-                           profile?.access_level === 'plus2015' ? '2015Plus 会员版' : '免费版'}
+                           profile?.access_level === 'plus2025' ? '2025Plus 会员版' : '免费版'}
                         </p>
                       </div>
                     </div>

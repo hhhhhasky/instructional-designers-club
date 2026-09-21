@@ -1,13 +1,9 @@
-import { Crown, UserPlus, Users } from "lucide-react";
+import { UserPlus, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   CartesianGrid,
-  Cell,
-  Legend,
   Line,
   LineChart,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -16,21 +12,6 @@ import {
 import LoadingOverlay from "@/components/common/LoadingOverlay";
 import type { MemberOverviewData } from "@/db/admin-api";
 import { getAdminMemberOverview } from "@/db/admin-api";
-
-// 图表颜色
-const LEVEL_COLORS: Record<string, string> = {
-  free: "#2a7a6e", // tl 青绿
-  plus2015: "#8d7f5b",
-  plus: "#b8860b", // am 琥珀金
-  pro: "#6b4d8a", // pp 紫色
-};
-
-const LEVEL_LABELS: Record<string, string> = {
-  free: "免费会员",
-  plus2015: "2015Plus 会员",
-  plus: "Plus 会员",
-  pro: "Pro 会员",
-};
 
 export default function MemberOverviewSection() {
   const [data, setData] = useState<MemberOverviewData | null>(null);
@@ -67,23 +48,12 @@ export default function MemberOverviewSection() {
     );
   if (!data) return null;
 
-  // 饼图数据
-  const pieData = data.distribution.map((d) => ({
-    name: LEVEL_LABELS[d.access_level] || d.access_level,
-    value: d.count,
-    level: d.access_level,
-  }));
-
-  // 等级人数映射
-  const countByLevel: Record<string, number> = {};
-  for (const d of data.distribution) {
-    countByLevel[d.access_level] = d.count;
-  }
+  const recentRegistrations = data.monthly_growth[data.monthly_growth.length - 1]?.new_members ?? 0;
 
   return (
     <div className="space-y-6">
       {/* 统计卡片 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <StatCard
           icon={Users}
           value={data.total}
@@ -93,66 +63,15 @@ export default function MemberOverviewSection() {
         />
         <StatCard
           icon={UserPlus}
-          value={countByLevel.free || 0}
-          label="免费会员"
+          value={recentRegistrations}
+          label="本月新注册"
           color="text-tl"
           accentBg="bg-mint-soft"
-        />
-        <StatCard
-          icon={Crown}
-          value={countByLevel.plus || 0}
-          label="Plus 会员"
-          color="text-am"
-          accentBg="bg-yellow-soft"
-        />
-        <StatCard
-          icon={Crown}
-          value={countByLevel.pro || 0}
-          label="Pro 会员"
-          color="text-pp"
-          accentBg="bg-blue-soft"
         />
       </div>
 
       {/* 图表区域 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* 等级分布饼图 */}
-        <div className="bg-white rounded-ds-lg border border-bd p-4 md:p-6 shadow-ds-xs hover-lift">
-          <h3 className="text-ds-md font-ds-bold text-tx mb-4 flex items-center gap-2">
-            <span className="w-1 h-4 rounded-full bg-ac inline-block"></span>
-            会员等级分布
-          </h3>
-          {pieData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={3}
-                  dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}`}
-                  labelLine={false}
-                >
-                  {pieData.map((entry) => (
-                    <Cell
-                      key={entry.level}
-                      fill={LEVEL_COLORS[entry.level] || "#999"}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-txs text-center py-12">暂无数据</p>
-          )}
-        </div>
-
-        {/* 月度增长折线图 */}
+      <div className="grid grid-cols-1 gap-6">
         <div className="bg-white rounded-ds-lg border border-bd p-4 md:p-6 shadow-ds-xs hover-lift">
           <h3 className="text-ds-md font-ds-bold text-tx mb-4 flex items-center gap-2">
             <span className="w-1 h-4 rounded-full bg-tl inline-block"></span>

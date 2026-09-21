@@ -1,8 +1,8 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import { supabase } from '@/db/supabase';
-import { getProfile, signInWithPhone, signUpWithPhone, signOut as doSignOut } from '@/lib/access-control';
+import { getProfile, getUserCourseAccessCodes, signInWithPhone, signUpWithPhone, signOut as doSignOut } from '@/lib/access-control';
 import { clearAllLearningDataCaches } from '@/db/api';
-import type { Profile, MembershipType } from '@/types/types';
+import type { CourseAccessCode, Profile, MembershipType } from '@/types/types';
 import type { User, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
@@ -11,6 +11,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   accessLevel: MembershipType;
+  courseAccessCodes: CourseAccessCode[];
   signUp: (phone: string, password: string, nickname: string) => Promise<{ error: string | null }>;
   signIn: (phone: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
@@ -24,6 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [courseAccessCodes, setCourseAccessCodes] = useState<CourseAccessCode[]>([]);
   const profileLoadId = useRef(0);
 
   const accessLevel: MembershipType = profile?.access_level ?? 'free';
@@ -55,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const p = await loadProfile(user.id, { fresh: true });
         if (profileLoadId.current === requestId) {
           setProfile(p);
+          setCourseAccessCodes(p ? await getUserCourseAccessCodes(p) : []);
         }
       } finally {
         if (profileLoadId.current === requestId) {
@@ -76,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (!s?.user) {
         setProfile(null);
+        setCourseAccessCodes([]);
         if (mounted && profileLoadId.current === requestId) {
           setLoading(false);
         }
@@ -89,12 +93,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(null);
           setUser(null);
           setProfile(null);
+          setCourseAccessCodes([]);
           setLoading(false);
         }
         return;
       }
       if (mounted && profileLoadId.current === requestId) {
         setProfile(p);
+        setCourseAccessCodes(p ? await getUserCourseAccessCodes(p) : []);
         setLoading(false);
       }
     };
@@ -143,11 +149,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setSession(null);
             setUser(null);
             setProfile(null);
+            setCourseAccessCodes([]);
           }
           return { error: '该账号已停用，请联系管理员' };
         }
         if (profileLoadId.current === requestId) {
           setProfile(p);
+          setCourseAccessCodes(p ? await getUserCourseAccessCodes(p) : []);
         }
       }
       return { error: result.error };
@@ -167,6 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const p = await loadProfile(result.session.user.id, { fresh: true });
         if (profileLoadId.current === requestId) {
           setProfile(p);
+          setCourseAccessCodes(p ? await getUserCourseAccessCodes(p) : []);
         }
       }
       return { error: result.error };
@@ -180,13 +189,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await doSignOut();
     setUser(null);
     setProfile(null);
+    setCourseAccessCodes([]);
     setSession(null);
     clearAllLearningDataCaches();
   };
 
   return (
     <AuthContext.Provider
-      value={{ user, profile, session, loading, accessLevel, signUp, signIn, signOut, refreshProfile }}
+      value={{ user, profile, session, loading, accessLevel, courseAccessCodes, signUp, signIn, signOut, refreshProfile }}
     >
       {children}
     </AuthContext.Provider>

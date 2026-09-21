@@ -26,7 +26,7 @@ import { getAdminMaintenanceSnapshot, type MaintenanceSnapshot } from "@/db/admi
 
 const MANAGE_TABS = [
   { value: "courses", label: "课程与分类", short: "课程", description: "课程、分类、附件与上下架", icon: BookOpenCheck },
-  { value: "students", label: "会员与权益", short: "会员", description: "等级、状态与奖励学分", icon: UserCog },
+  { value: "students", label: "学员与课程权限", short: "学员", description: "课程授权、账号状态与奖励学分", icon: UserCog },
   { value: "questions", label: "课程问答", short: "问答", description: "问题、回复与内容审核", icon: CircleHelp },
   { value: "content", label: "内容运营", short: "内容", description: "首页、公告、活动与资源", icon: LayoutTemplate },
   { value: "hai", label: "HAI 配置", short: "HAI", description: "模型、提示词、额度与知识库", icon: Bot },

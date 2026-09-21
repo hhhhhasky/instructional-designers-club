@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { LearningMapData, NodeExploration } from '@/lib/learningMap';
-import type { MembershipType } from '@/types/types';
+import type { CourseAccessSubject } from '@/lib/access-control';
 import ImageMap from './ImageMap';
 import type { MapNodeConfig } from './learningMapConfig';
 import { LEARNING_MAP_CONFIG } from './learningMapConfig';
@@ -10,7 +10,7 @@ import SpotDetailSheet from './SpotDetailSheet';
 
 interface Props {
   data: LearningMapData;
-  accessLevel: MembershipType;
+  accessLevel: CourseAccessSubject;
 }
 
 /**

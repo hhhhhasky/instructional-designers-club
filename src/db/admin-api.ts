@@ -20,6 +20,11 @@ import {
   notifyCourseCatalogUpdated,
 } from "./api";
 import { supabase } from "./supabase";
+import {
+  COURSE_ACCESS_PRODUCTS,
+  type CourseAccessProduct,
+  type UserCourseEntitlement,
+} from "@/lib/course-entitlements";
 
 // ==================== 响应类型 ====================
 
@@ -70,13 +75,6 @@ export interface CreditAdjustResult {
   id: string;
   bonus_credits: number;
   total_credits: number;
-}
-
-export interface AccessLevelUpdateResult {
-  id: string;
-  access_level: MembershipType;
-  status?: StudentItem["status"];
-  updated_at?: string;
 }
 
 export interface UserStatusUpdateResult {
@@ -154,6 +152,63 @@ export async function getAdminStudentList(): Promise<StudentItem[]> {
   return data || [];
 }
 
+/** 后台可授权的已上线课程产品。 */
+export async function getAdminCourseAccessProducts(): Promise<CourseAccessProduct[]> {
+  const { data, error } = await supabase
+    .from("course_access_products")
+    .select("code, name, description, status, is_grantable, sort_order")
+    .eq("status", "published")
+    .eq("is_grantable", true)
+    .order("sort_order", { ascending: true });
+
+  if (error) {
+    console.warn("getAdminCourseAccessProducts fallback:", error.message);
+    return COURSE_ACCESS_PRODUCTS
+      .filter((product) => product.grantable)
+      .map((product, index) => ({
+        code: product.code,
+        name: product.name,
+        description: product.description,
+        status: "published" as const,
+        is_grantable: true,
+        sort_order: (index + 1) * 10,
+      }));
+  }
+  return (data ?? []) as CourseAccessProduct[];
+}
+
+/** 后台查看全部用户的直接课程授权。 */
+export async function getAdminUserCourseEntitlements(): Promise<UserCourseEntitlement[]> {
+  const { data, error } = await supabase
+    .from("user_course_entitlements")
+    .select("user_id, product_code, status, starts_at, expires_at, notes")
+    .eq("status", "active");
+  if (error) {
+    console.warn("getAdminUserCourseEntitlements fallback:", error.message);
+    return [];
+  }
+  return (data ?? []) as UserCourseEntitlement[];
+}
+
+export async function adminSetUserCourseAccess(
+  userId: string,
+  productCode: CourseAccessProduct["code"],
+  enabled: boolean,
+  notes?: string,
+): Promise<UserCourseEntitlement> {
+  const { data, error } = await supabase.rpc("admin_set_user_course_access", {
+    p_user_id: userId,
+    p_product_code: productCode,
+    p_enabled: enabled,
+    p_notes: notes?.trim() || null,
+  });
+  if (error) {
+    console.error("adminSetUserCourseAccess error:", error);
+    throw error;
+  }
+  return data as UserCourseEntitlement;
+}
+
 /**
  * 获取沉默学员数据：零记录学员 + 不活跃统计
  */
@@ -176,32 +231,6 @@ export async function getAdminStudentLeaderboard(): Promise<LeaderboardStudentIt
     throw error;
   }
   return data || [];
-}
-
-// ==================== 用户权限管理 ====================
-
-/**
- * 管理员修改用户等级
- */
-export async function adminUpdateUserAccessLevel(
-  userId: string,
-  newLevel: MembershipType
-): Promise<AccessLevelUpdateResult> {
-  const { data, error } = await supabase.rpc("admin_update_user_access_level", {
-    p_user_id: userId,
-    p_new_level: newLevel,
-  });
-  if (error) {
-    console.error("adminUpdateUserAccessLevel error:", error);
-    throw error;
-  }
-
-  const result = Array.isArray(data) ? data[0] : data;
-  if (!result || result.id !== userId || result.access_level !== newLevel) {
-    throw new Error("用户等级未更新，请刷新后重试");
-  }
-
-  return result as AccessLevelUpdateResult;
 }
 
 /**
@@ -294,6 +323,7 @@ const COURSE_WRITE_COLUMNS: readonly (keyof CourseWritePayload)[] = [
   "credits",
   "status",
   "membership_type",
+  "access_product_code",
   "course_type",
   "is_trial",
   "image_url",
@@ -363,6 +393,7 @@ function normalizeCourseWritePayload(
   if (!partial || "duration" in course) payload.duration = Number.isFinite(Number(course.duration)) ? Number(course.duration) : 0;
   if (!partial || "status" in course) payload.status = course.status ?? "draft";
   if (!partial || "membership_type" in course) payload.membership_type = course.membership_type ?? "plus";
+  if (!partial || "access_product_code" in course) payload.access_product_code = course.access_product_code ?? null;
   if (!partial || "course_type" in course) payload.course_type = course.course_type ?? "article";
   if (!partial || "is_trial" in course) payload.is_trial = Boolean(course.is_trial);
   if (!partial || "plus_representative" in course) payload.plus_representative = Boolean(course.plus_representative);

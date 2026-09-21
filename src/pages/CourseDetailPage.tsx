@@ -55,6 +55,7 @@ import {
   getLearningData,
 } from '@/db/api';
 import { canAccessCourse, recordCourseVisit, updateLearningProgress, getUserLearningRecords } from '@/lib/access-control';
+import { getCourseAccessCode } from '@/lib/course-entitlements';
 import {
   buildGamificationSnapshot,
   findAchievementForCourse,
@@ -143,7 +144,7 @@ function shouldRunDetailWrite(key: string): boolean {
 export default function CourseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, profile, accessLevel, loading: authLoading } = useAuth();
+  const { user, profile, courseAccessCodes, loading: authLoading } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -195,7 +196,7 @@ export default function CourseDetailPage() {
   }, [playbackRate, course?.id]);
 
   const hasStandardCourseAccess = Boolean(
-    profile?.role === 'admin' || course?.is_trial || (course && canAccessCourse(accessLevel, course.membership_type)),
+    profile?.role === 'admin' || course?.is_trial || (course && canAccessCourse(courseAccessCodes, getCourseAccessCode(course))),
   );
   const hasPasswordPreviewAccess = Boolean(course && passwordUnlockedCourseId === course.id);
   const syncProgress = useCallback(() => {
@@ -228,12 +229,12 @@ export default function CourseDetailPage() {
       overview: data.overview,
       seriesProgress: data.seriesProgress,
       recentLearning: data.recentLearning,
-      accessLevel: profile.access_level,
+      accessLevel: courseAccessCodes,
     });
     setCompletionSnapshot(snapshot);
     setCompletionAchievement(findAchievementForCourse(course, snapshot.achievements));
     setCompletionOpen(true);
-  }, [user, course, profile, hasStandardCourseAccess]);
+  }, [user, course, profile, hasStandardCourseAccess, courseAccessCodes]);
 
   const completeCurrentCourse = useCallback(async () => {
     if (!user || !course || !hasStandardCourseAccess) return;

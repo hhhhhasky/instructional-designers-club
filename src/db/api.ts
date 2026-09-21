@@ -25,7 +25,7 @@ import { isMissingBackendContract, toDataAccessError } from "./errors";
 import { supabase } from "./supabase";
 
 const COURSE_PUBLIC_COLUMNS =
-  'id, title, description, instructor, category_id, category, level, duration, credits, status, membership_type, course_type, is_trial, password_access_enabled, image_url, plus_lesson_order, plus_representative, sort_order, view_count, created_at, updated_at, has_video, has_audio, has_body, has_essence, has_images, has_meeting';
+  'id, title, description, instructor, category_id, category, level, duration, credits, status, membership_type, access_product_code, course_type, is_trial, password_access_enabled, image_url, plus_lesson_order, plus_representative, sort_order, view_count, created_at, updated_at, has_video, has_audio, has_body, has_essence, has_images, has_meeting';
 
 /**
  * 获取 Plus 课程篇章 / 分类定义。

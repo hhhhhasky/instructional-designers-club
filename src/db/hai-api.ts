@@ -9,7 +9,8 @@ export interface HaiAccessStatus {
   status?: string;
   reason?: string;
   quota_mode?: "none" | "internal" | "points";
-  membership_level?: "plus2015" | "plus" | "pro";
+  /** 兼容历史 API 载荷；新权限逻辑不读取此字段。 */
+  membership_level?: "plus2025" | "plus" | "pro";
   quota_policy_key?: string;
   expires_at?: string | null;
   can_consume?: boolean;
@@ -18,7 +19,8 @@ export interface HaiAccessStatus {
 export interface HaiUsageSummary {
   quota_mode?: "none" | "internal" | "points";
   policy_key?: string;
-  membership_level?: "plus2015" | "plus" | "pro";
+  /** 兼容历史 API 载荷；新积分逻辑不读取此字段。 */
+  membership_level?: "plus2025" | "plus" | "pro";
   daily_used: number;
   weekly_used: number;
   daily_limit: number;
@@ -32,7 +34,6 @@ export interface HaiUsageSummary {
   wallet_consumed_points?: number;
   credited_points?: number;
   consumed_points?: number;
-  newcomer_grant_points?: number;
   point_packages?: HaiPointPackage[];
   wecom_qr_url?: string;
   single_request_token_limit?: number;
@@ -107,7 +108,7 @@ function inferProviderCodeFromUrl(baseUrl: string) {
 }
 
 export type HaiMode = "chat" | "work";
-export type HaiWorkToolSlug = "lesson-diagnosis" | "segment-optimization" | "subject-lesson-design" | "teaching-design";
+export type HaiWorkToolSlug = "lesson-diagnosis" | "segment-optimization" | "subject-lesson-design" | "teaching-design" | "image-generation";
 export type HaiWorkRunStatus = "queued" | "running" | "completed" | "failed";
 export const HAI_CHAT_MODULE_SLUG = "hai-chat" as const;
 

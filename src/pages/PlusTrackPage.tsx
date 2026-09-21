@@ -33,7 +33,7 @@ import { AlertCircle, BookOpen, ChevronRight, Clock, LockKeyhole, PlayCircle } f
 export default function PlusTrackPage() {
   const { trackId } = useParams<{ trackId: PlusCourseTrackId }>();
   const navigate = useNavigate();
-  const { user, accessLevel } = useAuth();
+  const { user, courseAccessCodes } = useAuth();
   const [plusTracks, setPlusTracks] = useState<PlusTrackConfig[]>(PLUS_TRACKS);
   const track = getPlusTrack(trackId, plusTracks);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -76,7 +76,7 @@ export default function PlusTrackPage() {
     : [];
 
   const handleCourseClick = (course: Course) => {
-    if (!canAccessCourse(accessLevel, 'plus')) {
+    if (!canAccessCourse(courseAccessCodes, 'teaching-general-v1')) {
       if (!user) {
         navigate('/login', { state: { from: `/courses/${course.id}` } });
         return;

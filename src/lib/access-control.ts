@@ -1,19 +1,70 @@
 import type { Session, User } from '@supabase/supabase-js';
 import { clearLearningDataCache } from '@/db/api';
 import { supabase } from '@/db/supabase';
-import type { LearningRecord, MembershipType, Profile } from '@/types/types';
+import {
+  getMembershipCourseAccessCodes,
+  mergeCourseAccessCodes,
+} from '@/lib/course-entitlements';
+import type { CourseAccessCode, LearningRecord, MembershipType, Profile } from '@/types/types';
 
 // ==================== 访问控制 ====================
 
 const LEVEL_HIERARCHY: Record<MembershipType, number> = {
   free: 0,
-  plus2015: 1,
+  plus2025: 1,
   plus: 1,
   pro: 2,
 };
 
-export function canAccessCourse(userLevel: MembershipType, courseLevel: MembershipType): boolean {
-  return LEVEL_HIERARCHY[userLevel] >= LEVEL_HIERARCHY[courseLevel];
+export type CourseAccessSubject = MembershipType | readonly CourseAccessCode[];
+export type CourseAccessRequirement = MembershipType | CourseAccessCode | null | undefined;
+
+function requirementToProductCode(requirement: CourseAccessRequirement): CourseAccessCode | null {
+  if (!requirement || requirement === 'free') return null;
+  if (requirement === 'pro') return 'teacher-ai';
+  if (requirement === 'plus' || requirement === 'plus2025') return 'teaching-general-v1';
+  return requirement;
+}
+
+export function canAccessCourse(
+  userAccess: CourseAccessSubject,
+  courseRequirement: CourseAccessRequirement,
+): boolean {
+  if (Array.isArray(userAccess)) {
+    const productCode = requirementToProductCode(courseRequirement);
+    return productCode === null || userAccess.includes(productCode);
+  }
+  if (
+    courseRequirement === 'teaching-general-v1' ||
+    courseRequirement === 'teaching-general-v2' ||
+    courseRequirement === 'teacher-ai' ||
+    courseRequirement === 'daofa-textbook'
+  ) {
+    return getMembershipCourseAccessCodes(userAccess as MembershipType).includes(courseRequirement);
+  }
+  return LEVEL_HIERARCHY[userAccess as MembershipType] >= LEVEL_HIERARCHY[courseRequirement ?? 'free'];
+}
+
+export async function getUserCourseAccessCodes(profile: Profile): Promise<CourseAccessCode[]> {
+  const mappedCodes = getMembershipCourseAccessCodes(profile.access_level);
+  const { data, error } = await supabase
+    .from('user_course_entitlements')
+    .select('product_code')
+    .eq('user_id', profile.id)
+    .eq('status', 'active')
+    .lte('starts_at', new Date().toISOString())
+    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
+
+  // 在本迁移尚未应用的本地/线上环境中，兼容会员映射，不阻断登录。
+  if (error) {
+    console.warn('getUserCourseAccessCodes fallback to membership mapping:', error.message);
+    return mappedCodes;
+  }
+
+  return mergeCourseAccessCodes(
+    mappedCodes,
+    (data ?? []).map((row) => row.product_code as CourseAccessCode),
+  );
 }
 
 // ==================== 认证 ====================

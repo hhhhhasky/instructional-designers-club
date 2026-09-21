@@ -401,8 +401,42 @@ export type Database = {
           },
         ]
       }
+      course_access_products: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          is_grantable: boolean
+          name: string
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          is_grantable?: boolean
+          name: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          is_grantable?: boolean
+          name?: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       courses: {
         Row: {
+          access_product_code: string | null
           audio_url: string | null
           body: string | null
           category: string | null
@@ -438,6 +472,7 @@ export type Database = {
           view_count: number | null
         }
         Insert: {
+          access_product_code?: string | null
           audio_url?: string | null
           body?: string | null
           category?: string | null
@@ -473,6 +508,7 @@ export type Database = {
           view_count?: number | null
         }
         Update: {
+          access_product_code?: string | null
           audio_url?: string | null
           body?: string | null
           category?: string | null
@@ -507,7 +543,15 @@ export type Database = {
           video_url?: string | null
           view_count?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "courses_access_product_code_fkey"
+            columns: ["access_product_code"]
+            isOneToOne: false
+            referencedRelation: "course_access_products"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       credit_transactions: {
         Row: {
@@ -3125,6 +3169,32 @@ export type Database = {
         }
         Relationships: []
       }
+      membership_course_access: {
+        Row: {
+          access_level: Database["public"]["Enums"]["access_level"]
+          created_at: string
+          product_code: string
+        }
+        Insert: {
+          access_level: Database["public"]["Enums"]["access_level"]
+          created_at?: string
+          product_code: string
+        }
+        Update: {
+          access_level?: Database["public"]["Enums"]["access_level"]
+          created_at?: string
+          product_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membership_course_access_product_code_fkey"
+            columns: ["product_code"]
+            isOneToOne: false
+            referencedRelation: "course_access_products"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           access_level: Database["public"]["Enums"]["access_level"]
@@ -3260,6 +3330,57 @@ export type Database = {
         }
         Relationships: []
       }
+      user_course_entitlements: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          granted_by: string | null
+          notes: string | null
+          product_code: string
+          starts_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          granted_by?: string | null
+          notes?: string | null
+          product_code: string
+          starts_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          granted_by?: string | null
+          notes?: string | null
+          product_code?: string
+          starts_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_course_entitlements_product_code_fkey"
+            columns: ["product_code"]
+            isOneToOne: false
+            referencedRelation: "course_access_products"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "user_course_entitlements_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_notifications: {
         Row: {
           body: string
@@ -3343,6 +3464,15 @@ export type Database = {
       admin_set_course_access_password: {
         Args: { p_course_id: string; p_password?: string }
         Returns: boolean
+      }
+      admin_set_user_course_access: {
+        Args: {
+          p_enabled: boolean
+          p_notes?: string
+          p_product_code: string
+          p_user_id: string
+        }
+        Returns: Json
       }
       admin_student_leaderboard: { Args: never; Returns: Json }
       admin_student_list: { Args: never; Returns: Json }
@@ -3664,7 +3794,7 @@ export type Database = {
       }
     }
     Enums: {
-      access_level: "free" | "plus" | "pro"
+      access_level: "free" | "plus2025" | "plus" | "pro"
       course_level: "入门" | "初级" | "中级" | "高级"
       course_status: "draft" | "published" | "archived"
       isd_access_level: "free" | "paid"
@@ -3802,7 +3932,7 @@ export const Constants = {
   },
   public: {
     Enums: {
-      access_level: ["free", "plus", "pro"],
+      access_level: ["free", "plus2025", "plus", "pro"],
       course_level: ["入门", "初级", "中级", "高级"],
       course_status: ["draft", "published", "archived"],
       isd_access_level: ["free", "paid"],

@@ -20,7 +20,7 @@ import type { LearningOverview as LearningOverviewType, RecentLearningItem, Seri
 
 export default function LearningPage() {
   const navigate = useNavigate();
-  const { user, profile, loading, session, refreshProfile } = useAuth();
+  const { user, profile, loading, session, refreshProfile, courseAccessCodes } = useAuth();
   const initialCheckDone = useRef(false);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -140,7 +140,7 @@ export default function LearningPage() {
       overview,
       seriesProgress,
       recentLearning,
-      accessLevel: profile.access_level,
+      accessLevel: courseAccessCodes,
     })
     : null;
 
@@ -229,7 +229,7 @@ export default function LearningPage() {
                         <div key={series.categoryName} className="animate-fade-in-up" style={{ animationDelay: `${idx * 0.08}s` }}>
                           <SeriesProgressCard
                             series={series}
-                            accessLevel={profile.access_level}
+                            accessLevel={courseAccessCodes}
                           />
                         </div>
                       ))}

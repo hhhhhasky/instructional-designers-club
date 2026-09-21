@@ -7,12 +7,12 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from '@/components/ui/accordion';
-import type { SeriesProgress as SeriesProgressType, MembershipType } from '@/types/types';
-import { canAccessCourse } from '@/lib/access-control';
+import type { SeriesProgress as SeriesProgressType } from '@/types/types';
+import { canAccessCourse, type CourseAccessSubject } from '@/lib/access-control';
 
 interface Props {
   series: SeriesProgressType;
-  accessLevel: MembershipType;
+  accessLevel: CourseAccessSubject;
 }
 
 const STATUS_CONFIG = {

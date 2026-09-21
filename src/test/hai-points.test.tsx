@@ -155,7 +155,8 @@ describe("HAI points purchase page", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("可先购买积分；使用 HAI 前仍需开通 Plus 或 Pro 会员。")).toBeInTheDocument();
+    expect(await screen.findByText("所有已登录用户均可购买，积分到账后可用于 HAI Chat 与 HAI Work")).toBeInTheDocument();
+    expect(screen.queryByText(/Plus 或 Pro/)).not.toBeInTheDocument();
     expect(screen.getAllByText("10 积分")).toHaveLength(2);
     expect(screen.queryByText(/仅面向/)).not.toBeInTheDocument();
   });
@@ -247,16 +248,8 @@ describe("HAI points wallet migration contract", () => {
     resolve(process.cwd(), "supabase/migrations/20260829060046_hai_points_universal_purchase_and_display.sql"),
     "utf8",
   );
-  const membershipGrantSql = readFileSync(
-    resolve(process.cwd(), "supabase/migrations/20260829082605_hai_membership_2015plus_points_grant.sql"),
-    "utf8",
-  );
   const weightedBillingSql = readFileSync(
     resolve(process.cwd(), "supabase/migrations/20260829124258_hai_weighted_equivalent_token_billing.sql"),
-    "utf8",
-  );
-  const splitNewcomerSql = readFileSync(
-    resolve(process.cwd(), "supabase/migrations/20260829150441_hai_split_newcomer_points_by_level.sql"),
     "utf8",
   );
   const pointNotificationSql = readFileSync(
@@ -277,6 +270,10 @@ describe("HAI points wallet migration contract", () => {
   );
   const internalBetaRemovalSql = readFileSync(
     resolve(process.cwd(), "supabase/migrations/20260830070205_remove_internal_beta_branch.sql"),
+    "utf8",
+  );
+  const decouplingSql = readFileSync(
+    resolve(process.cwd(), "supabase/migrations/20260921083014_decouple_course_entitlements_and_hai_points.sql"),
     "utf8",
   );
   const publicLessonRenameSql = readFileSync(
@@ -421,31 +418,22 @@ describe("HAI points wallet migration contract", () => {
     }
   });
 
-  it("requires the admin to change membership first and manually grant newcomer points exactly once", () => {
-    expect(membershipGrantSql).toContain("create or replace function public.hai_admin_grant_newcomer_points");
-    expect(membershipGrantSql).toContain("if v_access_level not in ('plus', 'pro')");
-    expect(membershipGrantSql).toContain("请先将用户等级调整为 Plus 或 Pro");
-    expect(membershipGrantSql).toContain("on conflict (user_id) do nothing");
-    expect(membershipGrantSql).toContain("不能重复发放");
-    expect(membershipGrantSql).toContain("'source', 'manual_admin'");
-    expect(membershipGrantSql).not.toContain("Existing Plus/Pro accounts receive the one-time 1000-point grant now");
-    expect(adminSource).toContain("先手动调整会员等级，再单独发放首次 HAI 积分");
-    expect(adminSource).toContain('supabase.rpc("hai_admin_grant_newcomer_points"');
-    expect(adminSource).toContain("请先完成第 1 步：仅 Plus / Pro 可领取首次赠送");
-    expect(adminSource).toContain("按手机号或用户名筛选积分用户");
-    expect(adminSource).toContain("按会员等级筛选积分用户");
+  it("retires membership-based newcomer grants in favor of manual points", () => {
+    expect(decouplingSql).toContain("drop function if exists public.hai_admin_grant_newcomer_points(uuid)");
+    expect(decouplingSql).toContain("'points.newcomer_plus_points'");
+    expect(decouplingSql).toContain("'points.newcomer_pro_points'");
+    expect(adminSource).toContain("HAI 积分与会员等级、课程权限无关");
+    expect(adminSource).toContain("备注中可填“买课赠送”");
+    expect(adminSource).not.toContain('supabase.rpc("hai_admin_grant_newcomer_points"');
+    expect(adminSource).not.toContain("按会员等级筛选积分用户");
   });
 
-  it("grants different newcomer points for Plus and Pro", () => {
-    expect(splitNewcomerSql).toContain("'points.newcomer_plus_points'");
-    expect(splitNewcomerSql).toContain("to_jsonb(200::integer)");
-    expect(splitNewcomerSql).toContain("'points.newcomer_pro_points'");
-    expect(splitNewcomerSql).toContain("to_jsonb(500::integer)");
-    expect(splitNewcomerSql).toContain("then 'points.newcomer_pro_points'");
-    expect(splitNewcomerSql).toContain("then 500 else 200 end");
-    expect(splitNewcomerSql).toContain("where key = 'points.newcomer_grant_points'");
-    expect(adminSource).toContain("newcomerPlusGrantPoints");
-    expect(adminSource).toContain("newcomerProGrantPoints");
+  it("uses one points policy for every active user regardless of membership", () => {
+    expect(decouplingSql).toContain("where p.id = p_user_id and p.status = 'active'");
+    expect(decouplingSql).toContain("where key = 'plus' and enabled = true");
+    expect(decouplingSql).not.toContain("v_policy_key := case when v_access_level");
+    expect(adminSource).not.toContain("newcomerPlusGrantPoints");
+    expect(adminSource).not.toContain("newcomerProGrantPoints");
     expect(adminSource).not.toContain("积分钱包列表");
     expect(dashboardSource).toContain("积分钱包列表");
     expect(dashboardSource).toContain("只读展示所有已创建钱包的用户");
@@ -469,7 +457,7 @@ describe("HAI points wallet migration contract", () => {
     expect(pointNotificationSql.match(/insert into public\.user_notifications/g)).toHaveLength(1);
     expect(pointNotificationSql).toContain("revoke execute on function private.hai_notify_positive_point_transaction()");
     expect(adminSource).toContain("积分已增加并发送站内通知");
-    expect(adminSource).toContain("每次增加成功后都会发送站内通知");
+    expect(adminSource).toContain("积分已增加并发送站内通知");
   });
 
   it("exposes a user-safe points ledger and includes failed uses without token fields", () => {

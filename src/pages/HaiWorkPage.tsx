@@ -916,8 +916,8 @@ function WorkLocked({ reason }: { reason?: string }) {
   return (
     <div className="mx-auto max-w-xl px-5 py-20 text-center">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-ds-xl bg-[var(--proof-soft)] text-[var(--proof)]"><ClipboardCheck className="h-6 w-6" /></div>
-      <h2 className="mt-5 font-serif text-2xl font-black text-tx">需要 Plus 或 Pro 会员</h2>
-      <p className="mt-3 text-sm leading-6 text-txs">{reason || "当前账号还没有 HAI 使用权限。"}</p>
+      <h2 className="mt-5 font-serif text-2xl font-black text-tx">HAI 暂时不可用</h2>
+      <p className="mt-3 text-sm leading-6 text-txs">{reason || "请先登录，并确保账户状态正常。"}</p>
       <Button asChild className="mt-6 rounded-ds-lg bg-tl text-white hover:bg-tl/90"><Link to="/hai/chat">先去聊聊问题</Link></Button>
     </div>
   );

@@ -22,6 +22,7 @@ import { getCourseCatalogSnapshot, getCourseDetailSnapshot, subscribeToCourseCat
 import type { Course } from '@/types/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { canAccessCourse } from '@/lib/access-control';
+import { getCourseAccessCode } from '@/lib/course-entitlements';
 import UpgradePopup from '@/components/common/UpgradePopup';
 import {
   PLUS_TRACKS,
@@ -35,7 +36,7 @@ import {
 
 export default function CoursesPage() {
   const navigate = useNavigate();
-  const { user, accessLevel } = useAuth();
+  const { user, courseAccessCodes } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeLevel, setUpgradeLevel] = useState<'plus' | 'pro'>('plus');
   const [allCourses, setAllCourses] = useState<Course[]>([]);
@@ -104,7 +105,7 @@ export default function CoursesPage() {
   const handleCourseClick = (course: Course) => {
     if (isNavigating) return;
 
-    if (course.membership_type !== 'free' && !canAccessCourse(accessLevel, course.membership_type)) {
+    if (course.membership_type !== 'free' && !canAccessCourse(courseAccessCodes, getCourseAccessCode(course))) {
       if (!user) {
         navigate('/login', { state: { from: `/courses/${course.id}` } });
         return;

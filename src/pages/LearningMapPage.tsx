@@ -22,7 +22,7 @@ import { isAllElementsExplored } from '@/lib/learningMap';
 
 export default function LearningMapPage() {
   const navigate = useNavigate();
-  const { user, profile, loading, session, refreshProfile } = useAuth();
+  const { user, profile, loading, session, refreshProfile, courseAccessCodes } = useAuth();
   const initialCheckDone = useRef(false);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -48,7 +48,7 @@ export default function LearningMapPage() {
           overview: data.overview,
           seriesProgress: data.seriesProgress,
           recentLearning: data.recentLearning,
-          accessLevel: profile.access_level,
+          accessLevel: courseAccessCodes,
         });
         setGamificationSnapshot(snapshot);
         setMapData(snapshot.mapData);
@@ -162,7 +162,7 @@ export default function LearningMapPage() {
                   allExplored={allExplored}
                   onOpenCourse={(id) => navigate(`/courses/${id}`)}
                 />
-                <LearningMap data={mapData} accessLevel={profile.access_level} />
+                <LearningMap data={mapData} accessLevel={courseAccessCodes} />
               </div>
             )}
           </div>

@@ -6,9 +6,8 @@ import {
   getMapNodeById,
   LEARNING_MAP_CONFIG,
 } from '@/components/learning/map/learningMapConfig';
-import { canAccessCourse } from '@/lib/access-control';
+import { canAccessCourse, type CourseAccessSubject } from '@/lib/access-control';
 import type {
-  MembershipType,
   SeriesCourseItem,
   SeriesProgress,
 } from '@/types/types';
@@ -62,7 +61,7 @@ export interface LearningMapData {
 export function aggregateNodeExploration(
   node: MapNodeConfig,
   seriesProgress: SeriesProgress[],
-  accessLevel: MembershipType,
+  accessLevel: CourseAccessSubject,
 ): NodeExploration {
   const seriesGroups: NodeSeriesGroup[] = [];
   for (const cat of node.categories) {
@@ -115,7 +114,7 @@ export function aggregateNodeExploration(
 export function pickNextCourseInNode(
   node: MapNodeConfig,
   seriesProgress: SeriesProgress[],
-  accessLevel: MembershipType,
+  accessLevel: CourseAccessSubject,
 ): { course: SeriesCourseItem; seriesName: string } | null {
   const accessible = (c: SeriesCourseItem) => canAccessCourse(accessLevel, c.membershipType);
 
@@ -139,7 +138,7 @@ export function pickNextCourseInNode(
 /** 组装完整地图数据（从 seriesProgress 派生，零网络开销） */
 export function buildLearningMapData(
   seriesProgress: SeriesProgress[],
-  accessLevel: MembershipType,
+  accessLevel: CourseAccessSubject,
 ): LearningMapData {
   const { core, elements, foundations, toolkits } = LEARNING_MAP_CONFIG;
   const allNodes = [core, ...elements, ...foundations, ...toolkits];

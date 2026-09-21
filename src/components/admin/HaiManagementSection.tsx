@@ -1,35 +1,16 @@
-import { BookOpen, Bot, ChevronDown, Coins, Cpu, KeyRound, Loader2, Pencil, Plus, RefreshCw, Save, SlidersHorizontal, Trash2, UserPlus, X } from "lucide-react";
+import { BookOpen, Bot, ChevronDown, Coins, Cpu, KeyRound, Loader2, Pencil, Plus, RefreshCw, Save, SlidersHorizontal, Trash2, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import HaiChatSkillManagement from "@/components/admin/HaiChatSkillManagement";
 import HaiWorkSkillManagement from "@/components/admin/HaiWorkSkillManagement";
 import ModuleParamFields, { NumberInput } from "@/components/admin/hai/ModuleParamFields";
-import { filterPointUsers, type PointUserLevelFilter } from "@/components/admin/hai/point-user-filter";
+import { filterPointUsers } from "@/components/admin/hai/point-user-filter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { adminUpdateUserAccessLevel, getAdminStudentList, type StudentItem } from "@/db/admin-api";
+import { getAdminStudentList, type StudentItem } from "@/db/admin-api";
 import type { HaiFeatureModule, HaiModelProvider } from "@/db/hai-api";
 import { deleteHaiModelProvider, getHaiModelProviders, saveHaiModelProvider } from "@/db/hai-api";
 import { supabase } from "@/db/supabase";
-import type { MembershipType } from "@/types/types";
-
-interface HaiUserAccessRow {
-  user_id: string;
-  status: "active" | "paused" | "revoked";
-  access_source: string;
-  quota_policy_key: string;
-  expires_at: string | null;
-  notes: string | null;
-  profiles?: {
-    nickname: string;
-    phone: string;
-    access_level: string;
-  } | null | Array<{
-    nickname: string;
-    phone: string;
-    access_level: string;
-  }>;
-}
 
 interface HaiQuotaPolicy {
   key: string;
@@ -48,9 +29,8 @@ interface HaiPointWalletRow {
   balance_tokens: number;
   total_credited_tokens: number;
   total_consumed_tokens: number;
-  newcomer_grant_tokens: number;
-  newcomer_granted_at: string | null;
-  profiles?: HaiUserAccessRow["profiles"];
+  profiles?: { nickname: string; phone: string; access_level: string } | null
+    | Array<{ nickname: string; phone: string; access_level: string }>;
 }
 
 interface HaiKnowledgeSource {
@@ -187,7 +167,6 @@ const DEFAULT_POINT_MULTIPLIER_DRAFTS = Object.fromEntries(
 
 export default function HaiManagementSection() {
   const [students, setStudents] = useState<StudentItem[]>([]);
-  const [accessRows, setAccessRows] = useState<HaiUserAccessRow[]>([]);
   const [pointWallets, setPointWallets] = useState<HaiPointWalletRow[]>([]);
   const [modules, setModules] = useState<HaiFeatureModule[]>([]);
   const [quotas, setQuotas] = useState<HaiQuotaPolicy[]>([]);
@@ -202,12 +181,9 @@ export default function HaiManagementSection() {
   const [methodCardDraft, setMethodCardDraft] = useState<MethodCardAdminItem | null>(null);
   const [methodCardSearch, setMethodCardSearch] = useState("");
   const [creatingMethodCard, setCreatingMethodCard] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState("");
   const [pointUserId, setPointUserId] = useState("");
-  const [pointLevelDraft, setPointLevelDraft] = useState<MembershipType>("free");
   const [pointDraft, setPointDraft] = useState({ points: 100, reason: "线下购买积分" });
   const [pointUserSearch, setPointUserSearch] = useState("");
-  const [pointUserLevelFilter, setPointUserLevelFilter] = useState<PointUserLevelFilter>("all");
   const [tokensPerPointDraft, setTokensPerPointDraft] = useState("1000");
   const [pointMultiplierDrafts, setPointMultiplierDrafts] = useState<Record<PointBillingMultiplierKey, string>>(
     DEFAULT_POINT_MULTIPLIER_DRAFTS,
@@ -217,7 +193,6 @@ export default function HaiManagementSection() {
   const [editingPointPackageId, setEditingPointPackageId] = useState<string | null>(null);
   const [pointPackageStatus, setPointPackageStatus] = useState("");
   const [cnyPerPointDraft, setCnyPerPointDraft] = useState("0.10");
-  const [studentSearch, setStudentSearch] = useState("");
   const [knowledgeDraft, setKnowledgeDraft] = useState({ title: "", topic: "教学设计理论", content: "" });
   const [knowledgeEdit, setKnowledgeEdit] = useState<{ id: string; title: string; topic: string; content: string } | null>(null);
   const [loadingKnowledgeId, setLoadingKnowledgeId] = useState("");
@@ -226,20 +201,13 @@ export default function HaiManagementSection() {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
 
-  const filteredStudents = useMemo(() => {
-    if (!studentSearch.trim()) return students;
-    const keyword = studentSearch.trim().toLowerCase();
-    return students.filter(
-      (s) => s.nickname.toLowerCase().includes(keyword) || s.phone.includes(keyword),
-    );
-  }, [students, studentSearch]);
   const selectedPointUser = useMemo(
     () => students.find((student) => student.id === pointUserId) ?? null,
     [pointUserId, students],
   );
   const filteredPointUsers = useMemo(
-    () => filterPointUsers(students, pointUserSearch, pointUserLevelFilter),
-    [pointUserLevelFilter, pointUserSearch, students],
+    () => filterPointUsers(students, pointUserSearch, "all"),
+    [pointUserSearch, students],
   );
   const selectedPointWallet = useMemo(
     () => pointWallets.find((wallet) => wallet.user_id === pointUserId) ?? null,
@@ -272,24 +240,14 @@ export default function HaiManagementSection() {
     () => runtimeSettings.find((setting) => setting.key === "points.cny_per_point") ?? null,
     [runtimeSettings],
   );
-  const newcomerPlusGrantPoints = useMemo(() => Math.max(
-    0,
-    Math.round(Number(runtimeSettings.find((setting) => setting.key === "points.newcomer_plus_points")?.value ?? 200)),
-  ), [runtimeSettings]);
-  const newcomerProGrantPoints = useMemo(() => Math.max(
-    0,
-    Math.round(Number(runtimeSettings.find((setting) => setting.key === "points.newcomer_pro_points")?.value ?? 500)),
-  ), [runtimeSettings]);
-  const selectedPointNewcomerGrant = useMemo(() => {
-    if (selectedPointUser?.access_level === "pro") return newcomerProGrantPoints;
-    if (selectedPointUser?.access_level === "plus") return newcomerPlusGrantPoints;
-    return 0;
-  }, [newcomerPlusGrantPoints, newcomerProGrantPoints, selectedPointUser]);
   const generalRuntimeSettings = useMemo(() => {
     const dedicatedKeys = new Set([
       "points.tokens_per_point",
       "points.cny_per_point",
       "points.wecom_qr_url",
+      "points.newcomer_grant_points",
+      "points.newcomer_plus_points",
+      "points.newcomer_pro_points",
       ...POINT_BILLING_MULTIPLIERS.map((item) => item.key),
     ]);
     return runtimeSettings.filter((setting) => !dedicatedKeys.has(setting.key));
@@ -319,10 +277,6 @@ export default function HaiManagementSection() {
   useEffect(() => {
     void loadAll();
   }, []);
-
-  useEffect(() => {
-    if (selectedPointUser) setPointLevelDraft(selectedPointUser.access_level);
-  }, [selectedPointUser]);
 
   useEffect(() => {
     if (tokensPerPointSetting) setTokensPerPointDraft(String(tokensPerPointSetting.value));
@@ -357,7 +311,6 @@ export default function HaiManagementSection() {
     try {
       const [
         studentRows,
-        accessResult,
         pointWalletResult,
         pointPackageResult,
         moduleResult,
@@ -369,11 +322,6 @@ export default function HaiManagementSection() {
         providerRows,
       ] = await Promise.all([
         getAdminStudentList(),
-        supabase
-          .from("hai_user_access")
-          .select("*, profiles!user_id(nickname, phone, access_level)")
-          .eq("access_source", "admin")
-          .order("granted_at", { ascending: false }),
         supabase
           .from("hai_point_wallets")
           .select("*, profiles!user_id(nickname, phone, access_level)")
@@ -408,7 +356,6 @@ export default function HaiManagementSection() {
         getHaiModelProviders(),
       ]);
 
-      if (accessResult.error) throw accessResult.error;
       if (pointWalletResult.error) throw pointWalletResult.error;
       if (pointPackageResult.error) throw pointPackageResult.error;
       if (moduleResult.error) throw moduleResult.error;
@@ -419,7 +366,6 @@ export default function HaiManagementSection() {
       if (methodCardResult.error) throw methodCardResult.error;
 
       setStudents(studentRows);
-      setAccessRows((accessResult.data as HaiUserAccessRow[]) ?? []);
       setPointWallets((pointWalletResult.data as HaiPointWalletRow[]) ?? []);
       const packageRows = (pointPackageResult.data as HaiPointPackageRow[]) ?? [];
       setPointPackages(packageRows);
@@ -467,29 +413,6 @@ export default function HaiManagementSection() {
     }
   }
 
-  async function grantAccess() {
-    if (!selectedUserId || saving) return;
-    setSaving(true);
-    setStatus("");
-    try {
-      const { error } = await supabase.from("hai_user_access").upsert({
-        user_id: selectedUserId,
-        status: "active",
-        access_source: "admin",
-        quota_policy_key: "beta",
-        granted_at: new Date().toISOString(),
-      });
-      if (error) throw error;
-      await loadAll();
-      setStatus("内测授权已保存。");
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : "未知错误";
-      setStatus(`授权失败：${msg}`);
-    } finally {
-      setSaving(false);
-    }
-  }
-
   async function addPoints() {
     if (!pointUserId || pointDraft.points <= 0 || !pointDraft.reason.trim() || saving) return;
     setSaving(true);
@@ -510,63 +433,6 @@ export default function HaiManagementSection() {
     } finally {
       setSaving(false);
     }
-  }
-
-  async function updatePointUserLevel() {
-    if (!selectedPointUser || saving) return;
-    if (selectedPointUser.access_level === pointLevelDraft) {
-      setStatus("会员等级未变化。");
-      return;
-    }
-
-    setSaving(true);
-    setStatus("");
-    try {
-      const result = await adminUpdateUserAccessLevel(selectedPointUser.id, pointLevelDraft);
-      setStudents((current) => current.map((student) => (
-        student.id === selectedPointUser.id
-          ? { ...student, access_level: result.access_level }
-          : student
-      )));
-      setStatus(`第 1 步已完成：用户等级已调整为 ${membershipLabel(result.access_level)}。`);
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : "未知错误";
-      setStatus(`等级调整失败：${msg}`);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function grantNewcomerPoints() {
-    if (!selectedPointUser || saving) return;
-    setSaving(true);
-    setStatus("");
-    try {
-      const { data, error } = await supabase.rpc("hai_admin_grant_newcomer_points", {
-        p_user_id: selectedPointUser.id,
-      });
-      if (error) throw error;
-      await loadAll();
-      const result = data as { granted_points?: number; current_points?: number } | null;
-      setStatus(
-        `第 2 步已完成：已发放 ${formatAdminPoints(result?.granted_points)} 积分，`
-        + `用户当前持有 ${formatAdminPoints(result?.current_points)} 积分。`,
-      );
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : "未知错误";
-      setStatus(`首次积分发放失败：${msg}`);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function updateAccess(row: HaiUserAccessRow, updates: Partial<HaiUserAccessRow>) {
-    const { error } = await supabase.from("hai_user_access").update(updates).eq("user_id", row.user_id);
-    if (error) {
-      setStatus(error.message);
-      return;
-    }
-    await loadAll();
   }
 
   async function updateModule(module: HaiFeatureModule, updates: Partial<HaiFeatureModule>) {
@@ -1575,78 +1441,6 @@ export default function HaiManagementSection() {
       </CollapsiblePanel>
 
       <CollapsiblePanel
-        title="内测用户"
-        description="管理 HAI 内测资格、状态和用户额度。"
-        icon={<UserPlus className="h-5 w-5" />}
-        summary={`${accessRows.length} 人`}
-      >
-        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
-          <input
-            type="text"
-            placeholder="搜索学员（昵称或手机号）"
-            value={studentSearch}
-            onChange={(event) => {
-              setStudentSearch(event.target.value);
-              setSelectedUserId("");
-            }}
-            className="h-10 rounded-ds-md border border-bd bg-bg px-3 text-ds-sm placeholder:text-txs"
-          />
-          <select
-            value={selectedUserId}
-            onChange={(event) => setSelectedUserId(event.target.value)}
-            className="h-10 rounded-ds-md border border-bd bg-bg px-3 text-ds-sm"
-          >
-            <option value="">选择学员</option>
-            {filteredStudents.map((student) => (
-              <option key={student.id} value={student.id}>
-                {student.nickname} · {student.phone} · {student.access_level}
-              </option>
-            ))}
-          </select>
-          <Button className="bg-ac text-white hover:bg-acd" disabled={!selectedUserId || saving} onClick={grantAccess}>
-            <Save className="h-4 w-4" />
-            授权
-          </Button>
-        </div>
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-ds-sm">
-            <thead className="text-txs">
-              <tr className="border-b border-bd">
-                <th className="py-2">用户</th>
-                <th>会员</th>
-                <th>状态</th>
-                <th>额度</th>
-                <th>来源</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {accessRows.map((row) => {
-                const profile = profileOf(row.profiles);
-                return (
-                  <tr key={row.user_id} className="border-b border-bdl">
-                    <td className="py-2">{profile?.nickname ?? row.user_id}<br /><span className="text-txs">{profile?.phone}</span></td>
-                    <td>{profile?.access_level}</td>
-                    <td><Badge variant="outline">{row.status}</Badge></td>
-                    <td>{row.quota_policy_key}</td>
-                    <td>{row.access_source}</td>
-                    <td className="space-x-2">
-                      <Button size="sm" variant="outline" onClick={() => updateAccess(row, { status: row.status === "active" ? "paused" : "active" })}>
-                        {row.status === "active" ? "暂停" : "启用"}
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => updateAccess(row, { status: "revoked" })}>
-                        撤销
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </CollapsiblePanel>
-
-      <CollapsiblePanel
         title="积分与套餐设置"
         description="积分消耗规则与购买页套餐均保存到数据库，保存后立即同步前端。"
         icon={<Coins className="h-5 w-5" />}
@@ -1938,11 +1732,11 @@ export default function HaiManagementSection() {
       <section className="grid gap-6 xl:grid-cols-2">
         <CollapsiblePanel
           title="用户积分"
-          description="先手动调整会员等级，再单独发放首次 HAI 积分。"
+          description="HAI 积分与会员等级、课程权限无关；选择用户后手动输入数量和原因即可发放。"
           icon={<Coins className="h-5 w-5" />}
-          summary="选人发放与入账"
+          summary="手动发放积分"
         >
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2">
             <label className="block">
               <span className="mb-1 block text-ds-xs font-ds-semibold text-txs">手机号或用户名</span>
               <input
@@ -1954,30 +1748,14 @@ export default function HaiManagementSection() {
                 aria-label="按手机号或用户名筛选积分用户"
               />
             </label>
-            <label className="block">
-              <span className="mb-1 block text-ds-xs font-ds-semibold text-txs">会员等级</span>
-              <select
-                value={pointUserLevelFilter}
-                onChange={(event) => setPointUserLevelFilter(event.target.value as PointUserLevelFilter)}
-                className="h-10 w-full rounded-ds-md border border-bd bg-bg px-3 text-ds-sm"
-                aria-label="按会员等级筛选积分用户"
-              >
-                <option value="all">全部等级</option>
-                <option value="free">Free</option>
-                <option value="plus2015">2015Plus</option>
-                <option value="plus">Plus</option>
-                <option value="pro">Pro</option>
-              </select>
-            </label>
           </div>
           <div className="mt-2 flex min-h-7 items-center justify-between gap-3 text-ds-xs text-txs">
             <span>已找到 {filteredPointUsers.length} 个用户</span>
-            {(pointUserSearch.trim() || pointUserLevelFilter !== "all") && (
+            {pointUserSearch.trim() && (
               <button
                 type="button"
                 onClick={() => {
                   setPointUserSearch("");
-                  setPointUserLevelFilter("all");
                 }}
                 className="font-ds-semibold text-ac hover:text-acd"
               >
@@ -1992,77 +1770,29 @@ export default function HaiManagementSection() {
               <option value="">选择用户</option>
               {selectedPointUser && !filteredPointUsers.some((student) => student.id === selectedPointUser.id) && (
                 <option value={selectedPointUser.id}>
-                  {selectedPointUser.nickname} · {selectedPointUser.phone} · {membershipLabel(selectedPointUser.access_level)}（当前已选）
+                  {selectedPointUser.nickname} · {selectedPointUser.phone}（当前已选）
                 </option>
               )}
               {filteredPointUsers.map((student) => (
                 <option key={student.id} value={student.id}>
-                  {student.nickname} · {student.phone} · {membershipLabel(student.access_level)}
+                  {student.nickname} · {student.phone}
                 </option>
               ))}
             </select>
           </label>
           {filteredPointUsers.length === 0 && (
             <p className="mt-2 rounded-ds-md bg-bg px-3 py-2 text-ds-xs text-txs">
-              未找到匹配用户，请调整手机号、用户名或会员等级。
+              未找到匹配用户，请调整手机号或用户名。
             </p>
           )}
-
-          <div className="mt-3 grid gap-3 lg:grid-cols-2">
-            <div className="rounded-ds-md border border-bd bg-white p-3">
-              <p className="text-ds-sm font-ds-bold text-tx">1. 手动调整会员等级</p>
-              <div className="mt-2 flex gap-2">
-                <select
-                  className="h-10 min-w-0 flex-1 rounded-ds-md border border-bd bg-bg px-3 text-ds-sm"
-                  value={pointLevelDraft}
-                  disabled={!selectedPointUser || saving}
-                  onChange={(event) => setPointLevelDraft(event.target.value as MembershipType)}
-                  aria-label="HAI 积分发放前调整会员等级"
-                >
-                  <option value="free">Free</option>
-                  <option value="plus2015">2015Plus</option>
-                  <option value="plus">Plus</option>
-                  <option value="pro">Pro</option>
-                </select>
-                <Button
-                  variant="outline"
-                  disabled={!selectedPointUser || selectedPointUser.access_level === pointLevelDraft || saving}
-                  onClick={updatePointUserLevel}
-                >
-                  保存等级
-                </Button>
-              </div>
-            </div>
-
-            <div className="rounded-ds-md border border-bd bg-white p-3">
-              <p className="text-ds-sm font-ds-bold text-tx">2. 发放首次 HAI 积分</p>
-              <Button
-                className="mt-2 w-full bg-ac text-white hover:bg-acd"
-                disabled={
-                  !selectedPointUser
-                  || !["plus", "pro"].includes(selectedPointUser.access_level)
-                  || selectedPointWallet?.newcomer_granted_at != null
-                  || saving
-                }
-                onClick={grantNewcomerPoints}
-              >
-                {selectedPointWallet?.newcomer_granted_at
-                  ? "已发放首次积分"
-                  : selectedPointUser
-                    ? `发放首次 ${formatAdminPoints(selectedPointNewcomerGrant)} 积分`
-                    : "发放首次积分"}
-              </Button>
-              <p className="mt-2 text-ds-xs text-txs">
-                {selectedPointUser && !["plus", "pro"].includes(selectedPointUser.access_level)
-                  ? "请先完成第 1 步：仅 Plus / Pro 可领取首次赠送。"
-                  : "该福利只能发放一次，成功后将同步到用户前端并发送通知。"}
-              </p>
-            </div>
-          </div>
-
           <div className="mt-4 border-t border-bd pt-4">
-            <p className="mb-2 text-ds-sm font-ds-bold text-tx">其他积分入账</p>
-            <p className="mb-2 text-ds-xs text-txs">用于线下购买、补发等场景；每次增加成功后都会发送站内通知。2015Plus 用户购买积分后也可使用 HAI。</p>
+            <p className="mb-2 text-ds-sm font-ds-bold text-tx">积分入账</p>
+            <p className="mb-2 text-ds-xs text-txs">可用于买课赠送、线下购买或补发；备注中可填“买课赠送”。只要有积分就可使用 HAI。</p>
+            {selectedPointWallet && (
+              <p className="mb-2 text-ds-xs text-txs">
+                {selectedPointUser?.nickname ?? "该用户"} 当前持有 {formatAdminPoints(selectedPointWallet.balance_tokens / tokensPerPoint)} 积分。
+              </p>
+            )}
             <div className="grid gap-2 md:grid-cols-[110px_minmax(0,1fr)_auto]">
             <input className="h-10 rounded-ds-md border border-bd bg-bg px-3 text-ds-sm" type="number" min={1} step={1} value={pointDraft.points} onChange={(event) => setPointDraft((current) => ({ ...current, points: Math.max(0, Number(event.target.value) || 0) }))} aria-label="增加积分" />
             <input className="h-10 rounded-ds-md border border-bd bg-bg px-3 text-ds-sm" placeholder="增加原因" value={pointDraft.reason} onChange={(event) => setPointDraft((current) => ({ ...current, reason: event.target.value }))} />
@@ -2075,7 +1805,7 @@ export default function HaiManagementSection() {
 
         <CollapsiblePanel
           title="额度策略"
-          description="内测用户保留日/周额度；Plus、Pro 仅配置单轮和并发上限。"
+          description="所有用户统一按积分扣减；此处仅配置单轮和并发上限。"
           icon={<KeyRound className="h-5 w-5" />}
           summary={`${quotas.length} 套`}
         >
@@ -2428,10 +2158,6 @@ export function CollapsiblePanel({
   );
 }
 
-function profileOf(value: HaiUserAccessRow["profiles"]) {
-  return Array.isArray(value) ? value[0] ?? null : value ?? null;
-}
-
 function formatDateTime(value: string) {
   try {
     return new Intl.DateTimeFormat("zh-CN", {
@@ -2448,13 +2174,6 @@ function formatDateTime(value: string) {
 function formatAdminPoints(value?: number) {
   const points = Number(value ?? 0);
   return Number.isInteger(points) ? points.toLocaleString("zh-CN") : points.toLocaleString("zh-CN", { maximumFractionDigits: 2 });
-}
-
-function membershipLabel(level: MembershipType) {
-  if (level === "plus2015") return "2015Plus";
-  if (level === "plus") return "Plus";
-  if (level === "pro") return "Pro";
-  return "Free";
 }
 
 function createEmptyPointPackage(sortOrder = 50): HaiPointPackageRow {

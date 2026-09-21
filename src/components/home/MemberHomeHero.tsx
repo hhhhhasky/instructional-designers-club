@@ -41,7 +41,7 @@ function pickNext(
  * 加载失败时静默降级为欢迎语 + 入口，不阻塞首页。
  */
 export default function MemberHomeHero() {
-  const { user, profile } = useAuth();
+  const { user, profile, courseAccessCodes } = useAuth();
   const [data, setData] = useState<LearningData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -70,8 +70,8 @@ export default function MemberHomeHero() {
       ? "Pro 专家版"
       : profile?.access_level === "plus"
         ? "Plus 会员版"
-        : profile?.access_level === "plus2015"
-          ? "2015Plus 会员版"
+        : profile?.access_level === "plus2025"
+          ? "2025Plus 会员版"
           : "免费版";
   const nickname = profile?.nickname || "老师";
 
@@ -104,7 +104,7 @@ export default function MemberHomeHero() {
       overview: data.overview,
       seriesProgress: data.seriesProgress,
       recentLearning: data.recentLearning,
-      accessLevel: profile.access_level,
+      accessLevel: courseAccessCodes,
     })
     : null;
   const nextCourse = gamificationSnapshot?.nextCourse ?? (data ? pickNext(data.seriesProgress) : null);

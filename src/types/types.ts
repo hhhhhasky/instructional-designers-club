@@ -1,5 +1,11 @@
 // 会员类型
-export type MembershipType = 'free' | 'plus2015' | 'plus' | 'pro';
+export type MembershipType = 'free' | 'plus2025' | 'plus' | 'pro';
+
+export type CourseAccessCode =
+  | 'teaching-general-v1'
+  | 'teaching-general-v2'
+  | 'teacher-ai'
+  | 'daofa-textbook';
 
 // 课程目录筛选使用的内容形态。旧缓存可能暂时没有该字段，页面会回退到 has_video。
 export type CourseType = 'article' | 'video';
@@ -38,6 +44,7 @@ export interface Course {
   credits: string | null;
   status: 'draft' | 'published' | 'archived';
   membership_type: MembershipType; // 会员类型
+  access_product_code?: CourseAccessCode | null; // 真正的课程授权产品编码
   course_type?: CourseType; // 课程类型：图文 / 视频
   is_trial: boolean; // 是否试看课程
   password_access_enabled?: boolean; // 是否允许使用单课密码试看（密码摘要不在公开课程数据中）

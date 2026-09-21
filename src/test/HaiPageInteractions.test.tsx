@@ -245,7 +245,7 @@ describe("HAI mobile chat shell", () => {
     expect(screen.queryByLabelText("输入教学问题")).not.toBeInTheDocument();
   });
 
-  it("shows the membership point balance and consumed points instead of a percentage", async () => {
+  it("shows the point balance without exposing a membership tier", async () => {
     vi.mocked(getHaiAccessStatus).mockResolvedValueOnce({
       access: { authenticated: true, allowed: true, quota_mode: "points", membership_level: "pro" },
       usage: {
@@ -268,7 +268,8 @@ describe("HAI mobile chat shell", () => {
 
     expect(await screen.findByText("积分额度")).toBeInTheDocument();
     expect(screen.getByText("1,050 积分")).toBeInTheDocument();
-    expect(screen.getByText("Pro")).toBeInTheDocument();
+    expect(screen.getByText("积分")).toBeInTheDocument();
+    expect(screen.queryByText("Pro")).not.toBeInTheDocument();
     expect(screen.getByText("累计已消耗 450 积分")).toBeInTheDocument();
     expect(screen.queryByText(/本周已用.*%/)).not.toBeInTheDocument();
   });

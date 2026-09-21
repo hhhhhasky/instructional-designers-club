@@ -31,7 +31,7 @@ export default function HomePage() {
 
 function HomePageContent() {
   const navigate = useNavigate();
-  const { user, accessLevel, loading } = useAuth();
+  const { user, courseAccessCodes, loading } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeLevel, setUpgradeLevel] = useState<'plus' | 'pro'>('plus');
   const content = useHomeContent();
@@ -46,7 +46,7 @@ function HomePageContent() {
       navigate(`/courses/${courseId}`);
       return;
     }
-    if (!canAccessCourse(accessLevel, membershipType as 'free' | 'plus' | 'pro')) {
+    if (!canAccessCourse(courseAccessCodes, membershipType as 'free' | 'plus' | 'pro')) {
       if (!user) {
         navigate('/login', { state: { from: `/courses/${courseId}` } });
         return;
@@ -56,7 +56,7 @@ function HomePageContent() {
       return;
     }
     navigate(`/courses/${courseId}`);
-  }, [navigate, user, accessLevel]);
+  }, [navigate, user, courseAccessCodes]);
 
   const guestNavItems = [
     { id: 'introduction', label: '俱乐部介绍' },
@@ -416,7 +416,7 @@ function HomePageContent() {
                         style={{ animationDelay: `${index * 0.1}s` }}
                         onClick={() => handleCourseClick(course.id, 'plus')}
                       >
-                        {!canAccessCourse(accessLevel, 'plus') && <LockOverlay level="plus" />}
+                        {!canAccessCourse(courseAccessCodes, 'plus') && <LockOverlay level="plus" />}
                         <CardHeader>
                           <div className="flex items-start justify-between gap-3 mb-2">
                             <CardTitle className="text-lg md:text-xl group-hover:text-ac transition-colors">
@@ -491,7 +491,7 @@ function HomePageContent() {
                         style={{ animationDelay: `${index * 0.1}s` }}
                         onClick={() => handleCourseClick(course.id, 'pro')}
                       >
-                        {!canAccessCourse(accessLevel, 'pro') && <LockOverlay level="pro" />}
+                        {!canAccessCourse(courseAccessCodes, 'pro') && <LockOverlay level="pro" />}
                         <CardHeader>
                           <div className="flex items-start justify-between gap-3 mb-2">
                             <CardTitle className="text-lg md:text-xl group-hover:text-ac transition-colors">

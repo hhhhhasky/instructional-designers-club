@@ -123,11 +123,6 @@ export default function HaiPointsPage() {
                   <p className="mt-2 text-ds-xs text-txs">
                     已消耗 {formatPoints(walletConsumedPoints)} 积分
                   </p>
-                  {usage.quota_mode === "none" && (
-                    <p className="mt-2 text-ds-xs leading-relaxed text-amber-700">
-                      可先购买积分；使用 HAI 前仍需开通 Plus 或 Pro 会员。
-                    </p>
-                  )}
                 </div>
 
                 <section className="mb-6 rounded-ds-lg border border-bd bg-white">

@@ -1,9 +1,8 @@
-import { canAccessCourse } from '@/lib/access-control';
+import { canAccessCourse, type CourseAccessSubject } from '@/lib/access-control';
 import { buildLearningMapData, type LearningMapData, type RecommendedNextCourse } from '@/lib/learningMap';
 import type {
   Course,
   LearningOverview,
-  MembershipType,
   RecentLearningItem,
   SeriesCourseItem,
   SeriesProgress,
@@ -151,7 +150,7 @@ export function buildGamificationSnapshot({
   overview: LearningOverview;
   seriesProgress: SeriesProgress[];
   recentLearning: RecentLearningItem[];
-  accessLevel: MembershipType;
+  accessLevel: CourseAccessSubject;
 }): GamificationSnapshot {
   const mapData = buildLearningMapData(seriesProgress, accessLevel);
   const achievements = buildAchievements(seriesProgress, accessLevel);
@@ -191,7 +190,7 @@ export function findAchievementForCourse(
   return achievements.find((achievement) => achievement.categories.includes(course.category as string)) ?? null;
 }
 
-function buildAchievements(seriesProgress: SeriesProgress[], accessLevel: MembershipType): Achievement[] {
+function buildAchievements(seriesProgress: SeriesProgress[], accessLevel: CourseAccessSubject): Achievement[] {
   const coveredCategories = new Set(ACHIEVEMENT_DEFINITIONS.flatMap((definition) => definition.categories));
   const dynamicDefinitions: AchievementDefinition[] = seriesProgress
     .filter((series) => series.courses.length > 0 && !coveredCategories.has(series.categoryName))
@@ -229,7 +228,7 @@ function buildQuests(
   recentLearning: RecentLearningItem[],
   achievements: Achievement[],
   mapData: LearningMapData,
-  accessLevel: MembershipType,
+  accessLevel: CourseAccessSubject,
 ): Quest[] {
   const quests: Quest[] = [];
   const continueItem = recentLearning.find((item) => item.status === 'in_progress');
@@ -328,7 +327,7 @@ function buildQuests(
 function getAccessibleCoursesForCategories(
   seriesProgress: SeriesProgress[],
   categories: string[],
-  accessLevel: MembershipType,
+  accessLevel: CourseAccessSubject,
 ): SeriesCourseItem[] {
   return categories.flatMap((category) => {
     const series = seriesProgress.find((item) => item.categoryName === category);
@@ -336,7 +335,7 @@ function getAccessibleCoursesForCategories(
   });
 }
 
-function findShortCourse(seriesProgress: SeriesProgress[], accessLevel: MembershipType): SeriesCourseItem | null {
+function findShortCourse(seriesProgress: SeriesProgress[], accessLevel: CourseAccessSubject): SeriesCourseItem | null {
   for (const series of seriesProgress) {
     const course = series.courses.find(
       (item) =>
@@ -352,7 +351,7 @@ function findShortCourse(seriesProgress: SeriesProgress[], accessLevel: Membersh
 
 function findNextSeries(
   seriesProgress: SeriesProgress[],
-  accessLevel: MembershipType,
+  accessLevel: CourseAccessSubject,
 ): { categoryName: string; completed: number; total: number } | null {
   for (const series of seriesProgress) {
     const accessible = series.courses.filter((course) => canAccessCourse(accessLevel, course.membershipType));

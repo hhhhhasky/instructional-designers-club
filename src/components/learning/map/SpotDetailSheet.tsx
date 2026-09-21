@@ -8,9 +8,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
-import { canAccessCourse } from '@/lib/access-control';
+import { canAccessCourse, type CourseAccessSubject } from '@/lib/access-control';
 import type { LearningMapData, NodeExploration } from '@/lib/learningMap';
-import type { MembershipType, SeriesCourseItem } from '@/types/types';
+import type { SeriesCourseItem } from '@/types/types';
 import type { MapNodeConfig } from './learningMapConfig';
 import { getMapNodeById } from './learningMapConfig';
 
@@ -18,7 +18,7 @@ interface Props {
   nodeId: string | null;
   onChangeNodeId: (id: string | null) => void;
   data: LearningMapData;
-  accessLevel: MembershipType;
+  accessLevel: CourseAccessSubject;
 }
 
 const STATUS_CONFIG: Record<
@@ -75,7 +75,7 @@ export default function SpotDetailSheet({
 interface DetailBodyProps {
   node: MapNodeConfig;
   expl: NodeExploration;
-  accessLevel: MembershipType;
+  accessLevel: CourseAccessSubject;
   onOpenCourse: (courseId: string) => void;
   onChangeNodeId: (id: string | null) => void;
 }
@@ -189,7 +189,7 @@ function DetailBody({
 interface CourseRowProps {
   course: SeriesCourseItem;
   idx: number;
-  accessLevel: MembershipType;
+  accessLevel: CourseAccessSubject;
   onOpenCourse: (courseId: string) => void;
 }
 

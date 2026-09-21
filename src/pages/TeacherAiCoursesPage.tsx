@@ -21,12 +21,13 @@ import CourseFormatFilter, { resolveCourseType, type CourseTypeFilterValue } fro
 import { useAuth } from '@/contexts/AuthContext';
 import { getCourseCatalogSnapshot, getCourseDetailSnapshot, subscribeToCourseCatalogUpdates } from '@/db/api';
 import { canAccessCourse } from '@/lib/access-control';
+import { getCourseAccessCode } from '@/lib/course-entitlements';
 import { cn } from '@/lib/utils';
 import type { Course } from '@/types/types';
 
 export default function TeacherAiCoursesPage() {
   const navigate = useNavigate();
-  const { user, accessLevel } = useAuth();
+  const { user, courseAccessCodes } = useAuth();
   const [categories, setCategories] = useState<string[]>([]);
   const [coursesByCategory, setCoursesByCategory] = useState<Record<string, Course[]>>({});
   const [courseTypeFilter, setCourseTypeFilter] = useState<CourseTypeFilterValue>('all');
@@ -112,7 +113,7 @@ export default function TeacherAiCoursesPage() {
   const handleCourseClick = (course: Course) => {
     if (isNavigating) return;
 
-    if (!canAccessCourse(accessLevel, course.membership_type)) {
+    if (!canAccessCourse(courseAccessCodes, getCourseAccessCode(course))) {
       if (!user) {
         navigate('/login', { state: { from: `/courses/${course.id}` } });
         return;

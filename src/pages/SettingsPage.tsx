@@ -133,8 +133,8 @@ export default function SettingsPage() {
       ? 'Pro 专家版'
       : profile.access_level === 'plus'
         ? 'Plus 会员版'
-        : profile.access_level === 'plus2015'
-          ? '2015Plus 会员版'
+        : profile.access_level === 'plus2025'
+          ? '2025Plus 会员版'
           : '免费版';
 
   return (
