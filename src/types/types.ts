@@ -23,6 +23,7 @@ export interface CourseCategory {
   description: string | null;
   sort_order: number;
   plus_track_id: PlusCourseTrackId | null; // Plus 篇章归属
+  access_product_code: CourseAccessCode | null; // 系列课所属课程产品；空值属于免费课
   created_at: string;
   updated_at: string;
   is_active: boolean;

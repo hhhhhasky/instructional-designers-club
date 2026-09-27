@@ -71,6 +71,7 @@ describe('plusCourseStructure dynamic modules', () => {
           description: '复习课设计场景。',
           sort_order: 40,
           plus_track_id: 'scenarios',
+          access_product_code: 'teaching-general-v1',
           created_at: '',
           updated_at: '',
           is_active: true,

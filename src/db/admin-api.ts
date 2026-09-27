@@ -4,6 +4,7 @@ import type {
   Course,
   CourseAttachment,
   CourseCategory,
+  CourseAccessCode,
   Faq,
   MemberProfile,
   MembershipType,
@@ -300,11 +301,12 @@ export async function getAdminCourseList(): Promise<Course[]> {
 export type AdminCourseCategory = Pick<
   CourseCategory,
   "id" | "name" | "sort_order" | "is_active" | "plus_track_id"
+  | "access_product_code"
 >;
 
 export type AdminCourseTrack = Pick<PlusCourseTrackRow, "id" | "title" | "sort_order" | "is_active">;
 
-const COURSE_CATEGORY_SELECT = "id, name, sort_order, is_active, plus_track_id";
+const COURSE_CATEGORY_SELECT = "id, name, sort_order, is_active, plus_track_id, access_product_code";
 
 function clearPublicCourseCaches(_courseId?: string): void {
   notifyCourseCatalogUpdated();
@@ -444,7 +446,9 @@ export async function getAdminCourseTracks(): Promise<AdminCourseTrack[]> {
  */
 export async function adminCreateCourseCategory(
   name: string,
-  plusTrackId?: string | null
+  accessProductCode: CourseAccessCode | null,
+  plusTrackId?: string | null,
+  sortOrder?: number,
 ): Promise<AdminCourseCategory> {
   const normalizedName = name.trim();
   if (!normalizedName) {
@@ -462,7 +466,12 @@ export async function adminCreateCourseCategory(
   }
   if (existing) {
     const category = existing as AdminCourseCategory;
-    if (category.is_active && (plusTrackId === undefined || category.plus_track_id === plusTrackId)) {
+    if (category.access_product_code !== accessProductCode) {
+      throw new Error(`分类“${normalizedName}”已属于其他课程产品，请更换名称`);
+    }
+    if (category.is_active &&
+      (plusTrackId === undefined || category.plus_track_id === plusTrackId) &&
+      (sortOrder === undefined || category.sort_order === sortOrder)) {
       return category;
     }
 
@@ -470,6 +479,7 @@ export async function adminCreateCourseCategory(
       .from("course_categories")
       .update({
         is_active: true,
+        ...(sortOrder === undefined ? {} : { sort_order: sortOrder }),
         ...(plusTrackId === undefined ? {} : { plus_track_id: plusTrackId }),
       })
       .eq("id", category.id)
@@ -493,7 +503,7 @@ export async function adminCreateCourseCategory(
     throw latestError;
   }
 
-  const nextSortOrder = ((latest?.[0]?.sort_order as number | null | undefined) ?? -1) + 1;
+  const nextSortOrder = sortOrder ?? (((latest?.[0]?.sort_order as number | null | undefined) ?? -1) + 1);
   const { data, error } = await supabase
     .from("course_categories")
     .insert({
@@ -501,6 +511,7 @@ export async function adminCreateCourseCategory(
       sort_order: nextSortOrder,
       is_active: true,
       plus_track_id: plusTrackId ?? null,
+      access_product_code: accessProductCode,
     })
     .select(COURSE_CATEGORY_SELECT)
     .single();
@@ -513,12 +524,18 @@ export async function adminCreateCourseCategory(
         .single();
       if (!duplicatedError && duplicated) {
         const category = duplicated as AdminCourseCategory;
-        if (category.is_active) return category;
+        if (category.access_product_code !== accessProductCode) {
+          throw new Error(`分类“${normalizedName}”已属于其他课程产品，请更换名称`);
+        }
+        if (category.is_active &&
+          (plusTrackId === undefined || category.plus_track_id === plusTrackId) &&
+          (sortOrder === undefined || category.sort_order === sortOrder)) return category;
 
         const { data: reactivated, error: updateError } = await supabase
           .from("course_categories")
           .update({
             is_active: true,
+            ...(sortOrder === undefined ? {} : { sort_order: sortOrder }),
             ...(plusTrackId === undefined ? {} : { plus_track_id: plusTrackId }),
           })
           .eq("id", category.id)

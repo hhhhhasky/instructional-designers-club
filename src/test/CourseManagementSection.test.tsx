@@ -10,6 +10,7 @@ import {
   adminSetCourseAccessPassword,
   adminUpdateCourse,
   adminUpdateCourseCategory,
+  adminUpdateCourseTrack,
   getAdminCourseAttachments,
   getAdminCourseCategories,
   getAdminCourseTracks,
@@ -46,6 +47,7 @@ vi.mock('@/db/admin-api', () => ({
   adminSetCourseAccessPassword: vi.fn(),
   adminUpdateCourse: vi.fn(),
   adminUpdateCourseCategory: vi.fn(),
+  adminUpdateCourseTrack: vi.fn(),
   getAdminCourseAttachments: vi.fn(),
   getAdminCourseCategories: vi.fn(),
   getAdminCourseTracks: vi.fn(),
@@ -123,6 +125,7 @@ const makeCourse = (overrides: Partial<Course> = {}): Course => ({
   credits: '1',
   status: 'published',
   membership_type: 'plus',
+  access_product_code: 'teaching-general-v1',
   is_trial: false,
   image_url: null,
   video_url: null,
@@ -146,9 +149,11 @@ describe('CourseManagementSection', () => {
     vi.spyOn(window, 'open').mockImplementation(() => null);
     vi.mocked(getAdminCourseList).mockResolvedValue([makeCourse()]);
     vi.mocked(getAdminCourseCategories).mockResolvedValue([
-      { id: 'cat-shuoke', name: '说课篇', sort_order: 1, is_active: true, plus_track_id: 'theory' },
-      { id: 'cat-learning', name: '学习科学篇', sort_order: 2, is_active: true, plus_track_id: 'theory' },
-      { id: 'cat-open', name: '公开课篇', sort_order: 3, is_active: true, plus_track_id: 'scenarios' },
+      { id: 'cat-shuoke', name: '说课篇', sort_order: 1, is_active: true, plus_track_id: 'theory', access_product_code: 'teaching-general-v1' },
+      { id: 'cat-learning', name: '学习科学篇', sort_order: 2, is_active: true, plus_track_id: 'theory', access_product_code: 'teaching-general-v1' },
+      { id: 'cat-open', name: '公开课篇', sort_order: 3, is_active: true, plus_track_id: 'scenarios', access_product_code: 'teaching-general-v1' },
+      { id: 'cat-ai', name: 'AI工具', sort_order: 1, is_active: true, plus_track_id: null, access_product_code: 'teacher-ai' },
+      { id: 'cat-daofa', name: '道法总论', sort_order: 1, is_active: true, plus_track_id: null, access_product_code: 'daofa-textbook' },
     ]);
     vi.mocked(getAdminCourseTracks).mockResolvedValue([
       { id: 'theory', title: '理论篇', sort_order: 1, is_active: true },
@@ -179,6 +184,10 @@ describe('CourseManagementSection', () => {
       sort_order: 1,
       is_active: true,
       plus_track_id: 'scenarios',
+      access_product_code: 'teaching-general-v1',
+    });
+    vi.mocked(adminUpdateCourseTrack).mockResolvedValue({
+      id: 'theory', title: '理论篇', sort_order: 5, is_active: true,
     });
     vi.mocked(adminUpdateCourse).mockResolvedValue(makeCourse());
     vi.mocked(adminCreateCourseCategory).mockResolvedValue({
@@ -187,6 +196,7 @@ describe('CourseManagementSection', () => {
       sort_order: 4,
       is_active: true,
       plus_track_id: 'scenarios',
+      access_product_code: 'teaching-general-v1',
     });
     vi.mocked(adminCreateCourse).mockResolvedValue(makeCourse({
       id: 'created-course',
@@ -209,6 +219,7 @@ describe('CourseManagementSection', () => {
     await waitFor(() => {
       expect(adminUpdateCourseCategory).toHaveBeenCalledWith('cat-shuoke', {
         plus_track_id: 'scenarios',
+        sort_order: 1,
       });
     });
     const updatePayload = vi.mocked(adminUpdateCourse).mock.calls[0]?.[1] ?? {};
@@ -271,188 +282,125 @@ describe('CourseManagementSection', () => {
     });
   });
 
-  it('filters the admin list by Plus track derived from course category', async () => {
+  it('filters courses by product and shows the requested list columns', async () => {
     const user = userEvent.setup();
     vi.mocked(getAdminCourseList).mockResolvedValue([
-      makeCourse({
-        id: 'theory-course',
-        title: '学习科学导论',
-        category_id: 'cat-learning',
-        category: '学习科学篇',
-      }),
-      makeCourse({
-        id: 'shuoke-course',
-        title: '说课篇01：整体结构',
-        category_id: 'cat-shuoke',
-        category: '说课篇',
-      }),
-      makeCourse({
-        id: 'open-class-course',
-        title: '公开课任务情境导入',
-        category_id: 'cat-open',
-        category: '公开课篇',
-      }),
-      makeCourse({
-        id: 'pro-course',
-        title: 'AI 工具课',
-        membership_type: 'pro',
-        category_id: null,
-        category: 'AI工具',
-      }),
+      makeCourse({ id: 'general', title: '教学通识单课' }),
+      makeCourse({ id: 'ai', title: 'AI 工具课', category_id: 'cat-ai', category: 'AI工具', membership_type: 'pro', access_product_code: 'teacher-ai' }),
+      makeCourse({ id: 'daofa', title: '道法课程', category_id: 'cat-daofa', category: '道法总论', access_product_code: 'daofa-textbook' }),
     ]);
-
     render(<CourseManagementSection />);
+    await screen.findByText('教学通识单课');
 
-    await screen.findByText('学习科学导论');
-    expect(screen.getByText('说课篇01：整体结构')).toBeInTheDocument();
-    expect(screen.getByText('公开课任务情境导入')).toBeInTheDocument();
+    expect(screen.queryByLabelText('筛选课程类型')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('筛选 Plus 篇章')).not.toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: '所属课程' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: '添加时间' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: '修改时间' })).toBeInTheDocument();
+    for (const heading of ['分类', 'Plus篇章', '类型', '等级', '排序']) {
+      expect(screen.queryByRole('columnheader', { name: heading })).not.toBeInTheDocument();
+    }
+
+    await user.selectOptions(screen.getByLabelText('筛选课程产品'), 'teacher-ai');
     expect(screen.getByText('AI 工具课')).toBeInTheDocument();
-
-    await user.selectOptions(screen.getByLabelText('筛选 Plus 篇章'), 'scenarios');
-
-    expect(screen.queryByText('学习科学导论')).not.toBeInTheDocument();
-    expect(screen.queryByText('AI 工具课')).not.toBeInTheDocument();
-    expect(screen.getByText('说课篇01：整体结构')).toBeInTheDocument();
-    expect(screen.getByText('公开课任务情境导入')).toBeInTheDocument();
+    expect(screen.queryByText('教学通识单课')).not.toBeInTheDocument();
+    expect(screen.queryByText('道法课程')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('筛选课程分类')).toHaveTextContent('AI工具');
+    expect(screen.getByLabelText('筛选课程分类')).not.toHaveTextContent('说课篇');
   });
 
-  it('filters the admin list by category, level, and membership type together', async () => {
+  it('combines product, category and level filters', async () => {
     const user = userEvent.setup();
     vi.mocked(getAdminCourseList).mockResolvedValue([
-      makeCourse({
-        id: 'target-course',
-        title: '目标单元课程',
-        category: '单元一',
-        level: '中级',
-      }),
-      makeCourse({
-        id: 'wrong-category',
-        title: '其他单元课程',
-        category: '单元二',
-        level: '中级',
-      }),
-      makeCourse({
-        id: 'wrong-level',
-        title: '初级同类课程',
-        category: '单元一',
-        level: '初级',
-      }),
-      makeCourse({
-        id: 'wrong-type',
-        title: 'Pro 同单元课程',
-        category: '单元一',
-        level: '中级',
-        membership_type: 'pro',
-      }),
+      makeCourse({ id: 'target', title: '目标单课', category: '说课篇', level: '中级' }),
+      makeCourse({ id: 'other-category', title: '其他系列单课', category: '学习科学篇', level: '中级' }),
+      makeCourse({ id: 'other-level', title: '初级单课', category: '说课篇', level: '初级' }),
+      makeCourse({ id: 'other-product', title: 'AI 同名课程', category: 'AI工具', category_id: 'cat-ai', membership_type: 'pro', access_product_code: 'teacher-ai', level: '中级' }),
     ]);
-    vi.mocked(getAdminCourseCategories).mockResolvedValue([
-      { id: 'cat-1', name: '单元一', sort_order: 1, is_active: true, plus_track_id: null },
-      { id: 'cat-2', name: '单元二', sort_order: 2, is_active: true, plus_track_id: null },
-    ]);
-
     render(<CourseManagementSection />);
-
-    await screen.findByText('目标单元课程');
-    await user.selectOptions(screen.getByLabelText('筛选课程分类'), '单元一');
+    await screen.findByText('目标单课');
+    await user.selectOptions(screen.getByLabelText('筛选课程产品'), 'teaching-general-v1');
+    await user.selectOptions(screen.getByLabelText('筛选课程分类'), '说课篇');
     await user.selectOptions(screen.getByLabelText('筛选课程等级'), '中级');
-    await user.selectOptions(screen.getByLabelText('筛选课程类型'), 'plus');
-
-    expect(screen.getByText('目标单元课程')).toBeInTheDocument();
-    expect(screen.queryByText('其他单元课程')).not.toBeInTheDocument();
-    expect(screen.queryByText('初级同类课程')).not.toBeInTheDocument();
-    expect(screen.queryByText('Pro 同单元课程')).not.toBeInTheDocument();
-
+    expect(screen.getByText('目标单课')).toBeInTheDocument();
+    expect(screen.queryByText('其他系列单课')).not.toBeInTheDocument();
+    expect(screen.queryByText('初级单课')).not.toBeInTheDocument();
+    expect(screen.queryByText('AI 同名课程')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '清空筛选' }));
-
-    expect(screen.getByText('其他单元课程')).toBeInTheDocument();
-    expect(screen.getByText('初级同类课程')).toBeInTheDocument();
-    expect(screen.getByText('Pro 同单元课程')).toBeInTheDocument();
+    expect(screen.getByText('AI 同名课程')).toBeInTheDocument();
   });
 
-  it('creates a new category with its Plus track before creating a course', async () => {
+  it('creates a series category in the selected product and chapter', async () => {
     const user = userEvent.setup();
     vi.mocked(getAdminCourseList).mockResolvedValue([]);
-
     render(<CourseManagementSection />);
-
     await screen.findByText('没有匹配的课程');
     await user.click(screen.getByRole('button', { name: '添加课程' }));
+    expect(screen.queryByLabelText('课程分类')).not.toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('课程权限产品'), 'teaching-general-v1');
     await user.type(screen.getByPlaceholderText('请输入课程名称'), '新系列第一课');
     await user.click(screen.getByRole('button', { name: '创建新分类' }));
     await user.type(screen.getByPlaceholderText('输入新分类名称'), '新增系列课');
     await user.selectOptions(screen.getByLabelText('分类所属篇章'), 'scenarios');
+    await user.clear(screen.getByLabelText('系列课前端显示顺序'));
+    await user.type(screen.getByLabelText('系列课前端显示顺序'), '4');
     await user.click(screen.getByRole('button', { name: '创建课程' }));
-
-    await waitFor(() => {
-      expect(adminCreateCourseCategory).toHaveBeenCalledWith('新增系列课', 'scenarios');
-    });
-    expect(adminCreateCourse).toHaveBeenCalledWith(expect.objectContaining({
-      title: '新系列第一课',
-      category_id: 'cat-new',
-      category: '新增系列课',
-    }));
-    const createPayload = vi.mocked(adminCreateCourse).mock.calls[0]?.[0] ?? {};
-    expect(createPayload).not.toHaveProperty('plus_track_id');
-    expect(createPayload).not.toHaveProperty('plus_module_id');
-    expect(createPayload).not.toHaveProperty('plus_module_order');
+    await waitFor(() => expect(adminCreateCourseCategory).toHaveBeenCalledWith('新增系列课', 'teaching-general-v1', 'scenarios', 4));
+    expect(adminCreateCourse).toHaveBeenCalledWith(expect.objectContaining({ category_id: 'cat-new', access_product_code: 'teaching-general-v1' }));
   });
 
-  it('creates a course from its access product without asking for a membership level', async () => {
+  it('scopes the editor categories when changing products', async () => {
     const user = userEvent.setup();
     vi.mocked(getAdminCourseList).mockResolvedValue([]);
-
     render(<CourseManagementSection />);
     await screen.findByText('没有匹配的课程');
     await user.click(screen.getByRole('button', { name: '添加课程' }));
-
     expect(screen.queryByText('兼容会员栏目')).not.toBeInTheDocument();
-    await user.type(screen.getByPlaceholderText('请输入课程名称'), 'AI 课程新单课');
     await user.selectOptions(screen.getByLabelText('课程权限产品'), 'teacher-ai');
-    await user.click(screen.getByRole('button', { name: '创建课程' }));
-
-    await waitFor(() => expect(adminCreateCourse).toHaveBeenCalledWith(expect.objectContaining({
-      title: 'AI 课程新单课',
-      access_product_code: 'teacher-ai',
-      membership_type: 'pro',
-    })));
-  });
-
-  it('keeps Daofa courses out of the teaching-general chapter form', async () => {
-    const user = userEvent.setup();
-    vi.mocked(getAdminCourseList).mockResolvedValue([]);
-
-    render(<CourseManagementSection />);
-    await screen.findByText('没有匹配的课程');
-    await user.click(screen.getByRole('button', { name: '添加课程' }));
-    await user.type(screen.getByPlaceholderText('请输入课程名称'), '道法总论课');
+    const category = screen.getByLabelText('课程分类');
+    expect(category).toHaveTextContent('AI工具');
+    expect(category).not.toHaveTextContent('说课篇');
     await user.selectOptions(screen.getByLabelText('课程权限产品'), 'daofa-textbook');
-
+    expect(screen.getByLabelText('课程分类')).toHaveTextContent('道法总论');
+    expect(screen.getByLabelText('课程分类')).not.toHaveTextContent('AI工具');
     expect(screen.queryByText('Plus篇章归属')).not.toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText('请输入课程名称'), '道法总论课');
     await user.click(screen.getByRole('button', { name: '创建课程' }));
     await waitFor(() => expect(adminCreateCourse).toHaveBeenCalledWith(expect.objectContaining({
-      title: '道法总论课',
-      access_product_code: 'daofa-textbook',
-      membership_type: 'plus',
-      plus_lesson_order: null,
+      access_product_code: 'daofa-textbook', category_id: 'cat-daofa', membership_type: 'plus', plus_lesson_order: null,
     })));
   });
 
-  it('opens the current Plus track preview from active filters', async () => {
+  it('saves a series order from the course editor', async () => {
     const user = userEvent.setup();
-    vi.mocked(getAdminCourseList).mockResolvedValue([
-      makeCourse({
-        id: 'shuoke-course',
-        title: '说课篇01：整体结构',
-        category: '说课篇',
-      }),
-    ]);
-
     render(<CourseManagementSection />);
+    await screen.findByText('Plus 示例课程');
+    await user.click(screen.getByTitle('编辑'));
+    await user.clear(screen.getByLabelText('系列课前端显示顺序'));
+    await user.type(screen.getByLabelText('系列课前端显示顺序'), '7');
+    await user.click(screen.getByRole('button', { name: '保存修改' }));
+    await waitFor(() => expect(adminUpdateCourseCategory).toHaveBeenCalledWith('cat-shuoke', {
+      sort_order: 7, plus_track_id: 'theory',
+    }));
+  });
 
-    await screen.findByText('说课篇01：整体结构');
-    await user.selectOptions(screen.getByLabelText('筛选 Plus 篇章'), 'scenarios');
+  it('saves teaching-general chapter order from the course editor', async () => {
+    const user = userEvent.setup();
+    render(<CourseManagementSection />);
+    await screen.findByText('Plus 示例课程');
+    await user.click(screen.getByTitle('编辑'));
+    await user.clear(screen.getByLabelText('篇章前端显示顺序'));
+    await user.type(screen.getByLabelText('篇章前端显示顺序'), '5');
+    await user.click(screen.getByRole('button', { name: '保存修改' }));
+    await waitFor(() => expect(adminUpdateCourseTrack).toHaveBeenCalledWith('theory', { sort_order: 5 }));
+  });
+
+  it('previews the selected product catalog', async () => {
+    const user = userEvent.setup();
+    render(<CourseManagementSection />);
+    await screen.findByText('Plus 示例课程');
+    await user.selectOptions(screen.getByLabelText('筛选课程产品'), 'teacher-ai');
     await user.click(screen.getByRole('button', { name: '预览结构' }));
-
-    expect(window.open).toHaveBeenCalledWith('/courses#scenarios', '_blank');
+    expect(window.open).toHaveBeenCalledWith('/teacher-ai-courses', '_blank');
   });
 });

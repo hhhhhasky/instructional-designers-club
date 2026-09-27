@@ -191,6 +191,7 @@ export type Database = {
       }
       course_categories: {
         Row: {
+          access_product_code: string | null
           applicable_audience: string[] | null
           applicable_scenarios: string[] | null
           content_types: string[] | null
@@ -204,6 +205,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          access_product_code?: string | null
           applicable_audience?: string[] | null
           applicable_scenarios?: string[] | null
           content_types?: string[] | null
@@ -217,6 +219,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          access_product_code?: string | null
           applicable_audience?: string[] | null
           applicable_scenarios?: string[] | null
           content_types?: string[] | null

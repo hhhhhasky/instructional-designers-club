@@ -33,7 +33,6 @@ import {
 } from "@/components/ui/dialog";
 import {
   type AdminCourseCategory,
-  type AdminCourseTrack,
   adminArchiveCourse,
   adminCreateCourse,
   adminCreateCourseCategory,
@@ -45,19 +44,16 @@ import {
   getAdminCourseAttachments,
   getAdminCourseCategories,
   getAdminCourseList,
-  getAdminCourseTracks,
 } from "@/db/admin-api";
 import { getPlusCourseStructure } from "@/db/api";
 import { uploadCourseFile, uploadCourseMedia } from "@/db/course-media";
 import {
   getEffectivePlusTracks,
-  getPlusTrack,
   PLUS_TRACKS,
   type PlusTrackConfig,
-  resolvePlusCoursePlacement,
 } from "@/lib/plusCourseStructure";
 import { cn } from "@/lib/utils";
-import type { Course, CourseAttachment, MembershipType } from "@/types/types";
+import type { Course, CourseAccessCode, CourseAttachment, MembershipType } from "@/types/types";
 
 const PAGE_SIZE = 20;
 
@@ -74,6 +70,31 @@ const MEMBERSHIP_OPTIONS: { value: MembershipType; label: string }[] = [
   { value: "plus", label: "Plus" },
   { value: "pro", label: "Pro" },
 ];
+const PRODUCT_OPTIONS: { value: CourseAccessCode | null; label: string }[] = [
+  { value: null, label: "免费课程" },
+  { value: "teaching-general-v1", label: "教学通识课" },
+  { value: "teaching-general-v2", label: "教学通识课 V2" },
+  { value: "teacher-ai", label: "教师 AI 课" },
+  { value: "daofa-textbook", label: "道法教材解读课" },
+];
+
+function getCourseProductCode(course: Course): CourseAccessCode | null {
+  return course.access_product_code ?? (course.membership_type === "pro"
+    ? "teacher-ai"
+    : course.membership_type === "plus" ? "teaching-general-v1" : null);
+}
+
+function productLabel(code: CourseAccessCode | null): string {
+  return PRODUCT_OPTIONS.find((option) => option.value === code)?.label ?? code ?? "免费课程";
+}
+
+function formatCourseTime(value: string | null): string {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : new Intl.DateTimeFormat("zh-CN", {
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
+  }).format(date);
+}
 const COURSE_ATTACHMENT_ACCEPT = [
   ".mp4",
   ".mov",
@@ -120,8 +141,8 @@ const EMPTY_FORM: Omit<Course, "id" | "view_count" | "created_at" | "updated_at"
   duration: 60,
   credits: "0",
   status: "draft",
-  membership_type: "plus",
-  access_product_code: "teaching-general-v1",
+  membership_type: "free",
+  access_product_code: null,
   course_type: "article",
   is_trial: false,
   image_url: null,
@@ -156,15 +177,13 @@ function getErrorMessage(error: unknown, fallback: string): string {
 export default function CourseManagementSection() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [structureTracks, setStructureTracks] = useState<PlusTrackConfig[]>(PLUS_TRACKS);
-  const [adminTracks, setAdminTracks] = useState<AdminCourseTrack[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [levelFilter, setLevelFilter] = useState("all");
-  const [membershipFilter, setMembershipFilter] = useState("all");
-  const [plusTrackFilter, setPlusTrackFilter] = useState("all");
+  const [productFilter, setProductFilter] = useState("all");
   const [page, setPage] = useState(1);
 
   // Dialog
@@ -175,6 +194,9 @@ export default function CourseManagementSection() {
   const [categoryMode, setCategoryMode] = useState<CategoryMode>("existing");
   const [newCategoryName, setNewCategoryName] = useState("");
   const [categoryTrackId, setCategoryTrackId] = useState<string | null>(null);
+  const [categorySortOrder, setCategorySortOrder] = useState(0);
+  const [trackSortOrder, setTrackSortOrder] = useState(0);
+  const [productSelected, setProductSelected] = useState(false);
   const [attachments, setAttachments] = useState<CourseAttachment[]>([]);
   const [attachmentsLoading, setAttachmentsLoading] = useState(false);
   const [fileUploading, setFileUploading] = useState(false);
@@ -183,20 +205,15 @@ export default function CourseManagementSection() {
   const [accessPassword, setAccessPassword] = useState("");
   const [removeAccessPassword, setRemoveAccessPassword] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const [savingOrderId, setSavingOrderId] = useState<string | null>(null);
 
   // Category list for dropdown
   const [categories, setCategories] = useState<AdminCourseCategory[]>([]);
-  const categoryOptions = useMemo(() => {
-    const categorySet = new Set<string>();
-    categories
-      .filter((category) => category.is_active)
-      .forEach((category) => categorySet.add(category.name));
-    courses.forEach((course) => {
-      if (course.category) categorySet.add(course.category);
-    });
-    return Array.from(categorySet).sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
-  }, [categories, courses]);
+  const categoryOptions = useMemo(() => categories
+    .filter((category) => category.is_active && (productFilter === "all" || (category.access_product_code ?? "free") === productFilter))
+    .map((category) => category.name), [categories, productFilter]);
+  const formCategories = useMemo(() => categories.filter((category) =>
+    category.is_active && category.access_product_code === form.access_product_code
+  ), [categories, form.access_product_code]);
   const levelOptions = useMemo(() => {
     const levelSet = new Set<Course["level"]>();
     LEVEL_OPTIONS.forEach((level) => levelSet.add(level));
@@ -215,41 +232,16 @@ export default function CourseManagementSection() {
     return map;
   }, [categories]);
 
-  const proSeriesCategories = useMemo(() => {
-    const used = new Set(
-      courses
-        .filter((course) => course.membership_type === "pro" && course.category)
-        .map((course) => course.category as string),
-    );
-    return categories
-      .filter((category) => category.is_active && used.has(category.name))
-      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name, "zh-Hans-CN"));
-  }, [categories, courses]);
-
-  const plusSeriesByTrack = useMemo(() => {
-    const result = new Map<string, AdminCourseCategory[]>();
-    categories
-      .filter((category) => category.is_active && category.plus_track_id)
-      .forEach((category) => {
-        const rows = result.get(category.plus_track_id!) ?? [];
-        rows.push(category);
-        result.set(category.plus_track_id!, rows);
-      });
-    result.forEach((rows) => rows.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.name.localeCompare(b.name, "zh-Hans-CN")));
-    return result;
-  }, [categories]);
 
   const loadCourses = useCallback(async () => {
     try {
       setLoading(true);
-      const [result, structureData, trackRows] = await Promise.all([
+      const [result, structureData] = await Promise.all([
         getAdminCourseList(),
         getPlusCourseStructure(),
-        getAdminCourseTracks(),
       ]);
       setCourses(result);
       setStructureTracks(structureData.length > 0 ? structureData : PLUS_TRACKS);
-      setAdminTracks(trackRows);
     } catch {
       setError("加载课程数据失败，请刷新重试");
     } finally {
@@ -260,43 +252,6 @@ export default function CourseManagementSection() {
   useEffect(() => {
     loadCourses();
   }, [loadCourses]);
-
-  const saveTrackOrder = async (track: AdminCourseTrack, value: string) => {
-    const sortOrder = Number(value);
-    if (!Number.isInteger(sortOrder) || sortOrder < 0) {
-      toast.error("顺序号必须是大于等于 0 的整数");
-      return;
-    }
-    try {
-      setSavingOrderId(`track:${track.id}`);
-      const updated = await adminUpdateCourseTrack(track.id, { sort_order: sortOrder });
-      setAdminTracks((prev) => prev.map((item) => item.id === updated.id ? updated : item));
-      setStructureTracks((prev) => prev.map((item) => item.id === updated.id ? { ...item, order: updated.sort_order } : item));
-      toast.success("教学通识课篇章顺序已保存");
-    } catch (error) {
-      toast.error(getErrorMessage(error, "保存篇章顺序失败"));
-    } finally {
-      setSavingOrderId(null);
-    }
-  };
-
-  const saveCategoryOrder = async (category: AdminCourseCategory, value: string) => {
-    const sortOrder = Number(value);
-    if (!Number.isInteger(sortOrder) || sortOrder < 0) {
-      toast.error("顺序号必须是大于等于 0 的整数");
-      return;
-    }
-    try {
-      setSavingOrderId(`category:${category.id}`);
-      const updated = await adminUpdateCourseCategory(category.id, { sort_order: sortOrder });
-      setCategories((prev) => prev.map((item) => item.id === updated.id ? updated : item));
-      toast.success("系列课顺序已保存");
-    } catch (error) {
-      toast.error(getErrorMessage(error, "保存系列课顺序失败"));
-    } finally {
-      setSavingOrderId(null);
-    }
-  };
 
   useEffect(() => {
     getAdminCourseCategories().then(setCategories).catch(() => {
@@ -336,17 +291,12 @@ export default function CourseManagementSection() {
       const q = search.trim().toLowerCase();
       result = result.filter(
         (c) => {
-          const placement = resolvePlusCoursePlacement(c, plusTracks);
-          const track = placement ? getPlusTrack(placement.resolvedTrackId, plusTracks) : null;
           return [
             c.title,
             c.instructor,
             c.category,
             c.level,
-            c.membership_type,
-            track?.title,
-            placement?.resolvedTrackId,
-            placement?.resolvedModuleId,
+            productLabel(getCourseProductCode(c)),
           ]
             .filter(Boolean)
             .some((value) => String(value).toLowerCase().includes(q));
@@ -362,14 +312,8 @@ export default function CourseManagementSection() {
     if (levelFilter !== "all") {
       result = result.filter((c) => c.level === levelFilter);
     }
-    if (membershipFilter !== "all") {
-      result = result.filter((c) => c.membership_type === membershipFilter);
-    }
-    if (plusTrackFilter !== "all") {
-      result = result.filter((c) => {
-        const placement = resolvePlusCoursePlacement(c, plusTracks);
-        return Boolean(placement && placement.resolvedTrackId === plusTrackFilter);
-      });
+    if (productFilter !== "all") {
+      result = result.filter((c) => (getCourseProductCode(c) ?? "free") === productFilter);
     }
     return result;
   }, [
@@ -378,9 +322,7 @@ export default function CourseManagementSection() {
     statusFilter,
     categoryFilter,
     levelFilter,
-    membershipFilter,
-    plusTrackFilter,
-    plusTracks,
+    productFilter,
   ]);
 
   // Pagination
@@ -395,8 +337,7 @@ export default function CourseManagementSection() {
     statusFilter !== "all" ||
     categoryFilter !== "all" ||
     levelFilter !== "all" ||
-    membershipFilter !== "all" ||
-    plusTrackFilter !== "all";
+    productFilter !== "all";
 
   // Reset page on filter change
   const handleSearchChange = (v: string) => {
@@ -415,12 +356,9 @@ export default function CourseManagementSection() {
     setLevelFilter(v);
     setPage(1);
   };
-  const handleMembershipChangeFilter = (v: string) => {
-    setMembershipFilter(v);
-    setPage(1);
-  };
-  const handlePlusTrackFilterChange = (v: string) => {
-    setPlusTrackFilter(v);
+  const handleProductFilterChange = (v: string) => {
+    setProductFilter(v);
+    setCategoryFilter("all");
     setPage(1);
   };
   const handleClearFilters = () => {
@@ -428,14 +366,12 @@ export default function CourseManagementSection() {
     setStatusFilter("all");
     setCategoryFilter("all");
     setLevelFilter("all");
-    setMembershipFilter("all");
-    setPlusTrackFilter("all");
+    setProductFilter("all");
     setPage(1);
   };
   const handlePreviewCurrentStructure = () => {
-    const url = plusTrackFilter === "all"
-      ? "/courses"
-      : `/courses#${encodeURIComponent(plusTrackFilter)}`;
+    const url = productFilter === "teacher-ai" ? "/teacher-ai-courses"
+      : productFilter === "daofa-textbook" ? "/courses/daofa" : "/courses";
     window.open(url, "_blank");
   };
 
@@ -447,6 +383,9 @@ export default function CourseManagementSection() {
     setCategoryMode("existing");
     setNewCategoryName("");
     setCategoryTrackId(null);
+    setCategorySortOrder(0);
+    setTrackSortOrder(0);
+    setProductSelected(false);
     setAccessPassword("");
     setRemoveAccessPassword(false);
     setPasswordVisible(false);
@@ -487,6 +426,9 @@ export default function CourseManagementSection() {
     setCategoryMode("existing");
     setNewCategoryName("");
     setCategoryTrackId(course.category ? categoryByName.get(course.category)?.plus_track_id ?? null : null);
+    setCategorySortOrder(course.category ? categoryByName.get(course.category)?.sort_order ?? 0 : 0);
+    setTrackSortOrder(structureTracks.find((track) => track.id === categoryByName.get(course.category ?? "")?.plus_track_id)?.order ?? 0);
+    setProductSelected(true);
     setAccessPassword("");
     setRemoveAccessPassword(false);
     setPasswordVisible(false);
@@ -495,6 +437,10 @@ export default function CourseManagementSection() {
 
   // Save (create or update)
   const handleSave = async () => {
+    if (!productSelected) {
+      toast.error("请先选择课程权限产品");
+      return;
+    }
     if (!form.title.trim()) {
       toast.error("课程名称不能为空");
       return;
@@ -506,6 +452,11 @@ export default function CourseManagementSection() {
     }
     if (normalizedAccessPassword && new TextEncoder().encode(normalizedAccessPassword).length > 72) {
       toast.error("试看密码过长，请控制在 72 个字节以内");
+      return;
+    }
+    if (!Number.isInteger(categorySortOrder) || categorySortOrder < 0 ||
+      !Number.isInteger(trackSortOrder) || trackSortOrder < 0) {
+      toast.error("显示顺序必须是大于等于 0 的整数");
       return;
     }
     try {
@@ -531,10 +482,12 @@ export default function CourseManagementSection() {
         try {
           category = await adminCreateCourseCategory(
             categoryName,
-            normalizedForm.access_product_code === "teaching-general-v1" ? categoryTrackId : undefined
+            normalizedForm.access_product_code ?? null,
+            normalizedForm.access_product_code === "teaching-general-v1" ? categoryTrackId : undefined,
+            categorySortOrder,
           );
-        } catch {
-          toast.error("创建分类失败，请确认当前账号有管理员权限后重试");
+        } catch (error) {
+          toast.error(getErrorMessage(error, "创建分类失败，请确认当前账号有管理员权限后重试"));
           return;
         }
         setCategories((prev) => {
@@ -553,13 +506,18 @@ export default function CourseManagementSection() {
         };
       } else if (payload.category) {
         const category = categoryByName.get(payload.category);
+        if (category && category.access_product_code !== normalizedForm.access_product_code) {
+          toast.error("所选分类不属于当前课程产品，请重新选择");
+          return;
+        }
         if (
-          normalizedForm.access_product_code === "teaching-general-v1" &&
           category &&
-          category.plus_track_id !== categoryTrackId
+          (category.sort_order !== categorySortOrder ||
+            (normalizedForm.access_product_code === "teaching-general-v1" && category.plus_track_id !== categoryTrackId))
         ) {
           const updatedCategory = await adminUpdateCourseCategory(category.id, {
-            plus_track_id: categoryTrackId,
+            sort_order: categorySortOrder,
+            ...(normalizedForm.access_product_code === "teaching-general-v1" ? { plus_track_id: categoryTrackId } : {}),
           });
           setCategories((prev) =>
             prev.map((item) => (item.id === updatedCategory.id ? updatedCategory : item))
@@ -575,6 +533,14 @@ export default function CourseManagementSection() {
           category_id: null,
           category: null,
         };
+      }
+      if (normalizedForm.access_product_code === "teaching-general-v1" && categoryTrackId) {
+        const track = structureTracks.find((item) => item.id === categoryTrackId);
+        if (track && (track.order ?? 0) !== trackSortOrder) {
+          const updatedTrack = await adminUpdateCourseTrack(track.id, { sort_order: trackSortOrder });
+          setStructureTracks((prev) => prev.map((item) => item.id === updatedTrack.id
+            ? { ...item, order: updatedTrack.sort_order } : item));
+        }
       }
       if (editingCourse) {
         let updatedCourse = await adminUpdateCourse(editingCourse.id, payload);
@@ -631,24 +597,7 @@ export default function CourseManagementSection() {
   };
 
   const handleMembershipChange = (value: MembershipType) => {
-    setForm((prev) => ({
-      ...prev,
-      membership_type: value,
-      access_product_code: value === "free"
-        ? null
-        : value === "pro"
-          ? "teacher-ai"
-          : "teaching-general-v1",
-      ...(value === "plus"
-        ? {}
-        : {
-            plus_lesson_order: null,
-            plus_representative: false,
-          }),
-    }));
-    if (value !== "plus") {
-      setCategoryTrackId(null);
-    }
+    handleAccessProductChange(value === "free" ? null : value === "pro" ? "teacher-ai" : "teaching-general-v1");
     if (value === "free") {
       setAccessPassword("");
       setRemoveAccessPassword(Boolean(editingCourse?.password_access_enabled));
@@ -656,18 +605,22 @@ export default function CourseManagementSection() {
   };
 
   const handleAccessProductChange = (value: CourseForm["access_product_code"]) => {
-    if (editingCourse) {
-      updateForm("access_product_code", value);
-      return;
-    }
+    setProductSelected(true);
     const membershipType: MembershipType = value === null ? "free" : value === "teacher-ai" ? "pro" : "plus";
+    const firstCategory = categories.find((category) => category.is_active && category.access_product_code === value);
     setForm((prev) => ({
       ...prev,
       access_product_code: value,
       membership_type: membershipType,
+      category_id: firstCategory?.id ?? null,
+      category: firstCategory?.name ?? null,
       ...(value === "teaching-general-v1" ? {} : { plus_lesson_order: null, plus_representative: false }),
     }));
-    if (value !== "teaching-general-v1") setCategoryTrackId(null);
+    setCategoryMode("existing");
+    setNewCategoryName("");
+    setCategorySortOrder(firstCategory?.sort_order ?? 0);
+    setCategoryTrackId(value === "teaching-general-v1" ? firstCategory?.plus_track_id ?? null : null);
+    setTrackSortOrder(structureTracks.find((track) => track.id === firstCategory?.plus_track_id)?.order ?? 0);
     if (value === null) setAccessPassword("");
   };
 
@@ -680,6 +633,8 @@ export default function CourseManagementSection() {
       category_id: category?.id ?? null,
     }));
     setCategoryTrackId(category?.plus_track_id ?? null);
+    setCategorySortOrder(category?.sort_order ?? 0);
+    setTrackSortOrder(structureTracks.find((track) => track.id === category?.plus_track_id)?.order ?? 0);
   };
 
   const handleAttachmentUpload = async (files: FileList | null) => {
@@ -758,18 +713,30 @@ export default function CourseManagementSection() {
     <div className="space-y-4">
       {/* 工具栏 */}
       <div className="flex flex-col xl:flex-row gap-3 items-start xl:items-center justify-between">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-2 flex-1 w-full xl:w-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 flex-1 w-full xl:w-auto">
           {/* 搜索框 */}
-          <div className="relative sm:col-span-2 lg:col-span-2 xl:col-span-2">
+          <div className="relative sm:col-span-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-txt" />
             <input
               type="text"
-              placeholder="搜索课程、讲师、分类、篇章..."
+              placeholder="搜索课程、讲师、分类..."
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
               className="w-full h-10 pl-9 pr-3 text-ds-sm bg-white border border-bd rounded-ds-md focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
             />
           </div>
+
+          <select
+            value={productFilter}
+            onChange={(e) => handleProductFilterChange(e.target.value)}
+            aria-label="筛选课程产品"
+            className="h-10 px-3 text-ds-sm bg-white border border-bd rounded-ds-md focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+          >
+            <option value="all">全部课程产品</option>
+            {PRODUCT_OPTIONS.map((option) => (
+              <option key={option.value ?? "free"} value={option.value ?? "free"}>{option.label}</option>
+            ))}
+          </select>
 
           {/* 分类筛选 */}
           <select
@@ -801,21 +768,6 @@ export default function CourseManagementSection() {
             ))}
           </select>
 
-          {/* 类型筛选 */}
-          <select
-            value={membershipFilter}
-            onChange={(e) => handleMembershipChangeFilter(e.target.value)}
-            aria-label="筛选课程类型"
-            className="h-10 px-3 text-ds-sm bg-white border border-bd rounded-ds-md focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
-          >
-            <option value="all">全部类型</option>
-            {MEMBERSHIP_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-
           {/* 状态筛选 */}
           <select
             value={statusFilter}
@@ -830,20 +782,6 @@ export default function CourseManagementSection() {
             ))}
           </select>
 
-          {/* Plus 篇章筛选 */}
-          <select
-            value={plusTrackFilter}
-            onChange={(e) => handlePlusTrackFilterChange(e.target.value)}
-            aria-label="筛选 Plus 篇章"
-            className="h-10 px-3 text-ds-sm bg-white border border-bd rounded-ds-md focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
-          >
-            <option value="all">全部 Plus 篇章</option>
-            {plusTracks.map((track) => (
-              <option key={track.id} value={track.id}>
-                {track.title}
-              </option>
-            ))}
-          </select>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 self-stretch xl:self-auto">
@@ -866,116 +804,6 @@ export default function CourseManagementSection() {
         </div>
       </div>
 
-      {/* 前端系列课顺序 */}
-      <div className="rounded-ds-lg border border-bd bg-white p-4 shadow-ds-xs">
-        <div className="mb-4">
-          <h3 className="text-ds-base font-ds-semibold text-tx">前端系列课显示顺序</h3>
-          <p className="mt-1 text-ds-xs text-txs">
-            顺序号越小越靠前。教学通识课分别维护篇章和篇章内系列课；教师 AI 课按系列课维护。
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-          <div className="space-y-3">
-            <h4 className="text-ds-sm font-ds-semibold text-tx">教学通识课 · 篇章</h4>
-            {(adminTracks.length > 0 ? adminTracks : structureTracks.map((track) => ({
-              id: track.id,
-              title: track.title,
-              sort_order: track.order ?? 0,
-              is_active: true,
-            }))).filter((track) => track.is_active).map((track) => (
-              <div key={track.id} className="flex items-center gap-2 rounded-ds-md border border-bd bg-bgs/30 px-3 py-2">
-                <span className="min-w-0 flex-1 truncate text-ds-sm text-tx">{track.title}</span>
-                <input
-                  type="number"
-                  min={0}
-                  defaultValue={track.sort_order ?? 0}
-                  aria-label={`${track.title}篇章顺序`}
-                  className="h-9 w-20 rounded-ds-md border border-bd bg-white px-2 text-center text-ds-sm text-tx focus:border-ac focus:outline-none focus:ring-2 focus:ring-ac/20"
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={savingOrderId === `track:${track.id}`}
-                  onClick={(event) => {
-                    const input = event.currentTarget.parentElement?.querySelector("input");
-                    void saveTrackOrder(track, input?.value ?? String(track.sort_order ?? 0));
-                  }}
-                >
-                  {savingOrderId === `track:${track.id}` ? "保存中" : "保存"}
-                </Button>
-              </div>
-            ))}
-          </div>
-
-          <div className="space-y-3">
-            <h4 className="text-ds-sm font-ds-semibold text-tx">教师 AI 课 · 系列课</h4>
-            {proSeriesCategories.length > 0 ? proSeriesCategories.map((category) => (
-              <div key={category.id} className="flex items-center gap-2 rounded-ds-md border border-bd bg-bgs/30 px-3 py-2">
-                <span className="min-w-0 flex-1 truncate text-ds-sm text-tx">{category.name}</span>
-                <input
-                  type="number"
-                  min={0}
-                  defaultValue={category.sort_order ?? 0}
-                  aria-label={`${category.name}系列课顺序`}
-                  className="h-9 w-20 rounded-ds-md border border-bd bg-white px-2 text-center text-ds-sm text-tx focus:border-ac focus:outline-none focus:ring-2 focus:ring-ac/20"
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={savingOrderId === `category:${category.id}`}
-                  onClick={(event) => {
-                    const input = event.currentTarget.parentElement?.querySelector("input");
-                    void saveCategoryOrder(category, input?.value ?? String(category.sort_order ?? 0));
-                  }}
-                >
-                  {savingOrderId === `category:${category.id}` ? "保存中" : "保存"}
-                </Button>
-              </div>
-            )) : (
-              <p className="rounded-ds-md border border-dashed border-bd px-3 py-3 text-ds-xs text-txs">暂无已发布的教师 AI 系列课</p>
-            )}
-          </div>
-        </div>
-
-        {plusSeriesByTrack.size > 0 && (
-          <div className="mt-5 border-t border-bd pt-4">
-            <h4 className="mb-3 text-ds-sm font-ds-semibold text-tx">教学通识课 · 篇章内系列课</h4>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {Array.from(plusSeriesByTrack.entries()).map(([trackId, series]) => (
-                <div key={trackId} className="space-y-2 rounded-ds-md border border-bd bg-bgs/30 p-3">
-                  <p className="text-ds-xs font-ds-semibold text-txs">{plusTracks.find((track) => track.id === trackId)?.title ?? trackId}</p>
-                  {series.map((category) => (
-                    <div key={category.id} className="flex items-center gap-2">
-                      <span className="min-w-0 flex-1 truncate text-ds-xs text-tx">{category.name}</span>
-                      <input
-                        type="number"
-                        min={0}
-                        defaultValue={category.sort_order ?? 0}
-                        aria-label={`${category.name}系列课顺序`}
-                        className="h-8 w-16 rounded-ds-md border border-bd bg-white px-1 text-center text-ds-xs text-tx focus:border-ac focus:outline-none focus:ring-2 focus:ring-ac/20"
-                      />
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 px-2 text-ds-xs"
-                        disabled={savingOrderId === `category:${category.id}`}
-                        onClick={(event) => {
-                          const input = event.currentTarget.parentElement?.querySelector("input");
-                          void saveCategoryOrder(category, input?.value ?? String(category.sort_order ?? 0));
-                        }}
-                      >
-                        保存
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* 表格 */}
       <div className="bg-white rounded-ds-lg border border-bd overflow-hidden shadow-ds-xs">
         <div className="overflow-x-auto">
@@ -989,22 +817,16 @@ export default function CourseManagementSection() {
                   讲师
                 </th>
                 <th className="text-left px-4 py-3 font-ds-semibold text-tx">
-                  分类
-                </th>
-                <th className="text-left px-4 py-3 font-ds-semibold text-tx">
-                  Plus篇章
-                </th>
-                <th className="text-center px-4 py-3 font-ds-semibold text-tx">
-                  等级
-                </th>
-                <th className="text-center px-4 py-3 font-ds-semibold text-tx">
-                  类型
+                  所属课程
                 </th>
                 <th className="text-center px-4 py-3 font-ds-semibold text-tx">
                   状态
                 </th>
                 <th className="text-center px-4 py-3 font-ds-semibold text-tx">
-                  排序
+                  添加时间
+                </th>
+                <th className="text-center px-4 py-3 font-ds-semibold text-tx">
+                  修改时间
                 </th>
                 <th className="text-center px-4 py-3 font-ds-semibold text-tx">
                   操作
@@ -1029,22 +851,16 @@ export default function CourseManagementSection() {
                     {course.instructor || "—"}
                   </td>
                   <td className="px-4 py-3 text-txs">
-                    {course.category || "—"}
-                  </td>
-                  <td className="px-4 py-3 text-txs">
-                    <PlusStructureLabel course={course} tracks={plusTracks} />
-                  </td>
-                  <td className="px-4 py-3 text-center text-txs">
-                    {course.level}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <MembershipBadge type={course.membership_type} />
+                    {productLabel(getCourseProductCode(course))}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <StatusBadge status={course.status} />
                   </td>
                   <td className="px-4 py-3 text-center text-txs">
-                    {course.sort_order ?? 0}
+                    {formatCourseTime(course.created_at)}
+                  </td>
+                  <td className="px-4 py-3 text-center text-txs">
+                    {formatCourseTime(course.updated_at)}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-2">
@@ -1079,7 +895,7 @@ export default function CourseManagementSection() {
               {paged.length === 0 && (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={7}
                     className="px-4 py-12 text-center text-txs"
                   >
                     没有匹配的课程
@@ -1164,11 +980,32 @@ export default function CourseManagementSection() {
                   />
                 </div>
                 <div>
-                  <label className="block text-ds-xs text-txs mb-1">分类</label>
+                  <label htmlFor="course-access-product" className="block text-ds-xs text-txs mb-1">课程权限产品</label>
+                  <select
+                    id="course-access-product"
+                    value={productSelected ? form.access_product_code ?? "" : "unselected"}
+                    onChange={(e) => handleAccessProductChange((e.target.value || null) as CourseForm["access_product_code"])}
+                    className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+                  >
+                    <option value="unselected" disabled>请选择课程产品</option>
+                    <option value="">无（仅免费/试看）</option>
+                    <option value="teaching-general-v1">教学通识课</option>
+                    {form.access_product_code === "teaching-general-v2" && (
+                      <option value="teaching-general-v2">教学通识课 V2（管理员专用）</option>
+                    )}
+                    <option value="teacher-ai">教师 AI 课</option>
+                    <option value="daofa-textbook">道法教材解读课</option>
+                  </select>
+                </div>
+                {productSelected && <div>
+                  <label className="block text-ds-xs text-txs mb-1">分类（所属系列课）</label>
                   <div className="grid grid-cols-2 gap-2 mb-2">
                     <button
                       type="button"
-                      onClick={() => setCategoryMode("existing")}
+                      onClick={() => {
+                        setCategoryMode("existing");
+                        setCategorySortOrder(categoryByName.get(form.category ?? "")?.sort_order ?? 0);
+                      }}
                       className={cn(
                         "h-9 rounded-ds-md border text-ds-xs font-ds-medium transition-colors",
                         categoryMode === "existing"
@@ -1180,7 +1017,10 @@ export default function CourseManagementSection() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setCategoryMode("new")}
+                      onClick={() => {
+                        setCategoryMode("new");
+                        setCategorySortOrder(Math.max(-1, ...formCategories.map((category) => category.sort_order ?? 0)) + 1);
+                      }}
                       className={cn(
                         "h-9 rounded-ds-md border text-ds-xs font-ds-medium transition-colors",
                         categoryMode === "new"
@@ -1193,14 +1033,15 @@ export default function CourseManagementSection() {
                   </div>
                   {categoryMode === "existing" ? (
                     <select
+                      aria-label="课程分类"
                       value={form.category || ""}
                       onChange={(e) => handleCategorySelect(e.target.value)}
                       className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
                     >
                       <option value="">无分类</option>
-                      {categoryOptions.map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
+                      {formCategories.map((cat) => (
+                        <option key={cat.id} value={cat.name}>
+                          {cat.name}
                         </option>
                       ))}
                     </select>
@@ -1213,7 +1054,19 @@ export default function CourseManagementSection() {
                       className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx placeholder:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
                     />
                   )}
-                </div>
+                </div>}
+                {productSelected && (form.access_product_code === "teaching-general-v1" || form.access_product_code === "teacher-ai") && <div>
+                  <label htmlFor="category-sort-order" className="block text-ds-xs text-txs mb-1">系列课前端显示顺序</label>
+                  <input
+                    id="category-sort-order"
+                    type="number"
+                    min={0}
+                    value={categorySortOrder}
+                    onChange={(event) => setCategorySortOrder(Number(event.target.value))}
+                    className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20"
+                  />
+                  <p className="mt-1 text-ds-xs text-txs">同一课程产品内，数字越小越靠前。修改已有分类会调整整个系列课。</p>
+                </div>}
                 <div>
                   <label className="block text-ds-xs text-txs mb-1">难度等级</label>
                   <select
@@ -1270,20 +1123,6 @@ export default function CourseManagementSection() {
                     ))}
                   </select>
                 </div>}
-                <div>
-                  <label htmlFor="course-access-product" className="block text-ds-xs text-txs mb-1">课程权限产品</label>
-                  <select
-                    id="course-access-product"
-                    value={form.access_product_code ?? ""}
-                    onChange={(e) => handleAccessProductChange((e.target.value || null) as CourseForm["access_product_code"])}
-                    className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
-                  >
-                    <option value="">无（仅免费/试看）</option>
-                    <option value="teaching-general-v1">教学通识课</option>
-                    <option value="teacher-ai">教师 AI 课</option>
-                    <option value="daofa-textbook">道法教材解读课</option>
-                  </select>
-                </div>
                 <div>
                   <label className="block text-ds-xs text-txs mb-1">课程类型</label>
                   <select
@@ -1412,7 +1251,11 @@ export default function CourseManagementSection() {
                     <label className="block text-ds-xs text-txs mb-1">分类所属篇章</label>
                     <select
                       value={categoryTrackId ?? ""}
-                      onChange={(e) => setCategoryTrackId(e.target.value || null)}
+                      onChange={(e) => {
+                        const trackId = e.target.value || null;
+                        setCategoryTrackId(trackId);
+                        setTrackSortOrder(structureTracks.find((track) => track.id === trackId)?.order ?? 0);
+                      }}
                       aria-label="分类所属篇章"
                       className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
                     >
@@ -1424,6 +1267,17 @@ export default function CourseManagementSection() {
                       ))}
                     </select>
                   </div>
+                  {categoryTrackId && <div>
+                    <label htmlFor="track-sort-order" className="block text-ds-xs text-txs mb-1">篇章前端显示顺序</label>
+                    <input
+                      id="track-sort-order"
+                      type="number"
+                      min={0}
+                      value={trackSortOrder}
+                      onChange={(event) => setTrackSortOrder(Number(event.target.value))}
+                      className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20"
+                    />
+                  </div>}
                   <div>
                     <label className="block text-ds-xs text-txs mb-1">系列内单课排序</label>
                     <input
@@ -1774,25 +1628,6 @@ function AttachmentIcon({ attachment }: { attachment: CourseAttachment }) {
 }
 
 // 会员类型 Badge
-function MembershipBadge({ type }: { type: MembershipType }) {
-  const styles: Record<MembershipType, string> = {
-    free: "bg-mint-soft text-tl",
-    plus2025: "bg-warm text-am",
-    plus: "bg-yellow-soft text-am",
-    pro: "bg-blue-soft text-pp",
-  };
-  return (
-    <span
-      className={cn(
-        "inline-block px-2 py-0.5 rounded-ds-pill text-ds-xs font-ds-semibold",
-        styles[type]
-      )}
-    >
-      {type.toUpperCase()}
-    </span>
-  );
-}
-
 // 状态 Badge
 function StatusBadge({ status }: { status: string }) {
   const styleMap: Record<string, string> = {
@@ -1809,25 +1644,5 @@ function StatusBadge({ status }: { status: string }) {
     >
       {STATUS_LABELS[status] || status}
     </span>
-  );
-}
-
-function PlusStructureLabel({ course, tracks }: { course: Course; tracks: PlusTrackConfig[] }) {
-  if (course.membership_type !== "plus" || (course.access_product_code && course.access_product_code !== "teaching-general-v1")) {
-    return <span className="text-txt">—</span>;
-  }
-
-  const placement = resolvePlusCoursePlacement(course, tracks);
-  const track = placement ? getPlusTrack(placement.resolvedTrackId, tracks) : null;
-
-  if (!placement || !track) {
-    return <span className="text-txt">未进入 Plus 结构</span>;
-  }
-
-  return (
-    <div className="space-y-0.5">
-      <p className="text-tx">{track.title}</p>
-      <p className="text-ds-xs text-txs">{course.category || placement.resolvedModuleId}</p>
-    </div>
   );
 }
