@@ -801,8 +801,8 @@ async function fetchHomePageSnapshotRestFallback(): Promise<HomePageSnapshot> {
 
   const homeCourses: HomeCourseBuckets = {
     free: courses.filter((course) => course.membership_type === 'free' || course.is_trial).sort(bySortOrder).slice(0, 4),
-    plus: courses.filter((course) => course.membership_type === 'plus').sort(bySortOrder).slice(0, 4),
-    pro: courses.filter((course) => course.membership_type === 'pro').sort(bySortOrder).slice(0, 4),
+    plus: courses.filter((course) => course.membership_type === 'plus' && (!course.access_product_code || course.access_product_code === 'teaching-general-v1')).sort(bySortOrder).slice(0, 4),
+    pro: courses.filter((course) => course.membership_type === 'pro' && (!course.access_product_code || course.access_product_code === 'teacher-ai')).sort(bySortOrder).slice(0, 4),
   };
 
   return {
@@ -926,7 +926,7 @@ function normalizeCourseCatalogSnapshot(
 ): CourseCatalogSnapshot {
   const raw = (value ?? {}) as RawCourseCatalogSnapshot;
   const plusCourses = Array.isArray(raw.plus_courses)
-    ? raw.plus_courses.map((course) => withProtectedCourseCover(course))
+    ? raw.plus_courses.filter((course) => !course.access_product_code || course.access_product_code === 'teaching-general-v1').map((course) => withProtectedCourseCover(course))
     : [];
   const plusTracks = normalizePlusCourseStructure(
     Array.isArray(raw.plus_track_rows) ? raw.plus_track_rows : [],
@@ -934,7 +934,7 @@ function normalizeCourseCatalogSnapshot(
     Array.isArray(raw.plus_category_rows) ? raw.plus_category_rows : [],
   );
   const proCourses = Array.isArray(raw.pro_courses)
-    ? raw.pro_courses.map((course) => withProtectedCourseCover(course))
+    ? raw.pro_courses.filter((course) => !course.access_product_code || course.access_product_code === 'teacher-ai').map((course) => withProtectedCourseCover(course))
     : [];
   const proCategoryRows = Array.isArray(raw.pro_category_rows) ? raw.pro_category_rows : [];
 

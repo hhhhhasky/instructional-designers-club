@@ -17,12 +17,13 @@ const App: React.FC = () => {
 function AppContent() {
   const location = useLocation();
   const isAdmin = location.pathname === '/admin' || location.pathname.startsWith('/admin/');
+  const isDaofaCanvas = location.pathname === '/courses/daofa/alignment-canvas';
 
   return (
     <>
       <ScrollToTop />
       <div className="flex min-h-screen flex-col">
-        <main className={isAdmin ? 'flex-grow' : 'flex-grow pb-16 md:pb-0'}>
+        <main className={isAdmin || isDaofaCanvas ? 'flex-grow' : 'flex-grow pb-16 md:pb-0'}>
           <Suspense
             fallback={(
               <div className="editorial-route-loading" role="status" aria-live="polite">
@@ -45,7 +46,7 @@ function AppContent() {
           </Suspense>
         </main>
 
-        {!isAdmin && <MobileTabBar />}
+        {!isAdmin && !isDaofaCanvas && <MobileTabBar />}
 
         {/* 全局 Toast 通知 */}
         <Toaster position="top-right" richColors />

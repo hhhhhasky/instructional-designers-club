@@ -397,6 +397,46 @@ describe('CourseManagementSection', () => {
     expect(createPayload).not.toHaveProperty('plus_module_order');
   });
 
+  it('creates a course from its access product without asking for a membership level', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getAdminCourseList).mockResolvedValue([]);
+
+    render(<CourseManagementSection />);
+    await screen.findByText('没有匹配的课程');
+    await user.click(screen.getByRole('button', { name: '添加课程' }));
+
+    expect(screen.queryByText('兼容会员栏目')).not.toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText('请输入课程名称'), 'AI 课程新单课');
+    await user.selectOptions(screen.getByLabelText('课程权限产品'), 'teacher-ai');
+    await user.click(screen.getByRole('button', { name: '创建课程' }));
+
+    await waitFor(() => expect(adminCreateCourse).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'AI 课程新单课',
+      access_product_code: 'teacher-ai',
+      membership_type: 'pro',
+    })));
+  });
+
+  it('keeps Daofa courses out of the teaching-general chapter form', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getAdminCourseList).mockResolvedValue([]);
+
+    render(<CourseManagementSection />);
+    await screen.findByText('没有匹配的课程');
+    await user.click(screen.getByRole('button', { name: '添加课程' }));
+    await user.type(screen.getByPlaceholderText('请输入课程名称'), '道法总论课');
+    await user.selectOptions(screen.getByLabelText('课程权限产品'), 'daofa-textbook');
+
+    expect(screen.queryByText('Plus篇章归属')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '创建课程' }));
+    await waitFor(() => expect(adminCreateCourse).toHaveBeenCalledWith(expect.objectContaining({
+      title: '道法总论课',
+      access_product_code: 'daofa-textbook',
+      membership_type: 'plus',
+      plus_lesson_order: null,
+    })));
+  });
+
   it('opens the current Plus track preview from active filters', async () => {
     const user = userEvent.setup();
     vi.mocked(getAdminCourseList).mockResolvedValue([

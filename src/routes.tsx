@@ -8,6 +8,8 @@ const loadTeacherAiCoursesPage = () => import('./pages/TeacherAiCoursesPage');
 const loadCourseDetailPage = () => import('./pages/CourseDetailPage');
 const loadCourseV2CatalogPage = () => import('./pages/CourseV2CatalogPage');
 const loadCourseV2LessonPage = () => import('./pages/CourseV2LessonPage');
+const loadDaofaCoursePage = () => import('./pages/DaofaCoursePage');
+const loadDaofaLessonPage = () => import('./pages/DaofaLessonPage');
 const loadActivityDetailPage = () => import('./pages/ActivityDetailPage');
 const loadLoginPage = () => import('./pages/LoginPage');
 const loadForgotPasswordPage = () => import('./pages/ForgotPasswordPage');
@@ -33,6 +35,8 @@ const TeacherAiCoursesPage = lazy(loadTeacherAiCoursesPage);
 const CourseDetailPage = lazy(loadCourseDetailPage);
 const CourseV2CatalogPage = lazy(loadCourseV2CatalogPage);
 const CourseV2LessonPage = lazy(loadCourseV2LessonPage);
+const DaofaCoursePage = lazy(loadDaofaCoursePage);
+const DaofaLessonPage = lazy(loadDaofaLessonPage);
 const ActivityDetailPage = lazy(loadActivityDetailPage);
 const LoginPage = lazy(loadLoginPage);
 const ForgotPasswordPage = lazy(loadForgotPasswordPage);
@@ -73,6 +77,20 @@ const routes: RouteConfig[] = [
     element: <CoursesPage />,
     visible: true,
     preload: loadCoursesPage
+  },
+  {
+    name: '道法教材解读课',
+    path: '/courses/daofa',
+    element: <DaofaCoursePage />,
+    visible: false,
+    preload: loadDaofaCoursePage
+  },
+  {
+    name: '道法教材解读课单课',
+    path: '/courses/daofa/:lessonId',
+    element: <DaofaLessonPage />,
+    visible: false,
+    preload: loadDaofaLessonPage
   },
   {
     name: '教师AI课',

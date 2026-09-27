@@ -100,4 +100,13 @@ describe('plusCourseStructure dynamic modules', () => {
 
     expect(resolvePlusCoursePlacement(course, PLUS_TRACKS)).toBeNull();
   });
+
+  it('不会把仅使用 Plus 兼容字段的道法课归入教学通识篇章', () => {
+    const course = makeCourse({
+      category: '学习科学篇',
+      access_product_code: 'daofa-textbook',
+    });
+
+    expect(resolvePlusCoursePlacement(course, PLUS_TRACKS)).toBeNull();
+  });
 });

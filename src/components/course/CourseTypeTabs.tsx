@@ -1,4 +1,4 @@
-import { BookOpen, GraduationCap, Library } from "lucide-react";
+import { BookOpen, GraduationCap, Library, Map } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { canAccessV2 } from "@/lib/v2-access";
@@ -16,13 +16,21 @@ const COURSE_TABS = [
     description: "AI 工具与教学协作",
     icon: GraduationCap,
   },
+  {
+    to: "/courses/daofa",
+    label: "道法教材解读课",
+    description: "一至九年级教材地图",
+    icon: Map,
+  },
 ] as const;
 
 export default function CourseTypeTabs() {
   const { pathname } = useLocation();
   const { profile } = useAuth();
   const hasV2Access = canAccessV2(profile);
-  const activePath = pathname.startsWith("/course-v2")
+  const activePath = pathname.startsWith("/courses/daofa")
+    ? "/courses/daofa"
+    : pathname.startsWith("/course-v2")
     ? "/course-v2"
     : pathname === "/teacher-ai-courses"
       ? "/teacher-ai-courses"

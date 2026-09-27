@@ -514,7 +514,7 @@ export default function CourseManagementSection() {
         ...form,
         category: form.category?.trim() || null,
       };
-      let payload: CourseForm = normalizedForm.membership_type === "plus"
+      let payload: CourseForm = normalizedForm.access_product_code === "teaching-general-v1"
         ? normalizedForm
         : {
             ...normalizedForm,
@@ -531,7 +531,7 @@ export default function CourseManagementSection() {
         try {
           category = await adminCreateCourseCategory(
             categoryName,
-            normalizedForm.membership_type === "plus" ? categoryTrackId : undefined
+            normalizedForm.access_product_code === "teaching-general-v1" ? categoryTrackId : undefined
           );
         } catch {
           toast.error("创建分类失败，请确认当前账号有管理员权限后重试");
@@ -554,7 +554,7 @@ export default function CourseManagementSection() {
       } else if (payload.category) {
         const category = categoryByName.get(payload.category);
         if (
-          normalizedForm.membership_type === "plus" &&
+          normalizedForm.access_product_code === "teaching-general-v1" &&
           category &&
           category.plus_track_id !== categoryTrackId
         ) {
@@ -653,6 +653,22 @@ export default function CourseManagementSection() {
       setAccessPassword("");
       setRemoveAccessPassword(Boolean(editingCourse?.password_access_enabled));
     }
+  };
+
+  const handleAccessProductChange = (value: CourseForm["access_product_code"]) => {
+    if (editingCourse) {
+      updateForm("access_product_code", value);
+      return;
+    }
+    const membershipType: MembershipType = value === null ? "free" : value === "teacher-ai" ? "pro" : "plus";
+    setForm((prev) => ({
+      ...prev,
+      access_product_code: value,
+      membership_type: membershipType,
+      ...(value === "teaching-general-v1" ? {} : { plus_lesson_order: null, plus_representative: false }),
+    }));
+    if (value !== "teaching-general-v1") setCategoryTrackId(null);
+    if (value === null) setAccessPassword("");
   };
 
   // Handle category select: set both category text and category_id
@@ -1240,7 +1256,7 @@ export default function CourseManagementSection() {
                     className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
                   />
                 </div>
-                <div>
+                {editingCourse && <div>
                   <label className="block text-ds-xs text-txs mb-1">兼容会员栏目</label>
                   <select
                     value={form.membership_type}
@@ -1253,12 +1269,13 @@ export default function CourseManagementSection() {
                       </option>
                     ))}
                   </select>
-                </div>
+                </div>}
                 <div>
-                  <label className="block text-ds-xs text-txs mb-1">课程权限产品</label>
+                  <label htmlFor="course-access-product" className="block text-ds-xs text-txs mb-1">课程权限产品</label>
                   <select
+                    id="course-access-product"
                     value={form.access_product_code ?? ""}
-                    onChange={(e) => updateForm("access_product_code", (e.target.value || null) as CourseForm["access_product_code"])}
+                    onChange={(e) => handleAccessProductChange((e.target.value || null) as CourseForm["access_product_code"])}
                     className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
                   >
                     <option value="">无（仅免费/试看）</option>
@@ -1382,7 +1399,7 @@ export default function CourseManagementSection() {
             )}
 
             {/* Plus 结构：由分类所属篇章决定，课程本身不再维护旧逐课结构字段 */}
-            {form.membership_type === "plus" && (
+            {form.access_product_code === "teaching-general-v1" && (
               <div className="space-y-3 border border-ac/20 bg-acl/20 rounded-ds-lg p-4">
                 <div>
                   <h4 className="text-ds-sm font-ds-semibold text-tx">Plus篇章归属</h4>
@@ -1796,7 +1813,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function PlusStructureLabel({ course, tracks }: { course: Course; tracks: PlusTrackConfig[] }) {
-  if (course.membership_type !== "plus") {
+  if (course.membership_type !== "plus" || (course.access_product_code && course.access_product_code !== "teaching-general-v1")) {
     return <span className="text-txt">—</span>;
   }
 

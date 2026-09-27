@@ -23,6 +23,9 @@ enable_confirmations = true
 [functions.course-content]
 verify_jwt = false
 
+[functions.daofa-course-content]
+verify_jwt = true
+
 [functions.course-cover]
 verify_jwt = false
 

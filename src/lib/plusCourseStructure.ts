@@ -442,7 +442,7 @@ export function resolvePlusCoursePlacement(
   course: Course,
   tracks: PlusTrackConfig[] = PLUS_TRACKS,
 ): StructuredPlusCourse | null {
-  if (course.membership_type !== 'plus') return null;
+  if (course.membership_type !== 'plus' || (course.access_product_code && course.access_product_code !== 'teaching-general-v1')) return null;
 
   const category = course.category || '';
   for (const track of tracks) {
@@ -514,7 +514,7 @@ export function getRepresentativeCourses(
   max = 3,
   tracks: PlusTrackConfig[] = PLUS_TRACKS,
 ): Course[] {
-  const normalized = courses.filter((course) => course.membership_type === 'plus');
+  const normalized = courses.filter((course) => course.membership_type === 'plus' && (!course.access_product_code || course.access_product_code === 'teaching-general-v1'));
   const explicit = normalized.filter((course) => {
     if (!course.plus_representative) return false;
     return resolvePlusCoursePlacement(course, tracks)?.resolvedModuleId === module.id;
