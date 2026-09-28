@@ -17,6 +17,7 @@ import {
   CourseEditorialVolume,
 } from '@/components/course/CourseEditorialShell';
 import CourseTypeTabs from '@/components/course/CourseTypeTabs';
+import CoursePurchaseButton from '@/components/course/CoursePurchaseButton';
 import CourseFormatFilter, { resolveCourseType, type CourseTypeFilterValue } from '@/components/course/CourseFormatFilter';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCourseCatalogSnapshot, getCourseDetailSnapshot, subscribeToCourseCatalogUpdates } from '@/db/api';
@@ -27,7 +28,7 @@ import type { Course } from '@/types/types';
 
 export default function TeacherAiCoursesPage() {
   const navigate = useNavigate();
-  const { user, courseAccessCodes } = useAuth();
+  const { user, profile, courseAccessCodes, loading: authLoading } = useAuth();
   const [categories, setCategories] = useState<string[]>([]);
   const [coursesByCategory, setCoursesByCategory] = useState<Record<string, Course[]>>({});
   const [courseTypeFilter, setCourseTypeFilter] = useState<CourseTypeFilterValue>('all');
@@ -113,7 +114,7 @@ export default function TeacherAiCoursesPage() {
   const handleCourseClick = (course: Course) => {
     if (isNavigating) return;
 
-    if (!canAccessCourse(courseAccessCodes, getCourseAccessCode(course))) {
+    if (profile?.role !== 'admin' && !canAccessCourse(courseAccessCodes, getCourseAccessCode(course))) {
       if (!user) {
         navigate('/login', { state: { from: `/courses/${course.id}` } });
         return;
@@ -135,9 +136,9 @@ export default function TeacherAiCoursesPage() {
     <>
       <PageMeta
         title="教师AI课"
-        description="教师 AI 课 Pro 专属学习页，系统学习 AI 科普、AI 工具测评和 ClaudeCode 教程，让 AI 成为教学设计协作伙伴。"
+        description="教师 AI 课学习页，系统学习 AI 科普、AI 工具测评和 ClaudeCode 教程，让 AI 成为教学设计协作伙伴。"
         canonicalPath="/teacher-ai-courses"
-        keywords="教师AI课,AI教学课程,Pro课程,ClaudeCode教程,AI工具测评"
+        keywords="教师AI课,AI教学课程,ClaudeCode教程,AI工具测评"
       />
       <div className="min-h-screen bg-cream flex flex-col">
         <Header />
@@ -145,17 +146,19 @@ export default function TeacherAiCoursesPage() {
         <main className="course-reading-desk flex-1 pb-12 pt-20">
           <CourseTypeTabs />
           <CourseEditorialHero
-            kicker="PRO CATALOGUE · 教师 AI 专题刊"
-            badge="PRO 专属"
+            kicker="COURSE CATALOGUE · 教师 AI 课"
+            badge="课程目录"
             title="教师 AI 课"
-            description="在教学通识课的基础上，用 AI 拓展教学设计的深度和广度：理解 AI、选择工具，并把它接入备课、分析、活动设计和课程开发。"
+            description="用 AI 拓展教学设计的深度和广度：理解 AI、选择工具，并把它接入备课、分析、活动设计和课程开发。"
             audience="建议按系列卷册顺序阅读；需要解决具体问题时，也可以直接从目录定位到对应单课。"
             icon={GraduationCap}
             stats={[
               { label: '系列卷册', value: categories.length },
               { label: '已发布单课', value: totalCourseCount },
             ]}
-          />
+          >
+            {!authLoading && profile?.role !== 'admin' && !canAccessCourse(courseAccessCodes, 'teacher-ai') && <CoursePurchaseButton productCode="teacher-ai" />}
+          </CourseEditorialHero>
 
           {isLoading && (
             <div className="max-w-7xl mx-auto px-4 py-16 text-center">

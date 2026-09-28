@@ -14,6 +14,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 const mockUser = { id: 'user-1', phone: '13800000000', nickname: '测试用户', avatar_url: null, access_level: 'pro' as const, status: 'active' as const, created_at: '', updated_at: '' };
+let mockCurrentUser: typeof mockUser | null = mockUser;
 
 const localStorageValues = new Map<string, string>();
 Object.defineProperty(window, 'localStorage', {
@@ -31,7 +32,7 @@ Object.defineProperty(window, 'localStorage', {
 });
 
 vi.mock('@/contexts/AuthContext', () => ({
-  useAuth: () => ({ user: mockUser, accessLevel: 'pro' }),
+  useAuth: () => ({ user: mockCurrentUser, accessLevel: 'pro' }),
 }));
 
 vi.mock('@/db/api', () => ({
@@ -224,6 +225,7 @@ async function renderAndWait(
 }
 
 afterEach(() => {
+  mockCurrentUser = mockUser;
   vi.mocked(canAccessCourse).mockReturnValue(true);
   window.localStorage.clear();
 });
@@ -701,6 +703,34 @@ describe('CourseDetailPage — 正文板块精简与课程精华', () => {
   });
 });
 
+describe('CourseDetailPage — 未开通课程购买入口', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(canAccessCourse).mockReturnValue(false);
+    vi.mocked(getCourseDetailSnapshot).mockResolvedValue(
+      makeDetailSnapshot(makeCourse({ id: 'c1', membership_type: 'pro' }), siblingCourses, makeCatalog(siblingCourses)),
+    );
+  });
+
+  it('已登录但未开通时显示对应课程的购买链接', async () => {
+    renderCourseDetail('c1');
+
+    const purchaseLink = await screen.findByRole('link', { name: '购买教师 AI 课' });
+    expect(purchaseLink).toHaveAttribute('href', 'https://xhslink.com/m/4neOp7EhPHm');
+    expect(screen.queryByText('课程简介')).not.toBeInTheDocument();
+    expect(getCourseProtectedContent).not.toHaveBeenCalled();
+  });
+
+  it('未登录访客也能看到购买链接和登录入口', async () => {
+    mockCurrentUser = null;
+    renderCourseDetail('c1');
+
+    expect(await screen.findByRole('link', { name: '购买教师 AI 课' })).toHaveAttribute('href', 'https://xhslink.com/m/4neOp7EhPHm');
+    expect(screen.getByRole('button', { name: '登录已有账号' })).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalledWith('/login', expect.anything());
+  });
+});
+
 describe('CourseDetailPage — 单课密码试看', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -723,6 +753,7 @@ describe('CourseDetailPage — 单课密码试看', () => {
     await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
 
     expect(screen.getByRole('heading', { name: '输入单课访问密码' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '购买教师 AI 课' })).toHaveAttribute('href', 'https://xhslink.com/m/4neOp7EhPHm');
     expect(screen.queryByText('课程简介')).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText('试看密码'), 'lesson-2026');

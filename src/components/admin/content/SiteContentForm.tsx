@@ -5,6 +5,7 @@ import LoadingOverlay from "@/components/common/LoadingOverlay";
 import InlineConfirmButton from "@/components/common/InlineConfirmButton";
 import { Button } from "@/components/ui/button";
 import { adminUpsertSiteContent, getAdminSiteContent } from "@/db/admin-api";
+import { normalizeFounderAvatarUrl } from "@/lib/founder-avatar";
 
 /**
  * 单例区块表单：自动加载 site_content[sectionKey]，提供 data/setData/save。
@@ -14,11 +15,13 @@ export default function SiteContentForm({
   sectionKey,
   sectionLabel,
   description,
+  defaultData,
   children,
 }: {
   sectionKey: string;
   sectionLabel: string;
   description?: string;
+  defaultData?: Record<string, unknown>;
   children: (ctx: {
     data: Record<string, unknown>;
     setField: (key: string, value: unknown) => void;
@@ -35,14 +38,25 @@ export default function SiteContentForm({
     try {
       setLoading(true);
       const row = await getAdminSiteContent(sectionKey);
-      setDataState(row?.data ?? {});
+      const nextData = { ...defaultData, ...(row?.data ?? {}) };
+      if (sectionKey === "founder" && typeof nextData.avatar_url === "string") {
+        nextData.avatar_url = normalizeFounderAvatarUrl(nextData.avatar_url);
+      }
+      if (sectionKey === "founder" && Array.isArray(nextData.info_items)) {
+        nextData.info_items = nextData.info_items.map((item: unknown) => {
+          if (!item || typeof item !== "object") return item;
+          const info = item as Record<string, unknown>;
+          return { ...info, text: typeof info.text === "string" ? info.text.replace(/教学设计师俱乐部/g, "哈老师聊教学设计") : info.text };
+        });
+      }
+      setDataState(nextData);
       setLoaded(true);
     } catch {
       toast.error("加载区块内容失败");
     } finally {
       setLoading(false);
     }
-  }, [sectionKey]);
+  }, [sectionKey, defaultData]);
 
   useEffect(() => {
     load();

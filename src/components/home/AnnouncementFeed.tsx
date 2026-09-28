@@ -4,6 +4,7 @@ import { Gift, Video, Calendar, Megaphone, ArrowRight, Sparkles, Pin } from "luc
 import type { LucideIcon } from "lucide-react";
 import type { AnnouncementType } from "@/types/types";
 import { useAnnouncementFeed, type FeedItem } from "@/hooks/useAnnouncementFeed";
+import { useHomeContent } from "@/hooks/useHomeContent";
 import { relativeTime } from "@/lib/time";
 import { getColor } from "@/lib/content-render";
 
@@ -36,27 +37,30 @@ const TYPE_META: Record<AnnouncementType, TypeMeta> = {
 
 export default function AnnouncementFeed({ variant }: { variant: Variant }) {
   const { items, loading } = useAnnouncementFeed();
+  const { landing } = useHomeContent();
+  const heading = landing.home_extra.updates_title;
+  const description = landing.home_extra.updates_description;
 
   // compact：随首屏加载，加载中 / 无数据都不渲染，避免打扰
   if (variant === "compact") {
     if (loading || items.length === 0) return null;
-    return <CompactFeed items={items} />;
+    return <CompactFeed items={items} heading={heading} />;
   }
 
   // section：加载中给骨架占位防跳动；无数据整块消失
-  if (loading) return <SectionSkeleton />;
+  if (loading) return <SectionSkeleton heading={heading} description={description} />;
   if (items.length === 0) return null;
-  return <SectionFeed items={items} />;
+  return <SectionFeed items={items} heading={heading} description={description} />;
 }
 
 // ==================== compact：首屏内紧凑列表 ====================
 
-function CompactFeed({ items }: { items: FeedItem[] }) {
+function CompactFeed({ items, heading }: { items: FeedItem[]; heading: string }) {
   return (
     <div className="bg-white rounded-ds-lg border border-bd p-3 md:p-4 shadow-ds-xs animate-fade-in">
       <div className="flex items-center gap-1.5 mb-2 px-1">
         <Sparkles className="w-3.5 h-3.5 text-ac" />
-        <span className="text-ds-sm font-ds-bold text-tx">最新动态</span>
+        <span className="text-ds-sm font-ds-bold text-tx">{heading}</span>
         <span className="text-ds-xs text-txs">· 上新 / 直播 / 活动</span>
       </div>
       <div className="divide-y divide-bd">
@@ -108,7 +112,7 @@ function FeedRow({ item }: { item: FeedItem }) {
 
 // ==================== section：未登录用户独立区块 ====================
 
-function SectionFeed({ items }: { items: FeedItem[] }) {
+function SectionFeed({ items, heading, description }: { items: FeedItem[]; heading: string; description: string }) {
   return (
     <section className="py-8 md:py-12 xl:py-16 px-4 bg-acl">
       <div className="max-w-6xl mx-auto">
@@ -119,11 +123,11 @@ function SectionFeed({ items }: { items: FeedItem[] }) {
               className="text-2xl md:text-4xl xl:text-5xl font-ds-black text-tx"
               style={{ fontFamily: "var(--fd)" }}
             >
-              俱乐部最新动态
+              {heading}
             </h2>
           </div>
           <p className="text-sm md:text-xl text-txs">
-            新课上线、直播预告、活动公告，持续更新中
+            {description}
           </p>
         </div>
 
@@ -230,7 +234,7 @@ function FeedLink({
 
 // ==================== 加载骨架 ====================
 
-function SectionSkeleton() {
+function SectionSkeleton({ heading, description }: { heading: string; description: string }) {
   return (
     <section className="py-8 md:py-12 xl:py-16 px-4 bg-acl">
       <div className="max-w-6xl mx-auto">
@@ -241,11 +245,11 @@ function SectionSkeleton() {
               className="text-2xl md:text-4xl xl:text-5xl font-ds-black text-tx"
               style={{ fontFamily: "var(--fd)" }}
             >
-              俱乐部最新动态
+              {heading}
             </h2>
           </div>
           <p className="text-sm md:text-xl text-txs">
-            新课上线、直播预告、活动公告，持续更新中
+            {description}
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">

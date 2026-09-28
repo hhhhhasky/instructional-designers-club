@@ -17,12 +17,13 @@ import {
   CourseEditorialVolume,
 } from '@/components/course/CourseEditorialShell';
 import CourseTypeTabs from '@/components/course/CourseTypeTabs';
+import CoursePurchaseButton from '@/components/course/CoursePurchaseButton';
 import CourseFormatFilter, { resolveCourseType, type CourseTypeFilterValue } from '@/components/course/CourseFormatFilter';
 import { getCourseCatalogSnapshot, getCourseDetailSnapshot, subscribeToCourseCatalogUpdates } from '@/db/api';
 import type { Course } from '@/types/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { canAccessCourse } from '@/lib/access-control';
-import { getCourseAccessCode } from '@/lib/course-entitlements';
+import { getCourseAccessCode, type CourseAccessCode } from '@/lib/course-entitlements';
 import UpgradePopup from '@/components/common/UpgradePopup';
 import {
   PLUS_TRACKS,
@@ -36,9 +37,10 @@ import {
 
 export default function CoursesPage() {
   const navigate = useNavigate();
-  const { user, courseAccessCodes } = useAuth();
+  const { user, profile, courseAccessCodes, loading: authLoading } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeLevel, setUpgradeLevel] = useState<'plus' | 'pro'>('plus');
+  const [upgradeProductCode, setUpgradeProductCode] = useState<CourseAccessCode | null>(null);
   const [allCourses, setAllCourses] = useState<Course[]>([]);
   const [courseTypeFilter, setCourseTypeFilter] = useState<CourseTypeFilterValue>('all');
   const [plusTracks, setPlusTracks] = useState<PlusTrackConfig[]>(PLUS_TRACKS);
@@ -105,12 +107,13 @@ export default function CoursesPage() {
   const handleCourseClick = (course: Course) => {
     if (isNavigating) return;
 
-    if (course.membership_type !== 'free' && !canAccessCourse(courseAccessCodes, getCourseAccessCode(course))) {
+    if (course.membership_type !== 'free' && profile?.role !== 'admin' && !canAccessCourse(courseAccessCodes, getCourseAccessCode(course))) {
       if (!user) {
         navigate('/login', { state: { from: `/courses/${course.id}` } });
         return;
       }
       setUpgradeLevel(course.membership_type as 'plus' | 'pro');
+      setUpgradeProductCode(getCourseAccessCode(course));
       setShowUpgrade(true);
       return;
     }
@@ -123,9 +126,9 @@ export default function CoursesPage() {
     <>
       <PageMeta
         title="教学通识课"
-        description="系统学习教学通识课 Plus：从底层理论、教学设计原理，到日常课、说课、公开课等真实教学场景。"
+        description="系统学习教学通识课：从底层理论、教学设计原理，到日常课、说课、公开课等真实教学场景。"
         canonicalPath="/courses"
-        keywords="教学通识课,教学设计课程,教师培训课程,Plus课程"
+        keywords="教学通识课,教学设计课程,教师培训课程"
       />
       <div className="min-h-screen bg-cream flex flex-col">
         <Header />
@@ -133,8 +136,8 @@ export default function CoursesPage() {
         <main className="course-reading-desk flex-1 pb-12 pt-20">
           <CourseTypeTabs />
           <CourseEditorialHero
-            kicker="PLUS CATALOGUE · 教学通识课"
-            badge="PLUS 专属"
+            kicker="COURSE CATALOGUE · 教学通识课"
+            badge="课程目录"
             title="教学通识课"
             description="从理解学习和教学的底层规律，到掌握教学设计原理，再把方法用到日常课、说课和公开课等真实任务里。"
             audience="建议按理论篇、教学设计原理篇、场景篇的顺序学习；需要解决具体问题时，也可以直接从目录定位到对应系列课。"
@@ -143,7 +146,9 @@ export default function CoursesPage() {
               { label: '系列卷册', value: plusTracks.length },
               { label: '已发布单课', value: plusTracks.reduce((sum, track) => sum + getTrackCourseCount(allCourses, track.id, plusTracks), 0) },
             ]}
-          />
+          >
+            {!authLoading && profile?.role !== 'admin' && !canAccessCourse(courseAccessCodes, 'teaching-general-v1') && <CoursePurchaseButton productCode="teaching-general-v1" />}
+          </CourseEditorialHero>
 
           {isLoading && (
             <div className="max-w-7xl mx-auto px-4 py-16 text-center">
@@ -181,7 +186,7 @@ export default function CoursesPage() {
           )}
         </main>
         <Footer />
-        <UpgradePopup open={showUpgrade} onClose={() => setShowUpgrade(false)} requiredLevel={upgradeLevel} />
+        <UpgradePopup open={showUpgrade} onClose={() => setShowUpgrade(false)} requiredLevel={upgradeLevel} productCode={upgradeProductCode} />
       </div>
     </>
   );

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import HomePage from "@/pages/HomePage";
+import { HOME_LANDING_DEFAULTS } from "@/lib/home-landing-content";
 
 const { authState, homeContent } = vi.hoisted(() => ({
   authState: {
@@ -46,7 +47,7 @@ const { authState, homeContent } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/contexts/AuthContext", () => ({ useAuth: () => authState }));
-vi.mock("@/hooks/useHomeContent", () => ({ useHomeContent: () => homeContent }));
+vi.mock("@/hooks/useHomeContent", () => ({ useHomeContent: () => ({ ...homeContent, landing: HOME_LANDING_DEFAULTS }) }));
 vi.mock("@/hooks/useHomeSnapshot", () => ({
   HomeSnapshotProvider: ({ children }: { children: ReactNode }) => children,
 }));
@@ -55,7 +56,7 @@ vi.mock("@/components/common/PageNavigation", () => ({ default: () => <div data-
 vi.mock("@/components/home/MemberHomeHero", () => ({ default: () => <div data-testid="member-home" /> }));
 vi.mock("@/components/home/NotificationCard", () => ({ default: () => <div data-testid="member-notifications" /> }));
 vi.mock("@/components/home/AnnouncementFeed", () => ({ default: () => <div data-testid="announcement-feed" /> }));
-vi.mock("@/components/pricing/PricingSection", () => ({ default: () => <div data-testid="pricing-note" /> }));
+vi.mock("@/components/pricing/CoursePurchaseSection", () => ({ default: () => <div id="course-products" data-testid="course-purchases" /> }));
 vi.mock("@/components/testimonials/TestimonialCarousel", () => ({ TestimonialCarousel: () => <div /> }));
 vi.mock("@/components/ui/CountUp", () => ({ default: ({ end }: { end: number }) => <span>{end}</span> }));
 vi.mock("@/components/common/Footer", () => ({ default: () => <div data-testid="footer" /> }));
@@ -75,20 +76,25 @@ describe("home page audience split", () => {
     authState.user = { id: "member-1" };
   });
 
-  it("shows the teaching desk and hides acquisition content for a member", () => {
+  it("gives returning learners the same problem-first story and a learning shortcut", () => {
     renderHome();
 
+    expect(screen.getByRole('heading', { level: 1, name: /教案写得很完整/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /直接回到我的学习/ })).toHaveAttribute('href', '/learning');
     expect(screen.getByTestId("member-home")).toBeInTheDocument();
-    expect(screen.queryByTestId("pricing-note")).not.toBeInTheDocument();
-    expect(screen.queryByText("访客主标题")).not.toBeInTheDocument();
+    expect(screen.getByTestId("course-purchases")).toBeInTheDocument();
+    expect(screen.queryByText('会员课程体系')).not.toBeInTheDocument();
   });
 
-  it("keeps the lightweight membership note at the end of the guest home", () => {
+  it("takes guests from teaching situations to the method before course choices", () => {
     authState.user = null;
-    renderHome();
+    const { container } = renderHome();
 
     expect(screen.queryByTestId("member-home")).not.toBeInTheDocument();
-    expect(screen.getByText("访客主标题")).toBeInTheDocument();
-    expect(screen.getByTestId("pricing-note")).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: /教案写得很完整/ })).toBeInTheDocument();
+    expect(screen.getByTestId("course-purchases")).toBeInTheDocument();
+    const ids = ['real-situations', 'why-stuck', 'teaching-method', 'about-han', 'learning-outcomes', 'course-products', 'how-to-learn'];
+    const actualOrder = Array.from(container.querySelectorAll('main [id]')).map((element) => element.id).filter((id) => ids.includes(id));
+    expect(actualOrder).toEqual(ids);
   });
 });

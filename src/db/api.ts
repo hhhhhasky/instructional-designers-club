@@ -1,4 +1,5 @@
 import { createAsyncCache } from "@/lib/async-cache";
+import { HOME_LANDING_KEYS } from "@/lib/home-landing-content";
 import { getCourseCoverUrl, withProtectedCourseCover } from "@/lib/course-cover";
 import { getModuleIcon, normalizePlusCourseStructure, type PlusTrackConfig } from "@/lib/plusCourseStructure";
 import type {
@@ -628,6 +629,7 @@ const HOME_CONTENT_SECTION_KEYS = [
   'members',
   'testimonials',
   'faq',
+  ...HOME_LANDING_KEYS,
 ] as const;
 
 const HOME_PAGE_SNAPSHOT_TTL_MS = 2 * 60 * 1000;
@@ -698,16 +700,27 @@ function normalizeHomeSnapshot(value: unknown, source: HomePageSnapshot['source'
 }
 
 async function fetchHomePageSnapshotRpc(): Promise<HomePageSnapshot> {
-  const { data, error } = await supabase.rpc('home_page_snapshot', {
-    latest_course_days: 60,
-    announcement_limit: 8,
-    latest_course_limit: 4,
-    activity_limit: 20,
-    home_course_limit: 4,
-  });
+  const [rpcResult, landingResult] = await Promise.all([
+    supabase.rpc('home_page_snapshot', {
+      latest_course_days: 60,
+      announcement_limit: 8,
+      latest_course_limit: 4,
+      activity_limit: 20,
+      home_course_limit: 4,
+    }),
+    supabase.from('site_content').select('*').in('section_key', HOME_LANDING_KEYS),
+  ]);
 
-  if (error) throw error;
-  return normalizeHomeSnapshot(data, 'rpc');
+  if (rpcResult.error) throw rpcResult.error;
+  if (landingResult.error) throw landingResult.error;
+  const snapshot = normalizeHomeSnapshot(rpcResult.data, 'rpc');
+  return {
+    ...snapshot,
+    site_content: {
+      ...(snapshot.site_content ?? {}),
+      ...normalizeSiteContentMap(landingResult.data as SiteContent[] | null),
+    },
+  };
 }
 
 async function fetchHomePageSnapshotRestFallback(): Promise<HomePageSnapshot> {

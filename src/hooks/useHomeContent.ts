@@ -5,6 +5,8 @@ import type {
   HomePageSnapshot,
 } from "@/db/api";
 import { useHomeSnapshot } from "@/hooks/useHomeSnapshot";
+import { HOME_LANDING_DEFAULTS, mergeHomeLandingContent, type HomeLandingContent } from "@/lib/home-landing-content";
+import { FOUNDER_PORTRAIT_URL, normalizeFounderAvatarUrl } from "@/lib/founder-avatar";
 import type { Course, MemberProfile, Faq, SiteContent, Testimonial } from "@/types/types";
 
 // 首页可变内容的统一读取入口（带兜底）。
@@ -12,6 +14,7 @@ import type { Course, MemberProfile, Faq, SiteContent, Testimonial } from "@/typ
 
 export interface HomeContent {
   loaded: boolean;
+  landing: HomeLandingContent;
   hero: {
     title_line1: string;
     title_line2: string;
@@ -95,7 +98,7 @@ export const DEFAULT_INTRO = {
   section_subtitle: "为认真对待每一堂课的老师而建",
   welcome_title: "欢迎加入我们",
   welcome_paragraphs: [
-    "教学设计师俱乐部是一个为教育者打造的共学社区。",
+    "哈老师聊教学设计是一个为教育者打造的共学社区。",
     "我们不认为教学只是“完成任务”——我们相信，好的教学是可以被设计、被打磨、被持续精进的技艺。",
     "在这里，你不会听到“三步搞定公开课”这样的承诺。你得到的是一套系统的 **教学设计方法论（CREATE 模型）**，帮助你把对教育的理解，变成每一节课里真实发生的学习。",
     "无论你教什么学科、在什么类型的学校，只要你还在思考“怎样让学生真正学到东西”——这里就有懂你的同行者。",
@@ -121,9 +124,8 @@ export const DEFAULT_VALUES = {
 };
 
 export const DEFAULT_FOUNDER = {
-  section_title: "俱乐部创始人",
-  avatar_url:
-    "https://miaoda-conversation-file.cdn.bcebos.com/user-75tmduypbkzk/app-7iwdhpt0pypt/20260512/ChatGPT Image 2026年4月22日 12_26_23.png",
+  section_title: "关于哈老师",
+  avatar_url: FOUNDER_PORTRAIT_URL,
   avatar_alt: "哈老师",
   name: "哈老师",
   motto: "教学是艺术和科学，更是工程和技术",
@@ -135,7 +137,7 @@ export const DEFAULT_FOUNDER = {
   info_items: [
     { icon: "Lightbulb", label: "愿景", text: "做一所 AI 时代的创新师范学院", color: "am" },
     { icon: "BookOpen", label: "产品", text: "教学通识课 / 教师AI课", color: "ac" },
-    { icon: "Users", label: "社区", text: "教学设计师俱乐部", color: "tl" },
+    { icon: "Users", label: "社区", text: "哈老师聊教学设计", color: "tl" },
   ],
   stats: [
     { icon: "Brain", value: "6h+", label: "每日AI", color: "pp" },
@@ -199,6 +201,7 @@ export const DEFAULT_FAQS: Faq[] = [
 
 const FALLBACK: HomeContent = {
   loaded: false,
+  landing: HOME_LANDING_DEFAULTS,
   hero: DEFAULT_HERO,
   intro: DEFAULT_INTRO,
   values: DEFAULT_VALUES,
@@ -239,6 +242,7 @@ function buildHomeContentFromSnapshot(snapshot: HomePageSnapshot): HomeContent {
 
   return {
     loaded: true,
+    landing: mergeHomeLandingContent(siteContent),
     hero: {
       title_line1: asStr(d(heroRow).title_line1, DEFAULT_HERO.title_line1),
       title_line2: asStr(d(heroRow).title_line2, DEFAULT_HERO.title_line2),
@@ -262,12 +266,13 @@ function buildHomeContentFromSnapshot(snapshot: HomePageSnapshot): HomeContent {
     },
     founder: {
       section_title: asStr(d(founderRow).section_title, DEFAULT_FOUNDER.section_title),
-      avatar_url: asStr(d(founderRow).avatar_url, DEFAULT_FOUNDER.avatar_url),
+      avatar_url: normalizeFounderAvatarUrl(asStr(d(founderRow).avatar_url, DEFAULT_FOUNDER.avatar_url)),
       avatar_alt: asStr(d(founderRow).avatar_alt, DEFAULT_FOUNDER.avatar_alt),
       name: asStr(d(founderRow).name, DEFAULT_FOUNDER.name),
       motto: asStr(d(founderRow).motto, DEFAULT_FOUNDER.motto),
       tags: Array.isArray(d(founderRow).tags) ? (d(founderRow).tags as typeof DEFAULT_FOUNDER.tags) : DEFAULT_FOUNDER.tags,
-      info_items: Array.isArray(d(founderRow).info_items) ? (d(founderRow).info_items as typeof DEFAULT_FOUNDER.info_items) : DEFAULT_FOUNDER.info_items,
+      info_items: (Array.isArray(d(founderRow).info_items) ? (d(founderRow).info_items as typeof DEFAULT_FOUNDER.info_items) : DEFAULT_FOUNDER.info_items)
+        .map((item) => ({ ...item, text: item.text.replace(/教学设计师俱乐部/g, "哈老师聊教学设计") })),
       stats: Array.isArray(d(founderRow).stats) ? (d(founderRow).stats as typeof DEFAULT_FOUNDER.stats) : DEFAULT_FOUNDER.stats,
     },
     stats: {

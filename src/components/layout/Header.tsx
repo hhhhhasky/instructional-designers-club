@@ -162,7 +162,7 @@ export default function Header() {
               <GraduationCap className="w-5 h-5 text-ac" />
             </div>
             <span className="text-ds-lg font-ds-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>
-              教学设计师俱乐部
+              哈老师聊教学设计
             </span>
           </Link>
 
@@ -267,11 +267,7 @@ export default function Header() {
                 <DropdownMenuContent align="end" className="w-48">
                   <div className="px-2 py-1.5">
                     <p className="text-sm font-ds-semibold text-tx">{profile?.nickname}</p>
-                    <p className="text-xs text-txs">
-                      {profile?.access_level === 'pro' ? 'Pro 专家版' :
-                       profile?.access_level === 'plus' ? 'Plus 会员版' :
-                       profile?.access_level === 'plus2025' ? '2025Plus 会员版' : '免费版'}
-                    </p>
+                    <p className="text-xs text-txs">我的课程与学习</p>
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate('/resources')} className="cursor-pointer">
@@ -334,11 +330,7 @@ export default function Header() {
                       </div>
                       <div>
                         <p className="text-sm font-ds-bold text-tx">{profile?.nickname}</p>
-                        <p className="text-xs text-txs">
-                          {profile?.access_level === 'pro' ? 'Pro 专家版' :
-                           profile?.access_level === 'plus' ? 'Plus 会员版' :
-                           profile?.access_level === 'plus2025' ? '2025Plus 会员版' : '免费版'}
-                        </p>
+                        <p className="text-xs text-txs">我的课程与学习</p>
                       </div>
                     </div>
                   ) : (
@@ -347,7 +339,7 @@ export default function Header() {
                         <GraduationCap className="w-6 h-6 text-ac" />
                       </div>
                       <span className="text-ds-lg font-ds-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>
-                        教学设计师俱乐部
+                        哈老师聊教学设计
                       </span>
                     </div>
                   )}

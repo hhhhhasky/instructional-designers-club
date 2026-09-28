@@ -1,10 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import { ArrowLeft, Eye, EyeOff, KeyRound, Loader2, LogIn, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import CoursePurchaseButton from '@/components/course/CoursePurchaseButton';
+import type { CourseAccessCode } from '@/lib/course-entitlements';
+import { getCoursePurchaseProduct } from '@/lib/course-purchase';
 
 interface CoursePasswordGateProps {
   courseTitle: string;
-  membershipLabel: string;
+  productCode: CourseAccessCode | null;
   checking: boolean;
   error: string | null;
   onVerify: (password: string) => Promise<void> | void;
@@ -14,7 +17,7 @@ interface CoursePasswordGateProps {
 
 export default function CoursePasswordGate({
   courseTitle,
-  membershipLabel,
+  productCode,
   checking,
   error,
   onVerify,
@@ -23,6 +26,7 @@ export default function CoursePasswordGate({
 }: CoursePasswordGateProps) {
   const [password, setPassword] = useState('');
   const [visible, setVisible] = useState(false);
+  const product = getCoursePurchaseProduct(productCode);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -49,7 +53,7 @@ export default function CoursePasswordGate({
           </div>
 
           <p className="text-ds-sm leading-6 text-txs">
-            这是一节 {membershipLabel} 课程。拿到老师分享的密码后，无需开通会员也可以试看本节内容。
+            这是一节{product?.name ?? '付费'}课程。拿到老师分享的密码后，可以试看本节内容；需要继续学习整门课程时，可购买对应课程。
           </p>
           <p className="mt-2 line-clamp-2 text-ds-sm font-ds-semibold text-tx">《{courseTitle}》</p>
 
@@ -94,6 +98,8 @@ export default function CoursePasswordGate({
             </Button>
           </form>
 
+          {product && <div className="mt-5 border-t border-bdl pt-5 text-center"><CoursePurchaseButton productCode={product.code} /></div>}
+
           <div className="mt-6 flex flex-col gap-2 border-t border-bdl pt-5 sm:flex-row">
             <Button type="button" variant="ghost" className="flex-1" onClick={onBack}>
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -101,11 +107,11 @@ export default function CoursePasswordGate({
             </Button>
             <Button type="button" variant="outline" className="flex-1" onClick={onLogin}>
               <LogIn className="mr-2 h-4 w-4" />
-              会员登录
+              登录已有账号
             </Button>
           </div>
           <p className="mt-4 text-center text-[12px] leading-5 text-txt">
-            密码仅解锁当前课程试看，不会开通会员权益、记录学习进度或发放学分。
+            密码仅解锁当前单课试看，不会开通整门课程、记录学习进度或发放学分。
           </p>
         </div>
       </section>

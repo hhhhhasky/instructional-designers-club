@@ -165,7 +165,7 @@ export default function ForgotPasswordPage() {
             {/* Logo 底部 */}
             <div className="flex items-center justify-center gap-2 mt-6 opacity-50">
               <KeyRound className="w-4 h-4 text-txs" />
-              <span className="text-xs text-txt">教学设计师俱乐部</span>
+              <span className="text-xs text-txt">哈老师聊教学设计</span>
             </div>
           </div>
         </main>

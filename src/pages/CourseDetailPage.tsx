@@ -44,6 +44,7 @@ import TeacherAiCatalogToc from '@/components/course/TeacherAiCatalogToc';
 import PlusCatalogToc from '@/components/course/PlusCatalogToc';
 import CourseQuestionsPanel from '@/components/course/CourseQuestionsPanel';
 import CoursePasswordGate from '@/components/course/CoursePasswordGate';
+import CoursePurchaseButton from '@/components/course/CoursePurchaseButton';
 import { CourseReadingProgress } from '@/components/course/CourseEditorialShell';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import {
@@ -56,6 +57,7 @@ import {
 } from '@/db/api';
 import { canAccessCourse, recordCourseVisit, updateLearningProgress, getUserLearningRecords } from '@/lib/access-control';
 import { getCourseAccessCode } from '@/lib/course-entitlements';
+import { getCoursePurchaseProduct } from '@/lib/course-purchase';
 import {
   buildGamificationSnapshot,
   findAchievementForCourse,
@@ -150,7 +152,6 @@ export default function CourseDetailPage() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const [upgradeLevel, setUpgradeLevel] = useState<'plus' | 'pro'>('plus');
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -462,7 +463,6 @@ export default function CourseDetailPage() {
         if (cancelled) return;
         console.error('服务端课程授权失败:', err);
         if (err instanceof CourseContentAccessError && err.status === 403) {
-          setUpgradeLevel(course.membership_type === 'pro' ? 'pro' : 'plus');
           setShowUpgrade(true);
         } else {
           setError('课程权限验证失败，请刷新页面重试');
@@ -487,12 +487,7 @@ export default function CourseDetailPage() {
         setLearningRecords([]);
         return;
       }
-      if (!user) {
-        navigate('/login', { state: { from: `/courses/${course.id}` }, replace: true });
-      } else {
-        setUpgradeLevel(course.membership_type as 'plus' | 'pro');
-        setShowUpgrade(true);
-      }
+      setShowUpgrade(true);
     } else if (hasStandardCourseAccess && protectedContentCourseId === course.id) {
       setShowUpgrade(false);
       if (user) {
@@ -592,6 +587,7 @@ export default function CourseDetailPage() {
   const plusModule = plusPlacement ? getPlusModule(plusPlacement.resolvedTrackId, plusPlacement.resolvedModuleId, plusTracks) : undefined;
   const courseCollectionLabel = plusModule?.title || course?.category || '课程目录';
   const courseBadgeLabel = course?.membership_type === 'plus' ? courseCollectionLabel : course?.category;
+  const purchaseProduct = course ? getCoursePurchaseProduct(getCourseAccessCode(course)) : undefined;
 
   const getProgress = (courseId: string): number => {
     const record = learningRecords.find(r => r.course_id === courseId);
@@ -690,7 +686,7 @@ export default function CourseDetailPage() {
         <Header />
         <CoursePasswordGate
           courseTitle={course.title}
-          membershipLabel={course.membership_type === 'pro' ? 'Pro 专家版' : 'Plus 会员版'}
+          productCode={getCourseAccessCode(course)}
           checking={passwordChecking}
           error={passwordGateError}
           onVerify={handleVerifyPassword}
@@ -702,7 +698,7 @@ export default function CourseDetailPage() {
     );
   }
 
-  if (showUpgrade) {
+  if (showUpgrade || (course && !hasStandardCourseAccess && !hasPasswordPreviewAccess)) {
     return (
       <div className="min-h-screen bg-cream flex flex-col">
         <Header />
@@ -710,17 +706,16 @@ export default function CourseDetailPage() {
           <div className="text-center animate-fade-in max-w-md">
             <AlertCircle className="w-14 h-14 text-ac/60 mx-auto mb-5" />
             <h1 className="text-ds-2xl font-ds-bold text-tx font-serif mb-5">
-              需要{upgradeLevel === 'pro' ? 'Pro 专家版' : 'Plus 会员版'}权限
+              尚未开通{purchaseProduct?.name ?? '当前课程'}
             </h1>
+            <p className="mb-3 text-sm font-ds-semibold text-tx">{course?.title}</p>
+            <p className="mb-6 text-sm leading-6 text-txs">购买后按现有流程开通课程权限。若已购买，请联系课程管理员核对当前账号。</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button onClick={() => navigate(getCourseListPath(upgradeLevel))} className="btn-press">
-                返回{getCourseListName(upgradeLevel)}
+              <Button onClick={() => navigate(course ? getCourseListPath(course.membership_type) : '/courses')} variant="outline" className="btn-press">
+                返回课程目录
               </Button>
-              <Button asChild className="btn-super-cta !text-white btn-press">
-                <a href="http://b50rtgy70nmgu05j.mikecrm.com/rPZN0Mb" target="_blank" rel="noopener noreferrer">
-                  立即升级
-                </a>
-              </Button>
+              {purchaseProduct && <CoursePurchaseButton productCode={purchaseProduct.code} />}
+              {!user && <Button onClick={() => navigate('/login', { state: { from: `/courses/${course?.id ?? id}` } })} variant="outline" className="btn-press">登录已有账号</Button>}
             </div>
           </div>
         </main>
@@ -814,7 +809,7 @@ export default function CourseDetailPage() {
       {course && (
         <PageMeta
           title={course.title}
-          description={course.description || `${course.title} - 教学设计师俱乐部课程`}
+          description={course.description || `${course.title} - 哈老师聊教学设计课程`}
           canonicalPath={`/courses/${course.id}`}
           ogType="article"
           ogImage={course.image_url || undefined}

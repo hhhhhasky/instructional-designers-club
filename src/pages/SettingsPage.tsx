@@ -257,7 +257,7 @@ export default function SettingsPage() {
           {/* 底部 */}
           <div className="flex items-center justify-center gap-2 mt-10 opacity-40">
             <GraduationCap className="w-4 h-4 text-txs" />
-            <span className="text-ds-xs text-txt">教学设计师俱乐部</span>
+            <span className="text-ds-xs text-txt">哈老师聊教学设计</span>
           </div>
         </div>
       </main>

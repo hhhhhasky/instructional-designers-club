@@ -183,7 +183,7 @@ export default function ActivityDetailPage() {
     <>
       <PageMeta
         title={activity.title}
-        description={activity.description || `${activity.title} - 教学设计师俱乐部活动`}
+        description={activity.description || `${activity.title} - 哈老师聊教学设计活动`}
         canonicalPath={`/activities/${activity.id}`}
         ogType="article"
       />

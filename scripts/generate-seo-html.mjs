@@ -7,7 +7,7 @@ import fs from 'fs';
 import path from 'path';
 
 const SITE_URL = process.env.VITE_SITE_URL || 'https://idclub.hasky.top';
-const SITE_NAME = '教学设计师俱乐部';
+const SITE_NAME = '哈老师聊教学设计';
 
 const distDir = path.resolve('dist');
 const baseHtml = fs.readFileSync(path.join(distDir, 'index.html'), 'utf-8');
@@ -17,20 +17,20 @@ const routes = {
   '/': {
     title: SITE_NAME,
     description:
-      '一所AI时代的线上创新师范学院。提供系统化教学设计课程、教师AI课、学习营和共学社区，帮助教育者提升教学专业能力。',
-    keywords: '教学设计,教师培训,AI教学,课程设计,教学设计师俱乐部',
+      '从真实教学问题出发，和哈老师一起分析教材、学情、目标、课堂活动与评价。了解教学通识课、教师 AI 课和道法教材解读课。',
+    keywords: '哈老师聊教学设计,教师培训,教学设计,教师AI课,道法教材解读课',
   },
   '/courses': {
     title: `教学通识课 | ${SITE_NAME}`,
     description:
-      '系统学习教学通识课 Plus：从底层理论、教学设计方法，到日常课、说课、公开课等真实教学场景。',
-    keywords: '教学通识课,教学设计课程,教师培训课程,Plus课程',
+      '系统学习教学通识课：从学习科学、教学设计方法，到日常课、说课、公开课等真实教学场景。',
+    keywords: '教学通识课,教学设计课程,教师培训课程',
   },
   '/teacher-ai-courses': {
     title: `教师AI课 | ${SITE_NAME}`,
     description:
-      '教师 AI 课 Pro 专属学习页，系统学习 AI 科普、AI 工具测评和 ClaudeCode 教程，让 AI 成为教学设计协作伙伴。',
-    keywords: '教师AI课,AI教学课程,Pro课程,ClaudeCode教程,AI工具测评',
+      '教师 AI 课：学习判断和使用 AI 工具，让 AI 成为教学设计的协作伙伴。',
+    keywords: '教师AI课,AI教学课程,ClaudeCode教程,AI工具测评',
   },
   '/resources': {
     title: `资源中心 | ${SITE_NAME}`,

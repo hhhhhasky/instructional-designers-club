@@ -9,6 +9,7 @@ import {
   IconSelect,
   ColorSelect,
 } from "../fields";
+import { DEFAULT_FOUNDER } from "@/hooks/useHomeContent";
 
 // 读取助手：把 JSONB 值安全地转成目标类型
 const asStr = (v: unknown, fallback = ""): string =>
@@ -217,17 +218,13 @@ export function FounderEditor() {
   return (
     <SiteContentForm
       sectionKey="founder"
-      sectionLabel="俱乐部创始人"
-      description="创始人头像、姓名、标签、座右铭、愿景/产品/社区、关键数据指标。"
+      sectionLabel="哈老师资料与头像"
+      description="沿用原有的姓名、座右铭、身份标签与愿景等资料；首页人物介绍正文在“哈老师是谁”中编辑。"
+      defaultData={DEFAULT_FOUNDER}
     >
       {({ data, setField }) => (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <TextField
-              label="区块标题"
-              value={asStr(data.section_title)}
-              onChange={(v) => setField("section_title", v)}
-            />
             <TextField
               label="姓名"
               value={asStr(data.name)}

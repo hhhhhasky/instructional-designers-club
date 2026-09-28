@@ -1,0 +1,149 @@
+/** 首页落地页文案的默认值。后台 site_content 使用相同的区块键和字段。 */
+export const HOME_LANDING_DEFAULTS = {
+  home_hero: {
+    kicker: '哈老师聊教学设计 · 教师培训课程',
+    title_line1: '教案写得很完整，',
+    title_line2: '学生为什么还是没学会？',
+    description: '备日常课、磨公开课、用 AI 做教学设计，难的常常不是再找一个模板，而是判断学生在哪里卡住，怎样让目标、活动和评价真正接上。',
+    primary_cta: '看看你遇到的问题',
+    secondary_cta: '直接看三门课程',
+    learning_cta: '已经在学？直接回到我的学习',
+    aside_title: '一节课的设计线索',
+    aside_steps: ['教材与学情', '学习目标', '课堂活动', '学习评价'],
+    aside_note: '先找到最早断开的一环，再决定这节课怎么改。',
+  },
+  home_member: {
+    kicker: "TODAY'S DESK · 今日教研桌",
+    greeting_prefix: 'Hi ',
+    greeting_suffix: '，今天从哪里继续？',
+    description: '课程、咨询与教研产物，都在这张桌上接续。',
+    error_suffix: '，欢迎回来',
+    error_description: '学习数据暂时未能载入，你仍可继续进入课程与教研工具。',
+    error_cta: '前往我的学习',
+    learning_map_title: '学习地图',
+    learning_map_description: '查看课程进度',
+    chat_title: '问问哈老师',
+    chat_description: '诊断一个教学问题',
+    work_title: 'HAI Work',
+    work_description: '继续教研产物',
+    completed_description: '🎉 你已学完当前课程，真棒！',
+    all_courses_cta: '去看看全部课程',
+    all_learning_cta: '查看全部我的学习',
+  },
+  home_situations: {
+    kicker: '01 / 从你的课堂出发',
+    title: '你可能正在处理这些问题',
+    description: '每个问题都发生在真实的备课与上课过程中。先认出自己的场景，再寻找合适的方法。',
+    items: [
+      { label: '日常备课', title: '教案写完了，教学逻辑还没连起来', detail: '教材和学情都分析过，却说不清目标为什么这样定、活动为什么这样排。' },
+      { label: '公开课打磨', title: '课堂很热闹，学生到底学会了什么？', detail: '情境、任务和讨论都有了，但学生的学习主线与达标证据仍不清楚。' },
+      { label: 'AI 辅助教学', title: 'AI 很快给了教案，你却不敢直接用', detail: '生成内容看起来完整，仍需要教师判断它是否适合这份教材、这个班级。' },
+      { label: '道法教材解读', title: '知道单课内容，却看不清整条教材线索', detail: '课标要求、单元主题和一节课之间，缺少一张能帮助取舍的地图。' },
+    ],
+  },
+  home_problem: {
+    kicker: '02 / 方法为什么没有用到自己的课上',
+    title: '知道很多做法，仍然不知道该怎么改',
+    description: '现成资源可以帮忙，但如果没有先看清学生起点、学习目标和达标证据，方法就难以迁移。',
+    items: [
+      { title: '照着优秀教案改', detail: '有现成形式，却未必知道它为什么适合原来的学生。' },
+      { title: '增加情境和课堂活动', detail: '参与感提高了，活动仍可能没有指向同一个学习目标。' },
+      { title: '让 AI 先生成一整份方案', detail: '省下了起草时间，教材事实、学情和评价仍要由教师判断。' },
+    ],
+    conclusion: '真正要先问的是：这节课的设计链，在哪里断开了？',
+  },
+  home_method: {
+    kicker: '03 / 哈老师的教学判断',
+    title_line1: '先看学生如何学，',
+    title_line2: '再决定教师如何教。',
+    description: '哈老师的教学通识课把备课看成有依据的设计过程：先诊断问题，再选择方法，最后用课堂中的学习证据检查是否有效。',
+    items: [
+      { title: '分析', detail: '看教材、课标与学生的真实起点。' },
+      { title: '设计', detail: '把目标、学习过程与评价连起来。' },
+      { title: '研发', detail: '让课件、学习单与教学资源支撑方案。' },
+      { title: '迭代', detail: '根据学生表现，决定下一次改哪里。' },
+    ],
+    before_label: '课堂设计示意 · 调整前',
+    before_text: '目标写“理解概念”，课堂以教师讲解为主，最后只检查练习是否做完。',
+    after_label: '课堂设计示意 · 调整后',
+    after_text: '先明确学生要能解释什么，再安排辨析与表达任务，观察学生解释时使用的依据。',
+    footnote: '以上为方法说明示意，不对应某节真实课程的教学结果。',
+  },
+  home_founder: {
+    kicker: '04 / 关于课程主理人',
+    title: '哈老师是谁？',
+    description: '哈老师持续围绕教师真实的备课与课堂问题，研发教学通识、教师 AI 与道法教材解读课程。',
+    closing: '从学生如何学习出发，让专业理论成为教师可以用于分析、设计和迭代课堂的工具。',
+  },
+  home_outcomes: {
+    kicker: '05 / 学习之后',
+    title: '把方法带回自己的课堂',
+    description: '课程希望帮助教师建立可迁移的教学判断，再把它用到自己的教材、学生和教学任务中。',
+    item_kicker: '教师可以尝试',
+    items: [
+      { title: '找准问题', detail: '判断一节课的卡点发生在教材、学情、目标、过程还是评价。' },
+      { title: '改出依据', detail: '让教学目标、学生要做的事和学习证据彼此对应。' },
+      { title: '带回自己的课堂', detail: '从课堂表现中找到下一步改动，不只模仿一份好教案。' },
+    ],
+  },
+  home_courses: {
+    kicker: '06 / 找到适合你的课程',
+    title: '三门课程，回应不同的教学问题',
+    description: '先看与你的课堂有关的内容，再决定学哪一门。每门课都能单独查看目录和商品页。',
+    product_label: '课程商品',
+    catalogue_cta: '查看课程目录',
+    purchase_cta: '购买',
+    access_cta: '进入',
+    footnote: '下单在小红书完成；本站课程权限由运营按现有流程核对并开通。',
+    items: [
+      { code: 'teaching-general-v1', audience: '适合想理顺日常课与公开课备课逻辑的教师', gain: '从教材与学情出发，练习让目标、学习过程和评价彼此对齐。' },
+      { code: 'teacher-ai', audience: '适合正在尝试用 AI 辅助教学设计的教师', gain: '学习判断、修改与组织 AI 产物，让工具服务于自己的教学任务。' },
+      { code: 'daofa-textbook', audience: '适合需要梳理道法课标与教材脉络的教师', gain: '沿课标、单元与单课建立教材地图，理解内容如何进入课堂。' },
+    ],
+  },
+  home_learning: {
+    kicker: '07 / 从选课到观看',
+    title: '选好课程，然后开始学习',
+    items: [
+      { title: '看课程目录', detail: '先确认课程内容是否对应你的教学问题。' },
+      { title: '前往商品页', detail: '点击该课程的购买按钮，在小红书完成下单。' },
+      { title: '开通课程', detail: '运营核对订单后，按现有流程为官网账号开通对应课程。' },
+      { title: '登录观看', detail: '在本站进入课程目录或“我的学习”，接着上次的进度学习。' },
+    ],
+    footnote: '小红书订单不会自动同步到本站。若已购买但课程尚未显示，请通过商品订单页联系商家，核对订单与用于学习的官网账号。',
+    learning_cta: '进入我的学习',
+  },
+  home_extra: {
+    free_kicker: '先看一段课程',
+    free_title: '从一节免费课开始',
+    free_cta: '查看全部课程',
+    faq_kicker: '还有疑问？',
+    faq_title: '关于选课和学习',
+    faq_items: [
+      { title: '需要先购买教学通识课，才能学习另外两门吗？', detail: '三门课程有各自的目录和商品页，可以按自己的教学问题选择。访问权限以实际开通的课程为准。' },
+      { title: '下单后为什么还看不到课程？', detail: '目前由运营核对订单并为官网账号开通课程。请通过商品订单页联系商家，核对开通状态和学习账号。' },
+    ],
+    faq_cta: '回到三门课程',
+    updates_title: '课程最新更新',
+    updates_description: '新课上线、直播预告、活动公告，持续更新中',
+  },
+};
+
+export type HomeLandingContent = typeof HOME_LANDING_DEFAULTS;
+export type HomeLandingKey = keyof HomeLandingContent;
+export const HOME_LANDING_KEYS = Object.keys(HOME_LANDING_DEFAULTS) as HomeLandingKey[];
+
+export function mergeHomeLandingContent(rows: Record<string, { data?: Record<string, unknown> } | undefined>): HomeLandingContent {
+  const merged = {} as Record<HomeLandingKey, unknown>;
+  for (const key of HOME_LANDING_KEYS) {
+    const fallback = HOME_LANDING_DEFAULTS[key] as Record<string, unknown>;
+    const saved = rows[key]?.data ?? {};
+    merged[key] = Object.fromEntries(Object.entries(fallback).map(([field, value]) => {
+      const candidate = saved[field];
+      if (typeof value === 'string') return [field, typeof candidate === 'string' ? candidate : value];
+      if (Array.isArray(value) && Array.isArray(candidate)) return [field, candidate];
+      return [field, value];
+    }));
+  }
+  return merged as HomeLandingContent;
+}

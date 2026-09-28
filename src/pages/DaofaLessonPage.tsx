@@ -1,9 +1,10 @@
 import { ArrowLeft, ArrowRight, BookOpen, LockKeyhole, PlayCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import Footer from '@/components/common/Footer';
 import PageMeta from '@/components/common/PageMeta';
 import Header from '@/components/layout/Header';
+import CoursePurchaseButton from '@/components/course/CoursePurchaseButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { getDaofaLessonMedia } from '@/db/daofa-media';
 import { canAccessCourse } from '@/lib/access-control';
@@ -11,7 +12,6 @@ import { DAOFA_CHAPTERS, DAOFA_LESSONS, getDaofaLesson } from '@/lib/daofa-cours
 
 export default function DaofaLessonPage() {
   const { lessonId } = useParams<{ lessonId: string }>();
-  const navigate = useNavigate();
   const { user, profile, courseAccessCodes, loading } = useAuth();
   const userId = user?.id;
   const lesson = getDaofaLesson(lessonId);
@@ -22,10 +22,6 @@ export default function DaofaLessonPage() {
   const [mediaError, setMediaError] = useState('');
   const [mediaLoading, setMediaLoading] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
-
-  useEffect(() => {
-    if (!loading && !userId) navigate('/login', { replace: true, state: { from: `/courses/daofa/${lessonId ?? ''}` } });
-  }, [lessonId, loading, navigate, userId]);
 
   useEffect(() => {
     setMediaUrl('');
@@ -41,8 +37,6 @@ export default function DaofaLessonPage() {
     return () => { active = false; };
   }, [hasAccess, lesson, loading, retryCount, userId]);
 
-  if (!loading && !userId) return null;
-
   if (lesson?.kind === 'canvas') return <>
     <PageMeta title={`${lesson.title}｜道法教材解读课`} description={lesson.subtitle} noIndex />
     <main className="relative h-screen w-full overflow-hidden bg-[#102f2b]" style={{ height: '100dvh' }}>
@@ -51,6 +45,7 @@ export default function DaofaLessonPage() {
           <LockKeyhole className="h-9 w-9 text-[#d0a453]" />
           <h1 className="mt-4 text-xl font-ds-bold">尚未开通道法教材解读课</h1>
           <p className="mt-3 text-sm text-white/70">请联系课程管理员为当前账号开通课程权限。</p>
+          <div className="mt-6"><CoursePurchaseButton productCode="daofa-textbook" /></div>
         </div> : mediaUrl ? <iframe
           title="课标素养、内容要求与教材单元三元对齐画布"
           src={mediaUrl}
@@ -84,6 +79,7 @@ export default function DaofaLessonPage() {
                   <LockKeyhole className="mx-auto h-8 w-8 text-ac" />
                   <h2 className="mt-4 font-ds-bold text-xl text-tx">尚未开通道法教材解读课</h2>
                   <p className="mt-3 text-sm leading-6 text-txs">请联系课程管理员为当前账号开通课程权限。</p>
+                  <div className="mt-6"><CoursePurchaseButton productCode="daofa-textbook" /></div>
                 </div> : <div className="mt-8 grid gap-8 lg:grid-cols-[235px_minmax(0,1fr)]">
                   <aside className="course-editorial-toc self-start lg:sticky lg:top-24">
                     <span className="editorial-kicker">LEARNING PATH · 学习目录</span>

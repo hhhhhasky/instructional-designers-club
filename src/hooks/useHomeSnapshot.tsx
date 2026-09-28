@@ -29,7 +29,7 @@ export function HomeSnapshotProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
-    getHomePageSnapshot()
+    getHomePageSnapshot({ fresh: true })
       .then((snapshot) => {
         if (active) setState({ snapshot, loading: false, error: null });
       })

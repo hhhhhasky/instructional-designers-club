@@ -4,13 +4,14 @@ import Footer from '@/components/common/Footer';
 import PageMeta from '@/components/common/PageMeta';
 import { CourseEditorialHero } from '@/components/course/CourseEditorialShell';
 import CourseTypeTabs from '@/components/course/CourseTypeTabs';
+import CoursePurchaseButton from '@/components/course/CoursePurchaseButton';
 import Header from '@/components/layout/Header';
 import { useAuth } from '@/contexts/AuthContext';
 import { canAccessCourse } from '@/lib/access-control';
 import { DAOFA_CHAPTERS } from '@/lib/daofa-course';
 
 export default function DaofaCoursePage() {
-  const { courseAccessCodes, profile } = useAuth();
+  const { courseAccessCodes, profile, loading: authLoading } = useAuth();
   const hasAccess = profile?.role === 'admin' || canAccessCourse(courseAccessCodes, 'daofa-textbook');
 
   return <>
@@ -27,7 +28,9 @@ export default function DaofaCoursePage() {
           audience="建议先学总论，再按正在使用的册次查阅；三元对齐画布可随时用来追溯课标与教材单元的关系。"
           icon={BookOpen}
           stats={[{ label: '核心篇章', value: 2 }, { label: '视频单课', value: 22 }, { label: '交互画布', value: 1 }, { label: '教材册次', value: 18 }]}
-        />
+        >
+          {!authLoading && !hasAccess && <CoursePurchaseButton productCode="daofa-textbook" />}
+        </CourseEditorialHero>
         <div className="mx-auto grid max-w-7xl gap-8 px-4 pb-20 pt-8 lg:grid-cols-[250px_minmax(0,1fr)]">
           <aside className="course-editorial-toc self-start lg:sticky lg:top-24">
             <span className="editorial-kicker">CONTENTS · 课程索引</span>

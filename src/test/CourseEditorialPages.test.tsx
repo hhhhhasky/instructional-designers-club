@@ -1,16 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import TeacherAiCoursesPage from '@/pages/TeacherAiCoursesPage';
 import CoursesPage from '@/pages/CoursesPage';
+import DaofaCoursePage from '@/pages/DaofaCoursePage';
+import DaofaLessonPage from '@/pages/DaofaLessonPage';
 import { getCourseCatalogSnapshot } from '@/db/api';
+import { canAccessCourse } from '@/lib/access-control';
 import { PLUS_TRACKS } from '@/lib/plusCourseStructure';
+import { DAOFA_LESSONS } from '@/lib/daofa-course';
 import type { Course } from '@/types/types';
 
+let mockProfileRole: 'admin' | null = null;
+let mockAuthUser: { id: string } | null = { id: 'member-1' };
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({
-    user: { id: 'member-1' },
+    user: mockAuthUser,
     accessLevel: 'pro',
+    courseAccessCodes: [],
+    profile: mockProfileRole ? { role: mockProfileRole } : null,
+    loading: false,
   }),
 }));
 
@@ -79,7 +88,50 @@ function makeCourse(overrides: Partial<Course>): Course {
 describe('课程核心页面 — 教研编辑部信息层级', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockProfileRole = null;
+    mockAuthUser = { id: 'member-1' };
+    vi.mocked(canAccessCourse).mockReturnValue(true);
     window.HTMLElement.prototype.scrollIntoView = vi.fn();
+  });
+
+  it.each([
+    [CoursesPage, '教学通识课', 'https://xhslink.com/m/5JAHDTqPSdk'],
+    [TeacherAiCoursesPage, '教师 AI 课', 'https://xhslink.com/m/4neOp7EhPHm'],
+    [DaofaCoursePage, '道法教材解读课', 'https://xhslink.com/m/277IB24mn8I'],
+  ])('%s 未开通时显示对应购买入口，已开通时隐藏', async (Page, name, purchaseUrl) => {
+    vi.mocked(getCourseCatalogSnapshot).mockResolvedValue({
+      plus_courses: [], plus_tracks: [], pro_courses: [], pro_categories: [], pro_category_tags: {},
+      generated_at: null, source_updated_at: null, source: 'rest-fallback',
+    });
+    vi.mocked(canAccessCourse).mockReturnValue(false);
+
+    const { rerender } = render(<MemoryRouter><Page /></MemoryRouter>);
+    expect(screen.getByRole('link', { name: `购买${name}` })).toHaveAttribute('href', purchaseUrl);
+
+    vi.mocked(canAccessCourse).mockReturnValue(true);
+    rerender(<MemoryRouter><Page /></MemoryRouter>);
+    await waitFor(() => expect(screen.queryByRole('link', { name: `购买${name}` })).not.toBeInTheDocument());
+  });
+
+  it('管理员查看课程目录时不显示购买入口', async () => {
+    mockProfileRole = 'admin';
+    vi.mocked(canAccessCourse).mockReturnValue(false);
+    vi.mocked(getCourseCatalogSnapshot).mockResolvedValue({
+      plus_courses: [], plus_tracks: [], pro_courses: [], pro_categories: [], pro_category_tags: {},
+      generated_at: null, source_updated_at: null, source: 'rest-fallback',
+    });
+    render(<MemoryRouter><CoursesPage /></MemoryRouter>);
+    await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
+    expect(screen.queryByRole('link', { name: '购买教学通识课' })).not.toBeInTheDocument();
+  });
+
+  it('访客打开道法单课时可直接看到购买入口', () => {
+    mockAuthUser = null;
+    vi.mocked(canAccessCourse).mockReturnValue(false);
+    render(<MemoryRouter initialEntries={[`/courses/daofa/${DAOFA_LESSONS[0].id}`]}>
+      <Routes><Route path="/courses/daofa/:lessonId" element={<DaofaLessonPage />} /></Routes>
+    </MemoryRouter>);
+    expect(screen.getByRole('link', { name: '购买道法教材解读课' })).toHaveAttribute('href', 'https://xhslink.com/m/277IB24mn8I');
   });
 
   it('教师 AI 课以系列卷册目录呈现，并为课程入口提供可访问名称', async () => {
@@ -110,7 +162,7 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
     await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
 
     expect(screen.getByRole('heading', { level: 1, name: '教师 AI 课' })).toBeInTheDocument();
-    expect(screen.getByText('PRO CATALOGUE · 教师 AI 专题刊')).toBeInTheDocument();
+    expect(screen.getByText('COURSE CATALOGUE · 教师 AI 课')).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: '系列卷册导航' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: '打开课程：AI 导论' })).not.toHaveLength(0);
   });
@@ -143,7 +195,7 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
     await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
 
     expect(screen.getByRole('heading', { level: 1, name: '教学通识课' })).toBeInTheDocument();
-    expect(screen.getByText('PLUS CATALOGUE · 教学通识课')).toBeInTheDocument();
+    expect(screen.getByText('COURSE CATALOGUE · 教学通识课')).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: '系列课导航' })).toBeInTheDocument();
     expect(screen.getAllByText('理论篇').length).toBeGreaterThan(0);
     expect(screen.getAllByText('教学设计原理篇').length).toBeGreaterThan(0);
