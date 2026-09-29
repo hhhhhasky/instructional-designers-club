@@ -12,6 +12,7 @@ const { authState, homeContent } = vi.hoisted(() => ({
     loading: false,
   },
   homeContent: {
+    loaded: true,
     statsCounts: { members: 0, camps: 0, courses: 0, totalMinutes: 0 },
     homeCourses: { free: [], plus: [], pro: [] },
     loadingHomeCourses: false,
@@ -74,6 +75,7 @@ function renderHome() {
 describe("home page audience split", () => {
   afterEach(() => {
     authState.user = { id: "member-1" };
+    homeContent.loaded = true;
   });
 
   it("gives returning learners the same problem-first story and a learning shortcut", () => {
@@ -96,5 +98,17 @@ describe("home page audience split", () => {
     const ids = ['real-situations', 'why-stuck', 'teaching-method', 'about-han', 'learning-outcomes', 'course-products', 'how-to-learn'];
     const actualOrder = Array.from(container.querySelectorAll('main [id]')).map((element) => element.id).filter((id) => ids.includes(id));
     expect(actualOrder).toEqual(ids);
+  });
+
+  it("shows a text-free placeholder until homepage copy is ready", () => {
+    homeContent.loaded = false;
+    const view = renderHome();
+
+    expect(screen.getByRole('main', { name: '首页内容加载中' })).toHaveAttribute('aria-busy', 'true');
+    expect(screen.queryByRole('heading', { level: 1, name: /教案写得很完整/ })).not.toBeInTheDocument();
+
+    homeContent.loaded = true;
+    view.rerender(<MemoryRouter><HomePage /></MemoryRouter>);
+    expect(screen.getByRole('heading', { level: 1, name: /教案写得很完整/ })).toBeInTheDocument();
   });
 });

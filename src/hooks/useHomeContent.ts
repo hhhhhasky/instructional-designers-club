@@ -311,8 +311,8 @@ function buildHomeContentFromSnapshot(snapshot: HomePageSnapshot): HomeContent {
 export function useHomeContent(): HomeContent {
   const { snapshot, loading, error } = useHomeSnapshot();
   return useMemo(() => {
-    if (snapshot) return buildHomeContentFromSnapshot(snapshot);
     if (loading) return FALLBACK;
+    if (snapshot) return buildHomeContentFromSnapshot(snapshot);
     if (error) console.error("加载首页内容快照失败:", error);
     return { ...FALLBACK, loaded: true, loadingHomeCourses: false };
   }, [error, loading, snapshot]);
