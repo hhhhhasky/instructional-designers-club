@@ -226,7 +226,12 @@ export async function persistReferenceImages(params: { files: File[]; userId: st
         Body: bytes,
         ContentType: contentType,
         CacheControl: "public, max-age=31536000, immutable",
-        Metadata: { originalName: safeFileName(file.name) },
+        // S3 metadata becomes HTTP headers; raw Chinese/emoji filenames
+        // fail transport validation. Keep the display name in the run record.
+        Metadata: {
+          originalName: encodeURIComponent(safeFileName(file.name).toWellFormed()),
+          originalNameEncoding: "percent-encoding",
+        },
       }));
       stored.push({ url: `${publicUrl}/${key}`, key, name: safeFileName(file.name), contentType, size: bytes.byteLength });
     }
