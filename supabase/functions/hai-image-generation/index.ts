@@ -1,416 +1,506 @@
-import { assertHaiAccess, finalizeImageGeneration, handleCors, HttpError, jsonResponse, recordHaiModelCall, reserveImageGeneration, requireUser, streamDeepSeek, type HaiProviderUsage } from "../_shared/hai.ts";
-import { submitImage, pollImage, ImageGenerationPending, ImageProviderHttpError, getStoredImageAccessUrl, IMAGE_GENERATION_POINTS, ImageGenerationTaskError, persistImage, persistReferenceImages, publicStoredImageUrl, readImageProviderConfig, readStoredImage, validateStoredReferenceImages, type ImageGenerationSize, type StoredReferenceImage } from "../_shared/hai_image_generation.ts";
+import {
+  assertHaiAccess,
+  handleCors,
+  HttpError,
+  jsonResponse,
+  requireUser,
+  reserveImageGeneration,
+} from "../_shared/hai.ts";
+import {
+  composeImageGenerationPrompt,
+  getStoredImageAccessUrl,
+  IMAGE_DELIVERY_TIMEOUT_MS,
+  IMAGE_FAILURE_MESSAGE,
+  IMAGE_GENERATION_POINTS,
+  IMAGE_GENERATION_STYLES,
+  IMAGE_GENERATION_TYPES,
+  ImageDeliveryTimeout,
+  ImageGenerationPending,
+  type ImageGenerationSize,
+  ImageGenerationTaskError,
+  ImageProviderHttpError,
+  persistImage,
+  persistReferenceImages,
+  pollImage,
+  publicStoredImageUrl,
+  readImageProviderConfig,
+  readStoredImage,
+  type StoredReferenceImage,
+  submitImage,
+  validateStoredReferenceImages,
+} from "../_shared/hai_image_generation.ts";
 
+type Auth = Awaited<ReturnType<typeof requireUser>>;
+type Row = Record<string, any>;
 const sizes = new Set(["16:9", "1:1", "3:4", "4:3", "9:16"]);
-const styles = new Set([
-  "卡通", "写真", "3D", "教育扁平插画", "水彩", "杂志拼贴",
-  "手绘绘本", "国风水墨", "科技未来", "黏土定格", "扁平信息图", "黑板粉笔", "纸艺拼贴", "漫画分镜",
-]);
-const types = new Set([
-  "概念图", "素材图", "海报", "学习单", "课堂插图", "流程图", "思维导图", "知识卡片", "活动任务卡", "板书设计", "题目讲解图", "课前导入图",
-]);
-type Body = { action?: unknown; taskId?: unknown; runId?: unknown; parentRunId?: unknown; clientRequestId?: unknown; prompt?: unknown; size?: unknown; style?: unknown; imageType?: unknown; referenceImages?: unknown; referenceRunIds?: unknown };
-
-function clean(value: unknown, fallback = "", limit = 600) { return typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, limit) : fallback; }
-function errorMessage(error: unknown) { return (error instanceof Error ? error.message : "图片生成失败。").replace(/Bearer\s+\S+/gi, "Bearer [redacted]").slice(0, 500); }
-function composePrompt(prompt: string, size: string, style: string, imageType: string) {
-  return [
-    "你是教学设计师俱乐部的教学视觉设计师。",
-    `图片尺寸：${size}。PPT 艺术风格：${style}。图片用途：${imageType}。`,
-    `教学场景提示词：${prompt}`,
-    "请服务于课堂、教案、PPT、学习任务或教学传播；画面主体、构图、色彩和信息层级要清晰，适合教师直接使用。若不是海报或学习单，不要在画面内添加大段文字；不要生成 logo、水印或虚构的品牌标识。",
-  ].join("\n");
+const styles = new Set<string>(IMAGE_GENERATION_STYLES);
+const types = new Set<string>(IMAGE_GENERATION_TYPES);
+function clean(value: unknown, fallback = "", limit = 600) {
+  return typeof value === "string"
+    ? value.replace(/\s+/g, " ").trim().slice(0, limit)
+    : fallback;
 }
-function taskTitle(prompt: string) { const value = prompt.replace(/\s+/g, " ").trim(); return value.length > 28 ? `${value.slice(0, 28)}…` : value || "新的图片生成"; }
-function taskId(value: unknown) { const id = clean(value, "", 80); return /^[0-9a-f-]{36}$/i.test(id) ? id : ""; }
-function taskIds(value: unknown) { return Array.isArray(value) ? value.map(taskId).filter(Boolean).slice(0, 6) : []; }
-function parseJson(value: FormDataEntryValue | null) { if (typeof value !== "string" || !value) return undefined; try { return JSON.parse(value) as unknown; } catch { return undefined; } }
-
-async function readRequestBody(request: Request): Promise<{ body: Body; referenceFiles: File[] }> {
-  if (request.headers.get("content-type")?.toLowerCase().includes("multipart/form-data")) {
-    const form = await request.formData();
-    return {
-      body: {
-        action: form.get("action"),
-        taskId: form.get("taskId"),
-        runId: form.get("runId"),
-        parentRunId: form.get("parentRunId"),
-        clientRequestId: form.get("clientRequestId"),
-        prompt: form.get("prompt"),
-        size: form.get("size"),
-        style: form.get("style"),
-        imageType: form.get("imageType"),
-        referenceRunIds: parseJson(form.get("referenceRunIds")),
-      },
-      referenceFiles: form.getAll("reference_images").filter((value): value is File => value instanceof File),
-    };
+function id(value: unknown) {
+  const valueId = clean(value, "", 80);
+  return /^[0-9a-f-]{36}$/i.test(valueId) ? valueId : "";
+}
+function ids(value: unknown) {
+  return Array.isArray(value) ? value.map(id).filter(Boolean).slice(0, 6) : [];
+}
+function detail(error: unknown) {
+  return {
+    message: (error instanceof Error ? error.message : String(error)).replace(
+      /Bearer\s+\S+/gi,
+      "Bearer [redacted]",
+    ).slice(0, 500),
+    ...(error instanceof ImageProviderHttpError
+      ? { http_status: error.status, response: error.providerResponse }
+      : error instanceof ImageGenerationTaskError
+      ? { response: error.providerResponse }
+      : {}),
+  };
+}
+function publicRun(run: Row) {
+  return {
+    ...run,
+    error_message: run.status === "failed" ? IMAGE_FAILURE_MESSAGE : null,
+    failure_detail: undefined,
+    failure_code: undefined,
+    failure_stage: undefined,
+    provider_response: undefined,
+  };
+}
+function response(task: Row, run: Row) {
+  return jsonResponse({
+    task,
+    run: publicRun(run),
+    pending: ["running", "queued"].includes(run.status),
+  }, ["running", "queued"].includes(run.status) ? 202 : 200);
+}
+async function load(auth: Auth, runId: string) {
+  const r = await auth.admin.from("hai_image_generation_runs").select(
+    "*, task:hai_image_generation_tasks(*)",
+  ).eq("id", runId).eq("user_id", auth.user.id).maybeSingle();
+  if (r.error) throw new HttpError(500, IMAGE_FAILURE_MESSAGE);
+  if (!r.data) throw new HttpError(404, "图片记录不存在或无权访问。");
+  return r.data as Row;
+}
+async function fail(
+  auth: Auth,
+  runId: string,
+  code: string,
+  stage: string,
+  reason: Row = {},
+) {
+  const r = await auth.userClient.rpc("hai_fail_image_generation_run", {
+    p_run_id: runId,
+    p_code: code,
+    p_stage: stage,
+    p_detail: reason,
+  });
+  if (r.error) throw new Error(r.error.message);
+  return r.data as Row;
+}
+async function save(auth: Auth, run: Row, values: Row) {
+  const r = await auth.admin.from("hai_image_generation_runs").update(values)
+    .eq("id", run.id).eq("user_id", auth.user.id).eq("status", "running").gt(
+      "delivery_deadline_at",
+      new Date().toISOString(),
+    ).select("*").maybeSingle();
+  if (r.error) throw new Error(r.error.message);
+  if (!r.data) {
+    throw new ImageDeliveryTimeout("Run closed or delivery deadline exceeded");
   }
-  return { body: await request.json().catch(() => ({})) as Body, referenceFiles: [] };
+  Object.assign(run, r.data);
 }
-
-class ImagePromptOptimizationError extends Error {
-  readonly model: string;
-  readonly provider: string;
-  readonly durationMs: number;
-  readonly usage: HaiProviderUsage | null;
-
-  constructor(message: string, params: { model: string; provider: string; durationMs: number; usage: HaiProviderUsage | null }) {
-    super(message);
-    this.name = "ImagePromptOptimizationError";
-    this.model = params.model;
-    this.provider = params.provider;
-    this.durationMs = params.durationMs;
-    this.usage = params.usage;
+async function generate(
+  auth: Auth,
+  run: Row,
+  files: File[],
+  references: StoredReferenceImage[],
+) {
+  const deadline = Date.parse(run.delivery_deadline_at);
+  let phase = "quota_reservation";
+  let lastProviderReceipt:
+    | { taskId?: string; providerResponse: unknown }
+    | undefined;
+  const phaseMetadata = (next: string) => ({ ...run.metadata, phase: next });
+  try {
+    await reserveImageGeneration({
+      userClient: auth.userClient,
+      requestId: run.client_request_id,
+      route: "hai-image-generation",
+      metadata: {
+        run_id: run.id,
+        task_id: run.task_id,
+        image_size: run.image_size,
+        art_style: run.art_style,
+        image_type: run.image_type,
+        points: IMAGE_GENERATION_POINTS,
+      },
+    });
+    const running = await auth.admin.from("hai_image_generation_runs").update({
+      status: "running",
+      started_at: new Date().toISOString(),
+      metadata: { ...run.metadata, phase: "reference_upload" },
+    }).eq("id", run.id).eq("user_id", auth.user.id).eq("status", "queued")
+      .select("*").maybeSingle();
+    if (running.error) throw new Error(running.error.message);
+    if (!running.data) return;
+    Object.assign(run, running.data);
+    phase = "reference_upload";
+    if (Date.now() >= deadline) {
+      throw new ImageDeliveryTimeout("Preparation exceeded deadline");
+    }
+    references = [
+      ...references,
+      ...await persistReferenceImages({
+        files,
+        userId: auth.user.id,
+        taskId: run.task_id,
+        runId: run.id,
+        deadlineAt: deadline,
+      }),
+    ];
+    const finalPrompt = composeImageGenerationPrompt(
+      run.prompt,
+      run.image_size,
+      run.art_style,
+      run.image_type,
+      references.length > 0,
+    );
+    phase = "provider_configuration";
+    const config = readImageProviderConfig();
+    const businessId = `hai-image-${run.id}`;
+    phase = "provider_submit";
+    await save(auth, run, {
+      reference_images: references,
+      composed_prompt: finalPrompt,
+      provider: config.provider,
+      model: config.model,
+      provider_task_id: businessId,
+      metadata: phaseMetadata(phase),
+    });
+    const referenceImageUrls = await Promise.all(
+      references.map((image) => getStoredImageAccessUrl(image.key)),
+    );
+    let result;
+    try {
+      result = await submitImage(config, {
+        prompt: finalPrompt,
+        size: run.image_size as ImageGenerationSize,
+        referenceImageUrls,
+        businessId,
+        deadlineAt: deadline,
+      });
+    } catch (error) {
+      if (!(error instanceof ImageGenerationPending)) throw error;
+      await save(auth, run, {
+        provider_response: error.providerResponse || {},
+        metadata: { ...phaseMetadata(phase), last_error: detail(error) },
+      });
+      result = { taskId: businessId, url: undefined, providerResponse: {} };
+    }
+    lastProviderReceipt = result;
+    await save(auth, run, {
+      provider_task_id: result.taskId || businessId,
+      provider_response: result.providerResponse,
+      ...(result.url ? { source_url: result.url } : {}),
+    });
+    phase = "provider_generation";
+    await save(auth, run, { metadata: phaseMetadata(phase) });
+    while (!run.source_url) {
+      if (Date.now() >= deadline) {
+        throw new ImageDeliveryTimeout("Provider result exceeded deadline");
+      }
+      try {
+        result = await pollImage(config, run.provider_task_id, fetch, deadline);
+        lastProviderReceipt = result;
+        await save(auth, run, {
+          provider_task_id: result.taskId,
+          provider_response: result.providerResponse,
+          ...(result.url ? { source_url: result.url } : {}),
+        });
+      } catch (error) {
+        if (!(error instanceof ImageGenerationPending)) throw error;
+        await save(auth, run, {
+          provider_response: error.providerResponse || {},
+          metadata: { ...phaseMetadata(phase), last_error: detail(error) },
+        });
+      }
+      if (!run.source_url) {
+        await new Promise<void>((resolve) =>
+          setTimeout(
+            resolve,
+            Math.min(1500, Math.max(0, deadline - Date.now())),
+          )
+        );
+      }
+    }
+    phase = "r2_persistence";
+    await save(auth, run, { metadata: phaseMetadata(phase) });
+    const stored = await persistImage({
+      sourceUrl: run.source_url,
+      userId: auth.user.id,
+      taskId: run.task_id,
+      runId: run.id,
+      deadlineAt: deadline,
+    });
+    await save(auth, run, {
+      r2_key: stored.key,
+      image_url: stored.url,
+      duration_ms: Date.now() - Date.parse(run.created_at),
+      metadata: phaseMetadata("awaiting_delivery"),
+    });
+    // Saved does not mean delivered: acknowledgement is the only debit path.
+  } catch (error) {
+    const code = Date.now() >= deadline || error instanceof ImageDeliveryTimeout
+      ? "delivery_timeout"
+      : error instanceof ImageProviderHttpError
+      ? "provider_rejected"
+      : error instanceof ImageGenerationTaskError
+      ? "provider_failed"
+      : `${phase}_failed`;
+    console.warn("hai image delivery failed", {
+      run_id: run.id,
+      code,
+      phase,
+      ...detail(error),
+    });
+    const closed = await fail(auth, run.id, code, phase, detail(error));
+    if (closed.status === "failed" && lastProviderReceipt?.taskId) {
+      // A late receipt is forensic evidence only. It never restores success,
+      // downloads an image, or charges a member after the delivery deadline.
+      const audit = await auth.admin.from("hai_image_generation_runs").update({
+        provider_task_id: lastProviderReceipt.taskId,
+        provider_response: lastProviderReceipt.providerResponse,
+      }).eq("id", run.id).eq("user_id", auth.user.id).eq("status", "failed");
+      if (audit.error) {
+        console.warn("hai image late receipt audit failed", {
+          run_id: run.id,
+          ...detail(audit.error),
+        });
+      }
+    }
   }
 }
 
 Deno.serve(async (request) => {
+  const requestStartedAt = Date.now();
   const cors = handleCors(request);
   if (cors) return cors;
   try {
     if (request.method !== "POST") throw new HttpError(405, "只支持 POST。");
     const auth = await requireUser(request);
     await assertHaiAccess(auth.userClient);
-    const { body, referenceFiles } = await readRequestBody(request);
+    let body: Row, files: File[] = [];
+    if (request.headers.get("content-type")?.includes("multipart/form-data")) {
+      const form = await request.formData();
+      body = Object.fromEntries(
+        [...form].filter(([, v]) => typeof v === "string"),
+      );
+      for (const key of ["referenceRunIds", "referenceImages"]) {
+        if (typeof body[key] === "string") body[key] = JSON.parse(body[key]);
+      }
+      files = form.getAll("reference_images").filter((value): value is File =>
+        value instanceof File
+      );
+    } else body = await request.json();
     const action = clean(body.action, "generate", 20);
-    if (action === "download") {
-      const key = clean(body.runId, "", 300);
-      if (!key || key.includes("..") || key.startsWith("/")) throw new HttpError(400, "图片标识不正确。");
-      const { data: run, error } = await auth.admin.from("hai_image_generation_runs").select("r2_key").eq("status", "completed").eq("id", key).eq("user_id", auth.user.id).maybeSingle();
-      if (error) throw new HttpError(500, error.message);
-      if (!run?.r2_key) throw new HttpError(404, "图片文件不存在。");
-      const file = await readStoredImage(run.r2_key);
-      return new Response(file.bytes.buffer, { headers: { "content-type": file.contentType, "cache-control": "private, max-age=300", "access-control-allow-origin": "*" } });
-    }
-    if (action === "status") return await refreshImageRun(auth, taskId(body.runId));
-    if (action !== "generate") throw new HttpError(400, "图片操作不正确。");
-    const prompt = clean(body.prompt, "", 6000);
-    const size = clean(body.size, "16:9", 20);
-    const style = clean(body.style, "教育扁平插画", 40);
-    const imageType = clean(body.imageType, "概念图", 40);
-    if (!prompt) throw new HttpError(400, "请输入图片提示词。");
-    if (!sizes.has(size) || !styles.has(style) || !types.has(imageType)) throw new HttpError(400, "图片选项不正确，请重新选择。");
-    if (referenceFiles.length > 6) throw new HttpError(400, "最多只能上传 6 张参考图片。");
-    const clientRequestId = clean(body.clientRequestId, "", 160) || crypto.randomUUID();
-    const existing = await auth.admin.from("hai_image_generation_runs").select("*, task:hai_image_generation_tasks(*)").eq("user_id", auth.user.id).eq("client_request_id", clientRequestId).maybeSingle();
-    if (existing.error) throw new HttpError(500, existing.error.message);
-    if (existing.data) return jsonResponse({ task: existing.data.task, run: existing.data, replayed: true }, ["queued", "running"].includes(existing.data.status) ? 202 : 200);
-
-    const requestedTaskId = taskId(body.taskId);
-    let task: Record<string, unknown> | null = null;
-    if (requestedTaskId) {
-      const result = await auth.admin.from("hai_image_generation_tasks").select("*").eq("id", requestedTaskId).eq("user_id", auth.user.id).maybeSingle();
-      if (result.error) throw new HttpError(500, result.error.message);
-      if (!result.data) throw new HttpError(404, "图片任务不存在或你无权访问。");
-      task = result.data as Record<string, unknown>;
-    } else {
-      const result = await auth.admin.from("hai_image_generation_tasks").insert({ user_id: auth.user.id, title: taskTitle(prompt) }).select("*").single();
-      if (result.error) throw new HttpError(500, result.error.message);
-      task = result.data as Record<string, unknown>;
-    }
-    const composedPrompt = composePrompt(prompt, size, style, imageType);
-    let referenceImages: StoredReferenceImage[] = [];
-    if (body.referenceImages !== undefined) {
-      try {
-        referenceImages = validateStoredReferenceImages(body.referenceImages, auth.user.id);
-      } catch (error) {
-        throw new HttpError(400, error instanceof Error ? error.message : "参考图片标识不正确。");
+    if (["status", "download", "acknowledge", "fail"].includes(action)) {
+      let run = await load(auth, id(body.runId));
+      const task = run.task;
+      if (
+        ["running", "queued"].includes(run.status) &&
+        (!run.delivery_deadline_at ||
+          Date.now() >= Date.parse(run.delivery_deadline_at))
+      ) {
+        run = await fail(
+          auth,
+          run.id,
+          "delivery_timeout",
+          run.metadata?.phase || "delivery",
+        );
       }
-    }
-    const referenceRunIds = taskIds(body.referenceRunIds);
-    if (referenceRunIds.length) {
-      const previous = await auth.admin.from("hai_image_generation_runs").select("id,r2_key,image_url").in("id", referenceRunIds).eq("task_id", task.id).eq("user_id", auth.user.id).eq("status", "completed");
-      if (previous.error) throw new HttpError(500, previous.error.message);
-      if ((previous.data ?? []).length !== referenceRunIds.length || (previous.data ?? []).some((item) => !item.r2_key)) throw new HttpError(400, "选择的参考图片不存在或尚未保存完成。");
-      referenceImages = [...referenceImages, ...(previous.data ?? []).map((item) => ({
-        url: publicStoredImageUrl(String(item.r2_key)),
-        key: String(item.r2_key),
-        name: "上一轮生成图片",
-        contentType: "image/png",
-        size: null,
-      })) as StoredReferenceImage[]];
-    }
-    if (referenceImages.length + referenceFiles.length > 6) throw new HttpError(400, "最多只能使用 6 张参考图片。");
-    const parentRunId = taskId(body.parentRunId);
-    if (parentRunId) {
-      const parent = await auth.admin.from("hai_image_generation_runs").select("id").eq("id", parentRunId).eq("task_id", task.id).eq("user_id", auth.user.id).maybeSingle();
-      if (parent.error) throw new HttpError(500, parent.error.message);
-      if (!parent.data) throw new HttpError(400, "继续生成时的上一轮记录不正确。");
-    }
-    const result = await auth.admin.from("hai_image_generation_runs").insert({
-      task_id: task.id, user_id: auth.user.id, parent_run_id: parentRunId || null,
-      client_request_id: clientRequestId, prompt, composed_prompt: composedPrompt, image_size: size, art_style: style, image_type: imageType,
-      reference_images: referenceImages,
-      metadata: { points: IMAGE_GENERATION_POINTS, input: { prompt, size, style, imageType, prompt_strategy: "pending" } },
-    }).select("*").single();
-    if (result.error) throw new HttpError(500, result.error.message);
-    const run = result.data as Record<string, unknown>;
-    const billingMetadata = { task_id: task.id, run_id: run.id, image_size: size, art_style: style, image_type: imageType, points: IMAGE_GENERATION_POINTS };
-    let reserved = false;
-    const startedAt = Date.now();
-    let generatedTaskId: string | undefined;
-    let submissionStarted = false;
-    let generatedSourceUrl = "";
-    let generatedProviderResponse: unknown;
-    try {
-      await reserveImageGeneration({ userClient: auth.userClient, requestId: clientRequestId, route: "hai-image-generation", metadata: billingMetadata });
-      reserved = true;
-      const running = await auth.admin.from("hai_image_generation_runs").update({ status: "running", started_at: new Date().toISOString() }).eq("id", run.id).eq("user_id", auth.user.id);
-      if (running.error) throw new Error(running.error.message);
-      const config = readImageProviderConfig();
-      await auth.admin.from("hai_image_generation_runs").update({ provider: config.provider, model: config.model }).eq("id", run.id).eq("user_id", auth.user.id);
-      if (referenceFiles.length) {
-        referenceImages = [...referenceImages, ...await persistReferenceImages({ files: referenceFiles, userId: auth.user.id, taskId: String(task.id), runId: String(run.id) })];
-        await auth.admin.from("hai_image_generation_runs").update({ reference_images: referenceImages }).eq("id", run.id).eq("user_id", auth.user.id);
+      if (action === "fail") {
+        const stage = clean(body.stage, "delivery", 50);
+        run = await fail(
+          auth,
+          run.id,
+          stage === "client_deadline"
+            ? "delivery_timeout"
+            : "client_delivery_failed",
+          run.metadata?.phase || stage,
+          { client_stage: stage, last_error: run.metadata?.last_error || null },
+        );
+        return response(task, run);
       }
-      const isImageEdit = referenceImages.length > 0;
-      let finalPrompt = prompt;
-      if (isImageEdit) {
-        // An edit prompt is intentionally kept verbatim. DeepSeek can add
-        // new subjects or rewrite the requested change, causing the result
-        // to drift too far from the reference image.
-        await auth.admin.from("hai_image_generation_runs").update({
-          composed_prompt: prompt,
-          optimized_prompt: null,
-          prompt_optimizer_model: null,
-          prompt_optimizer_provider: null,
-          prompt_optimizer_usage: {},
-          prompt_optimizer_duration_ms: null,
-          prompt_optimizer_error: null,
-          metadata: { points: IMAGE_GENERATION_POINTS, input: { prompt, size, style, imageType, prompt_strategy: "image_edit_direct" } },
-        }).eq("id", run.id).eq("user_id", auth.user.id);
-      } else {
-        const optimized = await optimizeImagePrompt({
-          prompt,
-          size,
-          style,
-          imageType,
-          basePrompt: composedPrompt,
-          admin: auth.admin,
-          userId: auth.user.id,
-          requestId: clientRequestId,
-          runId: String(run.id),
-          referenceImageCount: 0,
+      if (action === "acknowledge") {
+        const r = await auth.userClient.rpc("hai_acknowledge_image_delivery", {
+          p_run_id: run.id,
         });
-        finalPrompt = optimized.prompt;
-        await auth.admin.from("hai_image_generation_runs").update({
-          composed_prompt: optimized.prompt,
-          optimized_prompt: optimized.prompt,
-          prompt_optimizer_model: optimized.model,
-          prompt_optimizer_provider: optimized.provider,
-          prompt_optimizer_usage: optimized.usage || {},
-          prompt_optimizer_duration_ms: optimized.durationMs,
-          prompt_optimizer_error: null,
-          metadata: { points: IMAGE_GENERATION_POINTS, input: { prompt, size, style, imageType, prompt_strategy: "deepseek_optimized" } },
-        }).eq("id", run.id).eq("user_id", auth.user.id);
+        if (r.error) throw new Error(r.error.message);
+        return response(task, r.data);
       }
-      const referenceImageUrls = await Promise.all(referenceImages.map((image) => getStoredImageAccessUrl(image.key)));
-      // Save a lookup key before POST, so even a lost submission response is recoverable.
-      generatedTaskId = `hai-image-${run.id}`;
-      const checkpoint = await auth.admin.from("hai_image_generation_runs").update({ provider_task_id: generatedTaskId }).eq("id", run.id).eq("user_id", auth.user.id).eq("status", "running").select("id").single();
-      if (checkpoint.error) throw new Error(checkpoint.error.message);
-      submissionStarted = true;
-      const generated = await submitImage(config, { prompt: finalPrompt, size: size as ImageGenerationSize, referenceImageUrls, businessId: generatedTaskId });
-      generatedTaskId = generated.taskId;
-      generatedSourceUrl = generated.url || "";
-      generatedProviderResponse = generated.providerResponse;
-      const update = await auth.admin.from("hai_image_generation_runs").update({
-        provider_task_id: generatedTaskId, ...(generatedSourceUrl ? { source_url: generatedSourceUrl } : {}),
-        provider_response: generatedProviderResponse, error_message: null,
-      }).eq("id", run.id).eq("user_id", auth.user.id).eq("status", "running").select("*").maybeSingle();
-      if (update.error) throw new Error(update.error.message);
-      console.info("hai image submitted", { run_id: run.id, duration_ms: Date.now() - startedAt });
-      return jsonResponse({ task, run: update.data || { ...run, status: "running", provider_task_id: generatedTaskId }, pending: true }, 202);
-    } catch (generationError) {
-      if (generationError instanceof ImageGenerationPending || (submissionStarted && !(generationError instanceof ImageProviderHttpError))) {
-        // POST or checkpoint reply may be lost. Keep the pre-saved lookup key;
-        // a later status request queries the original task and never creates another.
-        const saved = await auth.admin.from("hai_image_generation_runs").select("*").eq("id", run.id).eq("user_id", auth.user.id).single();
-        if (saved.error) throw new HttpError(503, "任务已提交，请在图片记录中继续取回。");
-        return jsonResponse({ task, run: saved.data, pending: true }, 202);
+      if (action === "download") {
+        if (run.status === "failed" || !run.r2_key) {
+          throw new HttpError(409, IMAGE_FAILURE_MESSAGE);
+        }
+        const file = await readStoredImage(
+          run.r2_key,
+          run.status === "completed"
+            ? undefined
+            : Date.parse(run.delivery_deadline_at),
+        );
+        return new Response(file.bytes.buffer, {
+          headers: {
+            "content-type": file.contentType,
+            "cache-control": "private, max-age=300",
+            "access-control-allow-origin": "*",
+          },
+        });
       }
-      const providerTaskId = generationError instanceof ImageGenerationTaskError ? generationError.taskId : generatedTaskId;
-      const message = errorMessage(generationError);
-      const optimizationError = generationError instanceof ImagePromptOptimizationError ? generationError : null;
-      const providerError = generationError instanceof ImageGenerationTaskError ? generationError.providerResponse : generatedProviderResponse;
-      await auth.admin.from("hai_image_generation_runs").update({
-        status: "failed",
-        provider_task_id: providerTaskId || null,
-        source_url: generatedSourceUrl || null,
-        error_message: message,
-        prompt_optimizer_model: optimizationError?.model || null,
-        prompt_optimizer_provider: optimizationError?.provider || null,
-        prompt_optimizer_usage: optimizationError?.usage || {},
-        prompt_optimizer_duration_ms: optimizationError?.durationMs || null,
-        prompt_optimizer_error: optimizationError ? message : null,
-        provider_response: providerError || { error: message },
-        duration_ms: Date.now() - startedAt,
-        completed_at: new Date().toISOString(),
-      }).eq("id", run.id).eq("user_id", auth.user.id);
-      if (reserved) await finalizeImageGeneration({ userClient: auth.userClient, requestId: clientRequestId, status: "failed", route: "hai-image-generation", entityId: String(task.id), durationMs: Date.now() - startedAt, metadata: { ...billingMetadata, provider_task_id: providerTaskId || null, error: message } });
-      if (generationError instanceof HttpError) throw generationError;
-      throw new HttpError(502, message);
+      return response(task, run);
     }
+    if (action !== "generate") throw new HttpError(400, "图片操作不正确。");
+    const runtime = (globalThis as unknown as {
+      EdgeRuntime?: { waitUntil: (work: Promise<unknown>) => void };
+    }).EdgeRuntime;
+    if (!runtime) throw new Error("Background runtime unavailable");
+    const prompt = typeof body.prompt === "string"
+        ? body.prompt.trim().slice(0, 6000)
+        : "",
+      size = clean(body.size, "16:9", 20),
+      style = clean(body.style, "教育扁平插画", 40),
+      imageType = clean(body.imageType, "课件 PPT", 40);
+    if (
+      !prompt || !sizes.has(size) || !styles.has(style) || !types.has(imageType)
+    ) throw new HttpError(400, "请检查提示词和图片选项。");
+    if (files.length > 6) {
+      throw new HttpError(400, "最多只能上传 6 张参考图片。");
+    }
+    const clientRequestId = clean(body.clientRequestId, "", 160) ||
+      crypto.randomUUID();
+    const existing = await auth.admin.from("hai_image_generation_runs").select(
+      "*, task:hai_image_generation_tasks(*)",
+    ).eq("user_id", auth.user.id).eq("client_request_id", clientRequestId)
+      .maybeSingle();
+    if (existing.error) throw new Error(existing.error.message);
+    if (existing.data) {
+      let run = existing.data;
+      if (
+        ["running", "queued"].includes(run.status) &&
+        Date.now() >= Date.parse(run.delivery_deadline_at)
+      ) {
+        run = await fail(
+          auth,
+          run.id,
+          "delivery_timeout",
+          run.metadata?.phase || "delivery",
+        );
+      }
+      return response(existing.data.task, run);
+    }
+    let task: Row;
+    if (id(body.taskId)) {
+      const r = await auth.admin.from("hai_image_generation_tasks").select("*")
+        .eq("id", id(body.taskId)).eq("user_id", auth.user.id).maybeSingle();
+      if (r.error || !r.data) {
+        throw new HttpError(404, "图片任务不存在或无权访问。");
+      }
+      task = r.data;
+    } else {
+      const r = await auth.admin.from("hai_image_generation_tasks").insert({
+        user_id: auth.user.id,
+        title: prompt.slice(0, 28),
+      }).select("*").single();
+      if (r.error) throw new Error(r.error.message);
+      task = r.data;
+    }
+    let references = validateStoredReferenceImages(
+      body.referenceImages,
+      auth.user.id,
+    );
+    const referenceIds = ids(body.referenceRunIds);
+    if (referenceIds.length) {
+      const r = await auth.admin.from("hai_image_generation_runs").select(
+        "id,r2_key",
+      ).in("id", referenceIds).eq("task_id", task.id).eq(
+        "user_id",
+        auth.user.id,
+      ).eq("status", "completed");
+      if (
+        r.error || r.data?.length !== referenceIds.length ||
+        r.data.some((item) => !item.r2_key)
+      ) throw new HttpError(400, "参考图片不存在或尚未完成。");
+      references = [
+        ...references,
+        ...r.data.map((item) => ({
+          url: publicStoredImageUrl(item.r2_key),
+          key: item.r2_key,
+          name: "上一轮生成图片",
+          contentType: "image/png",
+          size: null,
+        })),
+      ];
+    }
+    if (references.length + files.length > 6) {
+      throw new HttpError(400, "最多只能使用 6 张参考图片。");
+    }
+    const parentRunId = id(body.parentRunId);
+    if (parentRunId) {
+      const r = await auth.admin.from("hai_image_generation_runs").select("id")
+        .eq("id", parentRunId).eq("task_id", task.id).eq(
+          "user_id",
+          auth.user.id,
+        ).maybeSingle();
+      if (r.error || !r.data) throw new HttpError(400, "上一轮记录不正确。");
+    }
+    const remaining = Number(body.remainingMs);
+    const budget = Number.isFinite(remaining)
+      ? Math.max(0, Math.min(IMAGE_DELIVERY_TIMEOUT_MS, remaining))
+      : IMAGE_DELIVERY_TIMEOUT_MS;
+    const deadline = new Date(requestStartedAt + budget).toISOString();
+    const r = await auth.admin.from("hai_image_generation_runs").insert({
+      task_id: task.id,
+      user_id: auth.user.id,
+      parent_run_id: parentRunId || null,
+      client_request_id: clientRequestId,
+      prompt,
+      composed_prompt: composeImageGenerationPrompt(
+        prompt,
+        size,
+        style,
+        imageType,
+      ),
+      image_size: size,
+      art_style: style,
+      image_type: imageType,
+      reference_images: references,
+      delivery_deadline_at: deadline,
+      metadata: {
+        points: IMAGE_GENERATION_POINTS,
+        phase: "queued",
+        prompt_strategy: "static_template",
+        input: { prompt, size, style, imageType },
+      },
+    }).select("*").single();
+    if (r.error) throw new Error(r.error.message);
+    runtime.waitUntil(
+      generate(auth, r.data, files, references).catch((error) =>
+        console.error("hai image delivery close failed", {
+          run_id: r.data.id,
+          ...detail(error),
+        })
+      ),
+    );
+    return response(task, r.data);
   } catch (error) {
-    const status = error instanceof HttpError ? error.status : 500;
-    return jsonResponse({ error: errorMessage(error) }, status);
+    console.warn("hai image request failed", detail(error));
+    return jsonResponse({
+      error: error instanceof HttpError && error.status < 500
+        ? error.message
+        : IMAGE_FAILURE_MESSAGE,
+    }, error instanceof HttpError ? error.status : 500);
   }
 });
-
-async function refreshImageRun(auth: Awaited<ReturnType<typeof requireUser>>, runId: string) {
-  if (!runId) throw new HttpError(400, "图片记录标识不正确。");
-  const loaded = await auth.admin.from("hai_image_generation_runs").select("*, task:hai_image_generation_tasks(*)").eq("id", runId).eq("user_id", auth.user.id).maybeSingle();
-  if (loaded.error) throw new HttpError(500, loaded.error.message);
-  if (!loaded.data) throw new HttpError(404, "图片记录不存在或无权访问。");
-  let run = loaded.data;
-  const task = run.task;
-  if (["completed", "failed"].includes(run.status)) return jsonResponse({ task, run, replayed: true });
-  if (!run.provider_task_id) {
-    if (Date.now() - Date.parse(run.started_at || run.created_at) > 5 * 60_000) {
-      // No provider request can start before the lookup key is persisted.
-      await finalizeImageGeneration({ userClient: auth.userClient, requestId: run.client_request_id, status: "failed", route: "hai-image-generation", entityId: run.task_id });
-      const interrupted = await auth.admin.from("hai_image_generation_runs").update({ status: "failed", error_message: "任务准备中断，请重新提交。", completed_at: new Date().toISOString() }).eq("id", run.id).eq("user_id", auth.user.id).is("provider_task_id", null).in("status", ["queued", "running"]).select("*").maybeSingle();
-      if (interrupted.error) throw new HttpError(503, "暂时无法更新图片记录。");
-      if (interrupted.data) run = interrupted.data;
-    }
-    return jsonResponse({ task, run, pending: run.status !== "failed" }, run.status === "failed" ? 200 : 202);
-  }
-  const startedAt = Date.parse(run.started_at || run.created_at);
-  const save = async (values: Record<string, unknown>) => {
-    const result = await auth.admin.from("hai_image_generation_runs").update(values).eq("id", run.id).eq("user_id", auth.user.id).eq("status", "running").select("*").maybeSingle();
-    if (result.error) throw new Error(result.error.message);
-    if (result.data) run = result.data;
-  };
-  try {
-    if (!run.source_url) {
-      const polled = await pollImage(readImageProviderConfig(), run.provider_task_id);
-      await save({ provider_task_id: polled.taskId, provider_response: polled.providerResponse, source_url: polled.url || null });
-      if (!polled.url) return jsonResponse({ task, run, pending: true }, 202);
-    }
-    if (!run.r2_key) {
-      const stored = await persistImage({ sourceUrl: run.source_url, userId: auth.user.id, taskId: run.task_id, runId: run.id });
-      await save({ r2_key: stored.key, image_url: stored.url, duration_ms: Date.now() - startedAt });
-    }
-    // Settlement and completion commit together; retries cannot debit twice.
-    const completed = await auth.userClient.rpc("hai_complete_image_generation_run", { p_run_id: run.id });
-    if (completed.error) throw new Error(completed.error.message);
-    console.info("hai image completed", { run_id: run.id, duration_ms: Date.now() - startedAt });
-    return jsonResponse({ task, run: completed.data, points: IMAGE_GENERATION_POINTS });
-  } catch (error) {
-    if (error instanceof ImageGenerationTaskError && !(error instanceof ImageGenerationPending)) {
-      const settled = await auth.userClient.rpc("hai_finalize_image_generation", {
-        p_request_id: run.client_request_id, p_status: "failed", p_route: "hai-image-generation",
-        p_entity_id: run.task_id, p_duration_ms: Date.now() - startedAt,
-        p_metadata: { run_id: run.id, error: errorMessage(error) },
-      });
-      if (settled.error) throw new HttpError(503, "结果结算暂不可用，请稍后继续取回。");
-      await save({ status: "failed", error_message: errorMessage(error), provider_response: error.providerResponse || {}, completed_at: new Date().toISOString() });
-      return jsonResponse({ task, run });
-    }
-    console.warn("hai image retrieval deferred", { run_id: run.id, error: errorMessage(error) });
-    // Poll, download, storage and DB outages are retryable. Preserve the source
-    // URL and any saved object, and leave the reservation unsettled for retry.
-    return jsonResponse({ task, run: { ...run, error_message: errorMessage(error).includes("积分不足") ? "图片已保存，积分不足；补充积分后点击继续取回。" : null }, pending: true }, 202);
-  }
-}
-
-async function optimizeImagePrompt(params: {
-  prompt: string;
-  size: string;
-  style: string;
-  imageType: string;
-  basePrompt: string;
-  admin: Parameters<typeof recordHaiModelCall>[0]["admin"];
-  userId: string;
-  requestId: string;
-  runId: string;
-  referenceImageCount: number;
-}) {
-  const model = Deno.env.get("DEEPSEEK_MODEL") || "deepseek-v4-flash";
-  const startedAt = new Date();
-  let output = "";
-  let usage: HaiProviderUsage | null = null;
-  let provider = "deepseek";
-  const system = [
-    "你是专业的教学视觉生图提示词优化器。",
-    "请把用户的简短需求和已选参数，改写成一段可以直接交给文生图模型执行的高质量提示词。",
-    "补全主体、场景、构图、视角、层次、色彩、光线、材质和教学使用语境，但不要凭空添加会改变用户意图的具体事实。",
-    "必须严格遵守用户选择的图片尺寸、艺术风格和图片类型；海报或学习单需要规划清晰的信息区域，其他图片不要添加大段文字。",
-    "只输出最终提示词，不要解释优化过程，不要使用 Markdown、标题、引号或‘优化后的提示词：’等前缀。",
-  ].join("\n");
-  const user = [
-    `用户原始提示词：${params.prompt}`,
-    `图片尺寸：${params.size}`,
-    `PPT 艺术风格：${params.style}`,
-    `图片用途：${params.imageType}`,
-    `基础教学约束：${params.basePrompt}`,
-  ].join("\n");
-
-  try {
-    for await (const token of streamDeepSeek([
-      { role: "system", content: system },
-      { role: "user", content: user },
-    ], {
-      model,
-      temperature: 0.2,
-      maxTokens: 900,
-      thinkingEnabled: false,
-      userId: params.userId,
-      admin: params.admin,
-      timeoutMs: 60_000,
-      onUsage: (value) => { usage = value; },
-      onProviderResolved: (value) => { provider = value; },
-    })) output += token;
-
-    const optimizedPrompt = normalizeOptimizedPrompt(output);
-    if (!optimizedPrompt) throw new Error("DeepSeek 没有返回有效的优化提示词。");
-    const completedAt = new Date();
-    await recordHaiModelCall({
-      admin: params.admin,
-      userId: params.userId,
-      requestId: params.requestId,
-      callIndex: 1,
-      stage: "image_prompt_optimization",
-      route: "hai-image-generation",
-      entityType: "hai_image_generation_run",
-      entityId: params.runId,
-      model,
-      provider,
-      startedAt,
-      completedAt,
-      status: "completed",
-      usage,
-        metadata: { run_id: params.runId, image_size: params.size, art_style: params.style, image_type: params.imageType, reference_image_count: params.referenceImageCount },
-    });
-    return { prompt: optimizedPrompt, model, provider, usage, durationMs: completedAt.getTime() - startedAt.getTime() };
-  } catch (error) {
-    const completedAt = new Date();
-    await recordHaiModelCall({
-      admin: params.admin,
-      userId: params.userId,
-      requestId: params.requestId,
-      callIndex: 1,
-      stage: "image_prompt_optimization",
-      route: "hai-image-generation",
-      entityType: "hai_image_generation_run",
-      entityId: params.runId,
-      model,
-      provider,
-      startedAt,
-      completedAt,
-      status: "failed",
-      usage,
-      metadata: { run_id: params.runId, image_size: params.size, art_style: params.style, image_type: params.imageType, reference_image_count: params.referenceImageCount, error: errorMessage(error) },
-    });
-    throw new ImagePromptOptimizationError(errorMessage(error), { model, provider, durationMs: completedAt.getTime() - startedAt.getTime(), usage });
-  }
-}
-
-function normalizeOptimizedPrompt(value: string) {
-  return value
-    .replace(/^```(?:text|markdown)?\s*/i, "")
-    .replace(/\s*```$/i, "")
-    .replace(/^(?:优化后的提示词|最终提示词|prompt)\s*[:：]\s*/i, "")
-    .trim()
-    .slice(0, 8_000);
-}

@@ -1,13 +1,107 @@
-import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "npm:@aws-sdk/client-s3@3.1048.0";
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from "npm:@aws-sdk/client-s3@3.1048.0";
 import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner@3.1048.0";
 
 export type ImageGenerationSize = "16:9" | "1:1" | "3:4" | "4:3" | "9:16";
-export type ImageGenerationStyle = "卡通" | "写真" | "3D" | "教育扁平插画" | "水彩" | "杂志拼贴";
-export type ImageGenerationType = "概念图" | "素材图" | "海报" | "学习单";
-
+export const IMAGE_GENERATION_TYPES = [
+  "课件 PPT",
+  "海报",
+  "学习单",
+  "思维导图",
+] as const;
+export type ImageGenerationType = (typeof IMAGE_GENERATION_TYPES)[number];
+export const IMAGE_GENERATION_STYLES = [
+  "卡通",
+  "写真",
+  "3D",
+  "教育扁平插画",
+  "水彩",
+  "杂志拼贴",
+  "手绘绘本",
+  "国风水墨",
+  "科技未来",
+  "黏土定格",
+  "扁平信息图",
+  "黑板粉笔",
+  "纸艺拼贴",
+  "漫画分镜",
+] as const;
+export type ImageGenerationStyle = (typeof IMAGE_GENERATION_STYLES)[number];
 export const IMAGE_GENERATION_POINTS = 20;
+export const IMAGE_DELIVERY_TIMEOUT_MS = 150_000;
+export const IMAGE_FAILURE_MESSAGE = "本次生成失败，本轮未扣积分，请再次尝试。";
 export const MAX_REFERENCE_IMAGES = 6;
 export const MAX_REFERENCE_IMAGE_BYTES = 10 * 1024 * 1024;
+
+const modePrompts: Record<ImageGenerationType, string> = {
+  "课件 PPT":
+    "制作老师课堂授课使用的单页 PPT 视觉材料：标题、图像与文字要点层次清楚，图文兼备，中文文字简洁易读，适合学生观看和课堂投影。按所选尺寸排版。",
+  "海报":
+    "制作面向学生的教学海报：围绕学习主题设置清晰标题、主要视觉和少量重点文字，突出课堂知识或学习任务，避免商业广告和营销口号。",
+  "学习单":
+    "制作学生课堂使用的学习单：有明确的学习任务、问题与操作指引，保留适当的填写或作答空间，图文服务于学生思考与学习。",
+  "思维导图":
+    "制作学生学习用的思维导图：中心主题突出，分支与层级清晰，概念之间的关系准确，文字简短，配色与图像帮助学生理解和记忆。",
+};
+const stylePrompts: Record<ImageGenerationStyle, string> = {
+  "卡通": "采用清晰生动的卡通造型和友好配色，形象帮助学生理解内容。",
+  "写真": "采用自然写实的摄影视觉，主体、光线和细节清楚，保持教学内容准确。",
+  "3D": "采用有空间层次的三维视觉，结构与关系直观，避免装饰遮挡内容。",
+  "教育扁平插画": "采用简洁的教育扁平插画，形状规整、配色协调、信息层级明确。",
+  "水彩": "采用柔和的水彩笔触与纸张质感，确保文字和教学主体清晰。",
+  "杂志拼贴": "采用照片、色块和纸张元素的拼贴视觉，排列有序，突出学习重点。",
+  "手绘绘本": "采用温暖的手绘绘本风格，场景与人物有叙事性，符合学生认知。",
+  "国风水墨": "采用国风水墨笔触、留白和淡雅色彩，教学图像与文字清晰可辨。",
+  "科技未来":
+    "采用科技感线条和空间视觉，以清晰图形表达教学内容，避免企业发布会版式。",
+  "黏土定格": "采用黏土模型与定格动画质感，造型直观，画面主体清楚。",
+  "扁平信息图": "采用扁平信息图，图标、连接线和分区帮助学生看懂关系与步骤。",
+  "黑板粉笔": "采用黑板与粉笔笔触的课堂视觉，板书结构清晰，文字易读。",
+  "纸艺拼贴": "采用剪纸、折纸与纸艺拼贴质感，层次简洁，主体与文字突出。",
+  "漫画分镜": "采用漫画分镜表达过程或情境，阅读顺序清晰，台词和标注简短。",
+};
+export function imageTypePromptBlock(imageType: string) {
+  return modePrompts[imageType as ImageGenerationType] || "";
+}
+export function composeImageGenerationPrompt(
+  prompt: string,
+  size: string,
+  style: string,
+  imageType: string,
+  hasReferences = false,
+) {
+  return [
+    "全局教学场景要求（始终适用，不因艺术风格或用户描述而改变）：所有图片均为老师上课使用、面向学生的课堂教学视觉材料。",
+    "内容与表达须适合学生认知，教学信息准确、直观，按用户提供的学段与主题呈现。",
+    "排除商业汇报、公司述职、企业培训、商演、路演和面向观众的演讲场景；不采用企业演示、商务营销或舞台演讲的内容与版式。",
+    "图片尺寸：" + size + "，严格按所选比例构图。",
+    "生成图类型：" + imageType + "。" + imageTypePromptBlock(imageType),
+    "艺术风格：" + style + "。" +
+    (stylePrompts[style as ImageGenerationStyle] || ""),
+    ...(hasReferences
+      ? [
+        "使用提供的参考图片执行用户要求的修改；保留用户未要求修改的主体和内容，避免无关添加。",
+      ]
+      : []),
+    "画面文字使用中文（用户明确要求其他语言时依其要求），清晰易读，不添加 logo、水印或虚构品牌标识。",
+    "用户原始要求（在上述课堂教学约束内保持其意图）：\n" + prompt,
+  ].join("\n\n");
+}
+export class ImageDeliveryTimeout extends Error {}
+export function imageBudgetSignal(
+  deadlineAt = Date.now() + IMAGE_DELIVERY_TIMEOUT_MS,
+  capMs = IMAGE_DELIVERY_TIMEOUT_MS,
+) {
+  const remaining = Math.floor(Math.min(capMs, deadlineAt - Date.now()));
+  if (remaining <= 0) {
+    throw new ImageDeliveryTimeout("Image delivery deadline exceeded");
+  }
+  return AbortSignal.timeout(remaining);
+}
 
 export class ImageGenerationTaskError extends Error {
   taskId?: string;
@@ -31,22 +125,37 @@ export type StoredReferenceImage = {
 
 type Raw = Record<string, unknown>;
 function record(value: unknown): Raw {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as Raw : {};
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Raw
+    : {};
 }
 function text(value: unknown, fallback = "", limit = 500) {
-  return typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, limit) : fallback;
+  return typeof value === "string"
+    ? value.replace(/\s+/g, " ").trim().slice(0, limit)
+    : fallback;
 }
 
-export function readImageProviderConfig(getEnv: (name: string) => string | undefined = (name) => Deno.env.get(name)) {
+export function readImageProviderConfig(
+  getEnv: (name: string) => string | undefined = (name) => Deno.env.get(name),
+) {
   const config = {
     provider: text(getEnv("HAI_COURSEWARE_IMAGE_PROVIDER"), "", 40),
     apiKey: text(getEnv("HAI_COURSEWARE_IMAGE_API_KEY"), "", 500),
-    baseUrl: text(getEnv("HAI_COURSEWARE_IMAGE_BASE_URL"), "", 500).replace(/\/$/, ""),
+    baseUrl: text(getEnv("HAI_COURSEWARE_IMAGE_BASE_URL"), "", 500).replace(
+      /\/$/,
+      "",
+    ),
     model: text(getEnv("HAI_COURSEWARE_IMAGE_MODEL"), "", 120),
   };
-  const missing = Object.entries(config).filter(([, value]) => !value).map(([key]) => key);
-  if (missing.length) throw new Error(`生图服务缺少配置：${missing.join("、")}。`);
-  if (config.provider.toLowerCase() !== "toapis") throw new Error(`暂不支持生图服务 ${config.provider}。`);
+  const missing = Object.entries(config).filter(([, value]) => !value).map((
+    [key],
+  ) => key);
+  if (missing.length) {
+    throw new Error(`生图服务缺少配置：${missing.join("、")}。`);
+  }
+  if (config.provider.toLowerCase() !== "toapis") {
+    throw new Error(`暂不支持生图服务 ${config.provider}。`);
+  }
   return config;
 }
 
@@ -67,46 +176,123 @@ function providerTaskId(payload: unknown) {
 function providerErrorMessage(payload: unknown) {
   const raw = record(payload);
   const result = record(raw.result);
-  const error = raw.error ?? result.error ?? raw.failure_reason ?? result.failure_reason ?? raw.message ?? result.message;
-  if (typeof error === "string" && error.trim()) return error.trim().slice(0, 300);
+  const error = raw.error ?? result.error ?? raw.failure_reason ??
+    result.failure_reason ?? raw.message ?? result.message;
+  if (typeof error === "string" && error.trim()) {
+    return error.trim().slice(0, 300);
+  }
   const errorRecord = record(error);
   const nested = errorRecord.message ?? errorRecord.detail ?? errorRecord.code;
-  return typeof nested === "string" && nested.trim() ? nested.trim().slice(0, 300) : "生图任务失败。";
+  return typeof nested === "string" && nested.trim()
+    ? nested.trim().slice(0, 300)
+    : "生图任务失败。";
 }
 
 export class ImageGenerationPending extends ImageGenerationTaskError {}
 
 export class ImageProviderHttpError extends Error {
-  constructor(readonly status: number, message: string) { super(message); }
+  constructor(
+    readonly status: number,
+    message: string,
+    readonly providerResponse?: unknown,
+  ) {
+    super(message);
+  }
 }
 
 async function providerResponse(response: Response) {
-  const payload = await response.json();
-  if (!response.ok) throw new ImageProviderHttpError(response.status, providerErrorMessage(payload));
+  // Gateways may return plain text/HTML errors. Preserve the HTTP status
+  // instead of turning a definitive rejection into a lost-receipt retry.
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new ImageProviderHttpError(
+      response.status,
+      payload
+        ? providerErrorMessage(payload)
+        : `生图服务请求失败（HTTP ${response.status}）。`,
+      payload,
+    );
+  }
+  if (!payload) throw new Error("生图服务返回了无法解析的响应。");
   return payload;
 }
 
-type ImageProviderResult = { taskId?: string; url?: string; providerResponse: unknown };
-type ImageParams = { prompt: string; size: ImageGenerationSize; providerTaskId?: string; businessId?: string; referenceImageUrls?: string[] };
+function pendingProviderError(
+  error: unknown,
+  taskId: string,
+  submitting = false,
+) {
+  const httpStatus = error instanceof ImageProviderHttpError
+    ? error.status
+    : null;
+  const message = httpStatus === 404
+    ? "生图服务暂未找到原任务（HTTP 404），结果尚未确认；本次图片积分尚未扣除，可稍后继续取回。"
+    : httpStatus === 429
+    ? "生图服务查询限流（HTTP 429），稍后自动继续取回。"
+    : httpStatus
+    ? `生图服务暂不可用（HTTP ${httpStatus}），结果尚未确认，可稍后继续取回。`
+    : submitting
+    ? "提交回执暂未收到，结果尚未确认；正在查询原任务，本次图片积分尚未扣除。"
+    : "暂时无法连接生图服务，结果尚未确认，可稍后继续取回。";
+  return new ImageGenerationPending(message, taskId, {
+    http_status: httpStatus,
+    ...(error instanceof ImageProviderHttpError
+      ? { response: error.providerResponse }
+      : { error: error instanceof Error ? error.message : "unknown" }),
+  });
+}
+
+export type ImageProviderResult = {
+  taskId?: string;
+  url?: string;
+  providerResponse: unknown;
+};
+export type ImageParams = {
+  prompt: string;
+  size: ImageGenerationSize;
+  providerTaskId?: string;
+  businessId?: string;
+  referenceImageUrls?: string[];
+  deadlineAt?: number;
+};
 
 // Persist businessId BEFORE calling this. ToAPIs accepts it in the same lookup
 // route as the returned task ID, including when the POST response is lost.
 export async function submitImage(
-  config: ReturnType<typeof readImageProviderConfig>, params: ImageParams,
+  config: ReturnType<typeof readImageProviderConfig>,
+  params: ImageParams,
   fetcher: typeof fetch = fetch,
 ): Promise<ImageProviderResult> {
   try {
-    const created = await providerResponse(await fetcher(config.baseUrl, {
-      method: "POST",
-      headers: { authorization: `Bearer ${config.apiKey}`, "content-type": "application/json" },
-      body: JSON.stringify({
-        model: config.model, prompt: params.prompt, n: 1, size: params.size,
-        resolution: "1K", response_format: "url",
-        ...(params.businessId ? { client_business_id: params.businessId } : {}),
-        ...(params.referenceImageUrls?.length ? { image_urls: params.referenceImageUrls.slice(0, MAX_REFERENCE_IMAGES) } : {}),
+    const created = await providerResponse(
+      await fetcher(config.baseUrl, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${config.apiKey}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          model: config.model,
+          prompt: params.prompt,
+          n: 1,
+          size: params.size,
+          resolution: "1K",
+          response_format: "url",
+          ...(params.businessId
+            ? { client_business_id: params.businessId }
+            : {}),
+          ...(params.referenceImageUrls?.length
+            ? {
+              image_urls: params.referenceImageUrls.slice(
+                0,
+                MAX_REFERENCE_IMAGES,
+              ),
+            }
+            : {}),
+        }),
+        signal: imageBudgetSignal(params.deadlineAt),
       }),
-      signal: AbortSignal.timeout(30_000),
-    }));
+    );
     const taskId = providerTaskId(created) || params.businessId;
     const url = providerUrl(created) || undefined;
     if (!taskId && !url) throw new Error("生图服务没有返回任务标识。");
@@ -114,50 +300,54 @@ export async function submitImage(
   } catch (error) {
     // A network failure or gateway error does not mean generation failed.
     // Never resubmit: the original task may already be generating/billable.
-    if (params.businessId && (!(error instanceof ImageProviderHttpError) || error.status >= 500 || error.status === 408)) {
-      throw new ImageGenerationPending("提交回执暂未收到，正在查询原任务。", params.businessId);
+    if (
+      params.businessId &&
+      (!(error instanceof ImageProviderHttpError) || error.status >= 500 ||
+        error.status === 408)
+    ) {
+      throw pendingProviderError(error, params.businessId, true);
     }
     throw error;
   }
 }
 
 export async function pollImage(
-  config: ReturnType<typeof readImageProviderConfig>, taskId: string,
+  config: ReturnType<typeof readImageProviderConfig>,
+  taskId: string,
   fetcher: typeof fetch = fetch,
+  deadlineAt?: number,
 ): Promise<ImageProviderResult> {
   let payload: unknown;
   try {
-    payload = await providerResponse(await fetcher(`${config.baseUrl}/${encodeURIComponent(taskId)}`, {
-      headers: { authorization: `Bearer ${config.apiKey}` }, signal: AbortSignal.timeout(15_000),
-    }));
-  } catch {
+    payload = await providerResponse(
+      await fetcher(`${config.baseUrl}/${encodeURIComponent(taskId)}`, {
+        headers: { authorization: `Bearer ${config.apiKey}` },
+        signal: imageBudgetSignal(deadlineAt, 15_000),
+      }),
+    );
+  } catch (error) {
     // Includes a briefly missing business ID, rate limiting and network errors.
-    throw new ImageGenerationPending("暂时未取到生成结果，正在继续查询。", taskId);
+    throw pendingProviderError(error, taskId);
   }
-  const status = text(record(payload).status || record(record(payload).result).status, "", 40).toLowerCase();
-  if (["failed", "failure", "error", "cancelled", "canceled"].includes(status)) {
-    throw new ImageGenerationTaskError(providerErrorMessage(payload), providerTaskId(payload) || taskId, payload);
+  const status = text(
+    record(payload).status || record(record(payload).result).status,
+    "",
+    40,
+  ).toLowerCase();
+  if (
+    ["failed", "failure", "error", "cancelled", "canceled"].includes(status)
+  ) {
+    throw new ImageGenerationTaskError(
+      providerErrorMessage(payload),
+      providerTaskId(payload) || taskId,
+      payload,
+    );
   }
-  return { taskId: providerTaskId(payload) || taskId, url: providerUrl(payload) || undefined, providerResponse: payload };
-}
-
-export async function generateImage(
-  config: ReturnType<typeof readImageProviderConfig>, params: ImageParams,
-  options: { fetcher?: typeof fetch; wait?: (ms: number) => Promise<void>; maxWaitMs?: number } = {},
-) {
-  const wait = options.wait ?? ((ms) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
-  let result: ImageProviderResult = params.providerTaskId
-    ? { taskId: params.providerTaskId, providerResponse: {} }
-    : await submitImage(config, params, options.fetcher);
-  if (result.url) return { ...result, url: result.url };
-  if (!result.taskId) throw new Error("生图服务没有返回任务标识。");
-  const deadline = Date.now() + (options.maxWaitMs ?? 140_000);
-  while (Date.now() < deadline) {
-    await wait(3000);
-    result = await pollImage(config, result.taskId!, options.fetcher);
-    if (result.url) return { ...result, url: result.url };
-  }
-  throw new ImageGenerationPending("图片仍在生成，稍后继续取回。", result.taskId);
+  return {
+    taskId: providerTaskId(payload) || taskId,
+    url: providerUrl(payload) || undefined,
+    providerResponse: payload,
+  };
 }
 
 function r2Config() {
@@ -166,8 +356,18 @@ function r2Config() {
   const secretAccessKey = Deno.env.get("R2_SECRET_ACCESS_KEY");
   const bucket = Deno.env.get("R2_BUCKET_NAME") || "course-videos";
   const publicUrl = Deno.env.get("R2_PUBLIC_URL")?.replace(/\/$/, "");
-  if (!accountId || !accessKeyId || !secretAccessKey || !publicUrl) throw new Error("R2 图片存储配置不完整。");
-  return { bucket, publicUrl, client: new S3Client({ region: "auto", endpoint: `https://${accountId}.r2.cloudflarestorage.com`, credentials: { accessKeyId, secretAccessKey } }) };
+  if (!accountId || !accessKeyId || !secretAccessKey || !publicUrl) {
+    throw new Error("R2 图片存储配置不完整。");
+  }
+  return {
+    bucket,
+    publicUrl,
+    client: new S3Client({
+      region: "auto",
+      endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+      credentials: { accessKeyId, secretAccessKey },
+    }),
+  };
 }
 function extension(contentType: string) {
   if (contentType.includes("png")) return "png";
@@ -175,17 +375,44 @@ function extension(contentType: string) {
   if (contentType.includes("jpeg") || contentType.includes("jpg")) return "jpg";
   return null;
 }
-export async function persistImage(params: { sourceUrl: string; userId: string; taskId: string; runId: string }) {
-  const response = await fetch(params.sourceUrl, { signal: AbortSignal.timeout(90_000) });
+export async function persistImage(
+  params: {
+    sourceUrl: string;
+    userId: string;
+    taskId: string;
+    runId: string;
+    deadlineAt?: number;
+  },
+) {
+  const response = await fetch(params.sourceUrl, {
+    signal: imageBudgetSignal(params.deadlineAt),
+  });
   if (!response.ok) throw new Error(`下载生成图片失败（${response.status}）。`);
-  const contentType = (response.headers.get("content-type") || "").split(";")[0].toLowerCase();
+  const contentType = (response.headers.get("content-type") || "").split(";")[0]
+    .toLowerCase();
   const ext = extension(contentType);
-  if (!ext) throw new Error(`生图服务返回了不支持的文件类型：${contentType || "unknown"}。`);
+  if (!ext) {
+    throw new Error(
+      `生图服务返回了不支持的文件类型：${contentType || "unknown"}。`,
+    );
+  }
   const bytes = new Uint8Array(await response.arrayBuffer());
-  if (!bytes.length || bytes.length > 25 * 1024 * 1024) throw new Error("生成图片为空或超过 25MB。");
+  if (!bytes.length || bytes.length > 25 * 1024 * 1024) {
+    throw new Error("生成图片为空或超过 25MB。");
+  }
   const { bucket, publicUrl, client } = r2Config();
-  const key = `hai-image-generation/${params.userId}/${params.taskId}/${params.runId}.${ext}`;
-  await client.send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: bytes, ContentType: contentType, CacheControl: "public, max-age=31536000, immutable" }));
+  const key =
+    `hai-image-generation/${params.userId}/${params.taskId}/${params.runId}.${ext}`;
+  await client.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: bytes,
+      ContentType: contentType,
+      CacheControl: "public, max-age=31536000, immutable",
+    }),
+    { abortSignal: imageBudgetSignal(params.deadlineAt) },
+  );
   return { key, url: `${publicUrl}/${key}`, contentType, bytes: bytes.length };
 }
 
@@ -197,16 +424,35 @@ export function publicStoredImageUrl(key: string) {
 async function referenceAccessSignature(key: string, expiresAt: number) {
   const secret = Deno.env.get("R2_SECRET_ACCESS_KEY");
   if (!secret) throw new Error("R2 图片签名配置不完整。");
-  const cryptoKey = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const digest = new Uint8Array(await crypto.subtle.sign("HMAC", cryptoKey, new TextEncoder().encode(`${key}\n${expiresAt}`)));
-  return btoa(String.fromCharCode(...digest)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  const cryptoKey = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const digest = new Uint8Array(
+    await crypto.subtle.sign(
+      "HMAC",
+      cryptoKey,
+      new TextEncoder().encode(`${key}\n${expiresAt}`),
+    ),
+  );
+  return btoa(String.fromCharCode(...digest)).replace(/\+/g, "-").replace(
+    /\//g,
+    "_",
+  ).replace(/=+$/g, "");
 }
 
 export async function getStoredImageAccessUrl(key: string, expiresIn = 900) {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")?.replace(/\/$/, "");
   if (!supabaseUrl) {
     const { bucket, client } = r2Config();
-    return getSignedUrl(client, new GetObjectCommand({ Bucket: bucket, Key: key }), { expiresIn });
+    return getSignedUrl(
+      client,
+      new GetObjectCommand({ Bucket: bucket, Key: key }),
+      { expiresIn },
+    );
   }
   const expiresAt = Math.floor(Date.now() / 1000) + expiresIn;
   const signature = await referenceAccessSignature(key, expiresAt);
@@ -217,13 +463,26 @@ export async function getStoredImageAccessUrl(key: string, expiresIn = 900) {
   return url.toString();
 }
 
-export async function verifyStoredImageAccessSignature(key: string, expiresAt: number, signature: string) {
-  if (!key || key.includes("..") || key.startsWith("/") || !key.startsWith("hai-image-generation/")) return false;
-  if (!Number.isSafeInteger(expiresAt) || expiresAt < Math.floor(Date.now() / 1000) || expiresAt > Math.floor(Date.now() / 1000) + 3_600) return false;
+export async function verifyStoredImageAccessSignature(
+  key: string,
+  expiresAt: number,
+  signature: string,
+) {
+  if (
+    !key || key.includes("..") || key.startsWith("/") ||
+    !key.startsWith("hai-image-generation/")
+  ) return false;
+  if (
+    !Number.isSafeInteger(expiresAt) ||
+    expiresAt < Math.floor(Date.now() / 1000) ||
+    expiresAt > Math.floor(Date.now() / 1000) + 3_600
+  ) return false;
   const expected = await referenceAccessSignature(key, expiresAt);
   if (expected.length !== signature.length) return false;
   let difference = 0;
-  for (let index = 0; index < expected.length; index += 1) difference |= expected.charCodeAt(index) ^ signature.charCodeAt(index);
+  for (let index = 0; index < expected.length; index += 1) {
+    difference |= expected.charCodeAt(index) ^ signature.charCodeAt(index);
+  }
   return difference === 0;
 }
 
@@ -240,8 +499,18 @@ function safeFileName(value: string) {
   return name || "参考图片";
 }
 
-export async function persistReferenceImages(params: { files: File[]; userId: string; taskId: string; runId: string }) {
-  if (params.files.length > MAX_REFERENCE_IMAGES) throw new Error(`最多只能上传 ${MAX_REFERENCE_IMAGES} 张参考图片。`);
+export async function persistReferenceImages(
+  params: {
+    files: File[];
+    userId: string;
+    taskId: string;
+    runId: string;
+    deadlineAt?: number;
+  },
+) {
+  if (params.files.length > MAX_REFERENCE_IMAGES) {
+    throw new Error(`最多只能上传 ${MAX_REFERENCE_IMAGES} 张参考图片。`);
+  }
   if (!params.files.length) return [] as StoredReferenceImage[];
   const { bucket, publicUrl, client } = r2Config();
   const stored: StoredReferenceImage[] = [];
@@ -249,35 +518,65 @@ export async function persistReferenceImages(params: { files: File[]; userId: st
     for (const [index, file] of params.files.entries()) {
       const contentType = (file.type || "").toLowerCase();
       const ext = referenceExtension(contentType);
-      if (!ext) throw new Error(`参考图片“${safeFileName(file.name)}”格式不支持，请上传 PNG、JPG、WEBP 或 GIF。`);
-      if (file.size <= 0 || file.size > MAX_REFERENCE_IMAGE_BYTES) throw new Error(`参考图片“${safeFileName(file.name)}”必须小于 10MB。`);
+      if (!ext) {
+        throw new Error(
+          `参考图片“${
+            safeFileName(file.name)
+          }”格式不支持，请上传 PNG、JPG、WEBP 或 GIF。`,
+        );
+      }
+      if (file.size <= 0 || file.size > MAX_REFERENCE_IMAGE_BYTES) {
+        throw new Error(`参考图片“${safeFileName(file.name)}”必须小于 10MB。`);
+      }
       const bytes = new Uint8Array(await file.arrayBuffer());
-      const key = `hai-image-generation/${params.userId}/${params.taskId}/references/${params.runId}-${index + 1}.${ext}`;
-      await client.send(new PutObjectCommand({
-        Bucket: bucket,
-        Key: key,
-        Body: bytes,
-        ContentType: contentType,
-        CacheControl: "public, max-age=31536000, immutable",
-        // S3 metadata becomes HTTP headers; raw Chinese/emoji filenames
-        // fail transport validation. Keep the display name in the run record.
-        Metadata: {
-          originalName: encodeURIComponent(safeFileName(file.name).toWellFormed()),
-          originalNameEncoding: "percent-encoding",
-        },
-      }));
-      stored.push({ url: `${publicUrl}/${key}`, key, name: safeFileName(file.name), contentType, size: bytes.byteLength });
+      const key =
+        `hai-image-generation/${params.userId}/${params.taskId}/references/${params.runId}-${
+          index + 1
+        }.${ext}`;
+      await client.send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: bytes,
+          ContentType: contentType,
+          CacheControl: "public, max-age=31536000, immutable",
+          // S3 metadata becomes HTTP headers; raw Chinese/emoji filenames
+          // fail transport validation. Keep the display name in the run record.
+          Metadata: {
+            originalName: encodeURIComponent(
+              safeFileName(file.name).toWellFormed(),
+            ),
+            originalNameEncoding: "percent-encoding",
+          },
+        }),
+        { abortSignal: imageBudgetSignal(params.deadlineAt) },
+      );
+      stored.push({
+        url: `${publicUrl}/${key}`,
+        key,
+        name: safeFileName(file.name),
+        contentType,
+        size: bytes.byteLength,
+      });
     }
     return stored;
   } catch (error) {
-    await Promise.allSettled(stored.map((image) => client.send(new DeleteObjectCommand({ Bucket: bucket, Key: image.key }))));
+    await Promise.allSettled(
+      stored.map((image) =>
+        client.send(new DeleteObjectCommand({ Bucket: bucket, Key: image.key }))
+      ),
+    );
     throw error;
   }
 }
 
 export function validateStoredReferenceImages(value: unknown, userId: string) {
-  if (value === undefined || value === null) return [] as StoredReferenceImage[];
-  if (!Array.isArray(value) || value.length > MAX_REFERENCE_IMAGES) throw new Error(`最多只能使用 ${MAX_REFERENCE_IMAGES} 张参考图片。`);
+  if (value === undefined || value === null) {
+    return [] as StoredReferenceImage[];
+  }
+  if (!Array.isArray(value) || value.length > MAX_REFERENCE_IMAGES) {
+    throw new Error(`最多只能使用 ${MAX_REFERENCE_IMAGES} 张参考图片。`);
+  }
   const { publicUrl } = r2Config();
   const expectedPrefix = `hai-image-generation/${userId}/`;
   return value.map((item, index) => {
@@ -287,24 +586,41 @@ export function validateStoredReferenceImages(value: unknown, userId: string) {
     const name = text(raw.name, `参考图片 ${index + 1}`, 160);
     const contentType = text(raw.contentType, "", 80).toLowerCase();
     const size = Number(raw.size ?? 0);
-    if (!url || !key || !key.startsWith(expectedPrefix) || key.includes("..") || !Number.isFinite(size) || size <= 0 || size > MAX_REFERENCE_IMAGE_BYTES) throw new Error("参考图片标识不正确，请重新上传。");
+    if (
+      !url || !key || !key.startsWith(expectedPrefix) || key.includes("..") ||
+      !Number.isFinite(size) || size <= 0 || size > MAX_REFERENCE_IMAGE_BYTES
+    ) throw new Error("参考图片标识不正确，请重新上传。");
     try {
       const parsedUrl = new URL(url);
       const expectedUrl = `${publicUrl}/${key}`;
-      if (parsedUrl.toString() !== expectedUrl) throw new Error("参考图片 URL 不正确，请重新上传。");
+      if (parsedUrl.toString() !== expectedUrl) {
+        throw new Error("参考图片 URL 不正确，请重新上传。");
+      }
     } catch (error) {
-      if (error instanceof Error && error.message.includes("参考图片 URL")) throw error;
+      if (error instanceof Error && error.message.includes("参考图片 URL")) {
+        throw error;
+      }
       throw new Error("参考图片 URL 不正确，请重新上传。");
     }
-    if (!referenceExtension(contentType)) throw new Error("参考图片格式不支持，请重新上传。");
+    if (!referenceExtension(contentType)) {
+      throw new Error("参考图片格式不支持，请重新上传。");
+    }
     return { url, key, name, contentType, size } satisfies StoredReferenceImage;
   });
 }
 
-export async function readStoredImage(key: string) {
+export async function readStoredImage(key: string, deadlineAt?: number) {
   const { bucket, client } = r2Config();
-  const url = await getSignedUrl(client, new GetObjectCommand({ Bucket: bucket, Key: key }), { expiresIn: 300 });
-  const response = await fetch(url);
+  const url = await getSignedUrl(
+    client,
+    new GetObjectCommand({ Bucket: bucket, Key: key }),
+    { expiresIn: 300 },
+  );
+  const response = await fetch(url, { signal: imageBudgetSignal(deadlineAt) });
   if (!response.ok) throw new Error(`图片读取失败（${response.status}）。`);
-  return { bytes: new Uint8Array(await response.arrayBuffer()), contentType: (response.headers.get("content-type") || "image/png").split(";")[0] };
+  return {
+    bytes: new Uint8Array(await response.arrayBuffer()),
+    contentType:
+      (response.headers.get("content-type") || "image/png").split(";")[0],
+  };
 }

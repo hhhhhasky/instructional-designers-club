@@ -3,6 +3,8 @@
   "specifiers": {
     "jsr:@std/assert@1": "1.0.19",
     "jsr:@std/internal@^1.0.12": "1.0.14",
+    "npm:@aws-sdk/client-s3@3.1048.0": "3.1048.0",
+    "npm:@aws-sdk/s3-request-presigner@3.1048.0": "3.1048.0",
     "npm:@supabase/supabase-js@2": "2.110.0",
     "npm:mammoth@1.8.0": "1.8.0",
     "npm:pdfjs-dist@4.9.124": "4.9.124"
@@ -19,6 +21,340 @@
     }
   },
   "npm": {
+    "@aws-crypto/sha1-browser@5.2.0": {
+      "integrity": "sha512-OH6lveCFfcDjX4dbAvCFSYUjJZjDr/3XJ3xHtjn3Oj5b9RjojQo8npoLeA/bNwkOkrSQ0wgrHzXk4tDRxGKJeg==",
+      "dependencies": [
+        "@aws-crypto/supports-web-crypto",
+        "@aws-crypto/util",
+        "@aws-sdk/types",
+        "@aws-sdk/util-locate-window",
+        "@smithy/util-utf8",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-crypto/sha1-browser/-/sha1-browser-5.2.0.tgz"
+    },
+    "@aws-crypto/sha256-browser@5.2.0": {
+      "integrity": "sha512-AXfN/lGotSQwu6HNcEsIASo7kWXZ5HYWvfOmSNKDsEqC4OashTp8alTmaz+F7TC2L083SFv5RdB+qU3Vs1kZqw==",
+      "dependencies": [
+        "@aws-crypto/sha256-js",
+        "@aws-crypto/supports-web-crypto",
+        "@aws-crypto/util",
+        "@aws-sdk/types",
+        "@aws-sdk/util-locate-window",
+        "@smithy/util-utf8",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-crypto/sha256-browser/-/sha256-browser-5.2.0.tgz"
+    },
+    "@aws-crypto/sha256-js@5.2.0": {
+      "integrity": "sha512-FFQQyu7edu4ufvIZ+OadFpHHOt+eSTBaYaki44c+akjg7qZg9oOQeLlk77F6tSYqjDAFClrHJk9tMf0HdVyOvA==",
+      "dependencies": [
+        "@aws-crypto/util",
+        "@aws-sdk/types",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-crypto/sha256-js/-/sha256-js-5.2.0.tgz"
+    },
+    "@aws-crypto/supports-web-crypto@5.2.0": {
+      "integrity": "sha512-iAvUotm021kM33eCdNfwIN//F77/IADDSs58i+MDaOqFrVjZo9bAal0NK7HurRuWLLpF1iLX7gbWrjHjeo+YFg==",
+      "dependencies": [
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-crypto/supports-web-crypto/-/supports-web-crypto-5.2.0.tgz"
+    },
+    "@aws-crypto/util@5.2.0": {
+      "integrity": "sha512-4RkU9EsI6ZpBve5fseQlGNUWKMa1RLPQ1dnjnQoe07ldfIzcsGb5hC5W0Dm7u423KWzawlrpbjXBrXCEv9zazQ==",
+      "dependencies": [
+        "@aws-sdk/types",
+        "@smithy/util-utf8",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-crypto/util/-/util-5.2.0.tgz"
+    },
+    "@aws-sdk/checksums@3.1000.29": {
+      "integrity": "sha512-Dtu0gr4dnATZAPwEYbpCsG+MpLM7OAliy2gTepEFQwl1vZ6DL3QMH2FveMa3HLvPsOdhJsPRB3KtxVhph9T75A==",
+      "dependencies": [
+        "@aws-sdk/core",
+        "@aws-sdk/types",
+        "@smithy/core",
+        "@smithy/types",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/checksums/-/checksums-3.1000.29.tgz"
+    },
+    "@aws-sdk/client-s3@3.1048.0": {
+      "integrity": "sha512-SrJn5FteqqtcDBgQIvqLKk3Qn/2vSsi5XR03I53EDDR4CbCdLysVSNgUnjVncEECMua9Pz+nxO0/lEx3TP+6mA==",
+      "dependencies": [
+        "@aws-crypto/sha1-browser",
+        "@aws-crypto/sha256-browser",
+        "@aws-crypto/sha256-js",
+        "@aws-sdk/core",
+        "@aws-sdk/credential-provider-node",
+        "@aws-sdk/middleware-bucket-endpoint",
+        "@aws-sdk/middleware-expect-continue",
+        "@aws-sdk/middleware-flexible-checksums",
+        "@aws-sdk/middleware-location-constraint",
+        "@aws-sdk/middleware-sdk-s3",
+        "@aws-sdk/middleware-ssec",
+        "@aws-sdk/signature-v4-multi-region",
+        "@aws-sdk/types",
+        "@smithy/core",
+        "@smithy/fetch-http-handler",
+        "@smithy/node-http-handler",
+        "@smithy/types",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/client-s3/-/client-s3-3.1048.0.tgz"
+    },
+    "@aws-sdk/core@3.977.9": {
+      "integrity": "sha512-reqPFEQrZxDZpeGj4PFMepBeR5LGYHRqq/L0motTzgFkCRBA4rFdaVXDSLYyGHhxVz7sT2PDnPN9CluGSfgyJA==",
+      "dependencies": [
+        "@aws-sdk/types",
+        "@aws-sdk/xml-builder",
+        "@aws/lambda-invoke-store",
+        "@smithy/core",
+        "@smithy/signature-v4",
+        "@smithy/types",
+        "bowser",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/core/-/core-3.977.9.tgz"
+    },
+    "@aws-sdk/credential-provider-env@3.972.70": {
+      "integrity": "sha512-H404B7dJl2mCrBqahDEYsanB0xhdDp6tXnXcTUnXmmpy2Q3J0Ho0bUajZ2jr/RdwzCyS59Gi8xXIFwPLGBl6Uw==",
+      "dependencies": [
+        "@aws-sdk/core",
+        "@aws-sdk/types",
+        "@smithy/core",
+        "@smithy/types",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/credential-provider-env/-/credential-provider-env-3.972.70.tgz"
+    },
+    "@aws-sdk/credential-provider-http@3.972.72": {
+      "integrity": "sha512-X98zYOrVOeuosCX+6ktf29FC2N2GHPLia7qv6mzPzTc+RPAuHWCDS++Z6JK7eGYqb/v6uaW7bAXaOvDBfol+0w==",
+      "dependencies": [
+        "@aws-sdk/core",
+        "@aws-sdk/types",
+        "@smithy/core",
+        "@smithy/fetch-http-handler",
+        "@smithy/node-http-handler",
+        "@smithy/types",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/credential-provider-http/-/credential-provider-http-3.972.72.tgz"
+    },
+    "@aws-sdk/credential-provider-ini@3.973.15": {
+      "integrity": "sha512-Rykg6s5ceBuynMOGWgoowO4N+27JfnqXAnVaSunZl0hOO1XodSrxGNz6sCEbnmS0lAfQZDKyb3fbr46gSuv6Sg==",
+      "dependencies": [
+        "@aws-sdk/core",
+        "@aws-sdk/credential-provider-env",
+        "@aws-sdk/credential-provider-http",
+        "@aws-sdk/credential-provider-login",
+        "@aws-sdk/credential-provider-process",
+        "@aws-sdk/credential-provider-sso",
+        "@aws-sdk/credential-provider-web-identity",
+        "@aws-sdk/nested-clients",
+        "@aws-sdk/types",
+        "@smithy/core",
+        "@smithy/credential-provider-imds",
+        "@smithy/types",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/credential-provider-ini/-/credential-provider-ini-3.973.15.tgz"
+    },
+    "@aws-sdk/credential-provider-login@3.972.77": {
+      "integrity": "sha512-Jb59xfEISoN5mmbnA+HYqdtrSX3CgCtJoof+V5D8/TgUI56W63GEEd5Y58WijU3Ou6+WEgaLD1feVzaRXV5IDQ==",
+      "dependencies": [
+        "@aws-sdk/core",
+        "@aws-sdk/nested-clients",
+        "@aws-sdk/types",
+        "@smithy/core",
+        "@smithy/types",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/credential-provider-login/-/credential-provider-login-3.972.77.tgz"
+    },
+    "@aws-sdk/credential-provider-node@3.972.82": {
+      "integrity": "sha512-znDkEOGXB8W3kG1LJUKP3foBZY/9qLM0eil/DxWXSp37XsdsRLQHE/d/OaCGGVgKpA6znR38h/+INk8do1FjiA==",
+      "dependencies": [
+        "@aws-sdk/credential-provider-env",
+        "@aws-sdk/credential-provider-http",
+        "@aws-sdk/credential-provider-ini",
+        "@aws-sdk/credential-provider-process",
+        "@aws-sdk/credential-provider-sso",
+        "@aws-sdk/credential-provider-web-identity",
+        "@aws-sdk/types",
+        "@smithy/core",
+        "@smithy/credential-provider-imds",
+        "@smithy/types",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/credential-provider-node/-/credential-provider-node-3.972.82.tgz"
+    },
+    "@aws-sdk/credential-provider-process@3.972.70": {
+      "integrity": "sha512-2ry03fGRJr4sV3jI+ocjj5JqALnFD6ymM5KiNCDZMvq8bX2GSbE0vji4aM43TVCl2nXqqLRZaUxdq/KeWRAY4Q==",
+      "dependencies": [
+        "@aws-sdk/core",
+        "@aws-sdk/types",
+        "@smithy/core",
+        "@smithy/types",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/credential-provider-process/-/credential-provider-process-3.972.70.tgz"
+    },
+    "@aws-sdk/credential-provider-sso@3.973.14": {
+      "integrity": "sha512-jkhg/8ocAAoc0RFyLMhCw+/zZh7gystQgd4F4hznNa8P4Cc501PQmxd+jGLiMHodPJ+7Zv/3znM62gZojyasmA==",
+      "dependencies": [
+        "@aws-sdk/core",
+        "@aws-sdk/nested-clients",
+        "@aws-sdk/token-providers",
+        "@aws-sdk/types",
+        "@smithy/core",
+        "@smithy/types",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/credential-provider-sso/-/credential-provider-sso-3.973.14.tgz"
+    },
+    "@aws-sdk/credential-provider-web-identity@3.972.76": {
+      "integrity": "sha512-d3AGyVu759PGr35mEB2s22xxlNEA5rpdxtSPJthfPFJvoQ8dt357iVPECqWfUxXp1toJAvKmbtcIYVGigaGsCA==",
+      "dependencies": [
+        "@aws-sdk/core",
+        "@aws-sdk/nested-clients",
+        "@aws-sdk/types",
+        "@smithy/core",
+        "@smithy/types",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/credential-provider-web-identity/-/credential-provider-web-identity-3.972.76.tgz"
+    },
+    "@aws-sdk/middleware-bucket-endpoint@3.972.48": {
+      "integrity": "sha512-2+aR/JVjJW45Sc0ggz0YnG+GTKfkTu69E4XPK8A6OlcJPuL4UAP9p8W7RO4eqSKJBC/SN6U7dJx6Jo7UzP1xeA==",
+      "dependencies": [
+        "@aws-sdk/middleware-sdk-s3",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/middleware-bucket-endpoint/-/middleware-bucket-endpoint-3.972.48.tgz"
+    },
+    "@aws-sdk/middleware-expect-continue@3.972.44": {
+      "integrity": "sha512-be6UCy+xLb3jN/lLgSpNcEaXPEo99cfn1AvcP/vMdgOB5OCys692GaBOQAERlxa0pLdnkeMMHorMvlLvm7aTJw==",
+      "dependencies": [
+        "@aws-sdk/middleware-sdk-s3",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/middleware-expect-continue/-/middleware-expect-continue-3.972.44.tgz"
+    },
+    "@aws-sdk/middleware-flexible-checksums@3.974.54": {
+      "integrity": "sha512-cDplgLpXZy7MfREXbAeOm8PFT8ibjD5B5rbqxocFR/5rdSbXUPURIAvRToVqjcOR5gHYbEkndKAs+Zw7FfZj1A==",
+      "dependencies": [
+        "@aws-sdk/checksums",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/middleware-flexible-checksums/-/middleware-flexible-checksums-3.974.54.tgz"
+    },
+    "@aws-sdk/middleware-location-constraint@3.972.41": {
+      "integrity": "sha512-dDpQ0Zrci8sYYaWnZo9puRy0P9dZ0paeIQY6IyebZmmAyZ31+ucS0wTcWhYtfdjS7/JNcKuKkgaknOxfV1aDSg==",
+      "dependencies": [
+        "@aws-sdk/middleware-sdk-s3",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/middleware-location-constraint/-/middleware-location-constraint-3.972.41.tgz"
+    },
+    "@aws-sdk/middleware-sdk-s3@3.972.75": {
+      "integrity": "sha512-wMIsNumRVKaNMKhvU/s9VrdEwE8S6gSzXp4RygFG5BEMnGkkXf8cjh8zf7cKJBpUDpqTWqwbz5isEgp9rH6Lng==",
+      "dependencies": [
+        "@aws-sdk/core",
+        "@aws-sdk/signature-v4-multi-region",
+        "@aws-sdk/types",
+        "@smithy/core",
+        "@smithy/types",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/middleware-sdk-s3/-/middleware-sdk-s3-3.972.75.tgz"
+    },
+    "@aws-sdk/middleware-ssec@3.972.41": {
+      "integrity": "sha512-AcvMfeSM5/kN23A7W889hVj8mIJ/nlxeJfenVrNDEv9pBvne4/0KfGsdW6qnU7n5xd3HUue49DvtL6eXmFvxTQ==",
+      "dependencies": [
+        "@aws-sdk/middleware-sdk-s3",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/middleware-ssec/-/middleware-ssec-3.972.41.tgz"
+    },
+    "@aws-sdk/nested-clients@3.997.44": {
+      "integrity": "sha512-NhEgryjlBF9w38ZXqGymQV28IhkYa1mKhlbYnqIis57AYwWGVYfUPgg/qC2rLRqOUfblxx++irvju10kVTa8Vw==",
+      "dependencies": [
+        "@aws-sdk/core",
+        "@aws-sdk/signature-v4-multi-region",
+        "@aws-sdk/types",
+        "@smithy/core",
+        "@smithy/fetch-http-handler",
+        "@smithy/node-http-handler",
+        "@smithy/types",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/nested-clients/-/nested-clients-3.997.44.tgz"
+    },
+    "@aws-sdk/s3-request-presigner@3.1048.0": {
+      "integrity": "sha512-7/yZh562OhKvwBFS/nVL+7qMecUGO91XfaPfqisWiswtlgoQ4gt4zHn9MuUwoPcIYgdkOO0RucOzcD13u7uJEg==",
+      "dependencies": [
+        "@aws-sdk/core",
+        "@aws-sdk/signature-v4-multi-region",
+        "@aws-sdk/types",
+        "@smithy/core",
+        "@smithy/types",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/s3-request-presigner/-/s3-request-presigner-3.1048.0.tgz"
+    },
+    "@aws-sdk/signature-v4-multi-region@3.996.46": {
+      "integrity": "sha512-L+2xZTye/2T96f3lwCws0Zw6GG2JHZW9e8FpVgGBeeExSKyeoZ6CWRpBml/7DNiK/O26jrgPM9F+Ay8VkgzUWQ==",
+      "dependencies": [
+        "@aws-sdk/types",
+        "@smithy/signature-v4",
+        "@smithy/types",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/signature-v4-multi-region/-/signature-v4-multi-region-3.996.46.tgz"
+    },
+    "@aws-sdk/token-providers@3.1116.0": {
+      "integrity": "sha512-ygIivKqh8aHzNkucOCXHyIBgBpLPfrSI0mCqXF+vLBsPTUKqj0VSqAY0GFPe7lQl4HntjOcQ+KSyS7oUV2C54Q==",
+      "dependencies": [
+        "@aws-sdk/core",
+        "@aws-sdk/nested-clients",
+        "@aws-sdk/types",
+        "@smithy/core",
+        "@smithy/types",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/token-providers/-/token-providers-3.1116.0.tgz"
+    },
+    "@aws-sdk/types@3.974.5": {
+      "integrity": "sha512-LkwLL2BLbC6wNNm4JaH9mbEqBMdOZCct6VAYqhdN4U1xrWM+fUJQEfbHwQgDypapOWTRtlk25akb5afM0P8CIQ==",
+      "dependencies": [
+        "@smithy/types",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/types/-/types-3.974.5.tgz"
+    },
+    "@aws-sdk/util-locate-window@3.965.10": {
+      "integrity": "sha512-ycwH6Zd2GhuSqdXX9ihbCjeGTB6xOJs+O3+Jb8/zDG9978XU80qs75dfkPJRMNKe5MvBZPuNeFpd4JZKPoUF4g==",
+      "dependencies": [
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/util-locate-window/-/util-locate-window-3.965.10.tgz"
+    },
+    "@aws-sdk/xml-builder@3.972.40": {
+      "integrity": "sha512-wlFmCIGUlwF4zx/kncw+bmxTQh1HeSJq4mYV/V5cZUSJadDP3kXvGW8Rn21cimj/7y9ju+47oYWXi97vF7czaA==",
+      "dependencies": [
+        "@smithy/types",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@aws-sdk/xml-builder/-/xml-builder-3.972.40.tgz"
+    },
+    "@aws/lambda-invoke-store@0.3.0": {
+      "integrity": "sha512-sl4Bm6yiMNYrZKkqqDFWN0UfnWhlS8ivKxrYl+6t0gCLrqr8y3B2IqZZbFRkfaVVp7C/baApyh71P+LeE1A2sQ==",
+      "tarball": "https://registry.npmmirror.com/@aws/lambda-invoke-store/-/lambda-invoke-store-0.3.0.tgz"
+    },
     "@napi-rs/canvas-android-arm64@0.1.100": {
       "integrity": "sha512-hjhCKhntPv9+t4ckHymdx0phYNcVW+GKQR6Lzw2zE+pOVjOplSmtx9nNNknTjbEDLcuLZqA1y8ufKg1XfgftzQ==",
       "os": ["android"],
@@ -102,6 +438,80 @@
       ],
       "tarball": "https://registry.npmmirror.com/@napi-rs/canvas/-/canvas-0.1.100.tgz"
     },
+    "@smithy/core@3.33.3": {
+      "integrity": "sha512-CsOeKq/9kA3y6VJHt+/+VTCtBaxJ4OTFpgrjIUhPpDIKxBci1k2bJaQASF2h/ELWrulGp+t97DZ0mevfAD8idg==",
+      "dependencies": [
+        "@smithy/types",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@smithy/core/-/core-3.33.3.tgz"
+    },
+    "@smithy/credential-provider-imds@4.5.2": {
+      "integrity": "sha512-A9uSdn72ozbRUSit0eib0TW7nXuNPlaeM0zcGkJ+nE6tFcSDbnmtwoxbTCFBukVQcszDAyvsd7+rTduPTXpygg==",
+      "dependencies": [
+        "@smithy/core",
+        "@smithy/types",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@smithy/credential-provider-imds/-/credential-provider-imds-4.5.2.tgz"
+    },
+    "@smithy/fetch-http-handler@5.8.0": {
+      "integrity": "sha512-ycSJu3tFAQ4v04CBB0agqFMVsSQ1iG3yw+SpgxRqKfaURpQD4CZ8Wn0zPMmSnOuTpTh65Vz+EA0rMrw089wvkA==",
+      "dependencies": [
+        "@smithy/core",
+        "@smithy/types",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@smithy/fetch-http-handler/-/fetch-http-handler-5.8.0.tgz"
+    },
+    "@smithy/is-array-buffer@2.2.0": {
+      "integrity": "sha512-GGP3O9QFD24uGeAXYUjwSTXARoqpZykHadOmA8G5vfJPK0/DC67qa//0qvqrJzL1xc8WQWX7/yc7fwudjPHPhA==",
+      "dependencies": [
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@smithy/is-array-buffer/-/is-array-buffer-2.2.0.tgz"
+    },
+    "@smithy/node-http-handler@4.12.1": {
+      "integrity": "sha512-ThMkboGeONWXAelq9FvGsuJC4rOi+qyC4/zhUF58xYpxUg5sQKx2VXZYJmtNjr4dSuBJ1HeJXETQILCz3wOHvw==",
+      "dependencies": [
+        "@smithy/core",
+        "@smithy/types",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@smithy/node-http-handler/-/node-http-handler-4.12.1.tgz"
+    },
+    "@smithy/signature-v4@5.7.3": {
+      "integrity": "sha512-7ImGm+FkHRLcBaRttIAMZ6bzJZWb2cJGoYjq46F2UjycujWzrL9GEN9h4w7eQyXJYnltrUhxbbieBAIRrdqpow==",
+      "dependencies": [
+        "@smithy/core",
+        "@smithy/types",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@smithy/signature-v4/-/signature-v4-5.7.3.tgz"
+    },
+    "@smithy/types@4.18.0": {
+      "integrity": "sha512-CgB6HHWer/vrKps24ulRIbpcpb7K4xAU7SkZ7YHzBPlwHsvsrCJFEXK421s+cJzX+ZrqtA/TuU5w1HzI7k9N8A==",
+      "dependencies": [
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@smithy/types/-/types-4.18.0.tgz"
+    },
+    "@smithy/util-buffer-from@2.2.0": {
+      "integrity": "sha512-IJdWBbTcMQ6DA0gdNhh/BwrLkDR+ADW5Kr1aZmd4k3DIF6ezMV4R2NIAmT08wQJ3yUK82thHWmC/TnK/wpMMIA==",
+      "dependencies": [
+        "@smithy/is-array-buffer",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@smithy/util-buffer-from/-/util-buffer-from-2.2.0.tgz"
+    },
+    "@smithy/util-utf8@2.3.0": {
+      "integrity": "sha512-R8Rdn8Hy72KKcebgLiv8jQcQkXoLMOGGv5uI1/k0l+snqkOzQ1R0ChUBCxWMlBsFMekWjq0wRudIweFs7sKT5A==",
+      "dependencies": [
+        "@smithy/util-buffer-from",
+        "tslib"
+      ],
+      "tarball": "https://registry.npmmirror.com/@smithy/util-utf8/-/util-utf8-2.3.0.tgz"
+    },
     "@supabase/auth-js@2.110.0": {
       "integrity": "sha512-Mi288WCTp6wxMFCOu/UgzgHEXODjdl2uVTLqK11eanzGZaldU3RyP8Am+ZbNuVzFP+5+iOvppxzv7N5Ym84xTg==",
       "dependencies": [
@@ -172,6 +582,10 @@
     "bluebird@3.4.7": {
       "integrity": "sha512-iD3898SR7sWVRHbiQv+sHUtHnMvC1o3nW5rAcqnq3uOn07DSAppZYUkIGslDz6gXC7HfunPe7YVBgoEJASPcHA==",
       "tarball": "https://registry.npmmirror.com/bluebird/-/bluebird-3.4.7.tgz"
+    },
+    "bowser@2.14.1": {
+      "integrity": "sha512-tzPjzCxygAKWFOJP011oxFHs57HzIhOEracIgAePE4pqB3LikALKnSzUyU4MGs9/iCEUuHlAJTjTc5M+u7YEGg==",
+      "tarball": "https://registry.npmmirror.com/bowser/-/bowser-2.14.1.tgz"
     },
     "core-util-is@1.0.3": {
       "integrity": "sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==",
@@ -318,5 +732,41 @@
       "integrity": "sha512-OyzrcFLL/nb6fMGHbiRDuPup9ljBycsdCypwuyg5AAHvyWzGfChJpCXMG88AGTIMFhGZ9RccFN1e6lhg3hkwKg==",
       "tarball": "https://registry.npmmirror.com/xmlbuilder/-/xmlbuilder-10.1.1.tgz"
     }
+  },
+  "remote": {
+    "https://deno.land/std@0.224.0/assert/_constants.ts": "a271e8ef5a573f1df8e822a6eb9d09df064ad66a4390f21b3e31f820a38e0975",
+    "https://deno.land/std@0.224.0/assert/assert.ts": "09d30564c09de846855b7b071e62b5974b001bb72a4b797958fe0660e7849834",
+    "https://deno.land/std@0.224.0/assert/assert_almost_equals.ts": "9e416114322012c9a21fa68e187637ce2d7df25bcbdbfd957cd639e65d3cf293",
+    "https://deno.land/std@0.224.0/assert/assert_array_includes.ts": "14c5094471bc8e4a7895fc6aa5a184300d8a1879606574cb1cd715ef36a4a3c7",
+    "https://deno.land/std@0.224.0/assert/assert_equals.ts": "3bbca947d85b9d374a108687b1a8ba3785a7850436b5a8930d81f34a32cb8c74",
+    "https://deno.land/std@0.224.0/assert/assert_exists.ts": "43420cf7f956748ae6ed1230646567b3593cb7a36c5a5327269279c870c5ddfd",
+    "https://deno.land/std@0.224.0/assert/assert_false.ts": "3e9be8e33275db00d952e9acb0cd29481a44fa0a4af6d37239ff58d79e8edeff",
+    "https://deno.land/std@0.224.0/assert/assert_greater.ts": "5e57b201fd51b64ced36c828e3dfd773412c1a6120c1a5a99066c9b261974e46",
+    "https://deno.land/std@0.224.0/assert/assert_greater_or_equal.ts": "9870030f997a08361b6f63400273c2fb1856f5db86c0c3852aab2a002e425c5b",
+    "https://deno.land/std@0.224.0/assert/assert_instance_of.ts": "e22343c1fdcacfaea8f37784ad782683ec1cf599ae9b1b618954e9c22f376f2c",
+    "https://deno.land/std@0.224.0/assert/assert_is_error.ts": "f856b3bc978a7aa6a601f3fec6603491ab6255118afa6baa84b04426dd3cc491",
+    "https://deno.land/std@0.224.0/assert/assert_less.ts": "60b61e13a1982865a72726a5fa86c24fad7eb27c3c08b13883fb68882b307f68",
+    "https://deno.land/std@0.224.0/assert/assert_less_or_equal.ts": "d2c84e17faba4afe085e6c9123a63395accf4f9e00150db899c46e67420e0ec3",
+    "https://deno.land/std@0.224.0/assert/assert_match.ts": "ace1710dd3b2811c391946954234b5da910c5665aed817943d086d4d4871a8b7",
+    "https://deno.land/std@0.224.0/assert/assert_not_equals.ts": "78d45dd46133d76ce624b2c6c09392f6110f0df9b73f911d20208a68dee2ef29",
+    "https://deno.land/std@0.224.0/assert/assert_not_instance_of.ts": "3434a669b4d20cdcc5359779301a0588f941ffdc2ad68803c31eabdb4890cf7a",
+    "https://deno.land/std@0.224.0/assert/assert_not_match.ts": "df30417240aa2d35b1ea44df7e541991348a063d9ee823430e0b58079a72242a",
+    "https://deno.land/std@0.224.0/assert/assert_not_strict_equals.ts": "37f73880bd672709373d6dc2c5f148691119bed161f3020fff3548a0496f71b8",
+    "https://deno.land/std@0.224.0/assert/assert_object_match.ts": "411450fd194fdaabc0089ae68f916b545a49d7b7e6d0026e84a54c9e7eed2693",
+    "https://deno.land/std@0.224.0/assert/assert_rejects.ts": "4bee1d6d565a5b623146a14668da8f9eb1f026a4f338bbf92b37e43e0aa53c31",
+    "https://deno.land/std@0.224.0/assert/assert_strict_equals.ts": "b4f45f0fd2e54d9029171876bd0b42dd9ed0efd8f853ab92a3f50127acfa54f5",
+    "https://deno.land/std@0.224.0/assert/assert_string_includes.ts": "496b9ecad84deab72c8718735373feb6cdaa071eb91a98206f6f3cb4285e71b8",
+    "https://deno.land/std@0.224.0/assert/assert_throws.ts": "c6508b2879d465898dab2798009299867e67c570d7d34c90a2d235e4553906eb",
+    "https://deno.land/std@0.224.0/assert/assertion_error.ts": "ba8752bd27ebc51f723702fac2f54d3e94447598f54264a6653d6413738a8917",
+    "https://deno.land/std@0.224.0/assert/equal.ts": "bddf07bb5fc718e10bb72d5dc2c36c1ce5a8bdd3b647069b6319e07af181ac47",
+    "https://deno.land/std@0.224.0/assert/fail.ts": "0eba674ffb47dff083f02ced76d5130460bff1a9a68c6514ebe0cdea4abadb68",
+    "https://deno.land/std@0.224.0/assert/mod.ts": "48b8cb8a619ea0b7958ad7ee9376500fe902284bb36f0e32c598c3dc34cbd6f3",
+    "https://deno.land/std@0.224.0/assert/unimplemented.ts": "8c55a5793e9147b4f1ef68cd66496b7d5ba7a9e7ca30c6da070c1a58da723d73",
+    "https://deno.land/std@0.224.0/assert/unreachable.ts": "5ae3dbf63ef988615b93eb08d395dda771c96546565f9e521ed86f6510c29e19",
+    "https://deno.land/std@0.224.0/fmt/colors.ts": "508563c0659dd7198ba4bbf87e97f654af3c34eb56ba790260f252ad8012e1c5",
+    "https://deno.land/std@0.224.0/internal/diff.ts": "6234a4b493ebe65dc67a18a0eb97ef683626a1166a1906232ce186ae9f65f4e6",
+    "https://deno.land/std@0.224.0/internal/format.ts": "0a98ee226fd3d43450245b1844b47003419d34d210fa989900861c79820d21c2",
+    "https://deno.land/std@0.224.0/internal/mod.ts": "534125398c8e7426183e12dc255bb635d94e06d0f93c60a297723abe69d3b22e",
+    "https://deno.land/std@0.224.0/testing/mock.ts": "a963181c2860b6ba3eb60e08b62c164d33cf5da7cd445893499b2efda20074db"
   }
 }

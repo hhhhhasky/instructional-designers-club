@@ -6,9 +6,15 @@ export const HAI_IMAGE_STYLES = [
   "卡通", "写真", "3D", "教育扁平插画", "水彩", "杂志拼贴",
   "手绘绘本", "国风水墨", "科技未来", "黏土定格", "扁平信息图", "黑板粉笔", "纸艺拼贴", "漫画分镜",
 ] as const;
-export const HAI_IMAGE_TYPES = [
-  "概念图", "素材图", "海报", "学习单", "课堂插图", "流程图", "思维导图", "知识卡片", "活动任务卡", "板书设计", "题目讲解图", "课前导入图",
-] as const;
+export const HAI_IMAGE_TYPES = ["课件 PPT", "海报", "学习单", "思维导图"] as const;
+export const HAI_IMAGE_DELIVERY_TIMEOUT_MS = 150_000;
+export const HAI_IMAGE_FAILURE_MESSAGE = "本次生成失败，本轮未扣积分，请再次尝试。";
+function deadlineSignal(deadlineAt?: number) {
+  if (!deadlineAt) return undefined;
+  const remaining = Math.floor(deadlineAt - Date.now());
+  if (remaining <= 0) throw new Error(HAI_IMAGE_FAILURE_MESSAGE);
+  return AbortSignal.timeout(remaining);
+}
 export const HAI_MAX_REFERENCE_IMAGES = 6;
 export const HAI_MAX_REFERENCE_IMAGE_BYTES = 10 * 1024 * 1024;
 export type HaiImageSize = (typeof HAI_IMAGE_SIZES)[number];
@@ -59,6 +65,8 @@ export interface HaiImageGenerationRun {
   completed_at: string | null;
   created_at: string;
   updated_at: string;
+  delivery_deadline_at?: string | null;
+  delivered_at?: string | null;
 }
 
 type ImageDb = {
@@ -95,6 +103,7 @@ export async function generateHaiImage(params: {
   taskId?: string;
   parentRunId?: string;
   clientRequestId?: string;
+  deadlineAt?: number;
 }) {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
@@ -112,9 +121,10 @@ export async function generateHaiImage(params: {
   body.set("clientRequestId", clientRequestId);
   if (params.referenceRunIds?.length) body.set("referenceRunIds", JSON.stringify(params.referenceRunIds.slice(0, 6)));
   for (const file of params.referenceFiles ?? []) body.append("reference_images", file, file.name);
+  body.set("remainingMs", String(Math.max(0, (params.deadlineAt ?? Date.now() + HAI_IMAGE_DELIVERY_TIMEOUT_MS) - Date.now())));
   try {
     const response = await fetch(`${baseUrl}/functions/v1/hai-image-generation`, {
-      method: "POST", headers: { authorization: `Bearer ${token}` }, body,
+      method: "POST", headers: { authorization: `Bearer ${token}` }, body, signal: deadlineSignal(params.deadlineAt),
     });
     const payload = await response.json() as HaiImageGenerationResponse;
     if (!response.ok) throw new Error(payload.error || "图片生成请求失败。");
@@ -140,21 +150,25 @@ export interface HaiImageGenerationResponse {
   message?: string;
 }
 
-export async function refreshHaiImage(runId: string): Promise<HaiImageGenerationResponse> {
+async function imageAction(action: string, runId: string, deadlineAt?: number, stage?: string): Promise<HaiImageGenerationResponse> {
   const { data } = await supabase.auth.getSession();
   if (!data.session?.access_token) throw new Error("请先登录。");
   const baseUrl = String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
   const response = await fetch(`${baseUrl}/functions/v1/hai-image-generation`, {
     method: "POST",
     headers: { authorization: `Bearer ${data.session.access_token}`, "content-type": "application/json" },
-    body: JSON.stringify({ action: "status", runId }),
+    body: JSON.stringify({ action, runId, stage }), signal: deadlineSignal(deadlineAt),
   });
   const payload = await response.json() as HaiImageGenerationResponse;
   if (!response.ok || !payload.run) throw new Error(payload.error || "暂时未取到图片结果，请稍后继续取回。");
   return payload;
 }
 
-export async function downloadHaiImage(runId: string) {
+export const refreshHaiImage = (runId: string, deadlineAt?: number) => imageAction("status", runId, deadlineAt);
+export const acknowledgeHaiImage = (runId: string, deadlineAt?: number) => imageAction("acknowledge", runId, deadlineAt);
+export const failHaiImage = (runId: string, stage = "client_deadline") => imageAction("fail", runId, Date.now() + 10_000, stage);
+
+export async function downloadHaiImage(runId: string, deadlineAt?: number) {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error("请先登录。");
@@ -162,7 +176,7 @@ export async function downloadHaiImage(runId: string) {
   const response = await fetch(`${baseUrl}/functions/v1/hai-image-generation`, {
     method: "POST",
     headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-    body: JSON.stringify({ action: "download", runId }),
+    body: JSON.stringify({ action: "download", runId }), signal: deadlineSignal(deadlineAt),
   });
   if (!response.ok) {
     const payload = await response.json().catch(() => ({})) as { error?: string };

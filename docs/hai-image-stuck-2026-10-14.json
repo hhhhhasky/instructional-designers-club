@@ -1,0 +1,170 @@
+{
+  "checked_at": "2026-10-14T09:11:28.550Z",
+  "deployed_function_version": 14,
+  "scope": "只读核对现有任务、供应商 GET 查询和积分账本；未重新发起付费生图、未修改远端任务、未部署。",
+  "provider_configuration_matches_deployed": {
+    "base_url": true,
+    "api_key": true,
+    "model": true
+  },
+  "runs": [
+    {
+      "run_id": "d6351c89-9e4a-45be-ac1d-c61996e7b538",
+      "created_at": "2026-10-14T07:27:45.381909Z",
+      "status": "running",
+      "provider_task_id": "hai-image-d6351c89-9e4a-45be-ac1d-c61996e7b538",
+      "provider_http": 404,
+      "provider_response": {
+        "code": "task_not_exist",
+        "message": "生成失败: 任务处理失败",
+        "data": null
+      },
+      "ledger_entries": 0,
+      "source_saved": false
+    },
+    {
+      "run_id": "d85e60c2-7d54-4508-9f1f-91e31c53dab5",
+      "created_at": "2026-10-14T08:40:33.999592Z",
+      "status": "running",
+      "provider_task_id": "hai-image-d85e60c2-7d54-4508-9f1f-91e31c53dab5",
+      "provider_http": 404,
+      "provider_response": {
+        "code": "task_not_exist",
+        "message": "生成失败: 任务处理失败",
+        "data": null
+      },
+      "ledger_entries": 0,
+      "source_saved": false
+    }
+  ],
+  "control_query": {
+    "provider_task_id": "tsk_img_01M4WKWWZJCSSY3PG3HJPWSN49",
+    "http": 200,
+    "status": "completed",
+    "has_image": true
+  },
+  "confirmed_findings": [
+    "两条异常任务仅保存本地业务编码，没有供应商回执、source_url 或 R2 结果。",
+    "与线上相同的配置查询两条业务编码均返回 404 / task_not_exist；同密钥查询已完成任务正常。",
+    "线上 pollImage catch 隐藏全部 HTTP 错误和响应，refreshImageRun 又将 error_message 设为 null，导致页面持续显示生成中。",
+    "两条异常任务均无积分交易，尚未扣除图片积分。"
+  ],
+  "unresolved": "15:27 轮次提交请求耗时 36220ms 后返回 202，与 30 秒提交超时路径相符，但线上没有保留提交错误；不能据此确定供应商未建任务的内部原因，亦不能断言没有晚到结果。",
+  "local_repair": "保留提交与轮询错误的 HTTP 状态/供应商响应，落盘并显示结果待确认；暂时 404 保留续取原任务，不自动重新生成、不仅按等待时长判为失败。对非 JSON HTTP 400 拒绝保留 HTTP 分类，防止误报为回执丢失。",
+  "validation": {
+    "deno_tests": "10/10",
+    "vitest": "68 files / 338 tests",
+    "typecheck": "passed",
+    "edge_check": "passed",
+    "build": "passed",
+    "real_provider_get": "新适配器正确显示现有 404 诊断，已完成对照任务仍正常返回图片 URL"
+  },
+  "provider_documentation": "https://docs.toapis.com/docs/cn/api-reference/tasks/image-status",
+  "submission_fix": {
+    "recorded_at": "2026-10-14T09:48:41.792699+00:00",
+    "status": "local_only_not_deployed",
+    "changes": [
+      "预存业务编号及 submitting 状态，以 EdgeRuntime.waitUntil 保持唯一供应商 POST，页面先返回 202；后台提交最长等待 90 秒。",
+      "明确区分接回执、回执丢失和 HTTP 拒绝；回执写库失败可按原业务编号找回，禁止自动重发。",
+      "等待提交回执的 95 秒内跳过提前查询；持久 404 超过 15 分钟暂停自动等待并解锁输入，保留原任务手动续取和事务结算。",
+      "明确告知另提交新一轮可能分别扣费，不将未知任务状态误标为最终失败。"
+    ],
+    "validation": {
+      "deno_tests": 15,
+      "handler_steps": 3,
+      "vitest_files": 68,
+      "vitest_tests": 340,
+      "typecheck": "passed",
+      "edge_check": "passed",
+      "production_build": "passed",
+      "diff_check": "passed"
+    },
+    "handler_test": "supabase/functions/hai-image-generation/index_test.ts",
+    "limits": "接口模拟使用实际处理器/Supabase 客户端及内存 HTTP 传输，不是真实 Supabase EdgeRuntime 或新付费供应商 POST；需发布后验证后台生命周期及完整生图链路。旧任务是否存在迟到结果仍未确认。"
+  },
+  "final_delivery_policy": {
+    "recorded_at": "2026-10-14T12:16:03.205783+00:00",
+    "status": "backend_deployed_frontend_in_release_commit_pending_auto_deploy_and_real_acceptance",
+    "types": [
+      "课件 PPT",
+      "海报",
+      "学习单",
+      "思维导图"
+    ],
+    "style_count": 14,
+    "prompt_strategy": "static_template_no_deepseek",
+    "audience": "学生；老师课堂授课",
+    "excluded_contexts": [
+      "商业汇报",
+      "公司述职",
+      "企业培训",
+      "商演",
+      "路演",
+      "演讲"
+    ],
+    "delivery_timeout_ms": 150000,
+    "debit_condition": "前端图片加载成功且有效确认到达数据库；R2 已保存不触发扣费",
+    "failure_message": "本次生成失败，本轮未扣积分，请再次尝试。",
+    "late_receipts": "只记录排查证据；不恢复失败、不补扣积分",
+    "migration": "supabase/migrations/20261014114348_hai_image_delivery_deadline.sql",
+    "validation": {
+      "vitest_files": 68,
+      "vitest_tests": 342,
+      "deno_tests": 12,
+      "handler_steps": 5,
+      "postgres_assertions": 42,
+      "typecheck": "passed",
+      "edge_checks": "passed",
+      "build": "passed",
+      "biome": "passed",
+      "diff_check": "passed"
+    },
+    "remote_readonly_checks": {
+      "pg_cron": "1.6.4",
+      "existing_finalizer": "matches local historical implementation"
+    },
+    "limits": "真实供应商新生图、R2 结果、前端图片加载确认和成功扣费尚待真实账号验收；前端由本次 GitHub master 发布提交触发 Cloudflare Pages 自动部署，未额外轮询正式站。",
+    "deployment": {
+      "recorded_at": "2026-10-14T13:29:26.537Z",
+      "project_ref": "isjflmyhbvdlmcsaewbq",
+      "migration_version": "20261014114348",
+      "migration_applied_and_registered_atomically": true,
+      "edge_function": "hai-image-generation",
+      "edge_version": 15,
+      "edge_status": "ACTIVE",
+      "verify_jwt": true,
+      "runtime_sources_match": true,
+      "shared_auth_preserved_from_previous_deployment": true,
+      "first_attempt": "integer duration overflow on a historical run; transaction fully rolled back; fixed saturation and added five assertions",
+      "historical_runs_closed": 3,
+      "historical_run_charges": 0,
+      "deadline_cleanup_schedule": "5 seconds",
+      "deadline_cleanup_recent_runs": "3 succeeded",
+      "remote_rollback_probe": "failed-run finality, no debit, cross-owner ACK and failure rejected",
+      "unauthenticated_post": 401,
+      "localhost_cors_preflight": 200,
+      "security_advisors": "two expected authenticated SECURITY DEFINER RPC notices; owner checks and privileges verified; no new anon or search_path findings",
+      "security_advisor_remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable",
+      "git_pushed": false,
+      "frontend_published": false
+    },
+    "github_release": {
+      "recorded_at": "2026-10-14T13:48:43.502Z",
+      "user_authorized": true,
+      "branch": "master",
+      "scope": "14 image-generation implementation, tests, lock, migration and evidence files; unrelated dirty work excluded",
+      "verification_source": "committed Git HEAD plus release files in an independent temporary directory",
+      "vitest_files": 62,
+      "vitest_tests": 301,
+      "deno_tests": 12,
+      "handler_steps": 5,
+      "postgres_assertions": 42,
+      "typecheck": "passed",
+      "build": "passed",
+      "biome": "passed",
+      "frontend_deployment": "Cloudflare Pages automatically deploys GitHub master pushes",
+      "cloudflare_verification": "not requested; no separate polling",
+      "real_paid_generation": "not performed"
+    }
+  }
+}

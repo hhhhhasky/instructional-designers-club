@@ -1,8 +1,22 @@
-import { assertEquals, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import {
+  assertEquals,
+  assertStringIncludes,
+} from "https://deno.land/std@0.224.0/assert/mod.ts";
 import { stub } from "https://deno.land/std@0.224.0/testing/mock.ts";
 import { PutObjectCommand, S3Client } from "npm:@aws-sdk/client-s3@3.1048.0";
 import { validateHeaderValue } from "node:http";
-import { generateImage, persistReferenceImages, readImageProviderConfig } from "./hai_image_generation.ts";
+import {
+  composeImageGenerationPrompt,
+  IMAGE_DELIVERY_TIMEOUT_MS,
+  IMAGE_GENERATION_STYLES,
+  IMAGE_GENERATION_TYPES,
+  imageBudgetSignal,
+  ImageDeliveryTimeout,
+  imageTypePromptBlock,
+  persistReferenceImages,
+  readImageProviderConfig,
+  submitImage,
+} from "./hai_image_generation.ts";
 
 Deno.test("image provider config reads the server-side ToAPIs settings", () => {
   const config = readImageProviderConfig((name) => ({
@@ -15,16 +29,67 @@ Deno.test("image provider config reads the server-side ToAPIs settings", () => {
   assertEquals(config.model, "image-model");
 });
 
+Deno.test("four modes and all styles use static student classroom prompts", () => {
+  assertEquals(IMAGE_GENERATION_TYPES, [
+    "课件 PPT",
+    "海报",
+    "学习单",
+    "思维导图",
+  ]);
+  assertEquals(IMAGE_GENERATION_STYLES.length, 14);
+  for (const mode of IMAGE_GENERATION_TYPES) {
+    for (const style of IMAGE_GENERATION_STYLES) {
+      const prompt = composeImageGenerationPrompt(
+        "认识水循环",
+        "16:9",
+        style,
+        mode,
+        true,
+      );
+      for (
+        const keyword of [
+          "老师上课",
+          "面向学生",
+          "商业汇报",
+          "公司述职",
+          "企业培训",
+          "商演",
+          "路演",
+          "演讲",
+          "16:9",
+          style,
+          mode,
+          "认识水循环",
+          "参考图片",
+        ]
+      ) {
+        assertStringIncludes(prompt, keyword);
+      }
+      assertEquals(imageTypePromptBlock(mode).length > 0, true);
+    }
+  }
+});
+
 Deno.test("image generation sends the selected size and accepts an immediate provider URL", async () => {
   let request: Record<string, unknown> = {};
-  const result = await generateImage(
-    { provider: "toapis", apiKey: "secret", baseUrl: "https://example.test/images", model: "image-model" },
-    { prompt: "课堂概念图", size: "3:4" },
+  const result = await submitImage(
     {
-      fetcher: async (_input, init) => {
-        request = JSON.parse(String((init as RequestInit | undefined)?.body ?? "{}"));
-        return new Response(JSON.stringify({ data: [{ url: "https://example.test/generated.png" }] }), { status: 200 });
-      },
+      provider: "toapis",
+      apiKey: "secret",
+      baseUrl: "https://example.test/images",
+      model: "image-model",
+    },
+    { prompt: "课堂概念图", size: "3:4" },
+    async (_input, init) => {
+      request = JSON.parse(
+        String((init as RequestInit | undefined)?.body ?? "{}"),
+      );
+      return new Response(
+        JSON.stringify({
+          data: [{ url: "https://example.test/generated.png" }],
+        }),
+        { status: 200 },
+      );
     },
   );
   assertEquals(request.size, "3:4");
@@ -34,17 +99,37 @@ Deno.test("image generation sends the selected size and accepts an immediate pro
 
 Deno.test("image generation sends up to six R2 reference URLs to ToAPIs", async () => {
   let request: Record<string, unknown> = {};
-  await generateImage(
-    { provider: "toapis", apiKey: "secret", baseUrl: "https://example.test/images", model: "image-model" },
-    { prompt: "调整配色", size: "1:1", referenceImageUrls: ["https://r2.example/one.png", "https://r2.example/two.png"] },
+  await submitImage(
     {
-      fetcher: async (_input, init) => {
-        request = JSON.parse(String((init as RequestInit | undefined)?.body ?? "{}"));
-        return new Response(JSON.stringify({ data: [{ url: "https://example.test/generated.png" }] }), { status: 200 });
-      },
+      provider: "toapis",
+      apiKey: "secret",
+      baseUrl: "https://example.test/images",
+      model: "image-model",
+    },
+    {
+      prompt: "调整配色",
+      size: "1:1",
+      referenceImageUrls: [
+        "https://r2.example/one.png",
+        "https://r2.example/two.png",
+      ],
+    },
+    async (_input, init) => {
+      request = JSON.parse(
+        String((init as RequestInit | undefined)?.body ?? "{}"),
+      );
+      return new Response(
+        JSON.stringify({
+          data: [{ url: "https://example.test/generated.png" }],
+        }),
+        { status: 200 },
+      );
     },
   );
-  assertEquals(request.image_urls, ["https://r2.example/one.png", "https://r2.example/two.png"]);
+  assertEquals(request.image_urls, [
+    "https://r2.example/one.png",
+    "https://r2.example/two.png",
+  ]);
 });
 
 Deno.test("reference uploads serialize Chinese and emoji filenames into valid R2 HTTP headers", async () => {
@@ -55,7 +140,9 @@ Deno.test("reference uploads serialize Chinese and emoji filenames into valid R2
     R2_BUCKET_NAME: "test-bucket",
     R2_PUBLIC_URL: "https://r2.example.test",
   };
-  const previousEnv = Object.fromEntries(Object.keys(env).map((name) => [name, Deno.env.get(name)]));
+  const previousEnv = Object.fromEntries(
+    Object.keys(env).map((name) => [name, Deno.env.get(name)]),
+  );
   const requests: { headers: Record<string, string>; path: string }[] = [];
   const client = new S3Client({
     region: "auto",
@@ -67,20 +154,39 @@ Deno.test("reference uploads serialize Chinese and emoji filenames into valid R2
       handle: (request: { headers: Record<string, string>; path: string }) => {
         // Exercise the SDK's actual serialization and the same header
         // validation used by its Node HTTP transport, without contacting R2.
-        for (const [name, value] of Object.entries(request.headers)) validateHeaderValue(name, value);
+        for (const [name, value] of Object.entries(request.headers)) {
+          validateHeaderValue(name, value);
+        }
         requests.push({ headers: request.headers, path: request.path });
-        return Promise.resolve({ response: { statusCode: 200, headers: {}, body: new Uint8Array() } });
+        return Promise.resolve({
+          response: { statusCode: 200, headers: {}, body: new Uint8Array() },
+        });
       },
     },
   });
   const originalSend = client.send.bind(client);
-  const sendStub = stub(S3Client.prototype, "send", ((command: PutObjectCommand) => originalSend(command)) as S3Client["send"]);
+  const sendStub = stub(
+    S3Client.prototype,
+    "send",
+    ((command: PutObjectCommand) => originalSend(command)) as S3Client["send"],
+  );
   try {
     for (const [name, value] of Object.entries(env)) Deno.env.set(name, value);
-    const names = ["照片 1.jpg", "课堂🌱素材.png", "reference 100%.png", "", `${"a".repeat(159)}🌱.png`, "line\r\nbreak.png"];
+    const names = [
+      "照片 1.jpg",
+      "课堂🌱素材.png",
+      "reference 100%.png",
+      "",
+      `${"a".repeat(159)}🌱.png`,
+      "line\r\nbreak.png",
+    ];
     const stored = await persistReferenceImages({
-      files: names.map((name) => new File([new Uint8Array([1, 2, 3])], name, { type: "image/png" })),
-      userId: "user-id", taskId: "task-id", runId: "run-id",
+      files: names.map((name) =>
+        new File([new Uint8Array([1, 2, 3])], name, { type: "image/png" })
+      ),
+      userId: "user-id",
+      taskId: "task-id",
+      runId: "run-id",
     });
     assertEquals(stored.length, names.length);
     assertEquals(requests.length, names.length);
@@ -88,9 +194,20 @@ Deno.test("reference uploads serialize Chinese and emoji filenames into valid R2
     assertEquals(stored[1].name, "课堂🌱素材.png");
     assertEquals(stored[3].name, "参考图片");
     for (const [index, request] of requests.entries()) {
-      assertEquals(decodeURIComponent(request.headers["x-amz-meta-originalname"]), stored[index].name.toWellFormed());
-      assertEquals(request.headers["x-amz-meta-originalnameencoding"], "percent-encoding");
-      assertEquals(request.path, `/test-bucket/hai-image-generation/user-id/task-id/references/run-id-${index + 1}.png`);
+      assertEquals(
+        decodeURIComponent(request.headers["x-amz-meta-originalname"]),
+        stored[index].name.toWellFormed(),
+      );
+      assertEquals(
+        request.headers["x-amz-meta-originalnameencoding"],
+        "percent-encoding",
+      );
+      assertEquals(
+        request.path,
+        `/test-bucket/hai-image-generation/user-id/task-id/references/run-id-${
+          index + 1
+        }.png`,
+      );
     }
   } finally {
     sendStub.restore();
@@ -103,44 +220,90 @@ Deno.test("reference uploads serialize Chinese and emoji filenames into valid R2
 });
 
 Deno.test("lost submit response keeps the pre-saved business ID and polling recovers without another POST", async () => {
-  const { submitImage, pollImage, ImageGenerationPending } = await import("./hai_image_generation.ts");
-  const config = { provider: "toapis", apiKey: "secret", baseUrl: "https://example.test/images", model: "image-model" };
+  const { submitImage, pollImage, ImageGenerationPending } = await import(
+    "./hai_image_generation.ts"
+  );
+  const config = {
+    provider: "toapis",
+    apiKey: "secret",
+    baseUrl: "https://example.test/images",
+    model: "image-model",
+  };
   let posts = 0;
   try {
-    await submitImage(config, { prompt: "图", size: "1:1", businessId: "hai-image-run-1" }, async (_url, init) => {
+    await submitImage(config, {
+      prompt: "图",
+      size: "1:1",
+      businessId: "hai-image-run-1",
+    }, async (_url, init) => {
       posts++;
-      assertEquals(JSON.parse(String((init as RequestInit)?.body)).client_business_id, "hai-image-run-1");
+      assertEquals(
+        JSON.parse(String((init as RequestInit)?.body)).client_business_id,
+        "hai-image-run-1",
+      );
       throw new DOMException("Signal timed out.", "TimeoutError");
     });
     throw new Error("expected pending");
   } catch (error) {
     assertEquals(error instanceof ImageGenerationPending, true);
-    assertEquals((error as InstanceType<typeof ImageGenerationPending>).taskId, "hai-image-run-1");
+    assertEquals(
+      (error as InstanceType<typeof ImageGenerationPending>).taskId,
+      "hai-image-run-1",
+    );
   }
-  const recovered = await pollImage(config, "hai-image-run-1", async (url, init) => {
-    assertEquals(String(url), "https://example.test/images/hai-image-run-1");
-    assertEquals((init as RequestInit)?.method, undefined);
-    return Response.json({ id: "tsk_original", status: "completed", result: { data: [{ url: "https://example.test/result.png" }] } });
-  });
+  const recovered = await pollImage(
+    config,
+    "hai-image-run-1",
+    async (url, init) => {
+      assertEquals(String(url), "https://example.test/images/hai-image-run-1");
+      assertEquals((init as RequestInit)?.method, undefined);
+      return Response.json({
+        id: "tsk_original",
+        status: "completed",
+        result: { data: [{ url: "https://example.test/result.png" }] },
+      });
+    },
+  );
   assertEquals(recovered.taskId, "tsk_original");
   assertEquals(recovered.url, "https://example.test/result.png");
   assertEquals(posts, 1);
 });
 
 Deno.test("poll timeouts, missing lookup and rate limits remain recoverable; explicit failure is terminal", async () => {
-  const { pollImage, ImageGenerationPending, ImageGenerationTaskError } = await import("./hai_image_generation.ts");
-  const config = { provider: "toapis", apiKey: "secret", baseUrl: "https://example.test/images", model: "image-model" };
+  const { pollImage, ImageGenerationPending, ImageGenerationTaskError } =
+    await import("./hai_image_generation.ts");
+  const config = {
+    provider: "toapis",
+    apiKey: "secret",
+    baseUrl: "https://example.test/images",
+    model: "image-model",
+  };
   for (const status of [404, 429, 502]) {
     try {
-      await pollImage(config, "original-task", async () => Response.json({ error: "temporary" }, { status }));
+      await pollImage(
+        config,
+        "original-task",
+        async () => Response.json({ error: "temporary" }, { status }),
+      );
       throw new Error("expected pending");
     } catch (error) {
       assertEquals(error instanceof ImageGenerationPending, true);
-      assertEquals((error as InstanceType<typeof ImageGenerationTaskError>).taskId, "original-task");
+      assertEquals(
+        (error as InstanceType<typeof ImageGenerationTaskError>).taskId,
+        "original-task",
+      );
     }
   }
   try {
-    await pollImage(config, "original-task", async () => Response.json({ status: "failed", error: { message: "provider rejected" } }));
+    await pollImage(
+      config,
+      "original-task",
+      async () =>
+        Response.json({
+          status: "failed",
+          error: { message: "provider rejected" },
+        }),
+    );
     throw new Error("expected failure");
   } catch (error) {
     assertEquals(error instanceof ImageGenerationTaskError, true);
@@ -150,16 +313,126 @@ Deno.test("poll timeouts, missing lookup and rate limits remain recoverable; exp
 });
 
 Deno.test("submission returns the pending task immediately and rejects a definitive bad request", async () => {
-  const { submitImage, ImageProviderHttpError } = await import("./hai_image_generation.ts");
-  const config = { provider: "toapis", apiKey: "secret", baseUrl: "https://example.test/images", model: "image-model" };
-  const result = await submitImage(config, { prompt: "图", size: "1:1", businessId: "business" }, async () => Response.json({ id: "task", status: "pending" }));
+  const { submitImage, ImageProviderHttpError } = await import(
+    "./hai_image_generation.ts"
+  );
+  const config = {
+    provider: "toapis",
+    apiKey: "secret",
+    baseUrl: "https://example.test/images",
+    model: "image-model",
+  };
+  const result = await submitImage(config, {
+    prompt: "图",
+    size: "1:1",
+    businessId: "business",
+  }, async () => Response.json({ id: "task", status: "pending" }));
   assertEquals(result.taskId, "task");
   assertEquals(result.url, undefined);
   try {
-    await submitImage(config, { prompt: "图", size: "1:1", businessId: "business" }, async () => Response.json({ error: { message: "invalid size" } }, { status: 400 }));
+    await submitImage(
+      config,
+      { prompt: "图", size: "1:1", businessId: "business" },
+      async () =>
+        Response.json({ error: { message: "invalid size" } }, { status: 400 }),
+    );
     throw new Error("expected failure");
   } catch (error) {
     assertEquals(error instanceof ImageProviderHttpError, true);
     assertEquals((error as Error).message, "invalid size");
+  }
+});
+
+Deno.test("missing provider task keeps the actual 404 response visible and can recover later", async () => {
+  const { pollImage, ImageGenerationPending } = await import(
+    "./hai_image_generation.ts"
+  );
+  const config = {
+    provider: "toapis",
+    apiKey: "secret",
+    baseUrl: "https://example.test/images",
+    model: "image-model",
+  };
+  const payload = {
+    code: "task_not_exist",
+    message: "生成失败: 任务处理失败",
+    data: null,
+  };
+  try {
+    await pollImage(
+      config,
+      "hai-image-original",
+      async () => Response.json(payload, { status: 404 }),
+    );
+    throw new Error("expected pending");
+  } catch (error) {
+    assertEquals(error instanceof ImageGenerationPending, true);
+    assertStringIncludes((error as Error).message, "404");
+    assertStringIncludes((error as Error).message, "未找到原任务");
+    assertEquals(
+      (error as InstanceType<typeof ImageGenerationPending>).providerResponse,
+      { http_status: 404, response: payload },
+    );
+  }
+  const recovered = await pollImage(
+    config,
+    "hai-image-original",
+    async () =>
+      Response.json({
+        id: "original",
+        status: "completed",
+        result: { data: [{ url: "https://example.test/result.png" }] },
+      }),
+  );
+  assertEquals(recovered.url, "https://example.test/result.png");
+});
+
+Deno.test("a non-JSON HTTP rejection is not mistaken for a lost submission receipt", async () => {
+  const { submitImage, ImageProviderHttpError } = await import(
+    "./hai_image_generation.ts"
+  );
+  const config = {
+    provider: "toapis",
+    apiKey: "secret",
+    baseUrl: "https://example.test/images",
+    model: "image-model",
+  };
+  try {
+    await submitImage(config, {
+      prompt: "图",
+      size: "1:1",
+      businessId: "business",
+    }, async () => new Response("Bad Request", { status: 400 }));
+    throw new Error("expected rejection");
+  } catch (error) {
+    assertEquals(error instanceof ImageProviderHttpError, true);
+    assertEquals(
+      (error as InstanceType<typeof ImageProviderHttpError>).status,
+      400,
+    );
+  }
+});
+
+Deno.test("all network stages share the remaining delivery budget", () => {
+  const deadlines: number[] = [];
+  const controller = new AbortController();
+  const timeoutStub = stub(AbortSignal, "timeout", (ms) => {
+    deadlines.push(ms);
+    return controller.signal;
+  });
+  try {
+    imageBudgetSignal(Date.now() + 2500);
+    imageBudgetSignal(Date.now() + IMAGE_DELIVERY_TIMEOUT_MS, 15_000);
+    assertEquals(deadlines[0] <= 2500 && deadlines[0] > 0, true);
+    assertEquals(deadlines[1], 15_000);
+    let expired = false;
+    try {
+      imageBudgetSignal(Date.now() - 1);
+    } catch (error) {
+      expired = error instanceof ImageDeliveryTimeout;
+    }
+    assertEquals(expired, true);
+  } finally {
+    timeoutStub.restore();
   }
 });
