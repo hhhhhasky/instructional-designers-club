@@ -101,3 +101,65 @@ Deno.test("reference uploads serialize Chinese and emoji filenames into valid R2
     }
   }
 });
+
+Deno.test("lost submit response keeps the pre-saved business ID and polling recovers without another POST", async () => {
+  const { submitImage, pollImage, ImageGenerationPending } = await import("./hai_image_generation.ts");
+  const config = { provider: "toapis", apiKey: "secret", baseUrl: "https://example.test/images", model: "image-model" };
+  let posts = 0;
+  try {
+    await submitImage(config, { prompt: "图", size: "1:1", businessId: "hai-image-run-1" }, async (_url, init) => {
+      posts++;
+      assertEquals(JSON.parse(String((init as RequestInit)?.body)).client_business_id, "hai-image-run-1");
+      throw new DOMException("Signal timed out.", "TimeoutError");
+    });
+    throw new Error("expected pending");
+  } catch (error) {
+    assertEquals(error instanceof ImageGenerationPending, true);
+    assertEquals((error as InstanceType<typeof ImageGenerationPending>).taskId, "hai-image-run-1");
+  }
+  const recovered = await pollImage(config, "hai-image-run-1", async (url, init) => {
+    assertEquals(String(url), "https://example.test/images/hai-image-run-1");
+    assertEquals((init as RequestInit)?.method, undefined);
+    return Response.json({ id: "tsk_original", status: "completed", result: { data: [{ url: "https://example.test/result.png" }] } });
+  });
+  assertEquals(recovered.taskId, "tsk_original");
+  assertEquals(recovered.url, "https://example.test/result.png");
+  assertEquals(posts, 1);
+});
+
+Deno.test("poll timeouts, missing lookup and rate limits remain recoverable; explicit failure is terminal", async () => {
+  const { pollImage, ImageGenerationPending, ImageGenerationTaskError } = await import("./hai_image_generation.ts");
+  const config = { provider: "toapis", apiKey: "secret", baseUrl: "https://example.test/images", model: "image-model" };
+  for (const status of [404, 429, 502]) {
+    try {
+      await pollImage(config, "original-task", async () => Response.json({ error: "temporary" }, { status }));
+      throw new Error("expected pending");
+    } catch (error) {
+      assertEquals(error instanceof ImageGenerationPending, true);
+      assertEquals((error as InstanceType<typeof ImageGenerationTaskError>).taskId, "original-task");
+    }
+  }
+  try {
+    await pollImage(config, "original-task", async () => Response.json({ status: "failed", error: { message: "provider rejected" } }));
+    throw new Error("expected failure");
+  } catch (error) {
+    assertEquals(error instanceof ImageGenerationTaskError, true);
+    assertEquals(error instanceof ImageGenerationPending, false);
+    assertEquals((error as Error).message, "provider rejected");
+  }
+});
+
+Deno.test("submission returns the pending task immediately and rejects a definitive bad request", async () => {
+  const { submitImage, ImageProviderHttpError } = await import("./hai_image_generation.ts");
+  const config = { provider: "toapis", apiKey: "secret", baseUrl: "https://example.test/images", model: "image-model" };
+  const result = await submitImage(config, { prompt: "图", size: "1:1", businessId: "business" }, async () => Response.json({ id: "task", status: "pending" }));
+  assertEquals(result.taskId, "task");
+  assertEquals(result.url, undefined);
+  try {
+    await submitImage(config, { prompt: "图", size: "1:1", businessId: "business" }, async () => Response.json({ error: { message: "invalid size" } }, { status: 400 }));
+    throw new Error("expected failure");
+  } catch (error) {
+    assertEquals(error instanceof ImageProviderHttpError, true);
+    assertEquals((error as Error).message, "invalid size");
+  }
+});

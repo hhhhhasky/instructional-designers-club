@@ -101,6 +101,7 @@ export async function generateHaiImage(params: {
   if (!token) throw new Error("请先登录。");
   const baseUrl = String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
   if (!baseUrl) throw new Error("缺少 VITE_SUPABASE_URL。");
+  const clientRequestId = params.clientRequestId || crypto.randomUUID();
   const body = new FormData();
   body.set("prompt", params.prompt);
   body.set("size", params.size);
@@ -108,17 +109,48 @@ export async function generateHaiImage(params: {
   body.set("imageType", params.imageType);
   if (params.taskId) body.set("taskId", params.taskId);
   if (params.parentRunId) body.set("parentRunId", params.parentRunId);
-  body.set("clientRequestId", params.clientRequestId || crypto.randomUUID());
+  body.set("clientRequestId", clientRequestId);
   if (params.referenceRunIds?.length) body.set("referenceRunIds", JSON.stringify(params.referenceRunIds.slice(0, 6)));
   for (const file of params.referenceFiles ?? []) body.append("reference_images", file, file.name);
+  try {
+    const response = await fetch(`${baseUrl}/functions/v1/hai-image-generation`, {
+      method: "POST", headers: { authorization: `Bearer ${token}` }, body,
+    });
+    const payload = await response.json() as HaiImageGenerationResponse;
+    if (!response.ok) throw new Error(payload.error || "图片生成请求失败。");
+    if (!payload.task || !payload.run) throw new Error("图片生成返回数据不完整。");
+    return payload;
+  } catch (error) {
+    // A lost HTTP response must not cause a second paid generation. Recover
+    // the existing request via owner-only RLS, then continue status polling.
+    const saved = await imageDb.from("hai_image_generation_runs")
+      .select("*, task:hai_image_generation_tasks(*)").eq("client_request_id", clientRequestId).maybeSingle();
+    if (saved.data?.task) return { task: saved.data.task, run: saved.data } as HaiImageGenerationResponse;
+    throw error;
+  }
+}
+
+export interface HaiImageGenerationResponse {
+  error?: string;
+  task?: HaiImageGenerationTask;
+  run?: HaiImageGenerationRun;
+  points?: number;
+  replayed?: boolean;
+  pending?: boolean;
+  message?: string;
+}
+
+export async function refreshHaiImage(runId: string): Promise<HaiImageGenerationResponse> {
+  const { data } = await supabase.auth.getSession();
+  if (!data.session?.access_token) throw new Error("请先登录。");
+  const baseUrl = String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
   const response = await fetch(`${baseUrl}/functions/v1/hai-image-generation`, {
     method: "POST",
-    headers: { authorization: `Bearer ${token}` },
-    body,
+    headers: { authorization: `Bearer ${data.session.access_token}`, "content-type": "application/json" },
+    body: JSON.stringify({ action: "status", runId }),
   });
-  const payload = await response.json().catch(() => ({})) as { error?: string; task?: HaiImageGenerationTask; run?: HaiImageGenerationRun; image?: { url: string; key: string }; points?: number; replayed?: boolean };
-  if (!response.ok) throw new Error(payload.error || "图片生成失败，请稍后重试。");
-  if (!payload.task || !payload.run) throw new Error("图片生成返回数据不完整。");
+  const payload = await response.json() as HaiImageGenerationResponse;
+  if (!response.ok || !payload.run) throw new Error(payload.error || "暂时未取到图片结果，请稍后继续取回。");
   return payload;
 }
 

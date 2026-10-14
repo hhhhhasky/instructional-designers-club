@@ -73,58 +73,91 @@ function providerErrorMessage(payload: unknown) {
   const nested = errorRecord.message ?? errorRecord.detail ?? errorRecord.code;
   return typeof nested === "string" && nested.trim() ? nested.trim().slice(0, 300) : "生图任务失败。";
 }
-async function responseJson(response: Response) {
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(text(record(payload).error || record(payload).message, `生图服务请求失败（${response.status}）。`, 300));
+
+export class ImageGenerationPending extends ImageGenerationTaskError {}
+
+export class ImageProviderHttpError extends Error {
+  constructor(readonly status: number, message: string) { super(message); }
+}
+
+async function providerResponse(response: Response) {
+  const payload = await response.json();
+  if (!response.ok) throw new ImageProviderHttpError(response.status, providerErrorMessage(payload));
   return payload;
 }
 
-export async function generateImage(
-  config: ReturnType<typeof readImageProviderConfig>,
-  params: { prompt: string; size: ImageGenerationSize; providerTaskId?: string; referenceImageUrls?: string[] },
-  options: { fetcher?: typeof fetch; wait?: (ms: number) => Promise<void>; maxWaitMs?: number } = {},
-) {
-  const fetcher = options.fetcher ?? fetch;
-  const wait = options.wait ?? ((ms) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
-  let taskId = text(params.providerTaskId, "", 200);
-  if (!taskId) {
-    const created = await responseJson(await fetcher(config.baseUrl, {
+type ImageProviderResult = { taskId?: string; url?: string; providerResponse: unknown };
+type ImageParams = { prompt: string; size: ImageGenerationSize; providerTaskId?: string; businessId?: string; referenceImageUrls?: string[] };
+
+// Persist businessId BEFORE calling this. ToAPIs accepts it in the same lookup
+// route as the returned task ID, including when the POST response is lost.
+export async function submitImage(
+  config: ReturnType<typeof readImageProviderConfig>, params: ImageParams,
+  fetcher: typeof fetch = fetch,
+): Promise<ImageProviderResult> {
+  try {
+    const created = await providerResponse(await fetcher(config.baseUrl, {
       method: "POST",
       headers: { authorization: `Bearer ${config.apiKey}`, "content-type": "application/json" },
       body: JSON.stringify({
-        model: config.model,
-        prompt: params.prompt,
-        n: 1,
-        size: params.size,
-        resolution: "1K",
+        model: config.model, prompt: params.prompt, n: 1, size: params.size,
+        resolution: "1K", response_format: "url",
+        ...(params.businessId ? { client_business_id: params.businessId } : {}),
         ...(params.referenceImageUrls?.length ? { image_urls: params.referenceImageUrls.slice(0, MAX_REFERENCE_IMAGES) } : {}),
-        response_format: "url",
       }),
-      // The provider may spend time mirroring reference images before it
-      // returns the task id. Keep this request open long enough to avoid
-      // abandoning a provider task that is already being created.
-      signal: AbortSignal.timeout(90_000),
+      signal: AbortSignal.timeout(30_000),
     }));
-    const immediateUrl = providerUrl(created);
-    taskId = providerTaskId(created);
-    if (immediateUrl) return { taskId: taskId || undefined, url: immediateUrl, providerResponse: created };
+    const taskId = providerTaskId(created) || params.businessId;
+    const url = providerUrl(created) || undefined;
+    if (!taskId && !url) throw new Error("生图服务没有返回任务标识。");
+    return { taskId, url, providerResponse: created };
+  } catch (error) {
+    // A network failure or gateway error does not mean generation failed.
+    // Never resubmit: the original task may already be generating/billable.
+    if (params.businessId && (!(error instanceof ImageProviderHttpError) || error.status >= 500 || error.status === 408)) {
+      throw new ImageGenerationPending("提交回执暂未收到，正在查询原任务。", params.businessId);
+    }
+    throw error;
   }
-  if (!taskId) throw new Error("生图服务没有返回任务标识。");
+}
+
+export async function pollImage(
+  config: ReturnType<typeof readImageProviderConfig>, taskId: string,
+  fetcher: typeof fetch = fetch,
+): Promise<ImageProviderResult> {
+  let payload: unknown;
+  try {
+    payload = await providerResponse(await fetcher(`${config.baseUrl}/${encodeURIComponent(taskId)}`, {
+      headers: { authorization: `Bearer ${config.apiKey}` }, signal: AbortSignal.timeout(15_000),
+    }));
+  } catch {
+    // Includes a briefly missing business ID, rate limiting and network errors.
+    throw new ImageGenerationPending("暂时未取到生成结果，正在继续查询。", taskId);
+  }
+  const status = text(record(payload).status || record(record(payload).result).status, "", 40).toLowerCase();
+  if (["failed", "failure", "error", "cancelled", "canceled"].includes(status)) {
+    throw new ImageGenerationTaskError(providerErrorMessage(payload), providerTaskId(payload) || taskId, payload);
+  }
+  return { taskId: providerTaskId(payload) || taskId, url: providerUrl(payload) || undefined, providerResponse: payload };
+}
+
+export async function generateImage(
+  config: ReturnType<typeof readImageProviderConfig>, params: ImageParams,
+  options: { fetcher?: typeof fetch; wait?: (ms: number) => Promise<void>; maxWaitMs?: number } = {},
+) {
+  const wait = options.wait ?? ((ms) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
+  let result: ImageProviderResult = params.providerTaskId
+    ? { taskId: params.providerTaskId, providerResponse: {} }
+    : await submitImage(config, params, options.fetcher);
+  if (result.url) return { ...result, url: result.url };
+  if (!result.taskId) throw new Error("生图服务没有返回任务标识。");
   const deadline = Date.now() + (options.maxWaitMs ?? 140_000);
   while (Date.now() < deadline) {
     await wait(3000);
-    const payload = await responseJson(await fetcher(`${config.baseUrl}/${encodeURIComponent(taskId)}`, {
-      headers: { authorization: `Bearer ${config.apiKey}` },
-      signal: AbortSignal.timeout(15_000),
-    }));
-    const url = providerUrl(payload);
-    if (url) return { taskId, url, providerResponse: payload };
-    const status = text(record(payload).status || record(record(payload).result).status, "", 40).toLowerCase();
-    if (["failed", "error", "cancelled", "canceled"].includes(status)) {
-      throw new ImageGenerationTaskError(providerErrorMessage(payload), taskId, payload);
-    }
+    result = await pollImage(config, result.taskId!, options.fetcher);
+    if (result.url) return { ...result, url: result.url };
   }
-  throw new ImageGenerationTaskError("生图任务等待超时，可稍后重试。", taskId);
+  throw new ImageGenerationPending("图片仍在生成，稍后继续取回。", result.taskId);
 }
 
 function r2Config() {

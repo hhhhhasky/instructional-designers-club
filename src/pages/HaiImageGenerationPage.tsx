@@ -18,16 +18,17 @@ import {
   getHaiImageGenerationRuns,
   getHaiImageGenerationTasks,
   HAI_IMAGE_GENERATION_POINTS,
-  HAI_MAX_REFERENCE_IMAGE_BYTES,
-  HAI_MAX_REFERENCE_IMAGES,
   HAI_IMAGE_SIZES,
   HAI_IMAGE_STYLES,
   HAI_IMAGE_TYPES,
+  HAI_MAX_REFERENCE_IMAGE_BYTES,
+  HAI_MAX_REFERENCE_IMAGES,
   type HaiImageGenerationRun,
   type HaiImageGenerationTask,
   type HaiImageSize,
   type HaiImageStyle,
   type HaiImageType,
+  refreshHaiImage,
 } from "@/db/hai-image-generation";
 import { cn } from "@/lib/utils";
 import { WorkSidebar } from "@/pages/HaiWorkPage";
@@ -66,6 +67,7 @@ export default function HaiImageGenerationPage() {
   const [selectedReferenceRunId, setSelectedReferenceRunId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [previewRefresh, setPreviewRefresh] = useState(0);
   const [pending, setPending] = useState<PendingImage | null>(null);
 
   useEffect(() => {
@@ -102,6 +104,34 @@ export default function HaiImageGenerationPage() {
     setSelectedReferenceRunId((current) => current && runs.some((run) => run.id === current && run.status === "completed" && run.r2_key) ? current : latest?.id ?? null);
   }, [runs, taskId]);
 
+  const activeRunIds = runs.filter((run) => run.status === "running" || run.status === "queued").map((run) => run.id).join(",");
+  useEffect(() => {
+    if (!activeRunIds || !user) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const deadline = Date.now() + 15 * 60_000;
+    const poll = async () => {
+      for (const runId of activeRunIds.split(",")) {
+        if (cancelled) return;
+        try {
+          const result = await refreshHaiImage(runId);
+          if (cancelled || !result.run) return;
+          setRuns((current) => current.map((run) => run.id === runId ? result.run! : run));
+          if (result.run.status === "completed") {
+            toast.success("图片已生成，可以查看和下载。");
+            void getHaiAccessStatus().then(({ usage: nextUsage }) => setUsage(nextUsage)).catch(() => undefined);
+          }
+        } catch {
+          // Keep the existing run visible; brief offline/auth/network errors
+          // are not provider failures and should never resubmit generation.
+        }
+      }
+      if (!cancelled && Date.now() < deadline) timer = setTimeout(() => void poll(), 5000);
+    };
+    timer = setTimeout(() => void poll(), 1500);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [activeRunIds, user, previewRefresh]);
+
   const pointsBlocked = usage?.quota_mode === "points" && (
     usage.can_consume === false || Number(usage.current_points ?? 0) < HAI_IMAGE_GENERATION_POINTS
   );
@@ -127,7 +157,7 @@ export default function HaiImageGenerationPage() {
 
   async function submit() {
     const value = prompt.trim();
-    if (!value || busy || pointsBlocked) return;
+    if (!value || busy || activeRunIds || pointsBlocked) return;
     const referenceRunId = referenceFiles.length ? null : selectedReferenceRunId;
     const input: PendingImage = { prompt: value, size, style, imageType, referenceFiles, referenceRunId };
     setBusy(true);
@@ -139,12 +169,14 @@ export default function HaiImageGenerationPage() {
       const response = await generateHaiImage({ prompt: value, size, style, imageType, taskId, parentRunId: runs[runs.length - 1]?.id, referenceFiles: input.referenceFiles, referenceRunIds: input.referenceRunId ? [input.referenceRunId] : [] });
       if (!response.task || !response.run) throw new Error("图片生成返回数据不完整。");
       setImageTasks((current) => [response.task as HaiImageGenerationTask, ...current.filter((task) => task.id !== response.task?.id)]);
-      setRuns((current) => [...current, response.run as HaiImageGenerationRun]);
-      setSelectedReferenceRunId((response.run as HaiImageGenerationRun).id);
+      setRuns((current) => [...current.filter((run) => run.id !== response.run?.id), response.run as HaiImageGenerationRun]);
+      if (response.run.status === "completed") setSelectedReferenceRunId(response.run.id);
       setPending(null);
-      setUsage((current) => current ? { ...current, current_points: Math.max(0, Number(current.current_points ?? 0) - HAI_IMAGE_GENERATION_POINTS) } : current);
+      void getHaiAccessStatus().then(({ usage: nextUsage }) => setUsage(nextUsage)).catch(() => undefined);
       navigate(`/hai/work/image-generation/${response.task.id}`);
-      toast.success("图片已生成并保存到 R2。");
+      if (response.run.status === "completed") toast.success("图片已生成，可以查看和下载。");
+      else if (response.run.status === "failed") setError(response.run.error_message || "本轮生成失败。");
+      else toast.message("任务已提交，图片会自动显示；刷新后也能继续取回。");
     } catch (nextError) {
       setPending(null);
       setReferenceFiles(input.referenceFiles);
@@ -202,19 +234,19 @@ export default function HaiImageGenerationPage() {
                     <h2 className="mt-4 font-serif text-2xl font-black tracking-tight text-tx">描述你想生成的教学画面</h2>
                     <p className="mt-2 text-sm text-txs">每张图片消耗 {HAI_IMAGE_GENERATION_POINTS} 积分；尺寸、风格和用途可在输入框下方调整。</p>
                   </div>
-                  <ImageComposer prompt={prompt} setPrompt={setPrompt} size={size} setSize={setSize} style={style} setStyle={setStyle} imageType={imageType} setImageType={setImageType} referenceFiles={referenceFiles} setReferenceFiles={setReferenceFiles} referenceRun={null} onUsePrevious={() => undefined} onClearPrevious={() => undefined} busy={busy} pointsBlocked={Boolean(pointsBlocked)} onSubmit={() => void submit()} conversation={false} />
+                  <ImageComposer prompt={prompt} setPrompt={setPrompt} size={size} setSize={setSize} style={style} setStyle={setStyle} imageType={imageType} setImageType={setImageType} referenceFiles={referenceFiles} setReferenceFiles={setReferenceFiles} referenceRun={null} onUsePrevious={() => undefined} onClearPrevious={() => undefined} busy={busy || Boolean(activeRunIds)} pointsBlocked={Boolean(pointsBlocked)} onSubmit={() => void submit()} conversation={false} />
                 </div>
               </div>
             ) : (
               <>
                 <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8">
                   <div className="mx-auto max-w-4xl space-y-7">
-                    {runs.map((run) => <ImageConversation key={run.id} run={run} onDownload={() => void download(run)} />)}
+                    {runs.map((run) => <ImageConversation key={run.id} run={run} onDownload={() => void download(run)} onRefresh={() => { setPreviewRefresh((value) => value + 1); void load(); }} />)}
                     {pending && <PendingConversation pending={pending} />}
                     {error && <div className="rounded-ds-lg border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">{error}</div>}
                   </div>
                 </div>
-                <ImageComposer prompt={prompt} setPrompt={setPrompt} size={size} setSize={setSize} style={style} setStyle={setStyle} imageType={imageType} setImageType={setImageType} referenceFiles={referenceFiles} setReferenceFiles={setReferenceFiles} referenceRun={selectedReferenceRun} onUsePrevious={() => setSelectedReferenceRunId(runs.slice().reverse().find((run) => run.status === "completed" && run.r2_key)?.id ?? null)} onClearPrevious={() => setSelectedReferenceRunId(null)} busy={busy} pointsBlocked={Boolean(pointsBlocked)} onSubmit={() => void submit()} conversation />
+                <ImageComposer prompt={prompt} setPrompt={setPrompt} size={size} setSize={setSize} style={style} setStyle={setStyle} imageType={imageType} setImageType={setImageType} referenceFiles={referenceFiles} setReferenceFiles={setReferenceFiles} referenceRun={selectedReferenceRun} onUsePrevious={() => setSelectedReferenceRunId(runs.slice().reverse().find((run) => run.status === "completed" && run.r2_key)?.id ?? null)} onClearPrevious={() => setSelectedReferenceRunId(null)} busy={busy || Boolean(activeRunIds)} pointsBlocked={Boolean(pointsBlocked)} onSubmit={() => void submit()} conversation />
               </>
             )}
           </div>
@@ -278,17 +310,18 @@ function CompactSelect({ label, value, options, onChange }: { label: string; val
 }
 
 function PendingConversation({ pending }: { pending: PendingImage }) {
-  return <><div className="flex justify-end"><div className="max-w-[85%] rounded-2xl rounded-br-md bg-[var(--annotation)] px-4 py-3 text-sm leading-6 text-white shadow-ds-sm"><p>{pending.prompt}</p><div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-white/80"><span>{sizeLabels[pending.size]}</span><span>· {pending.style}</span><span>· {pending.imageType}</span>{(pending.referenceFiles.length > 0 || pending.referenceRunId) && <span>· 参考图 {pending.referenceFiles.length || 1} 张</span>}</div></div></div><div className="flex items-center gap-3 text-sm text-txs"><span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--annotation-soft)] text-[var(--annotation)]"><Loader2 className="h-4 w-4 animate-spin" /></span>正在生成图片并保存到 R2…</div></>;
+  return <><div className="flex justify-end"><div className="max-w-[85%] rounded-2xl rounded-br-md bg-[var(--annotation)] px-4 py-3 text-sm leading-6 text-white shadow-ds-sm"><p>{pending.prompt}</p><div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-white/80"><span>{sizeLabels[pending.size]}</span><span>· {pending.style}</span><span>· {pending.imageType}</span>{(pending.referenceFiles.length > 0 || pending.referenceRunId) && <span>· 参考图 {pending.referenceFiles.length || 1} 张</span>}</div></div></div><div className="flex items-center gap-3 text-sm text-txs"><span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--annotation-soft)] text-[var(--annotation)]"><Loader2 className="h-4 w-4 animate-spin" /></span>正在提交图片任务…</div></>;
 }
 
-function ImageConversation({ run, onDownload }: { run: HaiImageGenerationRun; onDownload: () => void }) {
+function ImageConversation({ run, onDownload, onRefresh }: { run: HaiImageGenerationRun; onDownload: () => void; onRefresh: () => void }) {
   const references = run.reference_images ?? [];
-  return <div className="space-y-3"><div className="flex justify-end"><div className="max-w-[85%] rounded-2xl rounded-br-md bg-[var(--annotation)] px-4 py-3 text-sm leading-6 text-white shadow-ds-sm"><p>{run.prompt}</p><div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-white/80"><span>{sizeLabels[run.image_size]}</span><span>· {run.art_style}</span><span>· {run.image_type}</span>{references.length > 0 && <span>· 参考图 {references.length} 张</span>}</div></div></div><div className="flex items-start gap-3"><span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--annotation-soft)] text-[var(--annotation)]"><Sparkles className="h-4 w-4" /></span><div className="min-w-0 max-w-[92%]"><p className="mb-2 text-xs font-bold text-txs">{run.status === "completed" ? "HAI 已生成" : run.status === "running" || run.status === "queued" ? "正在生成" : "本轮生成失败"}</p>{run.image_url ? <div className="overflow-hidden rounded-ds-xl border border-[var(--paper-rule)] bg-white shadow-ds-sm"><GeneratedImage run={run} /><div className="flex items-center justify-between gap-3 border-t border-[var(--paper-rule)] px-3 py-2"><span className="truncate text-[11px] text-txs">已保存到 Cloudflare R2 · 图片已显示在对话区</span><Button size="sm" variant="ghost" onClick={onDownload}><ArrowDownToLine className="h-4 w-4" />下载</Button></div></div> : <div className="rounded-ds-lg border border-red-100 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">{run.error_message || "图片生成失败，可修改提示词后继续生成。"}</div>}</div></div></div>;
+  return <div className="space-y-3"><div className="flex justify-end"><div className="max-w-[85%] rounded-2xl rounded-br-md bg-[var(--annotation)] px-4 py-3 text-sm leading-6 text-white shadow-ds-sm"><p>{run.prompt}</p><div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-white/80"><span>{sizeLabels[run.image_size]}</span><span>· {run.art_style}</span><span>· {run.image_type}</span>{references.length > 0 && <span>· 参考图 {references.length} 张</span>}</div></div></div><div className="flex items-start gap-3"><span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--annotation-soft)] text-[var(--annotation)]"><Sparkles className="h-4 w-4" /></span><div className="min-w-0 max-w-[92%]"><p className="mb-2 text-xs font-bold text-txs">{run.status === "completed" ? "HAI 已生成" : run.status === "running" || run.status === "queued" ? "正在生成" : "本轮生成失败"}</p>{run.status === "completed" && run.image_url ? <div className="overflow-hidden rounded-ds-xl border border-[var(--paper-rule)] bg-white shadow-ds-sm"><GeneratedImage run={run} /><div className="flex items-center justify-between gap-3 border-t border-[var(--paper-rule)] px-3 py-2"><span className="truncate text-[11px] text-txs">图片已保存，可随时查看和下载</span><Button size="sm" variant="ghost" onClick={onDownload}><ArrowDownToLine className="h-4 w-4" />下载</Button></div></div> : run.status === "running" || run.status === "queued" ? <div className="rounded-ds-lg border border-[var(--paper-rule)] bg-white px-4 py-3 text-sm leading-6 text-txs"><p>{run.error_message || "图片正在生成或取回，完成后会自动显示。可以稍后重新打开本记录继续查看，无需重复生成。"}</p><Button size="sm" variant="ghost" onClick={onRefresh}>继续取回</Button></div> : <div className="rounded-ds-lg border border-red-100 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">{run.error_message || "图片生成失败，可修改提示词后继续生成。"}</div>}</div></div></div>;
 }
 
 function GeneratedImage({ run }: { run: HaiImageGenerationRun }) {
   const [source, setSource] = useState("");
   const [loadError, setLoadError] = useState("");
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -306,9 +339,9 @@ function GeneratedImage({ run }: { run: HaiImageGenerationRun }) {
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [run.id]);
+  }, [run.id, attempt]);
 
-  if (loadError) return <div className="flex min-h-40 items-center justify-center px-4 py-8 text-sm text-red-600">{loadError}</div>;
+  if (loadError) return <div className="flex min-h-40 items-center justify-center px-4 py-8 text-sm text-red-600"><div><p>{loadError}</p><Button variant="ghost" onClick={() => setAttempt((value) => value + 1)}>重新加载图片</Button></div></div>;
   if (!source) return <div className="flex min-h-40 items-center justify-center px-4 py-8 text-sm text-txt">正在加载图片预览…</div>;
   return <img src={source} alt={run.prompt} className="max-h-[560px] w-full object-contain" />;
 }

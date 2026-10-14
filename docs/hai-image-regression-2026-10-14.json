@@ -1,0 +1,35 @@
+{
+  "startedAt": "2026-10-14T04:54:48.897Z",
+  "clientRequestId": "hai-header-regression-c10bc50e-cbf4-4283-aa7f-d0d01488aa0f",
+  "referenceName": "照片 1.jpg",
+  "functionVersion": 12,
+  "userId": "daeb226c-92c3-4598-9f2c-d8976bb50835",
+  "pointsBefore": 18568.66,
+  "httpStatus": 502,
+  "error": "Signal timed out.",
+  "durationMs": 98800,
+  "hasR2Key": false,
+  "pointsAfter": 18568.66,
+  "pointsDeducted": 0,
+  "finishedAt": "2026-10-14T04:56:30.047Z",
+  "runId": "c75c9297-2534-49a4-9188-801d92ea7ede",
+  "taskId": "07c49a01-e6fe-46c9-92da-98f4baffd608",
+  "runStatus": "failed",
+  "serverDurationMs": 92860,
+  "referenceCount": 1,
+  "storedReferenceName": "照片 1.jpg",
+  "referenceStoredInR2": true,
+  "reservationStatus": "failed",
+  "chargeTransactions": 0,
+  "chargePoints": 0,
+  "deployedSourceRegression": {
+    "passed": 4,
+    "failed": 0
+  },
+  "edgeLog": {
+    "version": 12,
+    "httpStatus": 502,
+    "executionId": "203eae69-9e81-4890-89e0-27e5eec2ec9f"
+  },
+  "conclusion": "原 HTTP 请求头错误未复现；参考图已上传 R2，但供应商调用阶段超时，整轮生成失败且未扣积分。"
+}

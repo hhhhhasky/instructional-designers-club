@@ -1,5 +1,5 @@
 import { assertHaiAccess, finalizeImageGeneration, handleCors, HttpError, jsonResponse, recordHaiModelCall, reserveImageGeneration, requireUser, streamDeepSeek, type HaiProviderUsage } from "../_shared/hai.ts";
-import { generateImage, getStoredImageAccessUrl, IMAGE_GENERATION_POINTS, ImageGenerationTaskError, persistImage, persistReferenceImages, publicStoredImageUrl, readImageProviderConfig, readStoredImage, validateStoredReferenceImages, type ImageGenerationSize, type StoredReferenceImage } from "../_shared/hai_image_generation.ts";
+import { submitImage, pollImage, ImageGenerationPending, ImageProviderHttpError, getStoredImageAccessUrl, IMAGE_GENERATION_POINTS, ImageGenerationTaskError, persistImage, persistReferenceImages, publicStoredImageUrl, readImageProviderConfig, readStoredImage, validateStoredReferenceImages, type ImageGenerationSize, type StoredReferenceImage } from "../_shared/hai_image_generation.ts";
 
 const sizes = new Set(["16:9", "1:1", "3:4", "4:3", "9:16"]);
 const styles = new Set([
@@ -76,12 +76,14 @@ Deno.serve(async (request) => {
     if (action === "download") {
       const key = clean(body.runId, "", 300);
       if (!key || key.includes("..") || key.startsWith("/")) throw new HttpError(400, "图片标识不正确。");
-      const { data: run, error } = await auth.admin.from("hai_image_generation_runs").select("r2_key").eq("id", key).eq("user_id", auth.user.id).maybeSingle();
+      const { data: run, error } = await auth.admin.from("hai_image_generation_runs").select("r2_key").eq("status", "completed").eq("id", key).eq("user_id", auth.user.id).maybeSingle();
       if (error) throw new HttpError(500, error.message);
       if (!run?.r2_key) throw new HttpError(404, "图片文件不存在。");
       const file = await readStoredImage(run.r2_key);
       return new Response(file.bytes.buffer, { headers: { "content-type": file.contentType, "cache-control": "private, max-age=300", "access-control-allow-origin": "*" } });
     }
+    if (action === "status") return await refreshImageRun(auth, taskId(body.runId));
+    if (action !== "generate") throw new HttpError(400, "图片操作不正确。");
     const prompt = clean(body.prompt, "", 6000);
     const size = clean(body.size, "16:9", 20);
     const style = clean(body.style, "教育扁平插画", 40);
@@ -92,8 +94,7 @@ Deno.serve(async (request) => {
     const clientRequestId = clean(body.clientRequestId, "", 160) || crypto.randomUUID();
     const existing = await auth.admin.from("hai_image_generation_runs").select("*, task:hai_image_generation_tasks(*)").eq("user_id", auth.user.id).eq("client_request_id", clientRequestId).maybeSingle();
     if (existing.error) throw new HttpError(500, existing.error.message);
-    if (existing.data?.status === "completed") return jsonResponse({ task: existing.data.task, run: existing.data, replayed: true });
-    if (existing.data?.status === "running" || existing.data?.status === "queued") throw new HttpError(409, "这轮图片正在生成，请稍候。");
+    if (existing.data) return jsonResponse({ task: existing.data.task, run: existing.data, replayed: true }, ["queued", "running"].includes(existing.data.status) ? 202 : 200);
 
     const requestedTaskId = taskId(body.taskId);
     let task: Record<string, unknown> | null = null;
@@ -148,12 +149,14 @@ Deno.serve(async (request) => {
     let reserved = false;
     const startedAt = Date.now();
     let generatedTaskId: string | undefined;
+    let submissionStarted = false;
     let generatedSourceUrl = "";
     let generatedProviderResponse: unknown;
     try {
       await reserveImageGeneration({ userClient: auth.userClient, requestId: clientRequestId, route: "hai-image-generation", metadata: billingMetadata });
       reserved = true;
-      await auth.admin.from("hai_image_generation_runs").update({ status: "running", started_at: new Date().toISOString() }).eq("id", run.id).eq("user_id", auth.user.id);
+      const running = await auth.admin.from("hai_image_generation_runs").update({ status: "running", started_at: new Date().toISOString() }).eq("id", run.id).eq("user_id", auth.user.id);
+      if (running.error) throw new Error(running.error.message);
       const config = readImageProviderConfig();
       await auth.admin.from("hai_image_generation_runs").update({ provider: config.provider, model: config.model }).eq("id", run.id).eq("user_id", auth.user.id);
       if (referenceFiles.length) {
@@ -202,26 +205,30 @@ Deno.serve(async (request) => {
         }).eq("id", run.id).eq("user_id", auth.user.id);
       }
       const referenceImageUrls = await Promise.all(referenceImages.map((image) => getStoredImageAccessUrl(image.key)));
-      const generated = await generateImage(config, { prompt: finalPrompt, size: size as ImageGenerationSize, referenceImageUrls });
+      // Save a lookup key before POST, so even a lost submission response is recoverable.
+      generatedTaskId = `hai-image-${run.id}`;
+      const checkpoint = await auth.admin.from("hai_image_generation_runs").update({ provider_task_id: generatedTaskId }).eq("id", run.id).eq("user_id", auth.user.id).eq("status", "running").select("id").single();
+      if (checkpoint.error) throw new Error(checkpoint.error.message);
+      submissionStarted = true;
+      const generated = await submitImage(config, { prompt: finalPrompt, size: size as ImageGenerationSize, referenceImageUrls, businessId: generatedTaskId });
       generatedTaskId = generated.taskId;
-      generatedSourceUrl = generated.url;
+      generatedSourceUrl = generated.url || "";
       generatedProviderResponse = generated.providerResponse;
-      // Persist provider output before downloading it into R2. If the source
-      // URL is temporarily unavailable, support can still trace/reconcile
-      // the provider task instead of seeing an opaque failed run.
-      await auth.admin.from("hai_image_generation_runs").update({
-        provider_task_id: generatedTaskId || null,
-        source_url: generatedSourceUrl,
-        provider_response: generatedProviderResponse || {},
-      }).eq("id", run.id).eq("user_id", auth.user.id);
-      const stored = await persistImage({ sourceUrl: generated.url, userId: auth.user.id, taskId: String(task.id), runId: String(run.id) });
-      const durationMs = Date.now() - startedAt;
-      const update = await auth.admin.from("hai_image_generation_runs").update({ status: "completed", provider_task_id: generated.taskId || null, source_url: generated.url, r2_key: stored.key, image_url: stored.url, provider_response: generated.providerResponse || {}, duration_ms: durationMs, completed_at: new Date().toISOString(), error_message: null }).eq("id", run.id).eq("user_id", auth.user.id).select("*").single();
+      const update = await auth.admin.from("hai_image_generation_runs").update({
+        provider_task_id: generatedTaskId, ...(generatedSourceUrl ? { source_url: generatedSourceUrl } : {}),
+        provider_response: generatedProviderResponse, error_message: null,
+      }).eq("id", run.id).eq("user_id", auth.user.id).eq("status", "running").select("*").maybeSingle();
       if (update.error) throw new Error(update.error.message);
-      await auth.admin.from("hai_image_generation_tasks").update({ updated_at: new Date().toISOString() }).eq("id", task.id).eq("user_id", auth.user.id);
-      await finalizeImageGeneration({ userClient: auth.userClient, requestId: clientRequestId, status: "completed", route: "hai-image-generation", entityId: String(task.id), durationMs, metadata: { ...billingMetadata, provider_task_id: generated.taskId || null, r2_key: stored.key } });
-      return jsonResponse({ task, run: update.data, image: { url: stored.url, key: stored.key, width: null, height: null }, points: IMAGE_GENERATION_POINTS });
+      console.info("hai image submitted", { run_id: run.id, duration_ms: Date.now() - startedAt });
+      return jsonResponse({ task, run: update.data || { ...run, status: "running", provider_task_id: generatedTaskId }, pending: true }, 202);
     } catch (generationError) {
+      if (generationError instanceof ImageGenerationPending || (submissionStarted && !(generationError instanceof ImageProviderHttpError))) {
+        // POST or checkpoint reply may be lost. Keep the pre-saved lookup key;
+        // a later status request queries the original task and never creates another.
+        const saved = await auth.admin.from("hai_image_generation_runs").select("*").eq("id", run.id).eq("user_id", auth.user.id).single();
+        if (saved.error) throw new HttpError(503, "任务已提交，请在图片记录中继续取回。");
+        return jsonResponse({ task, run: saved.data, pending: true }, 202);
+      }
       const providerTaskId = generationError instanceof ImageGenerationTaskError ? generationError.taskId : generatedTaskId;
       const message = errorMessage(generationError);
       const optimizationError = generationError instanceof ImagePromptOptimizationError ? generationError : null;
@@ -249,6 +256,63 @@ Deno.serve(async (request) => {
     return jsonResponse({ error: errorMessage(error) }, status);
   }
 });
+
+async function refreshImageRun(auth: Awaited<ReturnType<typeof requireUser>>, runId: string) {
+  if (!runId) throw new HttpError(400, "图片记录标识不正确。");
+  const loaded = await auth.admin.from("hai_image_generation_runs").select("*, task:hai_image_generation_tasks(*)").eq("id", runId).eq("user_id", auth.user.id).maybeSingle();
+  if (loaded.error) throw new HttpError(500, loaded.error.message);
+  if (!loaded.data) throw new HttpError(404, "图片记录不存在或无权访问。");
+  let run = loaded.data;
+  const task = run.task;
+  if (["completed", "failed"].includes(run.status)) return jsonResponse({ task, run, replayed: true });
+  if (!run.provider_task_id) {
+    if (Date.now() - Date.parse(run.started_at || run.created_at) > 5 * 60_000) {
+      // No provider request can start before the lookup key is persisted.
+      await finalizeImageGeneration({ userClient: auth.userClient, requestId: run.client_request_id, status: "failed", route: "hai-image-generation", entityId: run.task_id });
+      const interrupted = await auth.admin.from("hai_image_generation_runs").update({ status: "failed", error_message: "任务准备中断，请重新提交。", completed_at: new Date().toISOString() }).eq("id", run.id).eq("user_id", auth.user.id).is("provider_task_id", null).in("status", ["queued", "running"]).select("*").maybeSingle();
+      if (interrupted.error) throw new HttpError(503, "暂时无法更新图片记录。");
+      if (interrupted.data) run = interrupted.data;
+    }
+    return jsonResponse({ task, run, pending: run.status !== "failed" }, run.status === "failed" ? 200 : 202);
+  }
+  const startedAt = Date.parse(run.started_at || run.created_at);
+  const save = async (values: Record<string, unknown>) => {
+    const result = await auth.admin.from("hai_image_generation_runs").update(values).eq("id", run.id).eq("user_id", auth.user.id).eq("status", "running").select("*").maybeSingle();
+    if (result.error) throw new Error(result.error.message);
+    if (result.data) run = result.data;
+  };
+  try {
+    if (!run.source_url) {
+      const polled = await pollImage(readImageProviderConfig(), run.provider_task_id);
+      await save({ provider_task_id: polled.taskId, provider_response: polled.providerResponse, source_url: polled.url || null });
+      if (!polled.url) return jsonResponse({ task, run, pending: true }, 202);
+    }
+    if (!run.r2_key) {
+      const stored = await persistImage({ sourceUrl: run.source_url, userId: auth.user.id, taskId: run.task_id, runId: run.id });
+      await save({ r2_key: stored.key, image_url: stored.url, duration_ms: Date.now() - startedAt });
+    }
+    // Settlement and completion commit together; retries cannot debit twice.
+    const completed = await auth.userClient.rpc("hai_complete_image_generation_run", { p_run_id: run.id });
+    if (completed.error) throw new Error(completed.error.message);
+    console.info("hai image completed", { run_id: run.id, duration_ms: Date.now() - startedAt });
+    return jsonResponse({ task, run: completed.data, points: IMAGE_GENERATION_POINTS });
+  } catch (error) {
+    if (error instanceof ImageGenerationTaskError && !(error instanceof ImageGenerationPending)) {
+      const settled = await auth.userClient.rpc("hai_finalize_image_generation", {
+        p_request_id: run.client_request_id, p_status: "failed", p_route: "hai-image-generation",
+        p_entity_id: run.task_id, p_duration_ms: Date.now() - startedAt,
+        p_metadata: { run_id: run.id, error: errorMessage(error) },
+      });
+      if (settled.error) throw new HttpError(503, "结果结算暂不可用，请稍后继续取回。");
+      await save({ status: "failed", error_message: errorMessage(error), provider_response: error.providerResponse || {}, completed_at: new Date().toISOString() });
+      return jsonResponse({ task, run });
+    }
+    console.warn("hai image retrieval deferred", { run_id: run.id, error: errorMessage(error) });
+    // Poll, download, storage and DB outages are retryable. Preserve the source
+    // URL and any saved object, and leave the reservation unsettled for retry.
+    return jsonResponse({ task, run: { ...run, error_message: errorMessage(error).includes("积分不足") ? "图片已保存，积分不足；补充积分后点击继续取回。" : null }, pending: true }, 202);
+  }
+}
 
 async function optimizeImagePrompt(params: {
   prompt: string;
