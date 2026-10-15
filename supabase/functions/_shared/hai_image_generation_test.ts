@@ -86,6 +86,7 @@ Deno.test("image generation sends the selected size and accepts an immediate pro
     },
   );
   assertEquals(request.size, "3:4");
+  assertEquals(request.resolution, "1k");
   assertEquals(result.url, "https://example.test/generated.png");
   assertStringIncludes(String(request.prompt), "课堂概念图");
 });

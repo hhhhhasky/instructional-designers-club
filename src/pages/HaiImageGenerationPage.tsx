@@ -21,6 +21,7 @@ import {
   getHaiImageGenerationTasks,
   HAI_IMAGE_DELIVERY_TIMEOUT_MS,
   HAI_IMAGE_FAILURE_MESSAGE,
+  HAI_IMAGE_POLL_INTERVAL_MS,
   HAI_IMAGE_GENERATION_POINTS,
   HAI_IMAGE_SIZES,
   HAI_IMAGE_STYLES,
@@ -82,6 +83,7 @@ export default function HaiImageGenerationPage() {
   const activeSubmission = useRef("");
   const localDeadlines = useRef<Record<string, number>>({});
   const deliveredRuns = useRef(new Set<string>());
+  const acknowledging = useRef(new Set<string>());
   const downloadedImages = useRef<Record<string, Blob>>({});
   const [pending, setPending] = useState<PendingImage | null>(null);
 
@@ -139,14 +141,16 @@ export default function HaiImageGenerationPage() {
   }
 
   const activeRunIds = runs.filter((run) => run.status === "running" || run.status === "queued").map((run) => run.id).join(",");
-  const deadlineFor = (run: HaiImageGenerationRun) => localDeadlines.current[run.id] ?? Date.parse(run.delivery_deadline_at || run.created_at) + (run.delivery_deadline_at ? 0 : HAI_IMAGE_DELIVERY_TIMEOUT_MS);
+  const deadlineFor = (run: HaiImageGenerationRun) => run.metadata?.execution_mode === "provider_async"
+    ? Number.POSITIVE_INFINITY
+    : localDeadlines.current[run.id] ?? Date.parse(run.delivery_deadline_at || run.created_at) + (run.delivery_deadline_at ? 0 : HAI_IMAGE_DELIVERY_TIMEOUT_MS);
   const failRun = (runId: string, stage = "client_deadline") => {
     if (deliveredRuns.current.has(runId)) return;
     setRuns((current) => current.map((run) => run.id === runId && run.status !== "completed" ? { ...run, status: "failed", error_message: HAI_IMAGE_FAILURE_MESSAGE } : run));
     void failHaiImage(runId, stage).catch(() => undefined);
   };
   useEffect(() => {
-    const timers = runs.filter((run) => ["running", "queued"].includes(run.status)).map((run) => setTimeout(() => failRun(run.id), Math.max(0, deadlineFor(run) - Date.now())));
+    const timers = runs.filter((run) => ["running", "queued"].includes(run.status) && Number.isFinite(deadlineFor(run))).map((run) => setTimeout(() => failRun(run.id), Math.max(0, deadlineFor(run) - Date.now())));
     return () => timers.forEach(clearTimeout);
   }, [activeRunIds]);
   useEffect(() => {
@@ -159,20 +163,35 @@ export default function HaiImageGenerationPage() {
         const run = runs.find((item) => item.id === runId);
         if (!run || deliveredRuns.current.has(runId) || Date.now() >= deadlineFor(run)) continue;
         try {
-          const result = await refreshHaiImage(runId, deadlineFor(run));
+          const result = await refreshHaiImage(runId, Math.min(deadlineFor(run), Date.now() + 130_000));
           if (cancelled || !result.run || deliveredRuns.current.has(runId)) continue;
           if (Date.now() >= deadlineFor(run)) { failRun(runId); continue; }
           setRuns((current) => current.map((item) => item.id === runId && item.status !== "failed" ? result.run! : item));
-        } catch { /* The independent deadline timer closes this run. */ }
+          const blob = downloadedImages.current[runId];
+          if (blob && result.run.r2_key && result.run.status === "running") void delivered(result.run, blob);
+        } catch { /* Keep the saved task; retry on the next poll. */ }
       }
-      if (!cancelled) timer = setTimeout(() => void poll(), 1000);
+      if (!cancelled) timer = setTimeout(() => void poll(), HAI_IMAGE_POLL_INTERVAL_MS);
     };
-    timer = setTimeout(() => void poll(), 500);
+    timer = setTimeout(() => void poll(), HAI_IMAGE_POLL_INTERVAL_MS);
     return () => { cancelled = true; clearTimeout(timer); };
   }, [activeRunIds, user]);
   async function delivered(run: HaiImageGenerationRun, blob: Blob) {
     downloadedImages.current[run.id] = blob;
-    if (run.status === "completed" || deliveredRuns.current.has(run.id)) return;
+    if (run.status === "completed" || deliveredRuns.current.has(run.id) || acknowledging.current.has(run.id)) return;
+    if (run.metadata?.execution_mode === "provider_async") {
+      acknowledging.current.add(run.id);
+      try {
+        const result = await acknowledgeHaiImage(run.id);
+        if (result.run) setRuns((current) => current.map((item) => item.id === run.id ? result.run! : item));
+        if (result.run?.status === "completed") {
+          deliveredRuns.current.add(run.id);
+          void getHaiAccessStatus().then(({ usage: nextUsage }) => setUsage(nextUsage)).catch(() => undefined);
+        }
+      } catch { /* The next status poll retries the acknowledgement without regenerating. */ }
+      finally { acknowledging.current.delete(run.id); }
+      return;
+    }
     if (Date.now() >= deadlineFor(run)) { failRun(run.id); return; }
     deliveredRuns.current.add(run.id);
     // Stop the user's timer at actual image load, before the acknowledgement
@@ -224,10 +243,11 @@ export default function HaiImageGenerationPage() {
     setReferenceFiles([]);
     try {
       const response = await generateHaiImage({ prompt: value, size, style, subject, imageType, taskId, deadlineAt, clientRequestId: submissionId, parentRunId: runs[runs.length - 1]?.id, referenceFiles: input.referenceFiles, referenceRunIds: input.referenceRunId ? [input.referenceRunId] : [] });
-      if (activeSubmission.current !== submissionId) { if (response.run) void failHaiImage(response.run.id).catch(() => undefined); return; }
+      if (activeSubmission.current !== submissionId) { void load(); return; }
       if (!response.task || !response.run) throw new Error(HAI_IMAGE_FAILURE_MESSAGE);
-      if (Date.now() >= deadlineAt) { void failHaiImage(response.run.id).catch(() => undefined); throw new Error(HAI_IMAGE_FAILURE_MESSAGE); }
-      localDeadlines.current[response.run.id] = Math.min(deadlineAt, Date.parse(response.run.delivery_deadline_at || "") || deadlineAt);
+      if (response.run.metadata?.execution_mode !== "provider_async") {
+        localDeadlines.current[response.run.id] = Math.min(deadlineAt, Date.parse(response.run.delivery_deadline_at || "") || deadlineAt);
+      }
       setImageTasks((current) => [response.task as HaiImageGenerationTask, ...current.filter((task) => task.id !== response.task?.id)]);
       setRuns((current) => [...current.filter((run) => run.id !== response.run?.id), response.run as HaiImageGenerationRun]);
       if (response.run.status === "completed") setSelectedReferenceRunId(response.run.id);
@@ -389,7 +409,7 @@ function ImageConversation({ run, onDownload, deadlineAt, onDelivered, onFailure
     <div className="flex justify-end"><div className="max-w-[85%] rounded-2xl rounded-br-md bg-[var(--annotation)] px-4 py-3 text-sm leading-6 text-white shadow-ds-sm"><p>{run.prompt}</p><div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-white/80"><span>{sizeLabels[run.image_size]}</span>{typeof run.metadata?.subject === "string" && run.metadata.subject && <span>· {run.metadata.subject}</span>}<span>· {imageStyleLabel(run.art_style)}</span><span>· {run.image_type}</span>{run.reference_images?.length > 0 && <span>· 参考图 {run.reference_images.length} 张</span>}</div></div></div>
     <div className="flex items-start gap-3"><span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--annotation-soft)] text-[var(--annotation)]"><Sparkles className="h-4 w-4" /></span><div className="min-w-0 max-w-[92%]"><p className="mb-2 text-xs font-bold text-txs">{run.status === "completed" ? "HAI 已生成" : active ? "正在生成" : "本轮生成失败"}</p>
       {ready ? <div className="overflow-hidden rounded-ds-xl border border-[var(--paper-rule)] bg-white shadow-ds-sm"><GeneratedImage run={run} deadlineAt={deadlineAt} onDelivered={onDelivered} onFailure={onFailure} />{run.status === "completed" && <div className="flex items-center justify-between gap-3 border-t border-[var(--paper-rule)] px-3 py-2"><span className="truncate text-[11px] text-txs">{!run.delivery_deadline_at || run.delivered_at ? "图片已保存，可随时查看和下载" : "图片已加载，可下载"}</span><Button size="sm" variant="ghost" onClick={onDownload}><ArrowDownToLine className="h-4 w-4" />下载</Button></div>}</div>
-      : active ? <div className="rounded-ds-lg border border-[var(--paper-rule)] bg-white px-4 py-3 text-sm leading-6 text-txs">正在生成图片，请稍候。</div>
+      : active ? <div className="rounded-ds-lg border border-[var(--paper-rule)] bg-white px-4 py-3 text-sm leading-6 text-txs">正在生成图片，每 10 秒自动查询；离开后可从任务记录继续取回。</div>
       : <div className="rounded-ds-lg border border-red-100 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">{HAI_IMAGE_FAILURE_MESSAGE}</div>}
     </div></div>
   </div>;
@@ -404,12 +424,12 @@ function GeneratedImage({ run, deadlineAt, onDelivered, onFailure }: { run: HaiI
   useEffect(() => {
     let cancelled = false, objectUrl = "";
     setSource(""); setLoadError("");
-    void downloadHaiImage(run.id, run.status === "completed" ? undefined : deadlineAt).then((blob) => {
+    void downloadHaiImage(run.id, run.status === "completed" || !Number.isFinite(deadlineAt) ? undefined : deadlineAt).then((blob) => {
       if (cancelled) return;
       downloadedBlob.current = blob; objectUrl = URL.createObjectURL(blob); setSource(objectUrl);
     }).catch(() => {
       if (!cancelled) {
-        if (run.status !== "completed") callbacks.current.onFailure("image_download");
+        if (run.status !== "completed" && Number.isFinite(deadlineAt)) callbacks.current.onFailure("image_download");
         else setLoadError("图片加载失败，请重新加载。");
       }
     });
@@ -417,5 +437,5 @@ function GeneratedImage({ run, deadlineAt, onDelivered, onFailure }: { run: HaiI
   }, [run.id, attempt]);
   if (loadError) return <div className="flex min-h-40 items-center justify-center px-4 py-8 text-sm text-red-600"><div><p>{loadError}</p><Button variant="ghost" onClick={() => setAttempt((value) => value + 1)}>重新加载图片</Button></div></div>;
   if (!source) return <div className="flex min-h-40 items-center justify-center px-4 py-8 text-sm text-txt">正在加载图片预览…</div>;
-  return <img src={source} alt={run.prompt} onLoad={() => { if (downloadedBlob.current) callbacks.current.onDelivered(downloadedBlob.current); }} onError={() => run.status !== "completed" ? callbacks.current.onFailure("image_decode") : setLoadError("图片加载失败，请重新加载。")} className="max-h-[560px] w-full object-contain" />;
+  return <img src={source} alt={run.prompt} onLoad={() => { if (downloadedBlob.current) callbacks.current.onDelivered(downloadedBlob.current); }} onError={() => run.status !== "completed" && Number.isFinite(deadlineAt) ? callbacks.current.onFailure("image_decode") : setLoadError("图片加载失败，请重新加载。")} className="max-h-[560px] w-full object-contain" />;
 }

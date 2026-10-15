@@ -18,25 +18,31 @@
 
 风格说明保留必要的字体、配色、材质、配图与版式细节，不统一截成短句。“现代法治”采用用户给出的精简风格正文；其他 41 套保留原有详细视觉说明。学科存入现有 metadata.subject 和 metadata.input.subject，最终提示词存入 composed_prompt。单页内容和用途细节由用户原始要求表达。
 
-## 150 秒交付期限
+## 第三方异步任务与 10 秒轮询
 
-前端在点击提交时开始计时，包含登录会话读取、参考图上传、供应商提交与绘图、结果查询、R2 保存和前端图片加载。提交时传送剩余时间，后端为该轮保存固定 `delivery_deadline_at`；刷新或重新打开记录不延长期限。各网络操作的超时不超过该轮剩余时间。
+独立的 HAI「图片生成」入口使用 ToAPIs 的异步接口。课件配图是另一条链路，不在本次改动范围内。
 
-后端以 `EdgeRuntime.waitUntil` 保持生成流程，唯一一次 POST 提交之后只查询原供应商任务；结果下载和 R2 保存不再依赖网页持续查询。网页查询只读取该轮已有进展。背景提交或回执丢失不会自动触发第二次 POST。
+1. 网站保存 queued 轮次并预留原积分额度，上传参考图。
+2. 在调用供应商前保存 `hai-image-<run_id>`，并作为 `client_business_id` 提交。收到真实任务 ID 后持久化并返回 202，不等待整张图生成。提交 HTTP 等待上限为 30 秒，回执丢失时保留业务 ID，后续仅查询原任务。
+3. 浏览器每次查询结束后等待 10 秒，再发送一个 `action=status` 请求；当前查询未结束时不叠加查询。服务端每次最多向供应商查询一次，不包含等待生成的循环，也不启动等待生图的 `EdgeRuntime.waitUntil` worker。
+4. `queued/in_progress` 保持 running；`completed` 结果先保存 source_url，再下载到 R2。保存后仍为 running/awaiting_delivery，等待前端加载确认；只有供应商明确失败才进入失败终态。
+5. 查询网络异常、404、429 和 5xx 不代表生成失败；R2 临时错误保留 source_url，后续可重试。429 按供应商 `Retry-After` 推迟下一次上游查询，浏览器仍按 10 秒节奏查本站。后台阶段与错误继续记录在 metadata 与供应商响应中。
 
-后台阶段记录在 `metadata.phase`：参考图上传、供应商提交、供应商绘图、R2 保存、等待前端交付确认。前端的独立计时器即使遇到挂起的查询也会结束等待，并解锁输入。用户统一看到：
+新轮次标记 `metadata.execution_mode=provider_async`，`delivery_deadline_at=NULL`。单次提交/查询收图操作各有 120 秒执行预算，前端查询请求上限 130 秒，但这不是整个任务的生成期限。供应商生成数分钟不会因原 150 秒规则失败。刷新或重新打开同一任务时从数据库恢复编号继续查询，绝不自动重新 POST 生图。
 
-> 本次生成失败，本轮未扣积分，请再次尝试。
+关闭网页后生成仍在第三方继续；当前方案由浏览器驱动查单收图，网页关闭期间本站不主动收图。ToAPIs 文档注明结果图片 URL 有效期为 24 小时，需要在其有效期内返回查询；一旦保存到 R2，就可持续回访。Webhook 或后台定时收图不在本次轮询方案内。
 
-失败原因仅供后台排查，分别保存在 `failure_code`、`failure_stage`、`failure_detail` 及供应商响应中。暂时的查询 404、限流或网络错误在剩余期限内可重试；超过期限后关闭该轮，不再提供无限续取。用户主动再次提交会创建新一轮。
+历史有 delivery_deadline_at 的任务仍执行原期限，失败终态不自动恢复；本次不改写历史迁移、不重新打开失败记录。
+
+官方协议：[生成接口](https://docs.toapis.cn/docs/cn/api-reference/images/gpt-image-2/generation)、[查询接口](https://docs.toapis.cn/docs/cn/api-reference/tasks/image-status)、[异步限流](https://docs.toapis.cn/docs/cn/api-reference/rate-limits/async-tasks)。
 
 ## 前端收到图片后结算
 
-`r2_key`/`image_url` 已保存时，轮次仍为 running，尚未扣费。前端可以下载图片 Blob；仅在图片 `onLoad` 成功且客户端期限未过时发送 `acknowledge`。
+`r2_key`/`image_url` 已保存时，轮次仍为 running，尚未扣费。前端可以下载图片 Blob；仅在图片 `onLoad` 成功时发送 `acknowledge`；历史轮次继续校验其期限。
 
-`hai_acknowledge_image_delivery` 校验用户所有权、数据库期限和已保存图片，然后在同一事务内记录 `delivered_at` 并完成积分结算。失败、确认和完成采用相同的轮次行锁；重复确认不重复扣费。直接调用旧完成/结算 RPC 不能绕过新轮次的交付确认。
+`hai_acknowledge_image_delivery` 校验用户所有权、已保存图片和适用的历史期限，然后在同一事务内记录 `delivered_at` 并完成积分结算。失败、确认和完成采用相同的轮次行锁；重复确认不重复扣费。直接调用旧完成/结算 RPC 不能绕过新轮次的交付确认。
 
-确认请求未到数据库时不扣费，由平台承担供应商成本。确认响应丢失而事务已经成功时，前端已收到图片，数据库保持一次完成结算，不再重复收费。当前页面保留已经收到的 Blob，即使确认失败，用户仍可下载；尚未确认的图片不宣称已可永久回访。
+确认请求未到数据库时不扣费，由平台承担供应商成本。确认响应丢失而事务已经成功时，前端已收到图片，数据库保持一次完成结算，不再重复收费。新异步轮次确认请求暂时失败时保留已收到的 Blob，在后续轮询中重试确认；数据库返回 completed 后才展示已完成和下载按钮，刷新后仍可重新加载已保存图片并确认。历史轮次保留旧版已按时交付时的本地 Blob 下载行为。
 
 超时失败是终态。迟到回执可以保存为后台排查证据，但不恢复成功、不下载迟到图片、不补扣积分。历史已完成图片仍可读取和下载。
 
@@ -44,23 +50,23 @@
 
 迁移新增交付期限、确认时间和失败原因字段，保留原 RLS 所有权策略。内部失败函数只允许受控 RPC 与维护函数调用，普通用户不能关闭别人的轮次。
 
-数据库维护函数每 5 秒扫描到期的 queued/running 轮次，关闭任务并释放未消费预留，防止用户关闭网页或 worker 被终止后留下长期 running。清扫不调用供应商、不生成图片、不扣费。物理状态更新可能晚一个调度间隔，但所有交付确认在数据库期限到达后都会被拒绝。
+数据库维护函数每 5 秒扫描有明确期限且到期的历史 queued/running 轮次。新异步轮次期限为 NULL，不会被该清扫关闭。清扫不调用供应商、不生成图片、不扣费。预留超过五分钟后可能过期，保存好的图片在确认事务内恢复本轮预留并按钱包余额校验结算，重复确认不会重复扣费。
 
 ## 本地验证方法
 
 - 前端：`pnpm exec vitest run`、`pnpm exec tsgo -p tsconfig.check.json`、`pnpm build`。
-- 后端：`deno test --allow-env --allow-net --allow-sys supabase/functions/_shared/hai_image_generation_test.ts supabase/functions/hai-image-generation/index_test.ts`。
+- 后端：`deno test --allow-env --allow-read --allow-net --allow-sys supabase/functions/_shared/hai_image_generation_test.ts supabase/functions/hai-image-generation/index_test.ts`。
 - 类型：`deno check supabase/functions/hai-image-generation/index.ts supabase/functions/hai-image-reference/index.ts`。
-- 事务 SQL：在临时目录安装 `@electric-sql/pglite@0.3.14`，用 `HAI_PGLITE_MODULE` 指定其 `dist/index.js`，运行 `node scripts/test-hai-image-delivery.mjs`。测试在独立嵌入式 PostgreSQL 内加载 fixture 和真实迁移，不修改远端数据库。
+- 事务 SQL：在临时目录安装 `@electric-sql/pglite@0.3.14`，用 `HAI_PGLITE_MODULE` 指定其 `dist/index.js`，运行 `node scripts/test-hai-image-async-sql.mjs`。测试在独立嵌入式 PostgreSQL 内加载 fixture 和真实迁移，不修改远端数据库。
 
 示例：
 
 ```sh
 npm install --prefix /tmp/hai-image-delivery-db-test --no-audit --no-fund --ignore-scripts @electric-sql/pglite@0.3.14
-HAI_PGLITE_MODULE=/tmp/hai-image-delivery-db-test/node_modules/@electric-sql/pglite/dist/index.js node scripts/test-hai-image-delivery.mjs
+HAI_PGLITE_MODULE=/tmp/hai-image-delivery-db-test/node_modules/@electric-sql/pglite/dist/index.js node scripts/test-hai-image-async-sql.mjs
 ```
 
-本地 SQL 测试验证计费与权限，不运行实际 pg_cron 调度器；部署时需核验维护任务存在。真实供应商出图、EdgeRuntime 生命周期和生产网络交付需要在发布后验收。
+本地 SQL 测试验证计费与权限，不运行实际 pg_cron 调度器；部署时需核验维护任务存在。真实供应商出图和生产网络交付需要在发布后验收。发布需先应用本次异步确认迁移，再部署处理器和前端；本地处理器也必须连接兼容的数据库，旧版 acknowledge RPC 会关闭 NULL 期限任务，不可混用。
 
 ## 本地前端与生图处理器
 

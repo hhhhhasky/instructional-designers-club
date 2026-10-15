@@ -25,7 +25,7 @@ beforeEach(()=>{
   URL.createObjectURL=vi.fn(()=>"blob:preview");URL.revokeObjectURL=vi.fn();
 });
 afterEach(()=>{cleanup();vi.useRealTimers();});
-describe("bounded image delivery",()=>{
+describe("image task delivery",()=>{
   it("keeps subject optional and offers all styles through a single selector", async () => {
     mocks.getRuns.mockResolvedValue([]); mount(); await tick();
     expect(screen.getByRole("combobox", { name: "学科" })).toHaveValue("");
@@ -99,7 +99,7 @@ describe("bounded image delivery",()=>{
     expect(mocks.acknowledge).not.toHaveBeenCalled();
   });
   it("charges only after image load, not after R2 persistence or blob download",async()=>{
-    mocks.refresh.mockResolvedValue({run:ready()});mount();await tick();await tick(500);
+    mocks.refresh.mockResolvedValue({run:ready()});mount();await tick();await tick(10_000);
     expect(screen.getByRole("img",{name:"水循环"})).toBeInTheDocument();
     expect(mocks.acknowledge).not.toHaveBeenCalled();
     fireEvent.load(screen.getByRole("img",{name:"水循环"}));await tick();
@@ -116,9 +116,9 @@ describe("bounded image delivery",()=>{
     expect(mocks.acknowledge).not.toHaveBeenCalled();expect(mocks.generate).not.toHaveBeenCalled();
   });
   it("does not restart the clock after reopening or accept a late image",async()=>{
-    mocks.getRuns.mockResolvedValue([{...run,delivery_deadline_at:new Date(Date.now()+1000).toISOString()}]);
+    mocks.getRuns.mockResolvedValue([{...run,delivery_deadline_at:new Date(Date.now()+10_001).toISOString()}]);
     let resolveStatus!:(value:any)=>void;mocks.refresh.mockImplementation(()=>new Promise((resolve)=>{resolveStatus=resolve;}));
-    mount();await tick();await tick(1000);
+    mount();await tick();await tick(10_001);
     await act(async()=>{resolveStatus({run:ready()});});await tick();
     expect(screen.getByText("本轮生成失败")).toBeInTheDocument();
     expect(screen.queryByRole("img")).not.toBeInTheDocument();expect(mocks.acknowledge).not.toHaveBeenCalled();
@@ -147,4 +147,56 @@ describe("bounded image delivery",()=>{
     expect(Array.from(select.options).map(x=>x.value)).toEqual(["课件 PPT","海报","学习单","思维导图"]);
     expect(select.value).toBe("课件 PPT");expect((screen.getByRole("combobox",{name:"风格"}) as HTMLSelectElement).options.length).toBe(42);
   });
+  it("polls an asynchronous task every 10 seconds and keeps it recoverable beyond 150 seconds", async () => {
+    const asyncRun = {...run, delivery_deadline_at: null, created_at: new Date(Date.now()-600_000).toISOString(), metadata: {execution_mode: "provider_async"}};
+    mocks.getRuns.mockResolvedValue([asyncRun]); mocks.refresh.mockResolvedValue({run: asyncRun});
+    mount(); await tick(); await tick(9_999);
+    expect(mocks.refresh).not.toHaveBeenCalled();
+    await tick(1); expect(mocks.refresh).toHaveBeenCalledTimes(1);
+    await tick(9_999); expect(mocks.refresh).toHaveBeenCalledTimes(1);
+    await tick(1); expect(mocks.refresh).toHaveBeenCalledTimes(2);
+    await tick(140_000); expect(mocks.refresh).toHaveBeenCalledTimes(16);
+    expect(mocks.fail).not.toHaveBeenCalled();
+    expect(screen.getByText(/每 10 秒自动查询/)).toBeInTheDocument();
+    expect(screen.getByRole("button", {name: /生成中/})).toBeDisabled();
+  });
+  it("retries transient query failures without submitting another paid generation", async () => {
+    const asyncRun = {...run, delivery_deadline_at: null, metadata: {execution_mode: "provider_async"}};
+    mocks.getRuns.mockResolvedValue([asyncRun]);
+    mocks.refresh.mockRejectedValueOnce(new Error("offline")).mockResolvedValue({run: {...asyncRun, image_url: "saved", r2_key: "key"}});
+    mount(); await tick(); await tick(10_000);
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    await tick(10_000); expect(screen.getByRole("img")).toBeInTheDocument();
+    expect(mocks.generate).not.toHaveBeenCalled(); expect(mocks.fail).not.toHaveBeenCalled();
+  });
+  it("retries a lost acknowledgement on the next poll and stops after completion", async () => {
+    const asyncRun = {...ready(), delivery_deadline_at: null, metadata: {execution_mode: "provider_async"}};
+    mocks.getRuns.mockResolvedValue([asyncRun]); mocks.refresh.mockResolvedValue({run: asyncRun});
+    mocks.acknowledge.mockRejectedValueOnce(new Error("offline")).mockResolvedValue({run: {...asyncRun, status: "completed"}});
+    mount(); await tick(); fireEvent.load(screen.getByRole("img")); await tick();
+    expect(mocks.acknowledge).toHaveBeenCalledTimes(1);
+    await tick(10_000); expect(mocks.acknowledge).toHaveBeenCalledTimes(2);
+    expect(screen.getByText("HAI 已生成")).toBeInTheDocument();
+    const queries = mocks.refresh.mock.calls.length;
+    await tick(160_000); expect(mocks.refresh).toHaveBeenCalledTimes(queries);
+    expect(mocks.fail).not.toHaveBeenCalled(); expect(mocks.generate).not.toHaveBeenCalled();
+  });
+  it("lets an asynchronous image preview retry without declaring the original task failed", async () => {
+    const asyncRun = {...ready(), delivery_deadline_at: null, metadata: {execution_mode: "provider_async"}};
+    mocks.getRuns.mockResolvedValue([asyncRun]); mount(); await tick();
+    fireEvent.error(screen.getByRole("img")); await tick();
+    expect(screen.getByRole("button", {name: "重新加载图片"})).toBeInTheDocument();
+    expect(mocks.fail).not.toHaveBeenCalled(); expect(mocks.acknowledge).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", {name: "重新加载图片"})); await tick();
+    fireEvent.load(screen.getByRole("img")); await tick();
+    expect(mocks.acknowledge).toHaveBeenCalledTimes(1);
+  });
+  it("stops scheduling requests when leaving the page and never overlaps a pending query", async () => {
+    mocks.getRuns.mockResolvedValue([{...run, delivery_deadline_at: null, metadata: {execution_mode: "provider_async"}}]);
+    mocks.refresh.mockImplementation(() => new Promise(() => {}));
+    const view = mount(); await tick(); await tick(90_000);
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
+    view.unmount(); await tick(90_000); expect(mocks.refresh).toHaveBeenCalledTimes(1);
+  });
+
 });

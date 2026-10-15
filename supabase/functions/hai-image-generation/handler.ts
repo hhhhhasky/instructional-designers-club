@@ -9,7 +9,6 @@ import {
 import {
   composeImageGenerationPrompt,
   getStoredImageAccessUrl,
-  IMAGE_DELIVERY_TIMEOUT_MS,
   IMAGE_FAILURE_MESSAGE,
   IMAGE_GENERATION_POINTS,
   IMAGE_GENERATION_STYLES,
@@ -104,11 +103,12 @@ async function fail(
   return r.data as Row;
 }
 async function save(auth: Auth, run: Row, values: Row) {
-  const r = await auth.admin.from("hai_image_generation_runs").update(values)
-    .eq("id", run.id).eq("user_id", auth.user.id).eq("status", "running").gt(
-      "delivery_deadline_at",
-      new Date().toISOString(),
-    ).select("*").maybeSingle();
+  let query = auth.admin.from("hai_image_generation_runs").update(values)
+    .eq("id", run.id).eq("user_id", auth.user.id).eq("status", "running");
+  if (run.delivery_deadline_at) {
+    query = query.gt("delivery_deadline_at", new Date().toISOString());
+  }
+  const r = await query.select("*").maybeSingle();
   if (r.error) throw new Error(r.error.message);
   if (!r.data) {
     throw new ImageDeliveryTimeout("Run closed or delivery deadline exceeded");
@@ -121,8 +121,9 @@ async function generate(
   files: File[],
   references: StoredReferenceImage[],
 ) {
-  const deadline = Date.parse(run.delivery_deadline_at);
+  const deadline = Date.now() + 120_000;
   let phase = "quota_reservation";
+  let submittedToProvider = false;
   let lastProviderReceipt:
     | { taskId?: string; providerResponse: unknown }
     | undefined;
@@ -140,6 +141,7 @@ async function generate(
         subject: run.metadata?.subject || null,
         image_type: run.image_type,
         points: IMAGE_GENERATION_POINTS,
+        execution_mode: "provider_async",
       },
     });
     const running = await auth.admin.from("hai_image_generation_runs").update({
@@ -190,6 +192,7 @@ async function generate(
     );
     let result;
     try {
+      submittedToProvider = true;
       result = await submitImage(config, {
         prompt: finalPrompt,
         size: run.image_size as ImageGenerationSize,
@@ -211,56 +214,24 @@ async function generate(
       provider_response: result.providerResponse,
       ...(result.url ? { source_url: result.url } : {}),
     });
-    phase = "provider_generation";
-    await save(auth, run, { metadata: phaseMetadata(phase) });
-    while (!run.source_url) {
-      if (Date.now() >= deadline) {
-        throw new ImageDeliveryTimeout("Provider result exceeded deadline");
-      }
-      try {
-        result = await pollImage(config, run.provider_task_id, fetch, deadline);
-        lastProviderReceipt = result;
-        await save(auth, run, {
-          provider_task_id: result.taskId,
-          provider_response: result.providerResponse,
-          ...(result.url ? { source_url: result.url } : {}),
-        });
-      } catch (error) {
-        if (!(error instanceof ImageGenerationPending)) throw error;
-        await save(auth, run, {
-          provider_response: error.providerResponse || {},
-          metadata: { ...phaseMetadata(phase), last_error: detail(error) },
-        });
-      }
-      if (!run.source_url) {
-        await new Promise<void>((resolve) =>
-          setTimeout(
-            resolve,
-            Math.min(1500, Math.max(0, deadline - Date.now())),
-          )
-        );
-      }
-    }
-    phase = "r2_persistence";
-    await save(auth, run, { metadata: phaseMetadata(phase) });
-    const stored = await persistImage({
-      sourceUrl: run.source_url,
-      userId: auth.user.id,
-      taskId: run.task_id,
-      runId: run.id,
-      deadlineAt: deadline,
-    });
-    await save(auth, run, {
-      r2_key: stored.key,
-      image_url: stored.url,
-      duration_ms: Date.now() - Date.parse(run.created_at),
-      metadata: phaseMetadata("awaiting_delivery"),
-    });
+    // Generation belongs to ToAPIs. A later status request collects the result.
+    await save(auth, run, { metadata: phaseMetadata("provider_generation") });
     // Saved does not mean delivered: acknowledgement is the only debit path.
   } catch (error) {
-    const code = Date.now() >= deadline || error instanceof ImageDeliveryTimeout
-      ? "delivery_timeout"
-      : error instanceof ImageProviderHttpError
+    if (
+      submittedToProvider && !(error instanceof ImageProviderHttpError) &&
+      (!(error instanceof ImageGenerationTaskError) ||
+        error instanceof ImageGenerationPending)
+    ) {
+      // The pre-saved business ID remains queryable even if saving the receipt
+      // fails. An accepted paid task must never be closed for a database outage.
+      console.warn("hai image receipt persistence deferred", {
+        run_id: run.id,
+        ...detail(error),
+      });
+      return;
+    }
+    const code = error instanceof ImageProviderHttpError
       ? "provider_rejected"
       : error instanceof ImageGenerationTaskError
       ? "provider_failed"
@@ -273,8 +244,7 @@ async function generate(
     });
     const closed = await fail(auth, run.id, code, phase, detail(error));
     if (closed.status === "failed" && lastProviderReceipt?.taskId) {
-      // A late receipt is forensic evidence only. It never restores success,
-      // downloads an image, or charges a member after the delivery deadline.
+      // Retain a receipt for auditing without reopening a failed run.
       const audit = await auth.admin.from("hai_image_generation_runs").update({
         provider_task_id: lastProviderReceipt.taskId,
         provider_response: lastProviderReceipt.providerResponse,
@@ -289,10 +259,79 @@ async function generate(
   }
 }
 
+async function collectResult(auth: Auth, run: Row) {
+  if (run.status !== "running" || !run.provider_task_id || run.r2_key) return;
+  if (Date.parse(run.metadata?.next_poll_at || "") > Date.now()) return;
+  const deadline = Date.now() + 120_000;
+  try {
+    if (!run.source_url) {
+      const result = await pollImage(
+        readImageProviderConfig(),
+        run.provider_task_id,
+        fetch,
+        deadline,
+      );
+      await save(auth, run, {
+        provider_task_id: result.taskId,
+        provider_response: result.providerResponse,
+        ...(result.url ? { source_url: result.url } : {}),
+      });
+    }
+    if (!run.source_url) return;
+    await save(auth, run, {
+      metadata: { ...run.metadata, phase: "r2_persistence" },
+    });
+    const stored = await persistImage({
+      sourceUrl: run.source_url,
+      userId: auth.user.id,
+      taskId: run.task_id,
+      runId: run.id,
+      deadlineAt: deadline,
+    });
+    await save(auth, run, {
+      r2_key: stored.key,
+      image_url: stored.url,
+      duration_ms: Date.now() - Date.parse(run.created_at),
+      metadata: { ...run.metadata, phase: "awaiting_delivery" },
+    });
+  } catch (error) {
+    if (
+      error instanceof ImageGenerationTaskError &&
+      !(error instanceof ImageGenerationPending)
+    ) {
+      await fail(
+        auth,
+        run.id,
+        "provider_failed",
+        "provider_generation",
+        detail(error),
+      );
+    } else {
+      // HTTP timeouts, 404/429/5xx and R2 interruptions are retryable reads.
+      await save(auth, run, {
+        metadata: {
+          ...run.metadata,
+          last_error: detail(error),
+          next_poll_at: new Date(
+            Date.now() +
+              Math.max(
+                10_000,
+                Number(
+                  (error instanceof ImageGenerationPending
+                    ? error.providerResponse as Row
+                    : null)?.retry_after_ms,
+                ) || 0,
+              ),
+          ).toISOString(),
+        },
+      });
+    }
+  }
+}
+
 export async function handleImageGeneration(
   request: Request,
 ): Promise<Response> {
-  const requestStartedAt = Date.now();
   const cors = handleCors(request);
   if (cors) return cors;
   try {
@@ -318,8 +357,8 @@ export async function handleImageGeneration(
       const task = run.task;
       if (
         ["running", "queued"].includes(run.status) &&
-        (!run.delivery_deadline_at ||
-          Date.now() >= Date.parse(run.delivery_deadline_at))
+        run.delivery_deadline_at &&
+        Date.now() >= Date.parse(run.delivery_deadline_at)
       ) {
         run = await fail(
           auth,
@@ -356,7 +395,9 @@ export async function handleImageGeneration(
           run.r2_key,
           run.status === "completed"
             ? undefined
-            : Date.parse(run.delivery_deadline_at),
+            : run.delivery_deadline_at
+            ? Date.parse(run.delivery_deadline_at)
+            : undefined,
         );
         return new Response(file.bytes.buffer, {
           headers: {
@@ -366,13 +407,13 @@ export async function handleImageGeneration(
           },
         });
       }
+      if (action === "status") {
+        await collectResult(auth, run);
+        run = await load(auth, run.id);
+      }
       return response(task, run);
     }
     if (action !== "generate") throw new HttpError(400, "图片操作不正确。");
-    const runtime = (globalThis as unknown as {
-      EdgeRuntime?: { waitUntil: (work: Promise<unknown>) => void };
-    }).EdgeRuntime;
-    if (!runtime) throw new Error("Background runtime unavailable");
     const prompt = typeof body.prompt === "string"
         ? body.prompt.trim().slice(0, 6000)
         : "",
@@ -464,11 +505,6 @@ export async function handleImageGeneration(
         ).maybeSingle();
       if (r.error || !r.data) throw new HttpError(400, "上一轮记录不正确。");
     }
-    const remaining = Number(body.remainingMs);
-    const budget = Number.isFinite(remaining)
-      ? Math.max(0, Math.min(IMAGE_DELIVERY_TIMEOUT_MS, remaining))
-      : IMAGE_DELIVERY_TIMEOUT_MS;
-    const deadline = new Date(requestStartedAt + budget).toISOString();
     const r = await auth.admin.from("hai_image_generation_runs").insert({
       task_id: task.id,
       user_id: auth.user.id,
@@ -487,25 +523,22 @@ export async function handleImageGeneration(
       art_style: style,
       image_type: imageType,
       reference_images: references,
-      delivery_deadline_at: deadline,
+      delivery_deadline_at: null,
       metadata: {
         points: IMAGE_GENERATION_POINTS,
         phase: "queued",
+        execution_mode: "provider_async",
         prompt_strategy: "static_template",
         subject: subject || null,
         input: { prompt, size, style, imageType, subject: subject || null },
       },
     }).select("*").single();
     if (r.error) throw new Error(r.error.message);
-    runtime.waitUntil(
-      generate(auth, r.data, files, references).catch((error) =>
-        console.error("hai image delivery close failed", {
-          run_id: r.data.id,
-          ...detail(error),
-        })
-      ),
-    );
-    return response(task, r.data);
+    // Wait only for upload/submission and persist the receipt before responding.
+    // No detached Edge worker waits for the third-party generation to finish.
+    await generate(auth, r.data, files, references);
+    const submitted = await load(auth, r.data.id);
+    return response(task, submitted);
   } catch (error) {
     console.warn("hai image request failed", detail(error));
     return jsonResponse({

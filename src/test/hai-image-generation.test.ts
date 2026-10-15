@@ -23,6 +23,7 @@ describe("image request options", () => {
     expect(url).toBe("https://db.example.test/functions/v1/hai-image-generation");
     expect(init.headers.authorization).toBe("Bearer user-token");
     expect(init.body.get("prompt")).toBe(prompt);
+    expect(init.body.has("remainingMs")).toBe(false);
     expect(init.body.get("subject")).toBe("思想政治");
     expect(init.body.get("style")).toBe("非遗国潮");
     expect(init.body.get("reference_images").name).toBe("课堂.png");

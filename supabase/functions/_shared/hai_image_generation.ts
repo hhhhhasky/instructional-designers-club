@@ -154,6 +154,7 @@ export class ImageProviderHttpError extends Error {
     readonly status: number,
     message: string,
     readonly providerResponse?: unknown,
+    readonly retryAfterMs?: number,
   ) {
     super(message);
   }
@@ -170,6 +171,13 @@ async function providerResponse(response: Response) {
         ? providerErrorMessage(payload)
         : `生图服务请求失败（HTTP ${response.status}）。`,
       payload,
+      response.headers.has("retry-after")
+        ? Math.max(
+          0,
+          Number(response.headers.get("retry-after")) * 1000 ||
+            Date.parse(response.headers.get("retry-after")!) - Date.now() || 0,
+        )
+        : undefined,
     );
   }
   if (!payload) throw new Error("生图服务返回了无法解析的响应。");
@@ -195,6 +203,9 @@ function pendingProviderError(
     : "暂时无法连接生图服务，结果尚未确认，可稍后继续取回。";
   return new ImageGenerationPending(message, taskId, {
     http_status: httpStatus,
+    ...(error instanceof ImageProviderHttpError && error.retryAfterMs
+      ? { retry_after_ms: error.retryAfterMs }
+      : {}),
     ...(error instanceof ImageProviderHttpError
       ? { response: error.providerResponse }
       : { error: error instanceof Error ? error.message : "unknown" }),
@@ -235,7 +246,7 @@ export async function submitImage(
           prompt: params.prompt,
           n: 1,
           size: params.size,
-          resolution: "1K",
+          resolution: "1k",
           response_format: "url",
           ...(params.businessId
             ? { client_business_id: params.businessId }
@@ -249,7 +260,7 @@ export async function submitImage(
             }
             : {}),
         }),
-        signal: imageBudgetSignal(params.deadlineAt),
+        signal: imageBudgetSignal(params.deadlineAt, 30_000),
       }),
     );
     const taskId = providerTaskId(created) || params.businessId;

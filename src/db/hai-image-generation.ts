@@ -16,9 +16,10 @@ export type {
 import type { ImageGenerationStyle as HaiImageStyle, ImageGenerationSubject as HaiImageSubject } from "../../supabase/functions/_shared/hai_image_styles.ts";
 export const HAI_IMAGE_TYPES = ["课件 PPT", "海报", "学习单", "思维导图"] as const;
 export const HAI_IMAGE_DELIVERY_TIMEOUT_MS = 150_000;
+export const HAI_IMAGE_POLL_INTERVAL_MS = 10_000;
 export const HAI_IMAGE_FAILURE_MESSAGE = "本次生成失败，本轮未扣积分，请再次尝试。";
 function deadlineSignal(deadlineAt?: number) {
-  if (!deadlineAt) return undefined;
+  if (!deadlineAt || !Number.isFinite(deadlineAt)) return undefined;
   const remaining = Math.floor(deadlineAt - Date.now());
   if (remaining <= 0) throw new Error(HAI_IMAGE_FAILURE_MESSAGE);
   return AbortSignal.timeout(remaining);
@@ -137,7 +138,6 @@ export async function generateHaiImage(params: {
   body.set("clientRequestId", clientRequestId);
   if (params.referenceRunIds?.length) body.set("referenceRunIds", JSON.stringify(params.referenceRunIds.slice(0, 6)));
   for (const file of params.referenceFiles ?? []) body.append("reference_images", file, file.name);
-  body.set("remainingMs", String(Math.max(0, (params.deadlineAt ?? Date.now() + HAI_IMAGE_DELIVERY_TIMEOUT_MS) - Date.now())));
   try {
     const response = await fetch(imageFunctionUrl(baseUrl), {
       method: "POST", headers: { authorization: `Bearer ${token}` }, body, signal: deadlineSignal(params.deadlineAt),
@@ -173,7 +173,7 @@ async function imageAction(action: string, runId: string, deadlineAt?: number, s
   const response = await fetch(imageFunctionUrl(baseUrl), {
     method: "POST",
     headers: { authorization: `Bearer ${data.session.access_token}`, "content-type": "application/json" },
-    body: JSON.stringify({ action, runId, stage }), signal: deadlineSignal(deadlineAt),
+    body: JSON.stringify({ action, runId, stage }), signal: deadlineSignal(Number.isFinite(deadlineAt) ? deadlineAt : Date.now() + (action === "status" ? 130_000 : 30_000)),
   });
   const payload = await response.json() as HaiImageGenerationResponse;
   if (!response.ok || !payload.run) throw new Error(payload.error || "暂时未取到图片结果，请稍后继续取回。");
