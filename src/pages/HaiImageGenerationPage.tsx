@@ -24,6 +24,10 @@ import {
   HAI_IMAGE_GENERATION_POINTS,
   HAI_IMAGE_SIZES,
   HAI_IMAGE_STYLES,
+  HAI_IMAGE_SUBJECTS,
+  getRecommendedImageStyles,
+  imageStyleLabel,
+  isImageSubject,
   HAI_IMAGE_TYPES,
   HAI_MAX_REFERENCE_IMAGE_BYTES,
   HAI_MAX_REFERENCE_IMAGES,
@@ -31,6 +35,7 @@ import {
   type HaiImageGenerationTask,
   type HaiImageSize,
   type HaiImageStyle,
+  type HaiImageSubject,
   type HaiImageType,
   refreshHaiImage,
 } from "@/db/hai-image-generation";
@@ -49,6 +54,7 @@ type PendingImage = {
   prompt: string;
   size: HaiImageSize;
   style: HaiImageStyle;
+  subject: HaiImageSubject | "";
   imageType: HaiImageType;
   referenceFiles: File[];
   referenceRunId: string | null;
@@ -66,6 +72,8 @@ export default function HaiImageGenerationPage() {
   const [prompt, setPrompt] = useState("");
   const [size, setSize] = useState<HaiImageSize>("16:9");
   const [style, setStyle] = useState<HaiImageStyle>("教育扁平插画");
+  const [subject, setSubject] = useState<HaiImageSubject | "">("");
+  const restoredTask = useRef<string | null>(null);
   const [imageType, setImageType] = useState<HaiImageType>("课件 PPT");
   const [referenceFiles, setReferenceFiles] = useState<File[]>([]);
   const [selectedReferenceRunId, setSelectedReferenceRunId] = useState<string | null>(null);
@@ -110,6 +118,25 @@ export default function HaiImageGenerationPage() {
     const latest = [...runs].reverse().find((run) => run.status === "completed" && run.r2_key);
     setSelectedReferenceRunId((current) => current && runs.some((run) => run.id === current && run.status === "completed" && run.r2_key) ? current : latest?.id ?? null);
   }, [runs, taskId]);
+
+  useEffect(() => {
+    if (!taskId) { restoredTask.current = null; return; }
+    if (!runs.length || restoredTask.current === taskId) return;
+    restoredTask.current = taskId;
+    const latest = runs[runs.length - 1];
+    const savedSubject = latest.metadata?.subject;
+    setSubject(typeof savedSubject === "string" && isImageSubject(savedSubject) ? savedSubject : "");
+    if (HAI_IMAGE_STYLES.includes(latest.art_style)) setStyle(latest.art_style);
+    if (HAI_IMAGE_SIZES.includes(latest.image_size)) setSize(latest.image_size);
+    if (HAI_IMAGE_TYPES.includes(latest.image_type)) setImageType(latest.image_type);
+  }, [taskId, runs]);
+
+  function selectSubject(value: string) {
+    const next = isImageSubject(value) ? value : "";
+    setSubject(next);
+    const recommended = getRecommendedImageStyles(next);
+    if (recommended.length && !recommended.includes(style)) setStyle(recommended[0]);
+  }
 
   const activeRunIds = runs.filter((run) => run.status === "running" || run.status === "queued").map((run) => run.id).join(",");
   const deadlineFor = (run: HaiImageGenerationRun) => localDeadlines.current[run.id] ?? Date.parse(run.delivery_deadline_at || run.created_at) + (run.delivery_deadline_at ? 0 : HAI_IMAGE_DELIVERY_TIMEOUT_MS);
@@ -189,14 +216,14 @@ export default function HaiImageGenerationPage() {
     const deadlineAt = Date.now() + HAI_IMAGE_DELIVERY_TIMEOUT_MS;
     const submissionTimer = setTimeout(() => { if (activeSubmission.current !== submissionId) return; activeSubmission.current = ""; setPending(null); setBusy(false); setError(HAI_IMAGE_FAILURE_MESSAGE); }, HAI_IMAGE_DELIVERY_TIMEOUT_MS);
     const referenceRunId = referenceFiles.length ? null : selectedReferenceRunId;
-    const input: PendingImage = { prompt: value, size, style, imageType, referenceFiles, referenceRunId };
+    const input: PendingImage = { prompt: value, size, style, subject, imageType, referenceFiles, referenceRunId };
     setBusy(true);
     setError("");
     setPending(input);
     setPrompt("");
     setReferenceFiles([]);
     try {
-      const response = await generateHaiImage({ prompt: value, size, style, imageType, taskId, deadlineAt, clientRequestId: submissionId, parentRunId: runs[runs.length - 1]?.id, referenceFiles: input.referenceFiles, referenceRunIds: input.referenceRunId ? [input.referenceRunId] : [] });
+      const response = await generateHaiImage({ prompt: value, size, style, subject, imageType, taskId, deadlineAt, clientRequestId: submissionId, parentRunId: runs[runs.length - 1]?.id, referenceFiles: input.referenceFiles, referenceRunIds: input.referenceRunId ? [input.referenceRunId] : [] });
       if (activeSubmission.current !== submissionId) { if (response.run) void failHaiImage(response.run.id).catch(() => undefined); return; }
       if (!response.task || !response.run) throw new Error(HAI_IMAGE_FAILURE_MESSAGE);
       if (Date.now() >= deadlineAt) { void failHaiImage(response.run.id).catch(() => undefined); throw new Error(HAI_IMAGE_FAILURE_MESSAGE); }
@@ -266,9 +293,9 @@ export default function HaiImageGenerationPage() {
                   <div className="mb-5 text-center">
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--annotation-soft)] text-[var(--annotation)]"><ImagePlus className="h-5 w-5" /></div>
                     <h2 className="mt-4 font-serif text-2xl font-black tracking-tight text-tx">描述你想生成的教学画面</h2>
-                    <p className="mt-2 text-sm text-txs">每张图片消耗 {HAI_IMAGE_GENERATION_POINTS} 积分；尺寸、风格和用途可在输入框下方调整。</p>
+                    <p className="mt-2 text-sm text-txs">每张图片消耗 {HAI_IMAGE_GENERATION_POINTS} 积分；学科可不选，选择后会推荐适合的风格。</p>
                   </div>
-                  <ImageComposer prompt={prompt} setPrompt={setPrompt} size={size} setSize={setSize} style={style} setStyle={setStyle} imageType={imageType} setImageType={setImageType} referenceFiles={referenceFiles} setReferenceFiles={setReferenceFiles} referenceRun={null} onUsePrevious={() => undefined} onClearPrevious={() => undefined} busy={busy || Boolean(activeRunIds)} pointsBlocked={Boolean(pointsBlocked)} onSubmit={() => void submit()} conversation={false} />
+                  <ImageComposer prompt={prompt} setPrompt={setPrompt} size={size} setSize={setSize} style={style} setStyle={setStyle} subject={subject} setSubject={selectSubject} imageType={imageType} setImageType={setImageType} referenceFiles={referenceFiles} setReferenceFiles={setReferenceFiles} referenceRun={null} onUsePrevious={() => undefined} onClearPrevious={() => undefined} busy={busy || Boolean(activeRunIds)} pointsBlocked={Boolean(pointsBlocked)} onSubmit={() => void submit()} conversation={false} />
                 </div>
               </div>
             ) : (
@@ -280,7 +307,7 @@ export default function HaiImageGenerationPage() {
                     {error && <div className="rounded-ds-lg border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">{error}</div>}
                   </div>
                 </div>
-                <ImageComposer prompt={prompt} setPrompt={setPrompt} size={size} setSize={setSize} style={style} setStyle={setStyle} imageType={imageType} setImageType={setImageType} referenceFiles={referenceFiles} setReferenceFiles={setReferenceFiles} referenceRun={selectedReferenceRun} onUsePrevious={() => setSelectedReferenceRunId(runs.slice().reverse().find((run) => run.status === "completed" && run.r2_key)?.id ?? null)} onClearPrevious={() => setSelectedReferenceRunId(null)} busy={busy || Boolean(activeRunIds)} pointsBlocked={Boolean(pointsBlocked)} onSubmit={() => void submit()} conversation />
+                <ImageComposer prompt={prompt} setPrompt={setPrompt} size={size} setSize={setSize} style={style} setStyle={setStyle} subject={subject} setSubject={selectSubject} imageType={imageType} setImageType={setImageType} referenceFiles={referenceFiles} setReferenceFiles={setReferenceFiles} referenceRun={selectedReferenceRun} onUsePrevious={() => setSelectedReferenceRunId(runs.slice().reverse().find((run) => run.status === "completed" && run.r2_key)?.id ?? null)} onClearPrevious={() => setSelectedReferenceRunId(null)} busy={busy || Boolean(activeRunIds)} pointsBlocked={Boolean(pointsBlocked)} onSubmit={() => void submit()} conversation />
               </>
             )}
           </div>
@@ -290,7 +317,9 @@ export default function HaiImageGenerationPage() {
   );
 }
 
-function ImageComposer({ prompt, setPrompt, size, setSize, style, setStyle, imageType, setImageType, referenceFiles, setReferenceFiles, referenceRun, onUsePrevious, onClearPrevious, busy, pointsBlocked, onSubmit, conversation }: { prompt: string; setPrompt: (value: string) => void; size: HaiImageSize; setSize: (value: HaiImageSize) => void; style: HaiImageStyle; setStyle: (value: HaiImageStyle) => void; imageType: HaiImageType; setImageType: (value: HaiImageType) => void; referenceFiles: File[]; setReferenceFiles: (value: File[]) => void; referenceRun: HaiImageGenerationRun | null; onUsePrevious: () => void; onClearPrevious: () => void; busy: boolean; pointsBlocked: boolean; onSubmit: () => void; conversation: boolean }) {
+function ImageComposer({ prompt, setPrompt, size, setSize, style, setStyle, subject, setSubject, imageType, setImageType, referenceFiles, setReferenceFiles, referenceRun, onUsePrevious, onClearPrevious, busy, pointsBlocked, onSubmit, conversation }: { prompt: string; setPrompt: (value: string) => void; size: HaiImageSize; setSize: (value: HaiImageSize) => void; style: HaiImageStyle; setStyle: (value: HaiImageStyle) => void; subject: HaiImageSubject | ""; setSubject: (value: string) => void; imageType: HaiImageType; setImageType: (value: HaiImageType) => void; referenceFiles: File[]; setReferenceFiles: (value: File[]) => void; referenceRun: HaiImageGenerationRun | null; onUsePrevious: () => void; onClearPrevious: () => void; busy: boolean; pointsBlocked: boolean; onSubmit: () => void; conversation: boolean }) {
+  const recommendedStyles = getRecommendedImageStyles(subject);
+  const styleOption = (value: HaiImageStyle) => <option key={value} value={value}>{imageStyleLabel(value)}</option>;
   function selectReferenceFiles(fileList: FileList | null) {
     const selected = Array.from(fileList ?? []);
     if (selected.length > HAI_MAX_REFERENCE_IMAGES || referenceFiles.length + selected.length > HAI_MAX_REFERENCE_IMAGES) {
@@ -314,9 +343,15 @@ function ImageComposer({ prompt, setPrompt, size, setSize, style, setStyle, imag
           <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-ds-md border border-[var(--paper-rule)] bg-white px-2 text-xs text-txs hover:border-ac"><Paperclip className="h-3.5 w-3.5" />参考图片<input aria-label="上传参考图片" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple className="sr-only" disabled={busy} onChange={(event) => { selectReferenceFiles(event.target.files); event.currentTarget.value = ""; }} /></label>
           {conversation && !referenceRun && <button type="button" disabled={busy} onClick={onUsePrevious} className="inline-flex h-8 items-center gap-1.5 rounded-ds-md border border-[var(--paper-rule)] bg-white px-2 text-xs text-txs hover:border-ac disabled:cursor-not-allowed disabled:opacity-50">沿用上一张图微调</button>}
           <span className="text-[11px] text-txt">最多 {HAI_MAX_REFERENCE_IMAGES} 张</span>
-          <CompactSelect label="图片尺寸" value={size} options={HAI_IMAGE_SIZES.map((item) => ({ value: item, label: sizeLabels[item] }))} onChange={(value) => setSize(value as HaiImageSize)} />
-          <CompactSelect label="艺术风格" value={style} options={HAI_IMAGE_STYLES.map((item) => ({ value: item, label: item }))} onChange={(value) => setStyle(value as HaiImageStyle)} />
-          <CompactSelect label="生成图类型" value={imageType} options={HAI_IMAGE_TYPES.map((item) => ({ value: item, label: item }))} onChange={(value) => setImageType(value as HaiImageType)} />
+          <CompactSelect label="图片尺寸" value={size} options={HAI_IMAGE_SIZES.map((item) => ({ value: item, label: sizeLabels[item] }))} onChange={(value) => setSize(value as HaiImageSize)} disabled={busy} />
+          <CompactSelect label="学科" value={subject} options={[{ value: "", label: "学科（选填）" }, ...HAI_IMAGE_SUBJECTS.map((item) => ({ value: item, label: item }))]} onChange={setSubject} disabled={busy} />
+          <label className="inline-flex items-center">
+            <span className="sr-only">风格</span>
+            <select aria-label="风格" value={style} onChange={(event) => setStyle(event.target.value as HaiImageStyle)} disabled={busy} className="h-8 max-w-[170px] rounded-ds-md border border-[var(--paper-rule)] bg-white px-2 text-xs text-txs outline-none focus:border-ac disabled:opacity-50">
+              {recommendedStyles.length > 0 ? <><optgroup label={`${subject}推荐`}>{recommendedStyles.map(styleOption)}</optgroup><optgroup label="其他风格（可跨学科使用）">{HAI_IMAGE_STYLES.filter((item) => !recommendedStyles.includes(item)).map(styleOption)}</optgroup></> : <><optgroup label="通用风格">{HAI_IMAGE_STYLES.slice(0, 14).map(styleOption)}</optgroup><optgroup label="教学主题风格">{HAI_IMAGE_STYLES.slice(14).map(styleOption)}</optgroup></>}
+            </select>
+          </label>
+          <CompactSelect label="生成图类型" value={imageType} options={HAI_IMAGE_TYPES.map((item) => ({ value: item, label: item }))} onChange={(value) => setImageType(value as HaiImageType)} disabled={busy} />
           <span className="ml-auto text-xs text-txs">{HAI_IMAGE_GENERATION_POINTS} 积分/张</span>
           <Button className="h-9 rounded-ds-lg bg-tl px-4 text-white hover:bg-tl/90" disabled={!prompt.trim() || busy || pointsBlocked} onClick={onSubmit}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}{pointsBlocked ? "积分不足" : busy ? "生成中" : "生成图片"}</Button>
         </div>
@@ -339,19 +374,19 @@ function ReferenceFilePreview({ file, onRemove }: { file: File; onRemove: () => 
   return <div className="relative h-14 w-14 overflow-hidden rounded-ds-md border border-[var(--paper-rule)] bg-[var(--paper)]"><img src={source} alt={file.name} className="h-full w-full object-cover" /><button type="button" aria-label={`移除${file.name}`} onClick={onRemove} className="absolute right-0.5 top-0.5 rounded-full bg-black/60 p-0.5 text-white"><X className="h-3 w-3" /></button></div>;
 }
 
-function CompactSelect({ label, value, options, onChange }: { label: string; value: string; options: Array<{ value: string; label: string }>; onChange: (value: string) => void }) {
-  return <label className="inline-flex items-center"><span className="sr-only">{label}</span><select aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} className="h-8 max-w-[150px] rounded-ds-md border border-[var(--paper-rule)] bg-white px-2 text-xs text-txs outline-none focus:border-ac">{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
+function CompactSelect({ label, value, options, onChange, disabled }: { disabled?: boolean; label: string; value: string; options: Array<{ value: string; label: string }>; onChange: (value: string) => void }) {
+  return <label className="inline-flex items-center"><span className="sr-only">{label}</span><select aria-label={label} value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)} className="h-8 max-w-[150px] rounded-ds-md border border-[var(--paper-rule)] bg-white px-2 text-xs text-txs outline-none focus:border-ac">{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>;
 }
 
 function PendingConversation({ pending }: { pending: PendingImage }) {
-  return <><div className="flex justify-end"><div className="max-w-[85%] rounded-2xl rounded-br-md bg-[var(--annotation)] px-4 py-3 text-sm leading-6 text-white shadow-ds-sm"><p>{pending.prompt}</p><div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-white/80"><span>{sizeLabels[pending.size]}</span><span>· {pending.style}</span><span>· {pending.imageType}</span>{(pending.referenceFiles.length > 0 || pending.referenceRunId) && <span>· 参考图 {pending.referenceFiles.length || 1} 张</span>}</div></div></div><div className="flex items-center gap-3 text-sm text-txs"><span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--annotation-soft)] text-[var(--annotation)]"><Loader2 className="h-4 w-4 animate-spin" /></span>正在提交图片任务…</div></>;
+  return <><div className="flex justify-end"><div className="max-w-[85%] rounded-2xl rounded-br-md bg-[var(--annotation)] px-4 py-3 text-sm leading-6 text-white shadow-ds-sm"><p>{pending.prompt}</p><div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-white/80"><span>{sizeLabels[pending.size]}</span>{pending.subject && <span>· {pending.subject}</span>}<span>· {imageStyleLabel(pending.style)}</span><span>· {pending.imageType}</span>{(pending.referenceFiles.length > 0 || pending.referenceRunId) && <span>· 参考图 {pending.referenceFiles.length || 1} 张</span>}</div></div></div><div className="flex items-center gap-3 text-sm text-txs"><span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--annotation-soft)] text-[var(--annotation)]"><Loader2 className="h-4 w-4 animate-spin" /></span>正在提交图片任务…</div></>;
 }
 
 function ImageConversation({ run, onDownload, deadlineAt, onDelivered, onFailure }: { run: HaiImageGenerationRun; onDownload: () => void; deadlineAt: number; onDelivered: (blob: Blob) => void; onFailure: (stage: string) => void }) {
   const active = ["running", "queued"].includes(run.status);
   const ready = Boolean(run.r2_key && run.image_url && run.status !== "failed");
   return <div className="space-y-3">
-    <div className="flex justify-end"><div className="max-w-[85%] rounded-2xl rounded-br-md bg-[var(--annotation)] px-4 py-3 text-sm leading-6 text-white shadow-ds-sm"><p>{run.prompt}</p><div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-white/80"><span>{sizeLabels[run.image_size]}</span><span>· {run.art_style}</span><span>· {run.image_type}</span>{run.reference_images?.length > 0 && <span>· 参考图 {run.reference_images.length} 张</span>}</div></div></div>
+    <div className="flex justify-end"><div className="max-w-[85%] rounded-2xl rounded-br-md bg-[var(--annotation)] px-4 py-3 text-sm leading-6 text-white shadow-ds-sm"><p>{run.prompt}</p><div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-white/80"><span>{sizeLabels[run.image_size]}</span>{typeof run.metadata?.subject === "string" && run.metadata.subject && <span>· {run.metadata.subject}</span>}<span>· {imageStyleLabel(run.art_style)}</span><span>· {run.image_type}</span>{run.reference_images?.length > 0 && <span>· 参考图 {run.reference_images.length} 张</span>}</div></div></div>
     <div className="flex items-start gap-3"><span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--annotation-soft)] text-[var(--annotation)]"><Sparkles className="h-4 w-4" /></span><div className="min-w-0 max-w-[92%]"><p className="mb-2 text-xs font-bold text-txs">{run.status === "completed" ? "HAI 已生成" : active ? "正在生成" : "本轮生成失败"}</p>
       {ready ? <div className="overflow-hidden rounded-ds-xl border border-[var(--paper-rule)] bg-white shadow-ds-sm"><GeneratedImage run={run} deadlineAt={deadlineAt} onDelivered={onDelivered} onFailure={onFailure} />{run.status === "completed" && <div className="flex items-center justify-between gap-3 border-t border-[var(--paper-rule)] px-3 py-2"><span className="truncate text-[11px] text-txs">{!run.delivery_deadline_at || run.delivered_at ? "图片已保存，可随时查看和下载" : "图片已加载，可下载"}</span><Button size="sm" variant="ghost" onClick={onDownload}><ArrowDownToLine className="h-4 w-4" />下载</Button></div>}</div>
       : active ? <div className="rounded-ds-lg border border-[var(--paper-rule)] bg-white px-4 py-3 text-sm leading-6 text-txs">正在生成图片，请稍候。</div>

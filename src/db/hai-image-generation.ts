@@ -2,10 +2,18 @@ import { supabase } from "@/db/supabase";
 
 export const HAI_IMAGE_GENERATION_POINTS = 20;
 export const HAI_IMAGE_SIZES = ["16:9", "1:1", "3:4", "4:3", "9:16"] as const;
-export const HAI_IMAGE_STYLES = [
-  "卡通", "写真", "3D", "教育扁平插画", "水彩", "杂志拼贴",
-  "手绘绘本", "国风水墨", "科技未来", "黏土定格", "扁平信息图", "黑板粉笔", "纸艺拼贴", "漫画分镜",
-] as const;
+export {
+  IMAGE_GENERATION_STYLES as HAI_IMAGE_STYLES,
+  IMAGE_GENERATION_SUBJECTS as HAI_IMAGE_SUBJECTS,
+  getRecommendedImageStyles,
+  imageStyleLabel,
+  isImageSubject,
+} from "../../supabase/functions/_shared/hai_image_styles.ts";
+export type {
+  ImageGenerationStyle as HaiImageStyle,
+  ImageGenerationSubject as HaiImageSubject,
+} from "../../supabase/functions/_shared/hai_image_styles.ts";
+import type { ImageGenerationStyle as HaiImageStyle, ImageGenerationSubject as HaiImageSubject } from "../../supabase/functions/_shared/hai_image_styles.ts";
 export const HAI_IMAGE_TYPES = ["课件 PPT", "海报", "学习单", "思维导图"] as const;
 export const HAI_IMAGE_DELIVERY_TIMEOUT_MS = 150_000;
 export const HAI_IMAGE_FAILURE_MESSAGE = "本次生成失败，本轮未扣积分，请再次尝试。";
@@ -18,7 +26,6 @@ function deadlineSignal(deadlineAt?: number) {
 export const HAI_MAX_REFERENCE_IMAGES = 6;
 export const HAI_MAX_REFERENCE_IMAGE_BYTES = 10 * 1024 * 1024;
 export type HaiImageSize = (typeof HAI_IMAGE_SIZES)[number];
-export type HaiImageStyle = (typeof HAI_IMAGE_STYLES)[number];
 export type HaiImageType = (typeof HAI_IMAGE_TYPES)[number];
 
 export interface HaiReferenceImage {
@@ -93,11 +100,19 @@ export async function getHaiImageGenerationRuns(taskId?: string) {
   return (data ?? []) as HaiImageGenerationRun[];
 }
 
+// Local manual testing runs the same handler without deploying an Edge Function.
+function imageFunctionUrl(baseUrl: string) {
+  return import.meta.env.DEV && import.meta.env.VITE_HAI_IMAGE_FUNCTION_URL
+    ? String(import.meta.env.VITE_HAI_IMAGE_FUNCTION_URL)
+    : `${baseUrl}/functions/v1/hai-image-generation`;
+}
+
 export async function generateHaiImage(params: {
   prompt: string;
   size: HaiImageSize;
   style: HaiImageStyle;
   imageType: HaiImageType;
+  subject?: HaiImageSubject | "";
   referenceFiles?: File[];
   referenceRunIds?: string[];
   taskId?: string;
@@ -115,6 +130,7 @@ export async function generateHaiImage(params: {
   body.set("prompt", params.prompt);
   body.set("size", params.size);
   body.set("style", params.style);
+  if (params.subject) body.set("subject", params.subject);
   body.set("imageType", params.imageType);
   if (params.taskId) body.set("taskId", params.taskId);
   if (params.parentRunId) body.set("parentRunId", params.parentRunId);
@@ -123,7 +139,7 @@ export async function generateHaiImage(params: {
   for (const file of params.referenceFiles ?? []) body.append("reference_images", file, file.name);
   body.set("remainingMs", String(Math.max(0, (params.deadlineAt ?? Date.now() + HAI_IMAGE_DELIVERY_TIMEOUT_MS) - Date.now())));
   try {
-    const response = await fetch(`${baseUrl}/functions/v1/hai-image-generation`, {
+    const response = await fetch(imageFunctionUrl(baseUrl), {
       method: "POST", headers: { authorization: `Bearer ${token}` }, body, signal: deadlineSignal(params.deadlineAt),
     });
     const payload = await response.json() as HaiImageGenerationResponse;
@@ -154,7 +170,7 @@ async function imageAction(action: string, runId: string, deadlineAt?: number, s
   const { data } = await supabase.auth.getSession();
   if (!data.session?.access_token) throw new Error("请先登录。");
   const baseUrl = String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
-  const response = await fetch(`${baseUrl}/functions/v1/hai-image-generation`, {
+  const response = await fetch(imageFunctionUrl(baseUrl), {
     method: "POST",
     headers: { authorization: `Bearer ${data.session.access_token}`, "content-type": "application/json" },
     body: JSON.stringify({ action, runId, stage }), signal: deadlineSignal(deadlineAt),
@@ -173,7 +189,7 @@ export async function downloadHaiImage(runId: string, deadlineAt?: number) {
   const token = data.session?.access_token;
   if (!token) throw new Error("请先登录。");
   const baseUrl = String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
-  const response = await fetch(`${baseUrl}/functions/v1/hai-image-generation`, {
+  const response = await fetch(imageFunctionUrl(baseUrl), {
     method: "POST",
     headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
     body: JSON.stringify({ action: "download", runId }), signal: deadlineSignal(deadlineAt),

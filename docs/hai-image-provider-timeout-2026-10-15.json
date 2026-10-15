@@ -1,0 +1,32 @@
+{
+  "checked_at": "2026-10-15T03:09:04.240Z",
+  "run_id": "8aa859ae-fb79-457e-8056-a7a35b2ae012",
+  "subject": "道德与法治",
+  "style": "现代法治",
+  "mode": "课件 PPT",
+  "prompt_characters": 832,
+  "created_at": "2026-10-15T03:04:48.300527Z",
+  "deadline_at": "2026-10-15T03:07:17.182Z",
+  "failed_at": "2026-10-15T03:07:14.127982Z",
+  "failure_code": "delivery_timeout",
+  "failure_stage": "provider_generation",
+  "client_stage": "client_deadline",
+  "provider_task_id": "tsk_img_01M4YRA08CNBWCTAQ2ATNRY61A",
+  "provider_read_only_query": {
+    "http": 200,
+    "status": "in_progress",
+    "progress": 10,
+    "has_result": false,
+    "billing": {
+      "status": "pending"
+    }
+  },
+  "points_transaction_count": 0,
+  "edge_log": {
+    "time": "2026-10-15T03:07:15.286Z",
+    "message": "Run closed or delivery deadline exceeded",
+    "phase": "provider_generation",
+    "version": 16
+  },
+  "scope": "Read-only diagnosis. No new generation, no provider POST, no balance/run changes, no code change or deployment. Supplier internal delay cause is not known."
+}

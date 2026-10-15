@@ -1,0 +1,22 @@
+{
+  "before_characters": 832,
+  "after_characters": 287,
+  "reduction_percent": 65.5,
+  "prompt": "图片尺寸：16:9\n学科：道德与法治。\n视觉风格：现代法治。采用现代法治与公共生活视觉，暖白底、海军蓝标题、蓝灰分区，朱红仅用于关键提示。标题用稳健的粗黑体，正文用干净的无衬线字体。以本课相关的校园、社区、公共服务或规则情境为主体，简洁人物插画与线性关系图相结合，卡片对齐、留白充分。\n生成图类型：课件 PPT。\n\n用户原始要求：\n给我设计一张八年级下册《道德与法治》课的 PPT。\r\n\r\n封面页信息如下：\r\n单元：第三单元 认识国家制度\r\n课时：第五课 我国的政治制度\r\n框题：第一框 人民代表大会制度\r\n\r\n标题你自拟，标题字体要大要醒目。背景里要有人民代表大会会场画面",
+  "comparison": "same original input from run 8aa859ae-fb79-457e-8056-a7a35b2ae012; offline composition only",
+  "deployed_function": "hai-image-generation",
+  "deployed_version": 17,
+  "style_policy": "keep necessary visual detail; modern law uses the user-supplied paragraph; other 41 styles unchanged",
+  "latency_effect": "User reported a subsequent run with the same original prompt, style and topic completed in 67 seconds; provider received the desired compact prompt. Single-run acceptance, not a latency guarantee.",
+  "new_generation_requests": 0,
+  "user_acceptance": {
+    "date": "2026-10-15",
+    "elapsed_seconds": 67,
+    "same_user_prompt": true,
+    "same_style": true,
+    "same_topic": true,
+    "provider_prompt_confirmed": true,
+    "frontend_release_authorized": true,
+    "source": "direct user report"
+  }
+}

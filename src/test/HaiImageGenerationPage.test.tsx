@@ -26,6 +26,54 @@ beforeEach(()=>{
 });
 afterEach(()=>{cleanup();vi.useRealTimers();});
 describe("bounded image delivery",()=>{
+  it("keeps subject optional and offers all styles through a single selector", async () => {
+    mocks.getRuns.mockResolvedValue([]); mount(); await tick();
+    expect(screen.getByRole("combobox", { name: "学科" })).toHaveValue("");
+    expect(screen.queryByRole("combobox", { name: "艺术风格" })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole("textbox", { name: "图片提示词" }), { target: { value: "水循环配图" } });
+    mocks.generate.mockImplementation(() => new Promise(() => {}));
+    fireEvent.click(screen.getByRole("button", { name: /生成图片/ })); await tick();
+    expect(mocks.generate.mock.calls[0][0]).toMatchObject({ subject: "", style: "教育扁平插画", prompt: "水循环配图" });
+  });
+  it("recommends subject styles while allowing cross-subject choices and clearing subject", async () => {
+    mocks.getRuns.mockResolvedValue([]); mount(); await tick();
+    const subject = screen.getByRole("combobox", { name: "学科" });
+    const style = screen.getByRole("combobox", { name: "风格" }) as HTMLSelectElement;
+    fireEvent.change(subject, { target: { value: "思想政治" } });
+    expect(style).toHaveValue("议题杂志");
+    expect(style.options[0].value).toBe("议题杂志");
+    fireEvent.change(style, { target: { value: "红金山河" } });
+    fireEvent.change(subject, { target: { value: "道德与法治" } });
+    expect(style).toHaveValue("红金山河");
+    fireEvent.change(subject, { target: { value: "语文" } });
+    expect(style).toHaveValue("国风水墨");
+    fireEvent.change(style, { target: { value: "机制蓝图" } });
+    expect(style).toHaveValue("机制蓝图");
+    fireEvent.change(subject, { target: { value: "" } });
+    expect(style).toHaveValue("机制蓝图");
+    expect(style.options).toHaveLength(42);
+  });
+  it("submits the selected subject and style, and shows them in the pending message", async () => {
+    mocks.getRuns.mockResolvedValue([]); mocks.generate.mockImplementation(() => new Promise(() => {}));
+    mount(); await tick();
+    fireEvent.change(screen.getByRole("combobox", { name: "学科" }), { target: { value: "思想政治" } });
+    fireEvent.change(screen.getByRole("combobox", { name: "风格" }), { target: { value: "非遗国潮" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "图片提示词" }), { target: { value: "观察传统器物" } });
+    fireEvent.click(screen.getByRole("button", { name: /生成图片/ })); await tick();
+    expect(mocks.generate.mock.calls[0][0]).toMatchObject({ subject: "思想政治", style: "非遗国潮", prompt: "观察传统器物" });
+    expect(screen.getByText("· 思想政治")).toBeInTheDocument();
+    expect(screen.getByText("· 非遗国潮")).toBeInTheDocument();
+  });
+  it("restores saved options once without polling overwriting subsequent selections", async () => {
+    mocks.getRuns.mockResolvedValue([{ ...run, status: "completed", art_style: "红金山河", metadata: { subject: "思想政治" } }]);
+    mount(); await tick();
+    expect(screen.getByRole("combobox", { name: "学科" })).toHaveValue("思想政治");
+    expect(screen.getByRole("combobox", { name: "风格" })).toHaveValue("红金山河");
+    fireEvent.change(screen.getByRole("combobox", { name: "风格" }), { target: { value: "现代法治" } });
+    await tick();
+    expect(screen.getByRole("combobox", { name: "风格" })).toHaveValue("现代法治");
+  });
+
   it("starts the 150 second deadline at submit even before the server returns a run", async () => {
     mocks.getRuns.mockResolvedValue([]); mocks.generate.mockImplementation(() => new Promise(() => {}));
     mount(); await tick();
@@ -97,6 +145,6 @@ describe("bounded image delivery",()=>{
   it("offers precisely four types, retains all styles, and defaults to courseware",async()=>{
     mount();await tick();const select=screen.getByRole("combobox",{name:"生成图类型"}) as HTMLSelectElement;
     expect(Array.from(select.options).map(x=>x.value)).toEqual(["课件 PPT","海报","学习单","思维导图"]);
-    expect(select.value).toBe("课件 PPT");expect((screen.getByRole("combobox",{name:"艺术风格"}) as HTMLSelectElement).options.length).toBe(14);
+    expect(select.value).toBe("课件 PPT");expect((screen.getByRole("combobox",{name:"风格"}) as HTMLSelectElement).options.length).toBe(42);
   });
 });

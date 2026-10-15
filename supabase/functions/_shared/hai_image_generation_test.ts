@@ -2,6 +2,7 @@ import {
   assertEquals,
   assertStringIncludes,
 } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { imageStyleLabel, imageStylePrompt } from "./hai_image_styles.ts";
 import { stub } from "https://deno.land/std@0.224.0/testing/mock.ts";
 import { PutObjectCommand, S3Client } from "npm:@aws-sdk/client-s3@3.1048.0";
 import { validateHeaderValue } from "node:http";
@@ -12,7 +13,6 @@ import {
   IMAGE_GENERATION_TYPES,
   imageBudgetSignal,
   ImageDeliveryTimeout,
-  imageTypePromptBlock,
   persistReferenceImages,
   readImageProviderConfig,
   submitImage,
@@ -29,14 +29,14 @@ Deno.test("image provider config reads the server-side ToAPIs settings", () => {
   assertEquals(config.model, "image-model");
 });
 
-Deno.test("four modes and all styles use static student classroom prompts", () => {
+Deno.test("four modes and all styles retain visual detail in a compact envelope", () => {
   assertEquals(IMAGE_GENERATION_TYPES, [
     "课件 PPT",
     "海报",
     "学习单",
     "思维导图",
   ]);
-  assertEquals(IMAGE_GENERATION_STYLES.length, 14);
+  assertEquals(IMAGE_GENERATION_STYLES.length, 42);
   for (const mode of IMAGE_GENERATION_TYPES) {
     for (const style of IMAGE_GENERATION_STYLES) {
       const prompt = composeImageGenerationPrompt(
@@ -48,16 +48,8 @@ Deno.test("four modes and all styles use static student classroom prompts", () =
       );
       for (
         const keyword of [
-          "老师上课",
-          "面向学生",
-          "商业汇报",
-          "公司述职",
-          "企业培训",
-          "商演",
-          "路演",
-          "演讲",
           "16:9",
-          style,
+          imageStyleLabel(style),
           mode,
           "认识水循环",
           "参考图片",
@@ -65,7 +57,8 @@ Deno.test("four modes and all styles use static student classroom prompts", () =
       ) {
         assertStringIncludes(prompt, keyword);
       }
-      assertEquals(imageTypePromptBlock(mode).length > 0, true);
+      assertStringIncludes(prompt, imageStylePrompt(style));
+      assertEquals(prompt.endsWith("用户原始要求：\n认识水循环"), true);
     }
   }
 });
@@ -434,5 +427,63 @@ Deno.test("all network stages share the remaining delivery budget", () => {
     assertEquals(expired, true);
   } finally {
     timeoutStub.restore();
+  }
+});
+
+Deno.test("subject is optional, preserves the raw request, and does not constrain cross-subject styles", () => {
+  const raw = "保留标题“在山海之间”，但主体改为黏土质感。\n不要添加其他文字。";
+  const prompt = composeImageGenerationPrompt(
+    raw,
+    "16:9",
+    "红金山河",
+    "课件 PPT",
+    true,
+    "语文",
+  );
+  assertStringIncludes(prompt, "学科：语文");
+  assertStringIncludes(prompt, "厚实舒展");
+  assertStringIncludes(prompt, "深红");
+  assertStringIncludes(prompt, raw);
+  assertStringIncludes(
+    prompt,
+    "参考图片：按用户要求修改，保留未指定修改的内容。",
+  );
+  assertEquals(
+    composeImageGenerationPrompt(raw, "16:9", "红金山河", "课件 PPT").includes(
+      "学科：",
+    ),
+    false,
+  );
+});
+
+Deno.test("the final prompt follows the user's simplified example exactly", () => {
+  const raw =
+    "给我设计一张八年级下册《道德与法治》课的 PPT。\n\n封面页信息如下：\n单元：第三单元 认识国家制度\n课时：第五课 我国的政治制度\n框题：第一框 人民代表大会制度\n\n标题你自拟，标题字体要大要醒目。背景里要有人民代表大会会场画面";
+  const visual =
+    "采用现代法治与公共生活视觉，暖白底、海军蓝标题、蓝灰分区，朱红仅用于关键提示。标题用稳健的粗黑体，正文用干净的无衬线字体。以本课相关的校园、社区、公共服务或规则情境为主体，简洁人物插画与线性关系图相结合，卡片对齐、留白充分。";
+  assertEquals(
+    composeImageGenerationPrompt(
+      raw,
+      "16:9",
+      "现代法治",
+      "课件 PPT",
+      false,
+      "道德与法治",
+    ),
+    "图片尺寸：16:9\n学科：道德与法治。\n视觉风格：现代法治。" + visual +
+      "\n生成图类型：课件 PPT。\n\n用户原始要求：\n" + raw,
+  );
+});
+
+Deno.test("image types stay names only and raw text is not rewritten or truncated", () => {
+  const raw = "标题“古典诗境”\r\n  Keep this wording.\n  只画背景，不加文字。";
+  for (const mode of IMAGE_GENERATION_TYPES) {
+    const actual = composeImageGenerationPrompt(raw, "3:4", "国风水墨", mode);
+    assertEquals(
+      actual.split("\n生成图类型：")[1],
+      mode + "。\n\n用户原始要求：\n" + raw,
+    );
+    assertEquals(actual.includes("学科："), false);
+    assertEquals(actual.includes("参考图片："), false);
   }
 });

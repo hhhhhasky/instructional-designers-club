@@ -80,6 +80,9 @@ Deno.test("image handler enforces final deadlines and acknowledgement-only settl
     const body = options?.body ? JSON.parse(String(options.body)) : {};
     if (url.hostname === "provider.example.test") {
       if (method === "POST") {
+        assertStringIncludes(body.prompt, "学科：思想政治");
+        assertStringIncludes(body.prompt, "暖金");
+        assertStringIncludes(body.prompt, "调整参考图配色");
         posts++;
         startedProvider();
         onProviderPost();
@@ -203,6 +206,8 @@ Deno.test("image handler enforces final deadlines and acknowledgement-only settl
   };
   const input = {
     prompt: "调整参考图配色",
+    subject: "思想政治",
+    style: "红金山河",
     taskId,
     clientRequestId: "request-original",
     referenceImages: [{
@@ -217,6 +222,12 @@ Deno.test("image handler enforces final deadlines and acknowledgement-only settl
   try {
     for (const [name, value] of Object.entries(env)) Deno.env.set(name, value);
     await import("./index.ts");
+    await test.step("rejects an unknown subject before saving or spending", async () => {
+      const invalid = await request({ ...input, subject: "unknown" });
+      assertEquals(invalid.http, 400);
+      assertEquals(rows.length, 0);
+      assertEquals(posts, 0);
+    });
     await test.step("returns before provider receipt, sends static prompts, and saves without charging", async () => {
       const first = await request(input);
       assertEquals(first.http, 202);
@@ -224,8 +235,11 @@ Deno.test("image handler enforces final deadlines and acknowledgement-only settl
       // Reservation may still be in flight when the response is returned.
       await providerStarted;
       assertEquals(posts, 1);
-      assertStringIncludes(rows[0].composed_prompt, "面向学生");
-      assertStringIncludes(rows[0].composed_prompt, "企业培训");
+      assertEquals(rows[0].metadata.subject, "思想政治");
+      assertEquals(rows[0].metadata.input.subject, "思想政治");
+      assertStringIncludes(rows[0].composed_prompt, "图片尺寸：16:9");
+      assertStringIncludes(rows[0].composed_prompt, "生成图类型：课件 PPT。");
+      assertEquals(rows[0].composed_prompt.includes("全局教学场景要求"), false);
       const early = await request({
         action: "status",
         runId: first.body.run.id,

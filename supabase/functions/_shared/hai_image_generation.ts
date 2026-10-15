@@ -6,6 +6,16 @@ import {
 } from "npm:@aws-sdk/client-s3@3.1048.0";
 import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner@3.1048.0";
 
+import { imageStyleLabel, imageStylePrompt } from "./hai_image_styles.ts";
+export {
+  IMAGE_GENERATION_STYLES,
+  IMAGE_GENERATION_SUBJECTS,
+} from "./hai_image_styles.ts";
+export type {
+  ImageGenerationStyle,
+  ImageGenerationSubject,
+} from "./hai_image_styles.ts";
+
 export type ImageGenerationSize = "16:9" | "1:1" | "3:4" | "4:3" | "9:16";
 export const IMAGE_GENERATION_TYPES = [
   "课件 PPT",
@@ -14,83 +24,32 @@ export const IMAGE_GENERATION_TYPES = [
   "思维导图",
 ] as const;
 export type ImageGenerationType = (typeof IMAGE_GENERATION_TYPES)[number];
-export const IMAGE_GENERATION_STYLES = [
-  "卡通",
-  "写真",
-  "3D",
-  "教育扁平插画",
-  "水彩",
-  "杂志拼贴",
-  "手绘绘本",
-  "国风水墨",
-  "科技未来",
-  "黏土定格",
-  "扁平信息图",
-  "黑板粉笔",
-  "纸艺拼贴",
-  "漫画分镜",
-] as const;
-export type ImageGenerationStyle = (typeof IMAGE_GENERATION_STYLES)[number];
 export const IMAGE_GENERATION_POINTS = 20;
 export const IMAGE_DELIVERY_TIMEOUT_MS = 150_000;
 export const IMAGE_FAILURE_MESSAGE = "本次生成失败，本轮未扣积分，请再次尝试。";
 export const MAX_REFERENCE_IMAGES = 6;
 export const MAX_REFERENCE_IMAGE_BYTES = 10 * 1024 * 1024;
 
-const modePrompts: Record<ImageGenerationType, string> = {
-  "课件 PPT":
-    "制作老师课堂授课使用的单页 PPT 视觉材料：标题、图像与文字要点层次清楚，图文兼备，中文文字简洁易读，适合学生观看和课堂投影。按所选尺寸排版。",
-  "海报":
-    "制作面向学生的教学海报：围绕学习主题设置清晰标题、主要视觉和少量重点文字，突出课堂知识或学习任务，避免商业广告和营销口号。",
-  "学习单":
-    "制作学生课堂使用的学习单：有明确的学习任务、问题与操作指引，保留适当的填写或作答空间，图文服务于学生思考与学习。",
-  "思维导图":
-    "制作学生学习用的思维导图：中心主题突出，分支与层级清晰，概念之间的关系准确，文字简短，配色与图像帮助学生理解和记忆。",
-};
-const stylePrompts: Record<ImageGenerationStyle, string> = {
-  "卡通": "采用清晰生动的卡通造型和友好配色，形象帮助学生理解内容。",
-  "写真": "采用自然写实的摄影视觉，主体、光线和细节清楚，保持教学内容准确。",
-  "3D": "采用有空间层次的三维视觉，结构与关系直观，避免装饰遮挡内容。",
-  "教育扁平插画": "采用简洁的教育扁平插画，形状规整、配色协调、信息层级明确。",
-  "水彩": "采用柔和的水彩笔触与纸张质感，确保文字和教学主体清晰。",
-  "杂志拼贴": "采用照片、色块和纸张元素的拼贴视觉，排列有序，突出学习重点。",
-  "手绘绘本": "采用温暖的手绘绘本风格，场景与人物有叙事性，符合学生认知。",
-  "国风水墨": "采用国风水墨笔触、留白和淡雅色彩，教学图像与文字清晰可辨。",
-  "科技未来":
-    "采用科技感线条和空间视觉，以清晰图形表达教学内容，避免企业发布会版式。",
-  "黏土定格": "采用黏土模型与定格动画质感，造型直观，画面主体清楚。",
-  "扁平信息图": "采用扁平信息图，图标、连接线和分区帮助学生看懂关系与步骤。",
-  "黑板粉笔": "采用黑板与粉笔笔触的课堂视觉，板书结构清晰，文字易读。",
-  "纸艺拼贴": "采用剪纸、折纸与纸艺拼贴质感，层次简洁，主体与文字突出。",
-  "漫画分镜": "采用漫画分镜表达过程或情境，阅读顺序清晰，台词和标注简短。",
-};
-export function imageTypePromptBlock(imageType: string) {
-  return modePrompts[imageType as ImageGenerationType] || "";
-}
 export function composeImageGenerationPrompt(
   prompt: string,
   size: string,
   style: string,
   imageType: string,
   hasReferences = false,
+  subject = "",
 ) {
   return [
-    "全局教学场景要求（始终适用，不因艺术风格或用户描述而改变）：所有图片均为老师上课使用、面向学生的课堂教学视觉材料。",
-    "内容与表达须适合学生认知，教学信息准确、直观，按用户提供的学段与主题呈现。",
-    "排除商业汇报、公司述职、企业培训、商演、路演和面向观众的演讲场景；不采用企业演示、商务营销或舞台演讲的内容与版式。",
-    "图片尺寸：" + size + "，严格按所选比例构图。",
-    "生成图类型：" + imageType + "。" + imageTypePromptBlock(imageType),
-    "艺术风格：" + style + "。" +
-    (stylePrompts[style as ImageGenerationStyle] || ""),
+    "图片尺寸：" + size,
+    ...(subject ? ["学科：" + subject + "。"] : []),
+    "视觉风格：" + imageStyleLabel(style) + "。" + imageStylePrompt(style),
+    "生成图类型：" + imageType + "。",
     ...(hasReferences
-      ? [
-        "使用提供的参考图片执行用户要求的修改；保留用户未要求修改的主体和内容，避免无关添加。",
-      ]
+      ? ["参考图片：按用户要求修改，保留未指定修改的内容。"]
       : []),
-    "画面文字使用中文（用户明确要求其他语言时依其要求），清晰易读，不添加 logo、水印或虚构品牌标识。",
-    "用户原始要求（在上述课堂教学约束内保持其意图）：\n" + prompt,
-  ].join("\n\n");
+    "\n用户原始要求：\n" + prompt,
+  ].join("\n");
 }
+
 export class ImageDeliveryTimeout extends Error {}
 export function imageBudgetSignal(
   deadlineAt = Date.now() + IMAGE_DELIVERY_TIMEOUT_MS,
