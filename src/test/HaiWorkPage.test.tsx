@@ -2,7 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getHaiAccessStatus, getHaiTextbookCatalog, getHaiWorkTools, type HaiFeatureModule, streamHaiWork } from "@/db/hai-api";
+import { getHaiAccessStatus, getHaiTextbookCatalog, getHaiWorkTools, type HaiFeatureModule, submitHaiWork } from "@/db/hai-api";
 import HaiWorkPage from "@/pages/HaiWorkPage";
 
 vi.mock("@/components/layout/Header", () => ({ default: () => <div data-testid="global-header" /> }));
@@ -57,7 +57,7 @@ vi.mock("@/db/hai-api", () => ({
       frame_route_number: subject === "数学" ? null : 1,
     }])),
   uploadHaiMaterial: vi.fn(),
-  streamHaiWork: vi.fn(),
+  submitHaiWork: vi.fn().mockResolvedValue({ taskId: "task-1", runId: "run-3", status: "queued", artifactId: null, error: null, replayed: false }),
 }));
 
 const defaultGetHaiTextbookCatalog = vi.mocked(getHaiTextbookCatalog).getMockImplementation()!;
@@ -121,7 +121,7 @@ describe("HAI Work workbench", () => {
     expect(await screen.findByText(/当前积分余额为 0/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "开始教案诊断" })).toBeDisabled();
     expect(screen.getByLabelText("上传补充材料")).toBeDisabled();
-    expect(streamHaiWork).not.toHaveBeenCalled();
+    expect(submitHaiWork).not.toHaveBeenCalled();
   });
 
   it("shows all four enabled work tools", async () => {
@@ -178,7 +178,7 @@ describe("HAI Work workbench", () => {
     await user.click(screen.getByRole("radio", { name: /案例式/ }));
     await user.click(screen.getByRole("button", { name: "开始公开课设计" }));
 
-    expect(streamHaiWork).toHaveBeenCalledWith(
+    expect(submitHaiWork).toHaveBeenCalledWith(
       expect.objectContaining({
         toolSlug: "subject-lesson-design",
         materialIds: [],
@@ -193,9 +193,8 @@ describe("HAI Work workbench", () => {
           teaching_mode: "案例式",
         }),
       }),
-      expect.any(Object),
     );
-    expect(vi.mocked(streamHaiWork).mock.calls[0]?.[0].input).not.toHaveProperty("lesson_type");
+    expect(vi.mocked(submitHaiWork).mock.calls[0]?.[0].input).not.toHaveProperty("lesson_type");
   });
 
   it("supports mathematics from the built-in textbook catalog", async () => {
@@ -211,7 +210,7 @@ describe("HAI Work workbench", () => {
     expect(screen.queryByRole("radio", { name: /任务式/ })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "开始公开课设计" }));
 
-    expect(streamHaiWork).toHaveBeenCalledWith(
+    expect(submitHaiWork).toHaveBeenCalledWith(
       expect.objectContaining({
         toolSlug: "subject-lesson-design",
         input: expect.objectContaining({
@@ -225,9 +224,8 @@ describe("HAI Work workbench", () => {
           teaching_mode: "",
         }),
       }),
-      expect.any(Object),
     );
-    expect(vi.mocked(streamHaiWork).mock.calls[0]?.[0].input).not.toHaveProperty("lesson_type");
+    expect(vi.mocked(submitHaiWork).mock.calls[0]?.[0].input).not.toHaveProperty("lesson_type");
   });
 
   it("lets an uncovered public-lesson subject use the manual textbook path", async () => {
@@ -271,20 +269,17 @@ describe("HAI Work workbench", () => {
     await user.type(screen.getByRole("textbox", { name: /教材内容/ }), "本课教材内容");
     await user.click(screen.getByRole("button", { name: "开始公开课设计" }));
 
-    expect(streamHaiWork).toHaveBeenCalledWith(
+    expect(submitHaiWork).toHaveBeenCalledWith(
       expect.objectContaining({
         toolSlug: "subject-lesson-design",
         input: expect.objectContaining({ subject: "英语", grade: "八年级", topic: "My school", teaching_mode: "" }),
       }),
-      expect.any(Object),
     );
   });
 
   it("submits a pasted lesson plan and opens the durable task", async () => {
     const user = userEvent.setup();
-    vi.mocked(streamHaiWork).mockImplementation(async (_payload, handlers) => {
-      handlers.onEvent({ type: "ready", taskId: "task-1", runId: "run-1" });
-    });
+    vi.mocked(submitHaiWork).mockResolvedValue({ taskId: "task-1", runId: "run-3", status: "queued", artifactId: null, error: null, replayed: false });
     renderAt("/hai/work/lesson-diagnosis");
 
     await screen.findByText("先把这份教案交给 HAI");
@@ -297,7 +292,7 @@ describe("HAI Work workbench", () => {
     await user.click(screen.getByRole("button", { name: "开始教案诊断" }));
 
     expect(await screen.findByTestId("task-page")).toBeInTheDocument();
-    expect(streamHaiWork).toHaveBeenCalledWith(
+    expect(submitHaiWork).toHaveBeenCalledWith(
       expect.objectContaining({
         toolSlug: "lesson-diagnosis",
         materialIds: [],
@@ -311,7 +306,6 @@ describe("HAI Work workbench", () => {
           lesson_route_number: "1",
         }),
       }),
-      expect.any(Object),
     );
   });
 
@@ -378,12 +372,11 @@ describe("HAI Work workbench", () => {
     await user.type(screen.getByRole("textbox", { name: /教案正文/ }), "教学目标：理解并运用本课词汇。");
     await user.click(screen.getByRole("button", { name: "开始教案诊断" }));
 
-    expect(streamHaiWork).toHaveBeenCalledWith(
+    expect(submitHaiWork).toHaveBeenCalledWith(
       expect.objectContaining({
         toolSlug: "lesson-diagnosis",
         input: expect.objectContaining({ subject: "英语", grade: "四年级", textbook_content: "本课教材内容" }),
       }),
-      expect.any(Object),
     );
   });
 
@@ -436,7 +429,7 @@ describe("HAI Work workbench", () => {
     await user.type(screen.getByRole("textbox", { name: /预期成果 \/ 任务说明/ }), "学生能够解释单元核心概念并迁移应用。 ");
     await user.click(screen.getByRole("button", { name: "开始研发教学方案" }));
 
-    expect(streamHaiWork).toHaveBeenCalledWith(
+    expect(submitHaiWork).toHaveBeenCalledWith(
       expect.objectContaining({
         toolSlug: "teaching-design",
         input: expect.objectContaining({
@@ -450,7 +443,6 @@ describe("HAI Work workbench", () => {
           design_type: "backwards-design",
         }),
       }),
-      expect.any(Object),
     );
   });
 });

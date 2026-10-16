@@ -420,6 +420,7 @@ async function loadHaiPricing(
 
 export async function recordHaiModelCall(params: {
   admin: SupabaseClient;
+  throwOnError?: boolean;
   userId: string;
   requestId: string;
   callIndex: number;
@@ -508,7 +509,10 @@ export async function recordHaiModelCall(params: {
     currency: pricing?.currency ?? "CNY",
     metadata: params.metadata ?? {},
   }, { onConflict: "request_id,call_index" });
-  if (error) console.warn("hai model call ledger write failed", error.message);
+  if (error) {
+    if (params.throwOnError) throw new Error(`hai model call ledger write failed: ${error.message}`);
+    console.warn("hai model call ledger write failed", error.message);
+  }
 }
 
 export async function summarizeHaiModelCalls(params: {

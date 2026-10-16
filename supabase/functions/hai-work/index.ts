@@ -3,9 +3,6 @@ import {
   buildChatCompletionOptions,
   estimateTokens,
   finalizeUsage,
-  recordHaiModelCall,
-  summarizeHaiModelCalls,
-  type HaiProviderUsage,
   handleCors,
   HttpError,
   jsonResponse,
@@ -13,9 +10,7 @@ import {
   normalizeRecord,
   requireUser,
   reserveUsage,
-  sendSse,
   sseHeaders,
-  streamDeepSeek,
 } from "../_shared/hai.ts";
 import {
   applyWorkCompletionPolicy,
@@ -24,7 +19,6 @@ import {
   buildWorkPrompt,
   buildWorkTaskTitle,
   createEmptyWorkSkill,
-  HAI_WORK_PROVIDER_TIMEOUT_MS,
   isHaiWorkToolSlug,
   selectWorkSkillReferences,
   selectWorkSkill,
@@ -56,6 +50,7 @@ type WorkRequestBody = {
   parentArtifactId?: unknown;
   revisionInstruction?: unknown;
   clientRequestId?: unknown;
+  responseMode?: unknown;
 };
 
 type TextbookSource = {
@@ -139,7 +134,9 @@ Deno.serve(async (request) => {
 
     const clientRequestId = String(body.clientRequestId ?? "").trim() || crypto.randomUUID();
     const existing = await loadIdempotentRun(auth.admin, auth.user.id, clientRequestId);
-    if (existing) return replayExistingRun(existing);
+    if (existing) return workSubmissionResponse(existing, body.responseMode, true);
+    const { data: queueReady, error: queueError } = await auth.admin.rpc("hai_work_queue_ready");
+    if (queueError || !queueReady) throw new HttpError(503, "HAI Work 后台执行器尚未配置，请联系管理员。");
 
     const module = await loadModule(auth.admin, toolSlug);
     const materials = await loadMaterials(auth.admin, auth.user.id, materialIds);
@@ -172,12 +169,11 @@ Deno.serve(async (request) => {
       throw new HttpError(422, "内置教材库没有命中这节课，请检查年级、册次、单元和课题，或上传教材内容。");
     }
 
-    const taskId = body.taskId
+    let taskId = body.taskId
       ? await validateTask(auth.admin, auth.user.id, String(body.taskId), toolSlug)
-      : await createTask(auth.admin, auth.user.id, toolSlug, buildWorkTaskTitle(toolSlug, module.name, input));
-    await attachMaterials(auth.admin, auth.user.id, taskId, materialIds);
+      : null;
     const parentArtifact = body.parentArtifactId
-      ? await loadArtifact(auth.admin, auth.user.id, taskId, String(body.parentArtifactId))
+      ? await loadArtifact(auth.admin, auth.user.id, taskId!, String(body.parentArtifactId))
       : null;
     const generationMode = requestedGenerationMode as HaiWorkGenerationMode;
     if (generationMode === "lesson-plan-optimization" && !parentArtifact) {
@@ -200,15 +196,12 @@ Deno.serve(async (request) => {
       generationMode,
       previousArtifactKind: String(parentArtifact?.content_json?.artifact_kind ?? ""),
     });
-    const textbookSourcePaths = textbook.sources.length > 0
-      ? textbook.sources.map((source) => source.section_path)
-      : materialContext
-      ? ["用户指定材料"]
-      : ["用户填写的教材内容"];
     const estimatedInputTokens = estimateTokens(prompt.system) + estimateTokens(prompt.user);
 
     const run = await createRun(auth.admin, {
       taskId,
+      taskTitle: buildWorkTaskTitle(toolSlug, module.name, input),
+      toolSlug,
       userId: auth.user.id,
       skill,
       parentArtifactId: parentArtifact?.id ?? null,
@@ -219,6 +212,9 @@ Deno.serve(async (request) => {
       caseSources: politicsCases.sources,
       revisionInstruction,
     });
+    taskId = run.task_id;
+    if (run.replayed) return workSubmissionResponse(run, body.responseMode, true);
+    await attachMaterials(auth.admin, auth.user.id, taskId, materialIds);
     const selectedReferences = selectWorkSkillReferences(skill, input);
     const debugTrace = createDebugTrace({
       toolSlug,
@@ -274,284 +270,26 @@ Deno.serve(async (request) => {
       throw error;
     }
 
-    const encoder = new TextEncoder();
-    const stream = new ReadableStream<Uint8Array>({
-      async start(controller) {
-        const startedAt = Date.now();
-        let rawOutput = "";
-        let heartbeatId: number | undefined;
-        let streamClosed = false;
-        const safeSendSse = (payload: unknown) => {
-          if (streamClosed) return false;
-          try {
-            sendSse(controller, encoder, payload);
-            return true;
-          } catch {
-            // The browser may disconnect after the artifact has already been
-            // persisted. Do not turn a successful run into a failed run just
-            // because its final SSE event has nowhere left to go.
-            streamClosed = true;
-            return false;
-          }
-        };
-        const safeCloseStream = () => {
-          if (streamClosed) return;
-          streamClosed = true;
-          try {
-            controller.close();
-          } catch {
-            // The client may have closed the stream already.
-          }
-        };
-        try {
-          await auth.admin.from("hai_work_runs").update({
-            status: "running",
-            started_at: new Date().toISOString(),
-          }).eq("id", run.id);
-          safeSendSse({
-            type: "ready",
-            taskId,
-            runId: run.id,
-            skill: skill.name,
-            skillVersion: skill.version.version_label,
-            fallback: skill.is_fallback,
-          });
-          await appendDebugEvent(auth.admin, run.id, debugTrace, {
-            stage: "run_started",
-            at: new Date().toISOString(),
-            status: "running",
-          });
-          safeSendSse({
-            type: "progress",
-            stage: "material",
-            message: evidenceStatus(materials, materialContext, textbook.sources, politicsCases.sources),
-          });
-          safeSendSse({ type: "progress", stage: "generating", message: "HAI 正在形成第一版工作产物" });
-          heartbeatId = setInterval(() => {
-            if (!safeSendSse({
-                type: "heartbeat",
-                stage: "generating",
-                elapsedSeconds: Math.max(1, Math.round((Date.now() - startedAt) / 1000)),
-              })) {
-              if (heartbeatId !== undefined) clearInterval(heartbeatId);
-              heartbeatId = undefined;
-            }
-          }, 15_000);
+    try {
+      const { error } = await auth.admin.rpc("hai_enqueue_work_job", {
+        p_run_id: run.id,
+        p_payload: {
+          prompt, module: { slug: module.slug, model_provider_id: module.model_provider_id },
+          completionOptions, estimatedInputTokens,
+          title: buildWorkArtifactTitle(toolSlug, module.name, input),
+          artifactKind: generationMode === "lesson-plan-optimization" ? "lesson_plan_optimization" : "diagnosis_report",
+        },
+      });
+      if (error) throw new Error(error.message);
+    } catch (error) {
+      // A lost enqueue response can follow a committed transaction. Do not
+      // close or release an accepted job. An unqueued preparation retains the
+      // legacy bounded cleanup; a committed async job is owned by the worker.
+      throw new HttpError(503, "任务提交结果暂未确认，请查看最近任务或使用原请求重试。");
+    }
+    await auth.admin.rpc("hai_dispatch_work_jobs");
+    return workSubmissionResponse({ id: run.id, task_id: taskId, status: "queued" }, body.responseMode);
 
-          const firstAttempt = await collectModelOutput({
-            system: prompt.system,
-            user: prompt.user,
-            module,
-            completionOptions,
-            userId: auth.user.id,
-            admin: auth.admin,
-          });
-          await recordHaiModelCall({
-            admin: auth.admin,
-            userId: auth.user.id,
-            requestId: clientRequestId,
-            callIndex: 1,
-            stage: "work_initial",
-            route: "hai-work",
-            entityType: "work_task",
-            entityId: taskId,
-            model: completionOptions.model,
-            provider: firstAttempt.provider_code,
-            startedAt: new Date(firstAttempt.started_at),
-            completedAt: new Date(firstAttempt.completed_at),
-            status: firstAttempt.error ? "failed" : "completed",
-            usage: firstAttempt.usage,
-            metadata: { tool_slug: toolSlug, run_id: run.id, skill_slug: skill.slug },
-          });
-          rawOutput = firstAttempt.output;
-          await appendDebugAttempt(auth.admin, run.id, debugTrace, firstAttempt, "initial");
-          if (firstAttempt.error) throw new Error(firstAttempt.error);
-          // 去掉模型可能包裹的 Markdown 代码围栏
-          let markdown = rawOutput
-            .replace(/^```(?:markdown|md)?\s*\n?/, "")
-            .replace(/\n?```\s*$/, "")
-            // 去掉 thinking 模式的思考链：deepseek v4 pro 会把推理过程放在正文前面
-            .replace(/【思考】[\s\S]*?【\/思考】/g, "")
-            .replace(/【思考过程】[\s\S]*?【\/思考过程】/g, "")
-            .trim();
-          // 如果标题前还有思考链残渣（不以 # 或 * 或数字开头的连续行），从第一个 # 标题开始截取
-          const headingMatch = markdown.match(/^#\s+/m);
-          if (headingMatch && headingMatch.index! > 0) {
-            markdown = markdown.slice(headingMatch.index!);
-          }
-
-          if (!markdown) {
-            // 空输出重试一次
-            safeSendSse({ type: "progress", stage: "repairing", message: "产物为空，正在重试" });
-            const repairAttempt = await collectModelOutput({
-              system: prompt.system,
-              user: prompt.user,
-              module,
-              completionOptions,
-              userId: auth.user.id,
-              admin: auth.admin,
-            });
-            await recordHaiModelCall({
-              admin: auth.admin,
-              userId: auth.user.id,
-              requestId: clientRequestId,
-              callIndex: 2,
-              stage: "work_repair",
-              route: "hai-work",
-              entityType: "work_task",
-              entityId: taskId,
-              model: completionOptions.model,
-              provider: repairAttempt.provider_code,
-              startedAt: new Date(repairAttempt.started_at),
-              completedAt: new Date(repairAttempt.completed_at),
-              status: repairAttempt.error ? "failed" : "completed",
-              usage: repairAttempt.usage,
-              metadata: { tool_slug: toolSlug, run_id: run.id, skill_slug: skill.slug },
-            });
-            rawOutput = repairAttempt.output;
-            await appendDebugAttempt(auth.admin, run.id, debugTrace, repairAttempt, "empty_output_repair");
-            if (repairAttempt.error) throw new Error(repairAttempt.error);
-            markdown = rawOutput
-              .replace(/^```(?:markdown|md)?\s*\n?/, "")
-              .replace(/\n?```\s*$/, "")
-              .replace(/【思考】[\s\S]*?【\/思考】/g, "")
-              .replace(/【思考过程】[\s\S]*?【\/思考过程】/g, "")
-              .trim();
-            const hMatch = markdown.match(/^#\s+/m);
-            if (hMatch && hMatch.index! > 0) markdown = markdown.slice(hMatch.index!);
-          }
-
-          if (!markdown) throw new Error("AI 未返回任何内容，请重试。");
-          const versionNumber = await nextVersionNumber(auth.admin, taskId);
-          await appendDebugEvent(auth.admin, run.id, debugTrace, {
-            stage: "output_normalized",
-            at: new Date().toISOString(),
-            raw_output_chars: rawOutput.length,
-            normalized_output_chars: markdown.length,
-            normalized_output: markdown,
-            removed_code_fence: rawOutput.trim() !== markdown,
-          });
-          const { data: artifact, error: artifactError } = await auth.admin
-            .from("hai_work_artifacts")
-            .insert({
-              task_id: taskId,
-              run_id: run.id,
-              user_id: auth.user.id,
-              parent_artifact_id: parentArtifact?.id ?? null,
-              version_number: versionNumber,
-              title: buildWorkArtifactTitle(toolSlug, module.name, input),
-              content_json: {
-                format: "markdown",
-                artifact_kind: generationMode === "lesson-plan-optimization" ? "lesson_plan_optimization" : "diagnosis_report",
-              },
-              content_markdown: markdown,
-            })
-            .select("id, version_number")
-            .single();
-          if (artifactError) throw artifactError;
-
-          const durationMs = Date.now() - startedAt;
-          const inputTokens = estimateTokens(`${prompt.system}\n${prompt.user}`);
-          const outputTokens = estimateTokens(rawOutput);
-          await Promise.all([
-            auth.admin.from("hai_work_runs").update({
-              status: "completed",
-              input_tokens: inputTokens,
-              output_tokens: outputTokens,
-              duration_ms: durationMs,
-              completed_at: new Date().toISOString(),
-              error_message: null,
-            }).eq("id", run.id),
-            auth.admin.from("hai_work_tasks").update({
-              latest_artifact_id: artifact.id,
-              updated_at: new Date().toISOString(),
-            }).eq("id", taskId),
-          ]);
-          await appendDebugEvent(auth.admin, run.id, debugTrace, {
-            stage: "artifact_persisted",
-            at: new Date().toISOString(),
-            artifact_id: artifact.id,
-            version_number: artifact.version_number,
-            status: "completed",
-          });
-          await finalizeUsage({
-            userClient: auth.userClient,
-            requestId: clientRequestId,
-            status: "completed",
-            route: "hai-work",
-            inputTokens,
-            outputTokens,
-            entityType: "work_task",
-            entityId: taskId,
-            durationMs,
-            metadata: {
-              tool_slug: toolSlug,
-              run_id: run.id,
-              artifact_id: artifact.id,
-              artifact_version: artifact.version_number,
-              skill_slug: skill.slug,
-              skill_version: skill.version.version_label,
-              skill_snapshot_hash: skill.version.snapshot_hash || "",
-              teaching_mode: String(input.teaching_mode ?? ""),
-              fallback_skill: skill.is_fallback,
-              revision: Boolean(parentArtifact),
-              model: completionOptions.model,
-              model_provider_id: module.model_provider_id ?? null,
-            },
-          });
-          const exactUsage = await summarizeHaiModelCalls({
-            admin: auth.admin,
-            requestId: clientRequestId,
-          });
-          safeSendSse({
-            type: "done",
-            taskId,
-            runId: run.id,
-            artifactId: artifact.id,
-            versionNumber: artifact.version_number,
-            usage: {
-              inputTokens,
-              outputTokens,
-              totalTokens: inputTokens + outputTokens,
-              actualInputTokens: exactUsage?.promptTokens ?? null,
-              actualOutputTokens: exactUsage?.completionTokens ?? null,
-              actualTotalTokens: exactUsage?.totalTokens ?? null,
-              actualCost: exactUsage?.totalCost ?? null,
-              actualUsageStatus: exactUsage?.usageStatus ?? "missing",
-            },
-          });
-        } catch (error) {
-          const message = error instanceof Error ? error.message : "HAI Work 执行失败。";
-          const durationMs = Date.now() - startedAt;
-          await markRunFailed(auth.admin, run.id, message, durationMs);
-          await appendDebugEvent(auth.admin, run.id, debugTrace, {
-            stage: "run_failed",
-            at: new Date().toISOString(),
-            status: "failed",
-            error: message.slice(0, 2000),
-            duration_ms: durationMs,
-          });
-          await finalizeUsage({
-            userClient: auth.userClient,
-            requestId: clientRequestId,
-            status: "failed",
-            route: "hai-work",
-            inputTokens: estimatedInputTokens,
-            outputTokens: estimateTokens(rawOutput),
-            entityType: "work_task",
-            entityId: taskId,
-            durationMs,
-            metadata: { tool_slug: toolSlug, run_id: run.id, error: message },
-          });
-          await summarizeHaiModelCalls({ admin: auth.admin, requestId: clientRequestId });
-          safeSendSse({ type: "error", message, taskId, runId: run.id });
-        } finally {
-          if (heartbeatId !== undefined) clearInterval(heartbeatId);
-          safeCloseStream();
-        }
-      },
-    });
-    return new Response(stream, { headers: sseHeaders() });
   } catch (error) {
     const status = error instanceof HttpError ? error.status : 500;
     const message = error instanceof Error ? error.message : "HAI Work 请求失败。";
@@ -932,16 +670,6 @@ function politicsCaseSourceSnapshot(item: PoliticsCaseSource) {
   };
 }
 
-async function createTask(admin: any, userId: string, moduleSlug: string, title: string) {
-  const { data, error } = await admin.from("hai_work_tasks").insert({
-    user_id: userId,
-    module_slug: moduleSlug,
-    title,
-  }).select("id").single();
-  if (error) throw new HttpError(500, error.message);
-  return String(data.id);
-}
-
 async function validateTask(admin: any, userId: string, taskId: string, moduleSlug: string) {
   const { data, error } = await admin.from("hai_work_tasks").select("id, module_slug, status")
     .eq("id", taskId).eq("user_id", userId).maybeSingle();
@@ -970,7 +698,9 @@ async function attachMaterials(admin: any, userId: string, taskId: string, mater
 }
 
 async function createRun(admin: any, params: {
-  taskId: string;
+  taskId: string | null;
+  taskTitle: string;
+  toolSlug: string;
   userId: string;
   skill: WorkSkillCandidate;
   parentArtifactId: string | null;
@@ -981,35 +711,47 @@ async function createRun(admin: any, params: {
   caseSources: PoliticsCaseSource[];
   revisionInstruction: string;
 }) {
-  const { data, error } = await admin.from("hai_work_runs").insert({
-    task_id: params.taskId,
-    user_id: params.userId,
-    skill_version_id: params.skill.version.id || null,
-    parent_artifact_id: params.parentArtifactId,
-    client_request_id: params.clientRequestId,
-    status: "queued",
-    input_snapshot: {
-      ...params.input,
-      material_ids: params.materialIds,
-      textbook_sources: params.textbookSources.map(textbookSourceSnapshot),
-      case_sources: params.caseSources.map(politicsCaseSourceSnapshot),
+  const { data, error } = await admin.rpc("hai_prepare_work_run", {
+    p_user_id: params.userId,
+    p_client_request_id: params.clientRequestId,
+    p_task_id: params.taskId,
+    p_task_title: params.taskTitle,
+    p_module_slug: params.toolSlug,
+    p_run: {
+      skill_version_id: params.skill.version.id || null,
+      parent_artifact_id: params.parentArtifactId,
+      client_request_id: params.clientRequestId,
+      status: "queued",
+      input_snapshot: {
+        ...params.input,
+        material_ids: params.materialIds,
+        textbook_sources: params.textbookSources.map(textbookSourceSnapshot),
+        case_sources: params.caseSources.map(politicsCaseSourceSnapshot),
+      },
+      skill_snapshot: {
+        slug: params.skill.slug,
+        name: params.skill.name,
+        version: params.skill.version.version_label,
+        fallback: params.skill.is_fallback,
+        snapshot_hash: params.skill.version.snapshot_hash || "",
+        source_metadata: params.skill.version.source_metadata || {},
+        reference_paths: selectWorkSkillReferences(params.skill, params.input)
+          .map((item) => item.path),
+        reference_hashes: selectWorkSkillReferences(params.skill, params.input)
+          .map((item) => item.content_hash),
+        textbook_sources: params.textbookSources.map(textbookSourceSnapshot),
+        case_sources: params.caseSources.map(politicsCaseSourceSnapshot),
+      },
+      revision_instruction: params.revisionInstruction || null,
     },
-    skill_snapshot: {
-      slug: params.skill.slug,
-      name: params.skill.name,
-      version: params.skill.version.version_label,
-      fallback: params.skill.is_fallback,
-      snapshot_hash: params.skill.version.snapshot_hash || "",
-      source_metadata: params.skill.version.source_metadata || {},
-      reference_paths: selectWorkSkillReferences(params.skill, params.input).map((item) => item.path),
-      reference_hashes: selectWorkSkillReferences(params.skill, params.input).map((item) => item.content_hash),
-      textbook_sources: params.textbookSources.map(textbookSourceSnapshot),
-      case_sources: params.caseSources.map(politicsCaseSourceSnapshot),
-    },
-    revision_instruction: params.revisionInstruction || null,
-  }).select("id").single();
+  });
   if (error) throw new HttpError(500, error.message);
-  return data as { id: string };
+  return data as {
+    id: string;
+    task_id: string;
+    status: string;
+    replayed: boolean;
+  };
 }
 
 type WorkDebugTrace = Record<string, unknown> & {
@@ -1122,118 +864,6 @@ async function appendDebugEvent(admin: any, runId: string, trace: WorkDebugTrace
   await saveRunDebugTrace(admin, runId, trace);
 }
 
-async function appendDebugAttempt(
-  admin: any,
-  runId: string,
-  trace: WorkDebugTrace,
-  attempt: {
-    output: string;
-    started_at: string;
-    completed_at: string;
-    duration_ms: number;
-    reasoning_chars?: number;
-    first_reasoning_at?: string | null;
-    first_content_at?: string | null;
-    error?: string;
-  },
-  purpose: string,
-) {
-  trace.model_attempts.push({
-    attempt: trace.model_attempts.length + 1,
-    purpose,
-    started_at: attempt.started_at,
-    completed_at: attempt.completed_at,
-    duration_ms: attempt.duration_ms,
-    raw_output: attempt.output,
-    output_chars: attempt.output.length,
-    reasoning_chars: attempt.reasoning_chars ?? 0,
-    first_reasoning_at: attempt.first_reasoning_at ?? null,
-    first_content_at: attempt.first_content_at ?? null,
-    error: attempt.error ?? null,
-  });
-  await saveRunDebugTrace(admin, runId, trace);
-}
-
-async function nextVersionNumber(admin: any, taskId: string) {
-  const { data, error } = await admin.from("hai_work_artifacts").select("version_number")
-    .eq("task_id", taskId).order("version_number", { ascending: false }).limit(1).maybeSingle();
-  if (error) throw error;
-  return Number(data?.version_number ?? 0) + 1;
-}
-
-async function collectModelOutput(params: {
-  system: string;
-  user: string;
-  module: ModuleRow;
-  completionOptions: ReturnType<typeof buildChatCompletionOptions>;
-  userId: string;
-  admin: any;
-}) {
-  const startedAt = new Date();
-  const model = params.completionOptions.model;
-  console.log("[hai-work] calling DeepSeek with model:", model, "providerId:", params.module.model_provider_id, "moduleSlug:", params.module.slug);
-  let output = "";
-  let usage: HaiProviderUsage | null = null;
-  let providerCode = "deepseek";
-  let reasoningChars = 0;
-  let firstReasoningAt: string | null = null;
-  let firstContentAt: string | null = null;
-  try {
-    for await (const token of streamDeepSeek([
-      { role: "system", content: params.system },
-      { role: "user", content: params.user },
-    ], {
-      ...params.completionOptions,
-      userId: params.userId,
-      admin: params.admin,
-      modelProviderId: params.module.model_provider_id,
-      timeoutMs: HAI_WORK_PROVIDER_TIMEOUT_MS,
-      onUsage: (value) => { usage = value; },
-      onProviderResolved: (value) => { providerCode = value; },
-      onReasoningDelta: (value) => {
-        if (!firstReasoningAt) firstReasoningAt = new Date().toISOString();
-        reasoningChars += value.length;
-      },
-      onContentDelta: () => {
-        if (!firstContentAt) firstContentAt = new Date().toISOString();
-      },
-    })) output += token;
-    const finishedAt = new Date();
-    return {
-      output,
-      started_at: startedAt.toISOString(),
-      completed_at: finishedAt.toISOString(),
-      duration_ms: finishedAt.getTime() - startedAt.getTime(),
-      usage,
-      provider_code: providerCode,
-      reasoning_chars: reasoningChars,
-      first_reasoning_at: firstReasoningAt,
-      first_content_at: firstContentAt,
-    };
-  } catch (error) {
-    const failedAt = new Date();
-    const timedOut = error instanceof Error && (
-      error.name === "TimeoutError" ||
-      error.name === "AbortError" ||
-      /timed?\s*out|timeout|aborted/i.test(error.message)
-    );
-    return {
-      output,
-      started_at: startedAt.toISOString(),
-      completed_at: failedAt.toISOString(),
-      duration_ms: failedAt.getTime() - startedAt.getTime(),
-      usage,
-      provider_code: providerCode,
-      reasoning_chars: reasoningChars,
-      first_reasoning_at: firstReasoningAt,
-      first_content_at: firstContentAt,
-      error: timedOut
-        ? "HAI 模型生成超过 140 秒，本次已停止。请直接重试；若持续超时，请改用 Flash 模型。"
-        : error instanceof Error ? error.message : "模型调用失败。",
-    };
-  }
-}
-
 async function loadIdempotentRun(admin: any, userId: string, requestId: string) {
   const { data, error } = await admin.from("hai_work_runs").select(
     "id, task_id, status, error_message, input_tokens, output_tokens, artifact:hai_work_artifacts!hai_work_artifacts_run_id_fkey(id, version_number)",
@@ -1242,29 +872,20 @@ async function loadIdempotentRun(admin: any, userId: string, requestId: string) 
   return data;
 }
 
-function replayExistingRun(run: any) {
+function workSubmissionResponse(run: any, responseMode: unknown, replayed = false) {
   const artifact = Array.isArray(run.artifact) ? run.artifact[0] : run.artifact;
-  const events = run.status === "completed" && artifact
-    ? [
-      { type: "ready", taskId: run.task_id, runId: run.id, replayed: true },
-      {
-        type: "done",
-        taskId: run.task_id,
-        runId: run.id,
-        artifactId: artifact.id,
-        versionNumber: artifact.version_number,
-        usage: {
-          inputTokens: run.input_tokens ?? 0,
-          outputTokens: run.output_tokens ?? 0,
-          totalTokens: (run.input_tokens ?? 0) + (run.output_tokens ?? 0),
-        },
-        replayed: true,
-      },
-    ]
-    : [{ type: "error", taskId: run.task_id, runId: run.id, message: run.error_message || "该请求正在处理或上次未完成。", replayed: true }];
-  return new Response(events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join(""), {
-    headers: sseHeaders(),
-  });
+  const payload = { taskId: run.task_id, runId: run.id, status: run.status,
+    artifactId: artifact?.id ?? null, error: run.error_message ?? null, replayed };
+  if (responseMode === "json") {
+    return jsonResponse(payload, ["queued", "running"].includes(run.status) ? 202 : 200);
+  }
+  // Compatibility: old clients receive a short acknowledgement, never a model stream.
+  const event = run.status === "failed"
+    ? { type: "error", ...payload, message: run.error_message || "任务执行失败。" }
+    : run.status === "completed" && artifact
+    ? { type: "done", ...payload, versionNumber: artifact.version_number }
+    : { type: "ready", ...payload };
+  return new Response(`data: ${JSON.stringify(event)}\n\n`, { headers: sseHeaders() });
 }
 
 async function markRunFailed(admin: any, runId: string, message: string, durationMs?: number) {
@@ -1297,13 +918,4 @@ function validateInputSize(input: Record<string, unknown>) {
 function buildMaterialQuery(input: Record<string, unknown>) {
   return [input.stage, input.subject, input.unit, input.topic, input.teaching_mode, input.lesson_type, input.segment_type]
     .map((item) => String(item ?? "").trim()).filter(Boolean).join(" ") || "教学设计";
-}
-
-function evidenceStatus(materials: any[], context: string, textbookSources: TextbookSource[], caseSources: PoliticsCaseSource[]) {
-  const parts: string[] = [];
-  if (textbookSources.length > 0) parts.push(`已精确读取 ${textbookSources.length} 个教材分段`);
-  if (caseSources.length > 0) parts.push(`已检索 ${caseSources.length} 个案例候选`);
-  if (materials.length > 0 && context) parts.push(`已读取 ${materials.length} 份用户补充材料`);
-  if (materials.length > 0 && !context) parts.push(`已校验 ${materials.length} 份材料，但未提取到可用文本`);
-  return parts.join("；") || "已读取粘贴内容";
 }

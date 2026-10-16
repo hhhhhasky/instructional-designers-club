@@ -12,7 +12,7 @@ import {
   Send,
   Sparkles,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import MarkdownRenderer from "@/components/common/MarkdownRenderer";
@@ -28,7 +28,7 @@ import {
   getHaiWorkTaskDetail,
   getHaiWorkTasks,
   getHaiWorkTools,
-  streamHaiWork,
+  submitHaiWork,
   type HaiFeatureModule,
   type HaiWorkArtifact,
   type HaiWorkRun,
@@ -44,6 +44,9 @@ export default function HaiWorkTaskPage() {
   const { taskId = "" } = useParams();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const submission = useRef<{ key: string; id: string } | null>(null);
+  const observedRun = useRef<string | null>(null);
+  const [pendingRunId, setPendingRunId] = useState<string | null>(null);
   const [detail, setDetail] = useState<HaiWorkTaskDetail | null>(null);
   const [tasks, setTasks] = useState<HaiWorkTask[]>([]);
   const [archivedTasks, setArchivedTasks] = useState<HaiWorkTask[]>([]);
@@ -71,11 +74,19 @@ export default function HaiWorkTaskPage() {
         getHaiWorkTools(),
         getArchivedHaiWorkTasks(nextDetail.task.module_slug),
       ]);
+      const active = nextDetail.runs.find((run) => run.status === "queued" || run.status === "running");
+      const finished = observedRun.current
+        ? nextDetail.artifacts.find((artifact) => artifact.run_id === observedRun.current)
+        : null;
+      if (active) observedRun.current = active.id;
+      else if (finished) observedRun.current = null;
+      if (nextDetail.runs.some((run) => run.id === observedRun.current && run.status === "failed")) observedRun.current = null;
+      setPendingRunId((current) => current && nextDetail.runs.some((run) => run.id === current && ["completed", "failed"].includes(run.status)) ? null : current);
       setDetail(nextDetail);
       setTasks(nextTasks);
       setTools(nextTools);
       setArchivedTasks(nextArchivedTasks);
-      setSelectedArtifactId((current) => preserveSelection && current
+      setSelectedArtifactId((current) => finished ? finished.id : preserveSelection && current
         ? current
         : nextDetail.artifacts[0]?.id ?? null);
       setError("");
@@ -102,10 +113,16 @@ export default function HaiWorkTaskPage() {
 
   const activeRun = detail?.runs.find((run) => run.status === "queued" || run.status === "running");
   useEffect(() => {
-    if (!activeRun) return;
-    const timer = window.setInterval(() => void loadDetail(), 3000);
-    return () => window.clearInterval(timer);
-  }, [activeRun, loadDetail]);
+    if (!activeRun && !pendingRunId) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
+      await loadDetail();
+      if (!cancelled) timer = setTimeout(() => void poll(), 3000);
+    };
+    timer = setTimeout(() => void poll(), 3000);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [activeRun?.id, pendingRunId, loadDetail]);
 
   const selectedArtifact = useMemo(
     () => detail?.artifacts.find((artifact) => artifact.id === selectedArtifactId) ?? detail?.artifacts[0] ?? null,
@@ -134,7 +151,7 @@ export default function HaiWorkTaskPage() {
   );
 
   async function revise() {
-    if (!detail || !selectedArtifact || !selectedRun || !revision.trim() || busy) return;
+    if (!detail || !selectedArtifact || !selectedRun || !revision.trim() || busy || activeRun || pendingRunId) return;
     await executeRun({
       run: selectedRun,
       parentArtifact: selectedArtifact,
@@ -143,7 +160,7 @@ export default function HaiWorkTaskPage() {
   }
 
   async function optimizeLessonPlan() {
-    if (!detail || !selectedArtifact || !selectedRun || busy) return;
+    if (!detail || !selectedArtifact || !selectedRun || busy || activeRun || pendingRunId) return;
     const lessonPlan = String(selectedRun.input_snapshot.lesson_plan ?? "").trim();
     const materialIds = Array.isArray(selectedRun.input_snapshot.material_ids)
       ? selectedRun.input_snapshot.material_ids.map(String).filter(Boolean)
@@ -161,7 +178,7 @@ export default function HaiWorkTaskPage() {
   }
 
   async function retry(run: HaiWorkRun) {
-    if (!detail || busy) return;
+    if (!detail || busy || activeRun || pendingRunId) return;
     const parentArtifact = run.parent_artifact_id
       ? detail.artifacts.find((artifact) => artifact.id === run.parent_artifact_id) ?? null
       : null;
@@ -189,20 +206,21 @@ export default function HaiWorkTaskPage() {
     // a confirmed diagnosis-to-lesson pass from ordinary version revisions.
     if (generationMode) snapshot.output_mode = generationMode;
     try {
-      await streamHaiWork({
+      const payload = {
         toolSlug: detail.task.module_slug,
         input: snapshot,
         materialIds,
         taskId: detail.task.id,
         parentArtifactId: parentArtifact?.id,
         revisionInstruction: revisionInstruction || undefined,
-      }, {
-        onEvent: (event) => {
-          if (event.type === "progress") setProgress(event.message);
-          if (event.type === "error") setError(event.message);
-          if (event.type === "done") setSelectedArtifactId(event.artifactId);
-        },
-      });
+      };
+      const requestKey = JSON.stringify(payload);
+      if (submission.current?.key !== requestKey) submission.current = { key: requestKey, id: crypto.randomUUID() };
+      const result = await submitHaiWork({ ...payload, clientRequestId: submission.current.id });
+      submission.current = null;
+      observedRun.current = result.runId;
+      if (result.status === "queued" || result.status === "running") setPendingRunId(result.runId);
+      if (result.artifactId) setSelectedArtifactId(result.artifactId);
       setRevision("");
       await loadDetail(false);
     } catch (nextError) {
@@ -264,7 +282,7 @@ export default function HaiWorkTaskPage() {
       selectedArtifactId={selectedArtifact?.id ?? null}
       onSelect={setSelectedArtifactId}
       onRetry={(run) => void retry(run)}
-      busy={busy}
+      busy={busy || Boolean(activeRun) || Boolean(pendingRunId)}
     />
   ) : null;
 
@@ -329,9 +347,9 @@ export default function HaiWorkTaskPage() {
               )}
             </div>
 
-            {activeRun && (
+            {(activeRun || pendingRunId) && (
               <div className="mx-4 mt-4 flex items-center gap-3 rounded-ds-lg border border-am/30 bg-am-light px-4 py-3 text-sm text-am md:mx-7 print:hidden">
-                <Loader2 className="h-4 w-4 animate-spin" />HAI 正在生成新版本，页面会自动刷新。
+                <Loader2 className="h-4 w-4 animate-spin" />{workPhaseLabel(activeRun)}，你可以离开页面，稍后回来查看。
               </div>
             )}
             {error && <div className="mx-4 mt-4 rounded-[18px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 md:mx-7 print:hidden">{error}</div>}
@@ -347,7 +365,7 @@ export default function HaiWorkTaskPage() {
                 <MarkdownRenderer content={selectedArtifact.content_markdown} />
               </article>
             ) : (
-              <EmptyArtifact runs={detail.runs} busy={busy} onRetry={(run) => void retry(run)} />
+              <EmptyArtifact runs={detail.runs} busy={busy || Boolean(activeRun) || Boolean(pendingRunId)} onRetry={(run) => void retry(run)} />
             )}
 
             {canOptimizeLessonPlan && selectedArtifact && (
@@ -357,7 +375,7 @@ export default function HaiWorkTaskPage() {
                   <div className="min-w-0">
                     <h3 className="font-serif text-base font-black text-tx">诊断报告已生成，是否继续优化教案？</h3>
                     <p className="mt-1 text-xs leading-5 text-txs">请先确认报告中的判断和证据基本准确。确认后，HAI 会同时参考原始教案与这份报告，直接生成一份完整的优化后教案；诊断报告会保留为当前版本。</p>
-                    <Button className="mt-4 h-10 rounded-ds-lg bg-[var(--annotation)] px-4 text-white hover:bg-[var(--annotation)]/90" disabled={busy} onClick={() => setOptimizeConfirmOpen(true)}>
+                    <Button className="mt-4 h-10 rounded-ds-lg bg-[var(--annotation)] px-4 text-white hover:bg-[var(--annotation)]/90" disabled={busy || Boolean(activeRun) || Boolean(pendingRunId)} onClick={() => setOptimizeConfirmOpen(true)}>
                       <Sparkles className="h-4 w-4" />确认报告无误，生成优化教案
                     </Button>
                   </div>
@@ -376,7 +394,7 @@ export default function HaiWorkTaskPage() {
                 </div>
                 <textarea value={revision} onChange={(event) => setRevision(event.target.value)} rows={4} placeholder="例如：把导入压缩到 3 分钟，并增加一个能暴露学生前概念的问题。" className="mt-4 w-full resize-y rounded-ds-lg border border-bd bg-[var(--paper)] p-4 text-sm leading-6 outline-none focus:border-ac focus:ring-2 focus:ring-ac/10" />
                 <div className="mt-3 flex items-center justify-end">
-                  <Button className="h-11 rounded-ds-lg bg-tl px-5 text-white hover:bg-tl/90" disabled={!revision.trim() || busy} onClick={() => void revise()}>
+                  <Button className="h-11 rounded-ds-lg bg-tl px-5 text-white hover:bg-tl/90" disabled={!revision.trim() || busy || Boolean(activeRun) || Boolean(pendingRunId)} onClick={() => void revise()}>
                     {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}{busy ? progress || "正在生成" : "生成新版本"}
                   </Button>
                 </div>
@@ -449,7 +467,7 @@ function EmptyArtifact({ runs, busy, onRetry }: { runs: HaiWorkRun[]; busy: bool
   return (
     <div className="mx-auto max-w-lg px-5 py-20 text-center">
       <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-ds-xl bg-[var(--annotation-soft)] text-[var(--annotation)]">{active ? <Loader2 className="h-6 w-6 animate-spin" /> : <RefreshCcw className="h-6 w-6" />}</span>
-      <h2 className="mt-5 font-serif text-xl font-black text-tx">{active ? "产物正在生成" : "这次还没有形成产物"}</h2>
+      <h2 className="mt-5 font-serif text-xl font-black text-tx">{active ? workPhaseLabel(active) : "这次还没有形成产物"}</h2>
       <p className="mt-3 text-sm leading-6 text-txs">{active ? "你可以稍后回到这个任务，结果完成后会保存在这里。" : failed?.error_message || "可以重试上一次运行。"}</p>
       {failed && <Button className="mt-6 rounded-ds-lg bg-tl text-white hover:bg-tl/90" disabled={busy} onClick={() => onRetry(failed)}><RefreshCcw className="h-4 w-4" />重新执行</Button>}
     </div>
@@ -462,4 +480,11 @@ function safeFileName(value: string) {
 
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("zh-CN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+}
+
+function workPhaseLabel(run?: HaiWorkRun) {
+  if (run?.execution_phase === "repairing") return "正在重新生成内容";
+  if (run?.execution_phase === "saving") return "正在保存产物";
+  if (run?.status === "queued") return "任务已提交，正在排队";
+  return "产物正在后台生成";
 }

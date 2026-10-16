@@ -175,6 +175,8 @@ export interface HaiWorkRun {
   parent_artifact_id: string | null;
   client_request_id: string;
   status: HaiWorkRunStatus;
+  execution_mode?: "request" | "async";
+  execution_phase?: string | null;
   input_snapshot: Record<string, unknown>;
   skill_snapshot: {
     slug?: string;
@@ -577,36 +579,57 @@ export async function deleteHaiWorkTask(taskId: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function streamHaiWork(
-  payload: {
-    toolSlug: HaiWorkToolSlug;
-    input: Record<string, unknown>;
-    materialIds?: string[];
-    taskId?: string;
-    parentArtifactId?: string;
-    revisionInstruction?: string;
-    clientRequestId?: string;
-  },
-  handlers: { onEvent: (event: HaiWorkStreamEvent) => void },
-): Promise<void> {
+export type HaiWorkSubmission = {
+  taskId: string;
+  runId: string;
+  status: HaiWorkRunStatus;
+  artifactId: string | null;
+  error: string | null;
+  replayed: boolean;
+};
+
+export type HaiWorkSubmissionInput = {
+  toolSlug: HaiWorkToolSlug;
+  input: Record<string, unknown>;
+  materialIds?: string[];
+  taskId?: string;
+  parentArtifactId?: string;
+  revisionInstruction?: string;
+  clientRequestId?: string;
+};
+
+export async function submitHaiWork(payload: HaiWorkSubmissionInput): Promise<HaiWorkSubmission> {
   const { data } = await supabase.auth.getSession();
-  const accessToken = data.session?.access_token;
-  if (!accessToken) throw new Error("请先登录。");
-  const response = await fetch(`${getFunctionsBaseUrl()}/hai-work`, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${accessToken}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      ...payload,
-      clientRequestId: payload.clientRequestId || crypto.randomUUID(),
-    }),
-  });
-  await consumeSseResponse<HaiWorkStreamEvent>(response, {
-    fallbackErrorMessage: "HAI Work 请求失败。",
-    onEvent: handlers.onEvent,
-  });
+  const session = data.session;
+  if (!session) throw new Error("请先登录。");
+  const clientRequestId = payload.clientRequestId || crypto.randomUUID();
+  try {
+    const response = await fetch(`${getFunctionsBaseUrl()}/hai-work`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${session.access_token}`, "content-type": "application/json" },
+      body: JSON.stringify({ ...payload, clientRequestId, responseMode: "json" }),
+    });
+    const result = await response.json() as HaiWorkSubmission & { message?: string };
+    if (!response.ok) throw new Error(result.message || result.error || "HAI Work 提交失败。");
+    if (!result.taskId || !result.runId || !["queued", "running", "completed", "failed"].includes(result.status)) {
+      throw new Error("任务提交回执不完整，请稍后查看最近任务。");
+    }
+    return result;
+  } catch (error) {
+    // A lost HTTP response is not permission to regenerate. Read the original
+    // owner-scoped run; the page retains this request id for a deliberate retry.
+    try {
+      const recovery = await supabase.from("hai_work_runs")
+        .select("id,task_id,status,error_message")
+        .eq("user_id", session.user.id).eq("client_request_id", clientRequestId).maybeSingle();
+      if (!recovery.error && recovery.data) {
+        return { taskId: recovery.data.task_id, runId: recovery.data.id,
+          status: recovery.data.status as HaiWorkRunStatus, artifactId: null,
+          error: recovery.data.error_message, replayed: true };
+      }
+    } catch { /* Retain the original submission error and request id. */ }
+    throw error;
+  }
 }
 
 export async function getHaiConversations(currentUserId?: string): Promise<HaiConversation[]> {

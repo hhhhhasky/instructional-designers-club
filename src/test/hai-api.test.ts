@@ -12,6 +12,7 @@ import {
   saveHaiModelProvider,
   type HaiFeatureModule,
   streamHaiChat,
+  submitHaiWork,
 } from "@/db/hai-api";
 
 const { fromMock, getUserMock, getSessionMock, rpcMock } = vi.hoisted(() => ({
@@ -387,6 +388,41 @@ describe("HAI personal data isolation", () => {
     expect(query.eq).toHaveBeenCalledWith("conversation_id", "conversation-from-sidebar");
     expect(query.eq).toHaveBeenCalledWith("user_id", "admin-user");
     expect(getUserMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("HAI Work asynchronous submission", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getSessionMock.mockResolvedValue({ data: { session: { access_token: "token", user: { id: "owner" } } } });
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it.each(["lesson-diagnosis", "segment-optimization", "subject-lesson-design", "teaching-design"] as const)("submits %s and returns immediately on a queued acknowledgement", async (toolSlug) => {
+    const accepted = { taskId: "task", runId: "run", status: "queued", artifactId: null, error: null, replayed: false };
+    const fetchMock = vi.fn().mockResolvedValue(Response.json(accepted, { status: 202 }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(submitHaiWork({ toolSlug, input: { topic: "背影" }, clientRequestId: "stable-request" })).resolves.toEqual(accepted);
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body).toMatchObject({ toolSlug, clientRequestId: "stable-request", responseMode: "json" });
+    expect(fromMock).not.toHaveBeenCalled();
+  });
+
+  it("recovers the same owner-scoped run after losing the submission response without another POST", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError("lost response"));
+    vi.stubGlobal("fetch", fetchMock);
+    const recovery = createQuery({ data: { id: "run", task_id: "task", status: "running", error_message: null }, error: null });
+    fromMock.mockReturnValue(recovery);
+    await expect(submitHaiWork({ toolSlug: "lesson-diagnosis", input: {}, clientRequestId: "stable-request" })).resolves.toMatchObject({ runId: "run", status: "running", replayed: true });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(recovery.eq).toHaveBeenCalledWith("user_id", "owner");
+    expect(recovery.eq).toHaveBeenCalledWith("client_request_id", "stable-request");
+  });
+
+  it("preserves the original error when the request was never accepted", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ message: "积分不足" }, { status: 429 })));
+    fromMock.mockReturnValue(createQuery({ data: null, error: null }));
+    await expect(submitHaiWork({ toolSlug: "lesson-diagnosis", input: {}, clientRequestId: "same-request" })).rejects.toThrow("积分不足");
   });
 });
 

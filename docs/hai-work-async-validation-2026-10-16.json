@@ -1,0 +1,267 @@
+{
+  "date": "2026-10-16",
+  "scope": "HAI Work async release validation; no Cloudflare bundle polling",
+  "local": {
+    "release_frontend_files": 63,
+    "release_frontend_tests": 322,
+    "deno_tests": 67,
+    "http_simulation_steps": 7,
+    "isolated_postgresql_checks": 13,
+    "typecheck": "passed",
+    "lint": "passed",
+    "production_build": "passed"
+  },
+  "production": {
+    "migration": "20261016020951",
+    "hai_work_version": 48,
+    "worker_version": 2,
+    "source_readback": "10/10 files match release copy",
+    "scheduler": "10 seconds; observed 24 consecutive succeeded executions",
+    "auth_checks": {
+      "workNoAuth": {
+        "http": 401,
+        "body": {
+          "code": "UNAUTHORIZED_NO_AUTH_HEADER",
+          "message": "Missing authorization header"
+        }
+      },
+      "workerNoAuth": {
+        "http": 401,
+        "body": {
+          "error": "Unauthorized"
+        }
+      },
+      "workerWrongSecret": {
+        "http": 401,
+        "body": {
+          "error": "Unauthorized"
+        }
+      },
+      "workerValidSecretUnknownRun": {
+        "http": 200,
+        "body": {
+          "skipped": true
+        }
+      },
+      "schedulerEnabled": true
+    },
+    "security_advisor_new_findings": "2 expected INFO: RLS enabled and no user policies on service-only tables; anon/authenticated have no SELECT privileges",
+    "scenarios": [
+      {
+        "scenario": "diagnosis",
+        "tool_slug": "lesson-diagnosis",
+        "request_id": "hai-work-release-diagnosis-68be9933-6f5b-4602-8ba9-04aee38dbe56",
+        "task_id": "215da179-4e02-4112-9eb2-f410c2e02577",
+        "run_id": "4b82494f-6883-456f-9a11-2d577207726a",
+        "submission_http": 202,
+        "submission_ms": 7229,
+        "final_status": "completed",
+        "execution_mode": "async",
+        "duration_ms": 25290,
+        "artifacts": [
+          {
+            "id": "74d6c784-e588-4cc5-8aad-32aa7ff027c6",
+            "version": 1,
+            "parent": null,
+            "chars": 5983
+          }
+        ],
+        "settlements": [
+          {
+            "token_delta": -14338,
+            "points_delta": -14.34
+          }
+        ],
+        "model_calls": [
+          {
+            "call_index": 1,
+            "status": "completed",
+            "model": "deepseek-v4-flash",
+            "total_tokens": 6964
+          }
+        ],
+        "ledger_count_after_replay": 1
+      },
+      {
+        "scenario": "optimized-lesson",
+        "tool_slug": "lesson-diagnosis",
+        "request_id": "hai-work-release-optimized-lesson-94694c84-da50-44eb-b386-31ff08c1e3d9",
+        "task_id": "215da179-4e02-4112-9eb2-f410c2e02577",
+        "run_id": "abc7bf41-10f4-4278-89d2-3bc2d72235d1",
+        "submission_http": 202,
+        "submission_ms": 3878,
+        "final_status": "completed",
+        "execution_mode": "async",
+        "duration_ms": 15969,
+        "artifacts": [
+          {
+            "id": "b256c505-0c70-4a0f-a02a-0ea5e02bc6e1",
+            "version": 2,
+            "parent": "74d6c784-e588-4cc5-8aad-32aa7ff027c6",
+            "chars": 4242
+          }
+        ],
+        "settlements": [
+          {
+            "token_delta": -12112,
+            "points_delta": -12.11
+          }
+        ],
+        "model_calls": [
+          {
+            "call_index": 1,
+            "status": "completed",
+            "model": "deepseek-v4-flash",
+            "total_tokens": 6878
+          }
+        ],
+        "ledger_count_after_replay": 1
+      },
+      {
+        "scenario": "revision",
+        "tool_slug": "lesson-diagnosis",
+        "request_id": "hai-work-release-revision-90041ada-82b4-44f4-9b76-d4fe37d7e996",
+        "task_id": "215da179-4e02-4112-9eb2-f410c2e02577",
+        "run_id": "6242d2e3-7429-431b-ab84-6a2c3367c672",
+        "submission_http": 202,
+        "submission_ms": 4158,
+        "final_status": "completed",
+        "execution_mode": "async",
+        "duration_ms": 15173,
+        "artifacts": [
+          {
+            "id": "09db0fd5-5a22-4c83-995f-f5616958ff9a",
+            "version": 3,
+            "parent": "74d6c784-e588-4cc5-8aad-32aa7ff027c6",
+            "chars": 6010
+          }
+        ],
+        "settlements": [
+          {
+            "token_delta": -15466,
+            "points_delta": -15.47
+          }
+        ],
+        "model_calls": [
+          {
+            "call_index": 1,
+            "status": "completed",
+            "model": "deepseek-v4-flash",
+            "total_tokens": 9667
+          }
+        ],
+        "ledger_count_after_replay": 1
+      },
+      {
+        "scenario": "segment",
+        "tool_slug": "segment-optimization",
+        "request_id": "hai-work-release-segment-33a29a3f-2b75-41cb-b481-7a0ced04b0d1",
+        "task_id": "89c41960-e069-4828-a90f-1ca85b96a710",
+        "run_id": "2a113ba3-4b88-4f7d-9041-234d60cb08cb",
+        "submission_http": 202,
+        "submission_ms": 3671,
+        "final_status": "completed",
+        "execution_mode": "async",
+        "duration_ms": 11914,
+        "artifacts": [
+          {
+            "id": "08a80735-d026-4d8c-aa7d-8f511c7a923a",
+            "version": 1,
+            "parent": null,
+            "chars": 2193
+          }
+        ],
+        "settlements": [
+          {
+            "token_delta": -6096,
+            "points_delta": -6.1
+          }
+        ],
+        "model_calls": [
+          {
+            "call_index": 1,
+            "status": "completed",
+            "model": "deepseek-v4-flash",
+            "total_tokens": 3346
+          }
+        ],
+        "ledger_count_after_replay": 1
+      },
+      {
+        "scenario": "teaching-design",
+        "tool_slug": "teaching-design",
+        "request_id": "hai-work-release-teaching-design-82eba999-69cd-4613-875d-efbb9270fe86",
+        "task_id": "fec0dd78-1f6d-49ee-8dfa-05868dff97ed",
+        "run_id": "2cefdf3d-bcfb-4f0f-b3b0-db2b47d867c3",
+        "submission_http": 202,
+        "submission_ms": 3715,
+        "final_status": "completed",
+        "execution_mode": "async",
+        "duration_ms": 14424,
+        "artifacts": [
+          {
+            "id": "45ff1e29-dc7d-4a84-9ce3-0346367e83bf",
+            "version": 1,
+            "parent": null,
+            "chars": 3604
+          }
+        ],
+        "settlements": [
+          {
+            "token_delta": -9213,
+            "points_delta": -9.21
+          }
+        ],
+        "model_calls": [
+          {
+            "call_index": 1,
+            "status": "completed",
+            "model": "deepseek-v4-flash",
+            "total_tokens": 4729
+          }
+        ],
+        "ledger_count_after_replay": 1
+      },
+      {
+        "scenario": "public-lesson",
+        "tool_slug": "subject-lesson-design",
+        "request_id": "hai-work-release-public-lesson-dfa53f68-5d6a-42dc-a944-dbaaf45e6692",
+        "task_id": "63e94736-2fca-4db6-8f97-53766b015285",
+        "run_id": "783aa6b3-a9fa-41cb-8037-d0dbbcba5699",
+        "submission_http": 202,
+        "submission_ms": 4300,
+        "final_status": "completed",
+        "execution_mode": "async",
+        "duration_ms": 16489,
+        "artifacts": [
+          {
+            "id": "556a4e5e-59d8-4b90-a3b7-d8b35269528f",
+            "version": 1,
+            "parent": null,
+            "chars": 3837
+          }
+        ],
+        "settlements": [
+          {
+            "token_delta": -15023,
+            "points_delta": -15.02
+          }
+        ],
+        "model_calls": [
+          {
+            "call_index": 1,
+            "status": "completed",
+            "model": "deepseek-v4-flash",
+            "total_tokens": 10389
+          }
+        ],
+        "ledger_count_after_replay": 1
+      }
+    ]
+  },
+  "boundaries": [
+    "Real authenticated HTTP generation, ended submission connection, revisit and duplicate replay verified.",
+    "Frontend behaviour verified by local automated tests; no production browser UI or Cloudflare bundle inspection.",
+    "Single provider model call remains bounded at 140 seconds."
+  ]
+}

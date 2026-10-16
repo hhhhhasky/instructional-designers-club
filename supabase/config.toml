@@ -58,3 +58,7 @@ verify_jwt = false
 
 [functions.upload-course-image]
 verify_jwt = false
+
+# Authenticated by a service-only scheduler secret in the handler.
+[functions.hai-work-worker]
+verify_jwt = false

@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { deleteHaiWorkTask, getHaiWorkTaskDetail, type HaiWorkTask, type HaiWorkTaskDetail, renameHaiWorkTask, streamHaiWork } from "@/db/hai-api";
+import { deleteHaiWorkTask, getHaiWorkTaskDetail, type HaiWorkTask, type HaiWorkTaskDetail, renameHaiWorkTask, submitHaiWork } from "@/db/hai-api";
 import { WorkSidebar } from "@/pages/HaiWorkPage";
 import HaiWorkTaskPage from "@/pages/HaiWorkTaskPage";
 
@@ -64,7 +64,7 @@ vi.mock("@/db/hai-api", () => ({
   archiveHaiWorkTask: vi.fn(),
   deleteHaiWorkTask: vi.fn(),
   renameHaiWorkTask: vi.fn(),
-  streamHaiWork: vi.fn(),
+  submitHaiWork: vi.fn().mockResolvedValue({ taskId: "task-1", runId: "run-3", status: "queued", artifactId: null, error: null, replayed: false }),
 }));
 
 function renderPage() {
@@ -134,7 +134,7 @@ describe("HAI Work task page", () => {
       .mockResolvedValueOnce(completedDetail);
 
     renderPage();
-    expect(await screen.findByText("产物正在生成")).toBeInTheDocument();
+    expect(await screen.findByText("产物正在后台生成")).toBeInTheDocument();
     expect(await screen.findByText("# 第二版诊断", {}, { timeout: 4500 })).toBeInTheDocument();
     expect(getHaiWorkTaskDetail).toHaveBeenCalledTimes(2);
   }, 6000);
@@ -169,31 +169,26 @@ describe("HAI Work task page", () => {
 
   it("creates a child artifact when revising the selected version", async () => {
     const user = userEvent.setup();
-    vi.mocked(streamHaiWork).mockImplementation(async (_payload, handlers) => {
-      handlers.onEvent({ type: "done", taskId: "task-1", runId: "run-3", artifactId: "artifact-3", versionNumber: 3 });
-    });
+    vi.mocked(submitHaiWork).mockResolvedValue({ taskId: "task-1", runId: "run-3", status: "queued", artifactId: null, error: null, replayed: false });
     renderPage();
     await screen.findByText("# 第二版诊断");
 
     await user.type(screen.getByPlaceholderText(/把导入压缩到 3 分钟/), "让建议更具体");
     await user.click(screen.getByRole("button", { name: "生成新版本" }));
 
-    expect(streamHaiWork).toHaveBeenCalledWith(
+    expect(submitHaiWork).toHaveBeenCalledWith(
       expect.objectContaining({
         taskId: "task-1",
         parentArtifactId: "artifact-2",
         revisionInstruction: "让建议更具体",
       }),
-      expect.any(Object),
     );
     expect(getHaiWorkTaskDetail).toHaveBeenCalledTimes(2);
   });
 
   it("confirms a diagnosis before generating an optimized lesson plan", async () => {
     const user = userEvent.setup();
-    vi.mocked(streamHaiWork).mockImplementation(async (_payload, handlers) => {
-      handlers.onEvent({ type: "done", taskId: "task-1", runId: "run-3", artifactId: "artifact-3", versionNumber: 3 });
-    });
+    vi.mocked(submitHaiWork).mockResolvedValue({ taskId: "task-1", runId: "run-3", status: "queued", artifactId: null, error: null, replayed: false });
     renderPage();
     await screen.findByText("# 第二版诊断");
 
@@ -201,7 +196,7 @@ describe("HAI Work task page", () => {
     expect(screen.getByText("确认生成优化教案？")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "确认生成" }));
 
-    expect(streamHaiWork).toHaveBeenCalledWith(
+    expect(submitHaiWork).toHaveBeenCalledWith(
       expect.objectContaining({
         taskId: "task-1",
         parentArtifactId: "artifact-2",
@@ -211,7 +206,6 @@ describe("HAI Work task page", () => {
           output_mode: "lesson-plan-optimization",
         }),
       }),
-      expect.any(Object),
     );
   });
 
@@ -231,4 +225,38 @@ describe("HAI Work task page", () => {
 
     expect(await screen.findByRole("button", { name: /确认报告无误，生成优化教案/ })).toBeInTheDocument();
   });
+  it("keeps the old artifact visible after a queued revision and selects its new result when the worker finishes", async () => {
+    const user = userEvent.setup();
+    const newRun = { ...detail.runs[0], id: "run-3", status: "queued", execution_mode: "async", execution_phase: "queued" };
+    const nextArtifact = { ...detail.artifacts[0], id: "artifact-3", run_id: "run-3", version_number: 3, content_markdown: "# 后台完成的新教案" };
+    const queued = { ...detail, runs: [newRun, ...detail.runs] } as HaiWorkTaskDetail;
+    const completed = { ...detail, runs: [{ ...newRun, status: "completed" }, ...detail.runs], artifacts: [nextArtifact, ...detail.artifacts] } as HaiWorkTaskDetail;
+    vi.mocked(getHaiWorkTaskDetail).mockResolvedValueOnce(detail as HaiWorkTaskDetail)
+      .mockResolvedValueOnce(queued).mockResolvedValueOnce(completed);
+    vi.mocked(submitHaiWork).mockResolvedValue({ taskId: "task-1", runId: "run-3", status: "queued", artifactId: null, error: null, replayed: false });
+    renderPage();
+    await screen.findByText("# 第二版诊断");
+    await user.type(screen.getByPlaceholderText(/把导入压缩到 3 分钟/), "补全评价");
+    await user.click(screen.getByRole("button", { name: "生成新版本" }));
+    expect(await screen.findByText(/任务已提交，正在排队/)).toBeInTheDocument();
+    expect(screen.getByText("# 第二版诊断")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "生成新版本" })).toBeDisabled();
+    expect(await screen.findByText("# 后台完成的新教案", {}, { timeout: 4500 })).toBeInTheDocument();
+    expect(submitHaiWork).toHaveBeenCalledTimes(1);
+  }, 6000);
+
+  it("reuses the same request id when retrying an unconfirmed submission", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getHaiWorkTaskDetail).mockResolvedValue(detail as HaiWorkTaskDetail);
+    vi.mocked(submitHaiWork).mockRejectedValueOnce(new Error("提交回执暂未确认"));
+    renderPage();
+    await screen.findByText("# 第二版诊断");
+    await user.type(screen.getByPlaceholderText(/把导入压缩到 3 分钟/), "同一修改要求");
+    await user.click(screen.getByRole("button", { name: "生成新版本" }));
+    await screen.findByText("提交回执暂未确认");
+    await user.click(screen.getByRole("button", { name: "生成新版本" }));
+    expect(submitHaiWork).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(submitHaiWork).mock.calls[0][0].clientRequestId).toBe(vi.mocked(submitHaiWork).mock.calls[1][0].clientRequestId);
+  });
+
 });

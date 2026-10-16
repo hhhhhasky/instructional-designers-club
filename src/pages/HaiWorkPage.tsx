@@ -14,7 +14,7 @@ import {
   UploadCloud,
   WandSparkles,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import PageMeta from "@/components/common/PageMeta";
 import HaiWorkShell from "@/components/hai/HaiWorkShell";
@@ -34,7 +34,7 @@ import {
   type HaiUsageSummary,
   type HaiWorkTask,
   type HaiWorkToolSlug,
-  streamHaiWork,
+  submitHaiWork,
   uploadHaiMaterial,
 } from "@/db/hai-api";
 import type { HaiImageGenerationTask } from "@/db/hai-image-generation";
@@ -488,6 +488,8 @@ function WorkToolForm({
     setFiles(next);
   }
 
+  const submission = useRef<{ key: string; id: string } | null>(null);
+
   async function submit() {
     if (!user || busy) return;
     if (pointsBlocked) {
@@ -519,21 +521,12 @@ function WorkToolForm({
             teaching_mode: isPoliticsSubject(form.subject) ? form.teaching_mode.trim() : "",
           }
         : form;
-      let openedTask = false;
-      await streamHaiWork({ toolSlug, input, materialIds }, {
-        onEvent: (event) => {
-          if (event.type === "progress") setProgress(event.message);
-          if (event.type === "error") setError(event.message);
-          if (event.type === "ready" && !openedTask) {
-            openedTask = true;
-            navigate(`/hai/work/tasks/${event.taskId}`);
-          }
-          if (event.type === "done" && !openedTask) {
-            openedTask = true;
-            navigate(`/hai/work/tasks/${event.taskId}`);
-          }
-        },
-      });
+      const requestKey = JSON.stringify({ toolSlug, form, files: files.map((file) => [file.name, file.size, file.lastModified]) });
+      if (submission.current?.key !== requestKey) submission.current = { key: requestKey, id: crypto.randomUUID() };
+      const result = await submitHaiWork({ toolSlug, input, materialIds, clientRequestId: submission.current.id });
+      submission.current = null;
+      navigate(`/hai/work/tasks/${result.taskId}`);
+
     } catch (nextError) {
       setError(nextError instanceof Error ? nextError.message : "任务执行失败，请重试。");
     } finally {
