@@ -1,17 +1,38 @@
 import { ArrowRight, BookOpen, Compass, LockKeyhole, PlayCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Footer from '@/components/common/Footer';
 import PageMeta from '@/components/common/PageMeta';
+import ContentFormatBadges from '@/components/course/ContentFormatBadges';
 import { CourseEditorialHero } from '@/components/course/CourseEditorialShell';
-import CourseTypeTabs from '@/components/course/CourseTypeTabs';
 import CoursePurchaseButton from '@/components/course/CoursePurchaseButton';
+import CourseTypeTabs from '@/components/course/CourseTypeTabs';
 import Header from '@/components/layout/Header';
 import { useAuth } from '@/contexts/AuthContext';
+import { type CourseProductCatalog, getCourseProductCatalog, subscribeToCourseCatalogUpdates } from '@/db/api';
 import { canAccessCourse } from '@/lib/access-control';
-import { DAOFA_CHAPTERS } from '@/lib/daofa-course';
 
 export default function DaofaCoursePage() {
   const { courseAccessCodes, profile, loading: authLoading } = useAuth();
+  const [catalog, setCatalog] = useState<CourseProductCatalog>({ courses: [], categories: [], coursesByCategory: {} });
+  const [error, setError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const data = await getCourseProductCatalog('daofa-textbook');
+        if (active) { setCatalog(data); setError(false); }
+      } catch { if (active) setError(true); }
+      finally { if (active) setIsLoading(false); }
+    };
+    void load();
+    const unsubscribe = subscribeToCourseCatalogUpdates(() => { void load(); });
+    const refresh = () => { if (document.visibilityState === 'visible') void load(); };
+    window.addEventListener('focus', refresh);
+    return () => { active = false; unsubscribe(); window.removeEventListener('focus', refresh); };
+  }, []);
+  const chapters = catalog.categories.map((title) => ({ id: title, title, lessons: catalog.coursesByCategory[title] ?? [] }));
   const hasAccess = profile?.role === 'admin' || canAccessCourse(courseAccessCodes, 'daofa-textbook');
 
   return <>
@@ -27,7 +48,7 @@ export default function DaofaCoursePage() {
           description="先看懂为什么教、到底教什么，再进入教学设计。"
           audience="建议先学总论，再按正在使用的册次查阅；三元对齐画布可随时用来追溯课标与教材单元的关系。"
           icon={BookOpen}
-          stats={[{ label: '核心篇章', value: 2 }, { label: '视频单课', value: 22 }, { label: '交互画布', value: 1 }, { label: '教材册次', value: 18 }]}
+          stats={[{ label: '课程篇章', value: chapters.length }, { label: '已发布单课', value: catalog.courses.length }, { label: '交互画布', value: 1 }]}
         >
           {!authLoading && !hasAccess && <CoursePurchaseButton productCode="daofa-textbook" />}
         </CourseEditorialHero>
@@ -35,25 +56,29 @@ export default function DaofaCoursePage() {
           <aside className="course-editorial-toc self-start lg:sticky lg:top-24">
             <span className="editorial-kicker">CONTENTS · 课程索引</span>
             <nav aria-label="道法课程篇章" className="mt-4 space-y-2">
-              {DAOFA_CHAPTERS.map((chapter, index) => <a key={chapter.id} href={`#${chapter.id}`} className="flex min-h-11 items-center justify-between rounded-ds-sm px-3 text-sm text-tx hover:bg-acl/40 hover:text-ac">
+              {chapters.map((chapter, index) => <a key={chapter.id} href={`#${chapter.id}`} className="flex min-h-11 items-center justify-between rounded-ds-sm px-3 text-sm text-tx hover:bg-acl/40 hover:text-ac">
                 <span>{String(index + 1).padStart(2, '0')} · {chapter.title}</span><span className="text-xs text-txt">{chapter.lessons.length} 项</span>
               </a>)}
             </nav>
+            <Link to="/courses/daofa/alignment-canvas" className="mt-4 flex min-h-11 items-center gap-2 rounded-ds-sm px-3 text-sm text-ac hover:bg-acl/40"><Compass className="h-4 w-4" />三元对齐画布</Link>
             {!hasAccess && <p className="mt-6 border-t border-dashed border-bd pt-4 text-xs leading-6 text-txs"><LockKeyhole className="mr-1 inline h-3.5 w-3.5" />课程内容需开通“道法教材解读课”权限。</p>}
           </aside>
           <div className="space-y-12">
-            {DAOFA_CHAPTERS.map((chapter, index) => <section key={chapter.id} id={chapter.id} className="scroll-mt-28">
+            {isLoading && <p role="status" className="py-8 text-txs">正在加载课程目录…</p>}
+            {error && <p role="alert" className="py-8 text-txs">课程目录加载失败，请刷新页面重试。</p>}
+            {!isLoading && !error && catalog.courses.length === 0 && <p className="py-8 text-txs">课程发布后会显示在这里。</p>}
+            {chapters.map((chapter, index) => <section key={chapter.id} id={chapter.id} className="scroll-mt-28">
               <div className="mb-4 flex items-end gap-4 border-b border-bd pb-5">
                 <span className="font-serif text-4xl text-ac/60">{String(index + 1).padStart(2, '0')}</span>
-                <div><p className="editorial-kicker">{index === 0 ? 'FOUNDATION' : 'BOOK BY BOOK'}</p><h2 className="mt-1 font-ds-black text-2xl text-tx" style={{ fontFamily: 'var(--fd)' }}>{chapter.title}</h2><p className="mt-2 text-sm leading-6 text-txs">{chapter.description}</p></div>
+                <div><p className="editorial-kicker">{index === 0 ? 'FOUNDATION' : 'BOOK BY BOOK'}</p><h2 className="mt-1 font-ds-black text-2xl text-tx" style={{ fontFamily: 'var(--fd)' }}>{chapter.title}</h2><p className="mt-2 text-sm leading-6 text-txs">已发布课程按后台设置的顺序展示。</p></div>
               </div>
               <ol className="overflow-hidden rounded-ds-sm border border-bd bg-[var(--paper)]">
                 {chapter.lessons.map((lesson, lessonIndex) => <li key={lesson.id} className="border-b border-dashed border-bd last:border-b-0">
-                  <Link to={`/courses/daofa/${lesson.id}`} className="group flex min-h-20 items-center gap-4 px-4 py-4 transition-colors hover:bg-acl/25 focus-visible:bg-acl/25 sm:px-6">
+                  <Link to={`/courses/${lesson.id}`} className="group flex min-h-20 items-center gap-4 px-4 py-4 transition-colors hover:bg-acl/25 focus-visible:bg-acl/25 sm:px-6">
                     <span className="w-7 shrink-0 font-mono text-xs text-txt">{String(lessonIndex + 1).padStart(2, '0')}</span>
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-bd text-ac">{lesson.kind === 'canvas' ? <Compass className="h-4 w-4" /> : <PlayCircle className="h-4 w-4" />}</span>
-                    <span className="min-w-0 flex-1"><span className="block font-ds-bold text-tx group-hover:text-ac">{lesson.title}</span><span className="mt-1 block text-xs leading-5 text-txs">{lesson.subtitle}</span></span>
-                    <span className="hidden shrink-0 text-xs text-txt sm:block">{lesson.kind === 'canvas' ? '交互阅读' : lesson.handoutAvailable ? '图文讲义 · 视频课程' : '视频课程'}</span>
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-bd text-ac">{lesson.course_type === 'video' ? <PlayCircle className="h-4 w-4" /> : <BookOpen className="h-4 w-4" />}</span>
+                    <span className="min-w-0 flex-1"><span className="block font-ds-bold text-tx group-hover:text-ac">{lesson.title}</span><span className="mt-1 block text-xs leading-5 text-txs">{lesson.description}</span></span>
+                    <ContentFormatBadges course={lesson} />
                     <ArrowRight className="h-4 w-4 shrink-0 text-ac transition-transform group-hover:translate-x-1" />
                   </Link>
                 </li>)}

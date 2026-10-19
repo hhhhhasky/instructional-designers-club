@@ -1,14 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import TeacherAiCoursesPage from '@/pages/TeacherAiCoursesPage';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { getCourseCatalogSnapshot, getCourseProductCatalog } from '@/db/api';
+import { canAccessCourse } from '@/lib/access-control';
+import { PLUS_TRACKS } from '@/lib/plusCourseStructure';
 import CoursesPage from '@/pages/CoursesPage';
 import DaofaCoursePage from '@/pages/DaofaCoursePage';
 import DaofaLessonPage from '@/pages/DaofaLessonPage';
-import { getCourseCatalogSnapshot } from '@/db/api';
-import { canAccessCourse } from '@/lib/access-control';
-import { PLUS_TRACKS } from '@/lib/plusCourseStructure';
-import { DAOFA_LESSONS } from '@/lib/daofa-course';
+import TeacherAiCoursesPage from '@/pages/TeacherAiCoursesPage';
 import type { Course } from '@/types/types';
 
 let mockProfileRole: 'admin' | null = null;
@@ -24,6 +23,7 @@ vi.mock('@/contexts/AuthContext', () => ({
 }));
 
 vi.mock('@/db/api', () => ({
+  getCourseProductCatalog: vi.fn(() => Promise.resolve({ courses: [], categories: [], coursesByCategory: {} })),
   getCourseCatalogSnapshot: vi.fn(),
   getCourseDetailSnapshot: vi.fn(() => Promise.resolve(null)),
   subscribeToCourseCatalogUpdates: vi.fn(() => () => {}),
@@ -128,7 +128,7 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
   it('访客打开道法单课时可直接看到购买入口', () => {
     mockAuthUser = null;
     vi.mocked(canAccessCourse).mockReturnValue(false);
-    render(<MemoryRouter initialEntries={[`/courses/daofa/${DAOFA_LESSONS[0].id}`]}>
+    render(<MemoryRouter initialEntries={['/courses/daofa/alignment-canvas']}>
       <Routes><Route path="/courses/daofa/:lessonId" element={<DaofaLessonPage />} /></Routes>
     </MemoryRouter>);
     expect(screen.getByRole('link', { name: '购买道法教材解读课' })).toHaveAttribute('href', 'https://xhslink.com/m/277IB24mn8I');
@@ -277,4 +277,14 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
     expect(screen.getAllByRole('button', { name: '打开课程：图文通识课' }).length).toBeGreaterThan(0);
     expect(screen.queryAllByRole('button', { name: '打开课程：视频通识课' })).toHaveLength(0);
   });
+});
+
+it('道法目录用数据库课程ID跳转，后台新增九上无需前端册次开关', async () => {
+  const course = makeCourse({ id: 'new-nine-up', title: '九年级上册新讲义', access_product_code: 'daofa-textbook', membership_type: 'plus', category: '分册解读篇', has_body: true });
+  vi.mocked(getCourseProductCatalog).mockResolvedValue({ courses: [course], categories: ['分册解读篇'], coursesByCategory: { '分册解读篇': [course] } });
+  render(<MemoryRouter><DaofaCoursePage /></MemoryRouter>);
+  const link = await screen.findByRole('link', { name: /九年级上册新讲义/ });
+  expect(link).toHaveAttribute('href', '/courses/new-nine-up');
+  expect(getCourseProductCatalog).toHaveBeenCalledWith('daofa-textbook');
+  expect(screen.getByRole('link', { name: /三元对齐画布/ })).toHaveAttribute('href', '/courses/daofa/alignment-canvas');
 });

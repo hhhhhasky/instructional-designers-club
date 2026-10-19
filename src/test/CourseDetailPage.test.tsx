@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BookOpen } from 'lucide-react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import CourseDetailPage from '@/pages/CourseDetailPage';
 
 // --- Mocks ---
@@ -47,6 +47,7 @@ vi.mock('@/db/api', () => ({
     }
   },
   incrementCourseViewCount: vi.fn(),
+  getCourseProductCatalog: vi.fn(),
   getCourseCatalogSnapshot: vi.fn(),
   getCourseDetailSnapshot: vi.fn(),
   getCourseProtectedContent: vi.fn(),
@@ -80,11 +81,12 @@ vi.mock('@/components/common/PageMeta', () => ({ default: () => null }));
 
 import {
   CourseContentAccessError,
+  getCategoriesByMembershipType,
   getCourseCatalogSnapshot,
   getCourseDetailSnapshot,
+  getCourseProductCatalog,
   getCourseProtectedContent,
   getCoursesByMembershipAndCategory,
-  getCategoriesByMembershipType,
   getPlusCourseStructure,
 } from '@/db/api';
 import { getCourseQuestions, getCourseQuestionTags } from '@/db/course-questions';
@@ -799,5 +801,49 @@ describe('CourseDetailPage — 单课密码试看', () => {
     await user.click(screen.getByRole('button', { name: '验证并试看' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('约 3 分钟后再试');
+  });
+});
+
+describe('正常课程详情按课程产品展示道法视频与正文', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockCurrentUser = mockUser;
+    vi.mocked(canAccessCourse).mockReturnValue(true);
+    window.HTMLElement.prototype.scrollIntoView = vi.fn();
+  });
+
+  it('同一课程记录的视频和图文同时显示，并使用道法自己的数据库目录', async () => {
+    const nine = makeCourse({ id: 'nine-up', title: '九上教材解读', access_product_code: 'daofa-textbook', membership_type: 'plus', category: '分册解读篇' });
+    vi.mocked(getCourseProductCatalog).mockResolvedValue({ courses: [nine], categories: ['分册解读篇'], coursesByCategory: { '分册解读篇': [nine] } });
+    const { container } = await renderAndWait('nine-up', [], {
+      title: '九上教材解读', access_product_code: 'daofa-textbook', membership_type: 'plus', category: '分册解读篇',
+      video_url: 'https://signed.example.test/nine.mp4', body: '## 九上正文\n\n新时代与中国梦。\n\n![课件](https://signed.example.test/slide.jpg)',
+    });
+    expect(await screen.findByRole('heading', { name: '九上正文' })).toBeInTheDocument();
+    expect(container.querySelector('video')).toHaveAttribute('src', 'https://signed.example.test/nine.mp4');
+    expect(screen.getByAltText('课件')).toHaveAttribute('src', 'https://signed.example.test/slide.jpg');
+    expect(getCourseProductCatalog).toHaveBeenCalledWith('daofa-textbook');
+    expect(screen.getAllByText('道法教材解读课目录').length).toBeGreaterThan(0);
+    expect(screen.queryByText('教师AI课目录')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: '道法教材解读课' }));
+    expect(mockNavigate).toHaveBeenLastCalledWith('/courses/daofa');
+  });
+
+  it('只有body没有视频时仍正常显示正文，不出现独立讲义iframe', async () => {
+    vi.mocked(getCourseProductCatalog).mockResolvedValue({ courses: [], categories: [], coursesByCategory: {} });
+    const { container } = await renderAndWait('text-only', [], {
+      access_product_code: 'daofa-textbook', membership_type: 'plus', course_type: 'article', video_url: null, body: '数据库里的图文正文',
+    });
+    expect(await screen.findByText('数据库里的图文正文')).toBeInTheDocument();
+    expect(container.querySelector('video')).toBeNull();
+    expect(container.querySelector('iframe')).toBeNull();
+  });
+
+  it('没有产品权限时不读取受保护正文', async () => {
+    vi.mocked(canAccessCourse).mockReturnValue(false);
+    vi.mocked(getCourseProductCatalog).mockResolvedValue({ courses: [], categories: [], coursesByCategory: {} });
+    await renderAndWait('locked', [], { access_product_code: 'daofa-textbook', membership_type: 'plus', video_url: null, has_body: true });
+    expect(getCourseProtectedContent).not.toHaveBeenCalled();
+    expect(screen.getByRole('link', { name: '购买道法教材解读课' })).toBeInTheDocument();
   });
 });

@@ -1,6 +1,6 @@
 import { createAsyncCache } from "@/lib/async-cache";
-import { HOME_LANDING_KEYS } from "@/lib/home-landing-content";
 import { getCourseCoverUrl, withProtectedCourseCover } from "@/lib/course-cover";
+import { HOME_LANDING_KEYS } from "@/lib/home-landing-content";
 import { getModuleIcon, normalizePlusCourseStructure, type PlusTrackConfig } from "@/lib/plusCourseStructure";
 import type {
   Activity,
@@ -27,6 +27,40 @@ import { supabase } from "./supabase";
 
 const COURSE_PUBLIC_COLUMNS =
   'id, title, description, instructor, category_id, category, level, duration, credits, status, membership_type, access_product_code, course_type, is_trial, password_access_enabled, image_url, plus_lesson_order, plus_representative, sort_order, view_count, created_at, updated_at, has_video, has_audio, has_body, has_essence, has_images, has_meeting';
+
+export interface CourseProductCatalog {
+  courses: Course[];
+  categories: string[];
+  coursesByCategory: Record<string, Course[]>;
+}
+
+/** Use the normal public course metadata; protected body/media still come from course-content. */
+export async function getCourseProductCatalog(productCode: string): Promise<CourseProductCatalog> {
+  const [courseResult, categoryResult] = await Promise.all([
+    supabase.from('courses').select(COURSE_PUBLIC_COLUMNS)
+      .eq('access_product_code', productCode).eq('status', 'published')
+      .order('sort_order', { ascending: true }).order('id', { ascending: true }),
+    supabase.from('course_categories').select('*')
+      .eq('access_product_code', productCode).eq('is_active', true)
+      .order('sort_order', { ascending: true }).order('id', { ascending: true }),
+  ]);
+  if (courseResult.error) throw toDataAccessError('读取课程目录', courseResult.error);
+  if (categoryResult.error) throw toDataAccessError('读取课程分类', categoryResult.error);
+  const categoryRows = (categoryResult.data ?? []) as CourseCategory[];
+  const courses = ((courseResult.data ?? []) as Course[]).map((course) => withProtectedCourseCover({
+    ...course,
+    category: categoryRows.find((category) => category.id === course.category_id)?.name || course.category || '其他课程',
+  }));
+  const categories = [...new Set([
+    ...categoryRows.map((category) => category.name),
+    ...courses.map((course) => course.category as string),
+  ])].filter((category) => courses.some((course) => course.category === category));
+  return {
+    courses,
+    categories,
+    coursesByCategory: Object.fromEntries(categories.map((category) => [category, courses.filter((course) => course.category === category)])),
+  };
+}
 
 /**
  * 获取 Plus 课程篇章 / 分类定义。

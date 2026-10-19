@@ -1,72 +1,71 @@
-import { useEffect, useState, useRef, useCallback, type ReactNode } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
-  ArrowLeft,
-  ExternalLink,
-  Clock,
-  Award,
-  User,
-  BookOpen,
   AlertCircle,
+  ArrowLeft,
+  Award,
+  BookOpen,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  List,
-  CheckCircle2,
-  PlayCircle,
-  Eye,
-  Sparkles,
-  PanelLeftClose,
-  PanelLeftOpen,
+  Clock,
   Download,
+  ExternalLink,
+  Eye,
+  File,
+  FileAudio,
+  FileImage,
   FileText,
   FileVideo,
-  FileImage,
-  FileAudio,
-  File,
+  List,
   Maximize2,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PlayCircle,
+  Sparkles,
+  User,
 } from 'lucide-react';
-import Header from '@/components/layout/Header';
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
-import PageMeta from '@/components/common/PageMeta';
 import MarkdownRenderer from '@/components/common/MarkdownRenderer';
+import PageMeta from '@/components/common/PageMeta';
+import CourseCompletionDialog from '@/components/course/CourseCompletionDialog';
 import CourseConfirmDialog from '@/components/course/CourseConfirmDialog';
 import CourseContentStack from '@/components/course/CourseContentStack';
+import { CourseReadingProgress } from '@/components/course/CourseEditorialShell';
+import CoursePasswordGate from '@/components/course/CoursePasswordGate';
 import CoursePlaybackRateControl, {
   type CoursePlaybackRate,
   readStoredCoursePlaybackRate,
   writeStoredCoursePlaybackRate,
 } from '@/components/course/CoursePlaybackRateControl';
-import CourseCompletionDialog from '@/components/course/CourseCompletionDialog';
-import TeacherAiCatalogToc from '@/components/course/TeacherAiCatalogToc';
-import PlusCatalogToc from '@/components/course/PlusCatalogToc';
-import CourseQuestionsPanel from '@/components/course/CourseQuestionsPanel';
-import CoursePasswordGate from '@/components/course/CoursePasswordGate';
 import CoursePurchaseButton from '@/components/course/CoursePurchaseButton';
-import { CourseReadingProgress } from '@/components/course/CourseEditorialShell';
-import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import CourseQuestionsPanel from '@/components/course/CourseQuestionsPanel';
+import PlusCatalogToc from '@/components/course/PlusCatalogToc';
+import TeacherAiCatalogToc from '@/components/course/TeacherAiCatalogToc';
+import Header from '@/components/layout/Header';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   CourseContentAccessError,
-  getCourseProtectedContent,
-  incrementCourseViewCount,
   getCourseCatalogSnapshot,
   getCourseDetailSnapshot,
+  getCourseProductCatalog,
+  getCourseProtectedContent,
   getLearningData,
+  incrementCourseViewCount,
 } from '@/db/api';
-import { canAccessCourse, recordCourseVisit, updateLearningProgress, getUserLearningRecords } from '@/lib/access-control';
+import { canAccessCourse, getUserLearningRecords, recordCourseVisit, updateLearningProgress } from '@/lib/access-control';
 import { getCourseAccessCode } from '@/lib/course-entitlements';
 import { getCoursePurchaseProduct } from '@/lib/course-purchase';
 import {
+  type Achievement,
   buildGamificationSnapshot,
   findAchievementForCourse,
-  type Achievement,
   type GamificationSnapshot,
 } from '@/lib/gamification';
-import { useAuth } from '@/contexts/AuthContext';
-import type { Course, CourseAttachment, LearningRecord } from '@/types/types';
-import { cn } from '@/lib/utils';
 import {
   buildPlusTrackUrl,
   getCoursesForModule,
@@ -74,9 +73,11 @@ import {
   getPlusModule,
   getPlusTrack,
   PLUS_TRACKS,
-  resolvePlusCoursePlacement,
   type PlusTrackConfig,
+  resolvePlusCoursePlacement,
 } from '@/lib/plusCourseStructure';
+import { cn } from '@/lib/utils';
+import type { Course, CourseAttachment, LearningRecord } from '@/types/types';
 
 const LEVEL_STYLE: Record<string, string> = {
   '入门': 'bg-bgs text-txs',
@@ -171,8 +172,8 @@ export default function CourseDetailPage() {
   const [siblingCourses, setSiblingCourses] = useState<Course[]>([]);
   const [learningRecords, setLearningRecords] = useState<LearningRecord[]>([]);
   const [plusTracks, setPlusTracks] = useState<PlusTrackConfig[]>(PLUS_TRACKS);
-  // 教师AI课全量目录（仅 pro 课程详情页加载）
-  const [teacherAiCatalog, setTeacherAiCatalog] = useState<{
+  // 按分类分组的产品目录，复用同一目录组件。
+  const [seriesCatalog, setSeriesCatalog] = useState<{
     categories: string[];
     coursesByCategory: Record<string, Course[]>;
   }>({ categories: [], coursesByCategory: {} });
@@ -368,7 +369,7 @@ export default function CourseDetailPage() {
         lastSyncedAudioProgress.current = 0;
         setAttachments([]);
         setSiblingCourses([]);
-        setTeacherAiCatalog({ categories: [], coursesByCategory: {} });
+        setSeriesCatalog({ categories: [], coursesByCategory: {} });
         setPlusAllCourses([]);
 
         const detailSnapshot = await getCourseDetailSnapshot(id);
@@ -395,7 +396,13 @@ export default function CourseDetailPage() {
           }
 
           // Plus 课程按篇章/分类系列结构加载同系列课程；Pro/Free 保持旧分类目录。
-          if (courseData.membership_type === 'plus') {
+          const productCode = getCourseAccessCode(courseData);
+          if (productCode && productCode !== 'teaching-general-v1' && productCode !== 'teacher-ai') {
+            const productCatalog = await getCourseProductCatalog(productCode);
+            setSeriesCatalog({ categories: productCatalog.categories, coursesByCategory: productCatalog.coursesByCategory });
+            const currentCategory = productCatalog.courses.find((item) => item.id === courseData.id)?.category;
+            setSiblingCourses(currentCategory ? productCatalog.coursesByCategory[currentCategory] ?? [] : []);
+          } else if (courseData.membership_type === 'plus') {
             const plusCatalog = catalog ?? await getCourseCatalogSnapshot();
             const plusCourses = plusCatalog.plus_courses;
             const structureData = plusCatalog.plus_tracks;
@@ -428,7 +435,7 @@ export default function CourseDetailPage() {
             proCats.forEach((cat) => {
               proGrouped[cat] = allProCourses.filter((c) => c.category === cat);
             });
-            setTeacherAiCatalog({ categories: proCats, coursesByCategory: proGrouped });
+            setSeriesCatalog({ categories: proCats, coursesByCategory: proGrouped });
             setSiblingCourses(courseData.category ? proGrouped[courseData.category] ?? [] : []);
           } else {
             setSiblingCourses(siblingCoursesFromSnapshot);
@@ -582,7 +589,7 @@ export default function CourseDetailPage() {
   const prevCourse = currentIndex > 0 ? siblingCourses[currentIndex - 1] : null;
   const nextCourse = currentIndex >= 0 && currentIndex < siblingCourses.length - 1 ? siblingCourses[currentIndex + 1] : null;
   const currentPosition = currentIndex >= 0 ? currentIndex + 1 : 1;
-  const plusPlacement = course?.membership_type === 'plus' ? resolvePlusCoursePlacement(course, plusTracks) : null;
+  const plusPlacement = course && getCourseAccessCode(course) === 'teaching-general-v1' ? resolvePlusCoursePlacement(course, plusTracks) : null;
   const plusTrack = plusPlacement ? getPlusTrack(plusPlacement.resolvedTrackId, plusTracks) : undefined;
   const plusModule = plusPlacement ? getPlusModule(plusPlacement.resolvedTrackId, plusPlacement.resolvedModuleId, plusTracks) : undefined;
   const courseCollectionLabel = plusModule?.title || course?.category || '课程目录';
@@ -600,6 +607,7 @@ export default function CourseDetailPage() {
   };
 
   const getCourseListPath = (membershipType?: string | null) => {
+    if (purchaseProduct && purchaseProduct.code !== 'teaching-general-v1') return purchaseProduct.cataloguePath;
     if (membershipType === 'plus' && plusPlacement) {
       return buildPlusTrackUrl(plusPlacement.resolvedTrackId, plusPlacement.resolvedModuleId);
     }
@@ -607,6 +615,7 @@ export default function CourseDetailPage() {
   };
 
   const getCourseListName = (membershipType?: string | null) => {
+    if (purchaseProduct && purchaseProduct.code !== 'teaching-general-v1' && purchaseProduct.code !== 'teacher-ai') return purchaseProduct.name;
     if (membershipType === 'plus' && plusTrack) return plusTrack.title;
     return membershipType === 'pro' ? '教师AI课' : '教学通识课';
   };
@@ -760,9 +769,8 @@ export default function CourseDetailPage() {
   // 纯文本/图集课：手动标记完成（乐观更新本地状态，学习记录已落库）
   const isCurrentCompleted = manuallyMarked || getStatus(course.id) === 'completed';
   const currentCourseProgress = isCurrentCompleted ? 100 : getProgress(course.id);
-  const isProCourse = course.membership_type === 'pro';
-  const hasTeacherAiCatalog = isProCourse && teacherAiCatalog.categories.length > 0;
-  const isPlusCourse = course.membership_type === 'plus';
+  const hasSeriesCatalog = seriesCatalog.categories.length > 0;
+  const isPlusCourse = getCourseAccessCode(course) === 'teaching-general-v1';
   const hasPlusCatalog = isPlusCourse && plusAllCourses.length > 0 && plusTracks.length > 0;
 
   const handleMarkComplete = () => {
@@ -861,10 +869,10 @@ export default function CourseDetailPage() {
         <div className="max-w-7xl mx-auto w-full px-4 pt-4 lg:flex-1 lg:min-h-0 lg:overflow-hidden">
           <div
             data-testid="course-detail-desktop-layout"
-            className={cn('flex', (isProCourse || isPlusCourse) ? 'gap-4' : 'gap-5', 'lg:h-full lg:min-h-0')}
+            className={cn('flex', (hasSeriesCatalog || isPlusCourse) ? 'gap-4' : 'gap-5', 'lg:h-full lg:min-h-0')}
           >
             {/* 教师AI课：左侧可折叠全量目录（桌面端常驻） */}
-            {hasTeacherAiCatalog && (
+            {hasSeriesCatalog && (
               <aside
                 data-testid="desktop-course-catalog"
                 className="hidden lg:block flex-shrink-0 self-start lg:self-stretch lg:h-full lg:min-h-0 transition-all duration-200"
@@ -875,7 +883,7 @@ export default function CourseDetailPage() {
                     <div className="flex items-center justify-between px-3 py-3 border-b border-dashed border-bd bg-[var(--paper-deep)]">
                       <div>
                         <span className="editorial-kicker">CONTENTS</span>
-                        <h3 className="font-bold text-tx text-sm">教师AI课目录</h3>
+                        <h3 className="font-bold text-tx text-sm">{getCourseListName(course.membership_type)}目录</h3>
                       </div>
                       <button
                         type="button"
@@ -887,8 +895,8 @@ export default function CourseDetailPage() {
                       </button>
                     </div>
                     <TeacherAiCatalogToc
-                      categories={teacherAiCatalog.categories}
-                      coursesByCategory={teacherAiCatalog.coursesByCategory}
+                      categories={seriesCatalog.categories}
+                      coursesByCategory={seriesCatalog.coursesByCategory}
                       currentCourseId={course.id}
                       onSelect={handleNavigateToCourse}
                       learningRecords={learningRecords}
@@ -1009,7 +1017,7 @@ export default function CourseDetailPage() {
                       <span className="sm:hidden">上一节</span>
                     </button>
 
-                    {hasTeacherAiCatalog || hasPlusCatalog ? (
+                    {hasSeriesCatalog || hasPlusCatalog ? (
                       <>
                         {/* 平板端：目录入口；移动端改用固定课程控制栏 */}
                         <button
@@ -1053,7 +1061,7 @@ export default function CourseDetailPage() {
                 )}
 
                 {/* Pro/Plus 单课的平板端目录入口；移动端改用固定课程控制栏 */}
-                {siblingCourses.length <= 1 && (hasTeacherAiCatalog || hasPlusCatalog) && (
+                {siblingCourses.length <= 1 && (hasSeriesCatalog || hasPlusCatalog) && (
                   <div className="hidden md:flex lg:hidden items-center px-5 py-2.5 border-b border-bdl bg-warm/30">
                     <button
                       type="button"
@@ -1068,7 +1076,7 @@ export default function CourseDetailPage() {
                 )}
 
                 {/* Tablet: Inline course list below video（仅 Free；移动端改用抽屉） */}
-                {!isProCourse && !isPlusCourse && siblingCourses.length > 1 && (
+                {!hasSeriesCatalog && !isPlusCourse && siblingCourses.length > 1 && (
                   <div className="hidden md:block lg:hidden border-b border-bdl">
                     <div className="px-4 py-2.5 bg-warm/30 flex items-center justify-between">
                       <h3 className="font-bold text-tx text-sm flex items-center gap-2">
@@ -1282,7 +1290,7 @@ export default function CourseDetailPage() {
             </div>
 
             {/* Right: Sidebar - Desktop（仅 Free；教师AI课/教学通识课改用左侧全量目录） */}
-            {!isProCourse && !isPlusCourse && siblingCourses.length > 0 && (
+            {!hasSeriesCatalog && !isPlusCourse && siblingCourses.length > 0 && (
               <aside
                 data-testid="desktop-course-catalog"
                 className="hidden lg:block w-72 flex-shrink-0 lg:h-full lg:min-h-0"
@@ -1361,18 +1369,18 @@ export default function CourseDetailPage() {
           </div>
 
           {/* 教师AI课：移动端 / 平板端目录抽屉 */}
-          {hasTeacherAiCatalog && (
+          {hasSeriesCatalog && (
             <Sheet open={mobileTocOpen} onOpenChange={setMobileTocOpen}>
               <SheetContent side="left" className="w-72 p-0">
                 <div className="flex flex-col h-full">
                   <div className="px-4 py-3 border-b border-dashed border-bd bg-[var(--paper-deep)]">
                     <span className="editorial-kicker">CONTENTS</span>
-                    <SheetTitle className="text-sm font-bold text-tx">教师AI课目录</SheetTitle>
-                    <SheetDescription className="sr-only">教师AI课全部系列与单课导航</SheetDescription>
+                    <SheetTitle className="text-sm font-bold text-tx">{getCourseListName(course.membership_type)}目录</SheetTitle>
+                    <SheetDescription className="sr-only">{getCourseListName(course.membership_type)}全部系列与单课导航</SheetDescription>
                   </div>
                   <TeacherAiCatalogToc
-                    categories={teacherAiCatalog.categories}
-                    coursesByCategory={teacherAiCatalog.coursesByCategory}
+                    categories={seriesCatalog.categories}
+                    coursesByCategory={seriesCatalog.coursesByCategory}
                     currentCourseId={course.id}
                     onSelect={(cid) => {
                       handleNavigateToCourse(cid);
@@ -1413,7 +1421,7 @@ export default function CourseDetailPage() {
           )}
 
           {/* Free 或全量目录暂不可用时：复用当前系列 / 模块课程数据兜底 */}
-          {!hasTeacherAiCatalog && !hasPlusCatalog && (
+          {!hasSeriesCatalog && !hasPlusCatalog && (
             <Sheet open={mobileTocOpen} onOpenChange={setMobileTocOpen}>
               <SheetContent side="left" className="w-72 p-0">
                 <div className="flex flex-col h-full">
