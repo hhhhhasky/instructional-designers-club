@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 import Footer from '@/components/common/Footer';
 import PageMeta from '@/components/common/PageMeta';
 import Header from '@/components/layout/Header';
+import DaofaLessonHandout from '@/components/course/DaofaLessonHandout';
 import CoursePurchaseButton from '@/components/course/CoursePurchaseButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { getDaofaLessonMedia } from '@/db/daofa-media';
@@ -91,7 +92,8 @@ export default function DaofaLessonPage() {
                     </nav>
                   </aside>
                   <div className="min-w-0">
-                    <section className="rounded-ds-sm border border-bd bg-[var(--paper)] p-5 sm:p-8">
+                    {lesson.handoutAvailable && <DaofaLessonHandout key={lesson.id} lessonId={lesson.id} title={lesson.title} />}
+                    <section className="mt-8 rounded-ds-sm border border-bd bg-[var(--paper)] p-5 sm:p-8">
                       <div className="mb-5 flex items-center gap-2"><PlayCircle className="h-5 w-5 text-ac" /><h2 className="font-ds-bold text-lg text-tx">课程视频</h2></div>
                       {mediaUrl ? <video controls playsInline preload="metadata" src={mediaUrl} className="aspect-video w-full rounded-ds-sm bg-[#102f2b]" /> : mediaError ? <div className="flex aspect-video flex-col items-center justify-center gap-4 rounded-ds-sm bg-[#102f2b] px-5 text-center text-white"><p>{mediaError}</p><button type="button" className="rounded-lg border border-white/40 px-4 py-2" onClick={() => setRetryCount((count) => count + 1)}>重新加载</button></div> : mediaLoading ? <div className="flex aspect-video items-center justify-center rounded-ds-sm bg-[#102f2b] text-sm text-white">正在加载视频…</div> : <div className="flex aspect-video flex-col items-center justify-center rounded-ds-sm bg-[#102f2b] px-5 text-center text-white">
                         <BookOpen className="h-10 w-10 text-[#d0a453]" />

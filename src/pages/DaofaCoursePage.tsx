@@ -53,7 +53,7 @@ export default function DaofaCoursePage() {
                     <span className="w-7 shrink-0 font-mono text-xs text-txt">{String(lessonIndex + 1).padStart(2, '0')}</span>
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-bd text-ac">{lesson.kind === 'canvas' ? <Compass className="h-4 w-4" /> : <PlayCircle className="h-4 w-4" />}</span>
                     <span className="min-w-0 flex-1"><span className="block font-ds-bold text-tx group-hover:text-ac">{lesson.title}</span><span className="mt-1 block text-xs leading-5 text-txs">{lesson.subtitle}</span></span>
-                    <span className="hidden shrink-0 text-xs text-txt sm:block">{lesson.kind === 'canvas' ? '交互阅读' : '视频课程'}</span>
+                    <span className="hidden shrink-0 text-xs text-txt sm:block">{lesson.kind === 'canvas' ? '交互阅读' : lesson.handoutAvailable ? '图文讲义 · 视频课程' : '视频课程'}</span>
                     <ArrowRight className="h-4 w-4 shrink-0 text-ac transition-transform group-hover:translate-x-1" />
                   </Link>
                 </li>)}

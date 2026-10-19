@@ -4,6 +4,7 @@ export interface DaofaLesson {
   subtitle: string;
   kind: 'video' | 'canvas';
   mediaAvailable?: boolean;
+  handoutAvailable?: boolean;
 }
 
 export interface DaofaChapter {
@@ -19,6 +20,7 @@ const bookLessons: DaofaLesson[] = Array.from({ length: 9 }, (_, index) => index
     title: `${['一', '二', '三', '四', '五', '六', '七', '八', '九'][grade - 1]}年级${semester}册`,
     subtitle: '按教材定位、单元关系、单课作用三个层次读懂这一册。',
     kind: 'video' as const,
+    handoutAvailable: grade === 8,
   })));
 
 export const DAOFA_CHAPTERS: DaofaChapter[] = [
