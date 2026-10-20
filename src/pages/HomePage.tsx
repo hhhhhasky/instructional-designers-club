@@ -14,6 +14,7 @@ import { HomeSnapshotProvider } from '@/hooks/useHomeSnapshot';
 
 const navigation = [
   { id: 'teaching-problems', label: '教学难题' },
+  { id: 'free-courses', label: '免费体验课程' },
   { id: 'teaching-method', label: '哈老师的方法' },
   { id: 'about-han', label: '关于哈老师' },
   { id: 'course-products', label: '三门课程' },
@@ -28,7 +29,8 @@ function HomePageContent() {
   const { user, profile, courseAccessCodes, loading } = useAuth();
   const { loaded, homeCourses, landing, founder } = useHomeContent();
   const { home_hero: hero, home_situations: situationCopy, home_problem: problemCopy, home_method: methodCopy, home_founder: founderCopy, home_outcomes: outcomeCopy, home_learning: learningCopy, home_extra: extraCopy } = landing;
-  const freeCourses = homeCourses.free.slice(0, 2);
+  const freeCourses = homeCourses.free.filter((course) => course.membership_type === 'free').slice(0, 2);
+  const pageNavigation = navigation.filter((item) => item.id !== 'free-courses' || freeCourses.length > 0);
 
   if (!loaded) {
     return <>
@@ -55,7 +57,7 @@ function HomePageContent() {
     <PageMeta title="哈老师聊教学设计" description="从真实教学问题出发，和哈老师一起分析教材、学情、目标、课堂活动与评价。了解教学通识课、教师 AI 课和道法教材解读课。" canonicalPath="/" keywords="哈老师聊教学设计,教师培训,教学设计,教师AI课,道法教材解读课" />
     <div className="min-h-screen bg-cream">
       <Header />
-      {!loading && <PageNavigation items={user ? [...navigation, { id: 'my-learning', label: '我的学习' }] : navigation} />}
+      {!loading && <PageNavigation items={user ? [...pageNavigation, { id: 'my-learning', label: '我的学习' }] : pageNavigation} />}
       <main>
         <section id="teaching-problems" aria-labelledby="home-title" className="relative overflow-hidden border-b border-[var(--paper-rule)] bg-[var(--paper)] px-4 pb-14 pt-28 md:pb-20 md:pt-36">
           <div className="pointer-events-none absolute -right-24 top-0 h-96 w-96 rounded-full bg-ac/5 blur-3xl" aria-hidden="true" />
@@ -67,6 +69,7 @@ function HomePageContent() {
               <div className="mt-8 flex flex-wrap gap-3">
                 <a href="#real-situations" className="inline-flex min-h-12 items-center gap-2 rounded-ds-sm bg-ac px-6 font-ds-bold text-white transition-colors hover:bg-acd focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac focus-visible:ring-offset-2">{hero.primary_cta} <ArrowDown className="h-4 w-4" aria-hidden="true" /></a>
                 <a href="#course-products" className="inline-flex min-h-12 items-center gap-2 rounded-ds-sm border border-bd bg-white px-6 font-ds-semibold text-tx transition-colors hover:border-ac focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac focus-visible:ring-offset-2">{hero.secondary_cta} <ArrowRight className="h-4 w-4" aria-hidden="true" /></a>
+                {freeCourses.length > 0 && <a href="#free-courses" className="inline-flex min-h-12 items-center gap-2 rounded-ds-sm border border-ac/30 bg-[var(--annotation-soft)] px-6 font-ds-semibold text-ac transition-colors hover:border-ac focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac focus-visible:ring-offset-2"><Play className="h-4 w-4" aria-hidden="true" />免费体验课程</a>}
               </div>
               {user && !loading && <Link to="/learning" className="mt-6 inline-flex items-center gap-2 text-sm font-ds-semibold text-ac hover:underline">{hero.learning_cta} <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>}
             </div>
@@ -79,6 +82,36 @@ function HomePageContent() {
         </section>
 
         {user && !loading && <div className="bg-[var(--paper-deep)]"><MemberHomeHero /><NotificationCard /></div>}
+
+        {freeCourses.length > 0 && (
+          <section id="free-courses" className="scroll-mt-28 border-b border-[var(--paper-rule)] bg-[var(--annotation-soft)] px-4 py-14 md:py-20" aria-labelledby="free-courses-title">
+            <div className="mx-auto max-w-6xl">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <span className="editorial-kicker">免费体验课程 · {extraCopy.free_kicker}</span>
+                  <h2 id="free-courses-title" className="mt-3 text-2xl font-ds-black text-tx md:text-4xl" style={{ fontFamily: 'var(--fd)' }}>{extraCopy.free_title}</h2>
+                </div>
+                <Link to="/courses" className="inline-flex items-center gap-2 text-sm font-ds-semibold text-ac hover:underline">{extraCopy.free_cta} <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
+              </div>
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                {freeCourses.map((course) => (
+                  <Link key={course.id} to={`/courses/${course.id}`} className="group flex flex-col border border-bd bg-white p-6 transition-colors hover:border-ac focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac focus-visible:ring-offset-2 md:p-8">
+                    <div className="flex items-center justify-between gap-4">
+                      <BookOpen className="h-6 w-6 text-ac" aria-hidden="true" />
+                      <span className="editorial-stamp">免费体验</span>
+                    </div>
+                    <h3 className="mt-5 text-xl font-ds-bold leading-snug text-tx group-hover:text-ac">{course.title}</h3>
+                    <p className="mt-3 line-clamp-2 text-sm leading-7 text-txs">{course.description}</p>
+                    <div className="mt-auto flex items-center justify-between gap-4 pt-6 text-sm">
+                      <span className="text-txs">{(course.duration ?? 0) > 0 ? `${course.duration} 分钟` : '免费课程'}</span>
+                      <span className="inline-flex items-center gap-2 font-ds-semibold text-ac"><Play className="h-4 w-4" aria-hidden="true" />开始体验 <ArrowRight className="h-4 w-4" aria-hidden="true" /></span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         <section id="real-situations" className="scroll-mt-24 bg-warm px-4 py-16 md:py-24" aria-labelledby="situations-title">
           <div className="mx-auto max-w-6xl">
@@ -127,8 +160,6 @@ function HomePageContent() {
         <CoursePurchaseSection accessCodes={courseAccessCodes ?? []} isAdmin={profile?.role === 'admin'} content={landing.home_courses} />
 
         <section id="how-to-learn" className="scroll-mt-24 bg-[var(--paper)] px-4 py-16 md:py-24" aria-labelledby="how-to-title"><div className="mx-auto max-w-6xl"><span className="editorial-kicker">{learningCopy.kicker}</span><h2 id="how-to-title" className="mt-4 text-3xl font-ds-black text-tx md:text-5xl" style={{ fontFamily: 'var(--fd)' }}>{learningCopy.title}</h2><div className="mt-10 grid gap-4 md:grid-cols-4">{learningCopy.items.map(({ title, detail }, index) => { const number = String(index + 1).padStart(2, '0'); return <div key={number} className="border-l-2 border-ac/40 bg-[var(--paper-deep)] p-5"><span className="font-mono text-xs text-ac">STEP {number}</span><h3 className="mt-4 font-ds-bold text-tx">{title}</h3><p className="mt-2 text-sm leading-7 text-txs">{detail}</p></div>; })}</div><p className="mt-6 max-w-3xl text-sm leading-7 text-txs">{learningCopy.footnote}</p>{user && <Link to="/learning" className="mt-5 inline-flex items-center gap-2 font-ds-semibold text-ac hover:underline">{learningCopy.learning_cta} <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>}</div></section>
-
-        {freeCourses.length > 0 && <section id="free-courses" className="bg-[var(--annotation-soft)] px-4 py-14 md:py-20" aria-labelledby="free-courses-title"><div className="mx-auto max-w-6xl"><div className="flex flex-wrap items-end justify-between gap-4"><div><span className="editorial-kicker">{extraCopy.free_kicker}</span><h2 id="free-courses-title" className="mt-3 text-2xl font-ds-black text-tx md:text-4xl" style={{ fontFamily: 'var(--fd)' }}>{extraCopy.free_title}</h2></div><Link to="/courses" className="inline-flex items-center gap-2 text-sm font-ds-semibold text-ac hover:underline">{extraCopy.free_cta} <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link></div><div className="mt-6 grid gap-4 md:grid-cols-2">{freeCourses.map((course) => <Link key={course.id} to={`/courses/${course.id}`} className="group border border-bd bg-white p-6 transition-colors hover:border-ac"><div className="flex items-start justify-between gap-4"><BookOpen className="h-6 w-6 text-ac" aria-hidden="true" /><Play className="h-4 w-4 text-ac" aria-hidden="true" /></div><h3 className="mt-5 text-lg font-ds-bold text-tx group-hover:text-ac">{course.title}</h3><p className="mt-2 line-clamp-2 text-sm leading-7 text-txs">{course.description}</p></Link>)}</div></div></section>}
 
         {!loading && !user && <AnnouncementFeed variant="section" />}
         <section id="home-faq" className="bg-warm px-4 py-14 md:py-20" aria-labelledby="home-faq-title"><div className="mx-auto max-w-6xl"><span className="editorial-kicker">{extraCopy.faq_kicker}</span><h2 id="home-faq-title" className="mt-3 text-2xl font-ds-black text-tx md:text-4xl" style={{ fontFamily: 'var(--fd)' }}>{extraCopy.faq_title}</h2><div className="mt-7 grid gap-4 md:grid-cols-2">{extraCopy.faq_items.map((item, index) => <div key={`${index}-${item.title}`} className="border-t border-bd pt-5"><h3 className="font-ds-bold text-tx">{item.title}</h3><p className="mt-2 text-sm leading-7 text-txs">{item.detail}</p></div>)}</div><a href="#course-products" className="mt-8 inline-flex items-center gap-2 text-sm font-ds-semibold text-ac hover:underline">{extraCopy.faq_cta} <ArrowRight className="h-4 w-4" aria-hidden="true" /></a></div></section>

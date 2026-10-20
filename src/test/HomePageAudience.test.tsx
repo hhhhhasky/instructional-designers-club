@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -14,7 +14,10 @@ const { authState, homeContent } = vi.hoisted(() => ({
   homeContent: {
     loaded: true,
     statsCounts: { members: 0, camps: 0, courses: 0, totalMinutes: 0 },
-    homeCourses: { free: [], plus: [], pro: [] },
+    homeCourses: { free: [
+      { id: '4c36aaa4-2e66-4a18-8f0b-d1d9c6cae516', title: '教学设计和备课有什么区别？', membership_type: 'free', description: '教学设计体验课', duration: 90 },
+      { id: 'e342b2c8-6734-49f1-a16c-891b7cbf9c6f', title: '给老师第一节教学通识课', membership_type: 'free', description: '教学通识体验课', duration: 55 },
+    ], plus: [], pro: [] },
     loadingHomeCourses: false,
     hero: { title_line1: "访客主标题", title_line2: "教研副标题", subtitle: "访客说明" },
     intro: {
@@ -53,7 +56,7 @@ vi.mock("@/hooks/useHomeSnapshot", () => ({
   HomeSnapshotProvider: ({ children }: { children: ReactNode }) => children,
 }));
 vi.mock("@/components/layout/Header", () => ({ default: () => <div data-testid="header" /> }));
-vi.mock("@/components/common/PageNavigation", () => ({ default: () => <div data-testid="page-navigation" /> }));
+vi.mock("@/components/common/PageNavigation", () => ({ default: ({ items }: { items: { id: string; label: string }[] }) => <nav data-testid="page-navigation">{items.map((item) => <a key={item.id} href={`#${item.id}`}>{item.label}</a>)}</nav> }));
 vi.mock("@/components/home/MemberHomeHero", () => ({ default: () => <div data-testid="member-home" /> }));
 vi.mock("@/components/home/NotificationCard", () => ({ default: () => <div data-testid="member-notifications" /> }));
 vi.mock("@/components/home/AnnouncementFeed", () => ({ default: () => <div data-testid="announcement-feed" /> }));
@@ -95,9 +98,25 @@ describe("home page audience split", () => {
     expect(screen.queryByTestId("member-home")).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1, name: /教案写得很完整/ })).toBeInTheDocument();
     expect(screen.getByTestId("course-purchases")).toBeInTheDocument();
-    const ids = ['real-situations', 'why-stuck', 'teaching-method', 'about-han', 'learning-outcomes', 'course-products', 'how-to-learn'];
+    const ids = ['free-courses', 'real-situations', 'why-stuck', 'teaching-method', 'about-han', 'learning-outcomes', 'course-products', 'how-to-learn'];
     const actualOrder = Array.from(container.querySelectorAll('main [id]')).map((element) => element.id).filter((id) => ids.includes(id));
     expect(actualOrder).toEqual(ids);
+  });
+
+  it.each([null, { id: 'member-1' }])('shows both free lessons before teaching situations for user %j', (user) => {
+    authState.user = user;
+    const { container } = renderHome();
+    const section = screen.getByRole('region', { name: HOME_LANDING_DEFAULTS.home_extra.free_title });
+    const links = within(section).getAllByRole('link', { name: /开始体验/ });
+
+    expect(links).toHaveLength(2);
+    expect(links[0]).toHaveAttribute('href', '/courses/4c36aaa4-2e66-4a18-8f0b-d1d9c6cae516');
+    expect(links[1]).toHaveAttribute('href', '/courses/e342b2c8-6734-49f1-a16c-891b7cbf9c6f');
+    expect(within(section).getByText('教学设计和备课有什么区别？')).toBeInTheDocument();
+    expect(within(section).getByText('给老师第一节教学通识课')).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: '免费体验课程' })).toHaveLength(2);
+    expect(Array.from(container.querySelectorAll('main > section')).slice(0, 3).map((element) => element.id))
+      .toEqual(['teaching-problems', 'free-courses', 'real-situations']);
   });
 
   it("shows a text-free placeholder until homepage copy is ready", () => {
