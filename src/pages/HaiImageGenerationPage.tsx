@@ -1,6 +1,6 @@
 import { ArrowDownToLine, ImagePlus, Loader2, Paperclip, Sparkles, WandSparkles, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import PageMeta from "@/components/common/PageMeta";
 import HaiWorkShell from "@/components/hai/HaiWorkShell";
@@ -9,6 +9,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   getHaiAccessStatus,
   getHaiWorkTools,
+  getHaiWorkTasks,
+  getArchivedHaiWorkTasks,
+  type HaiWorkTask,
   type HaiFeatureModule,
   type HaiWorkToolSlug,
 } from "@/db/hai-api";
@@ -63,22 +66,38 @@ type PendingImage = {
   referenceRunId: string | null;
 };
 
-export default function HaiImageGenerationPage() {
+type InlineImageSetup = {
+  prompt: string;
+  setPrompt: (value: string) => void;
+  referenceFiles: File[];
+  setReferenceFiles: (files: File[]) => void;
+  onBusyChange: (busy: boolean) => void;
+};
+
+export default function HaiImageGenerationPage({ inline }: { inline?: InlineImageSetup } = {}) {
+  const inlineMode = Boolean(inline);
   const navigate = useNavigate();
+  const location = useLocation();
   const { taskId } = useParams<{ taskId?: string }>();
   const { user, loading: authLoading } = useAuth();
   const [access, setAccess] = useState<{ allowed: boolean; reason?: string } | null>(null);
   const [usage, setUsage] = useState<{ quota_mode?: string; current_points?: number; can_consume?: boolean } | null>(null);
   const [tools, setTools] = useState<HaiFeatureModule[]>([]);
+  const [workTasks, setWorkTasks] = useState<HaiWorkTask[]>([]);
+  const [archivedWorkTasks, setArchivedWorkTasks] = useState<HaiWorkTask[]>([]);
   const [imageTasks, setImageTasks] = useState<HaiImageGenerationTask[]>([]);
   const [runs, setRuns] = useState<HaiImageGenerationRun[]>([]);
-  const [prompt, setPrompt] = useState("");
+  const [localPrompt, setLocalPrompt] = useState(() => typeof location.state?.workDraft === "string" ? location.state.workDraft : "");
   const [size, setSize] = useState<HaiImageSize>("16:9");
   const [style, setStyle] = useState<HaiImageStyle>("教育扁平插画");
   const [subject, setSubject] = useState<HaiImageSubject | "">("");
   const restoredTask = useRef<string | null>(null);
   const [imageType, setImageType] = useState<HaiImageType>("课件 PPT");
-  const [referenceFiles, setReferenceFiles] = useState<File[]>([]);
+  const [localReferenceFiles, setLocalReferenceFiles] = useState<File[]>([]);
+  const prompt = inline?.prompt ?? localPrompt;
+  const setPrompt = inline?.setPrompt ?? setLocalPrompt;
+  const referenceFiles = inline?.referenceFiles ?? localReferenceFiles;
+  const setReferenceFiles = inline?.setReferenceFiles ?? setLocalReferenceFiles;
   const [selectedReferenceRunId, setSelectedReferenceRunId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -90,17 +109,30 @@ export default function HaiImageGenerationPage() {
   const downloadedImages = useRef<Record<string, Blob>>({});
   const [pending, setPending] = useState<PendingImage | null>(null);
 
+  const reportBusy = inline?.onBusyChange;
+  useEffect(() => { reportBusy?.(busy || Boolean(pending)); }, [busy, pending, reportBusy]);
+
   useEffect(() => {
     if (!authLoading && !user) navigate("/login", { state: { from: taskId ? `/hai/work/image-generation/${taskId}` : "/hai/work/image-generation" } });
   }, [authLoading, navigate, taskId, user]);
+
+  const loadWorkHistory = useCallback(async () => {
+    if (!user) return;
+    try {
+      const [active, archived] = await Promise.all([getHaiWorkTasks(), getArchivedHaiWorkTasks()]);
+      setWorkTasks(active);
+      setArchivedWorkTasks(archived);
+    } catch { /* 工作记录加载失败不影响生图。 */ }
+  }, [user]);
+  useEffect(() => { if (!inlineMode) void loadWorkHistory(); }, [inlineMode, loadWorkHistory]);
 
   const load = useCallback(async () => {
     if (!user) return;
     try {
       const [{ access: nextAccess, usage: nextUsage }, nextTools, nextTasks, nextRuns] = await Promise.all([
         getHaiAccessStatus(),
-        getHaiWorkTools(),
-        getHaiImageGenerationTasks(),
+        inlineMode ? Promise.resolve([]) : getHaiWorkTools(),
+        inlineMode ? Promise.resolve([]) : getHaiImageGenerationTasks(),
         taskId ? getHaiImageGenerationRuns(taskId) : Promise.resolve([] as HaiImageGenerationRun[]),
       ]);
       setAccess(nextAccess);
@@ -112,7 +144,7 @@ export default function HaiImageGenerationPage() {
       setErrorTaskNumber("");
       setError(nextError instanceof Error ? nextError.message : "图片生成记录读取失败。");
     }
-  }, [taskId, user]);
+  }, [inlineMode, taskId, user]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -281,6 +313,7 @@ export default function HaiImageGenerationPage() {
       if (activeSubmission.current !== submissionId) return;
       setPending(null);
       setReferenceFiles(input.referenceFiles);
+      setPrompt(input.prompt);
       setErrorTaskNumber(submissionId);
       setError(HAI_IMAGE_FAILURE_MESSAGE);
     } finally {
@@ -305,8 +338,9 @@ export default function HaiImageGenerationPage() {
 
   const sidebar = (
     <WorkSidebar
-      tasks={[]}
-      archivedTasks={[]}
+      tasks={workTasks}
+      archivedTasks={archivedWorkTasks}
+      onTasksChanged={loadWorkHistory}
       tools={tools}
       selectedToolSlug={"image-generation" as HaiWorkToolSlug}
       imageTasks={imageTasks}
@@ -315,6 +349,15 @@ export default function HaiImageGenerationPage() {
     />
   );
   const selectedReferenceRun = selectedReferenceRunId ? runs.find((run) => run.id === selectedReferenceRunId) ?? null : null;
+
+  if (inline) return (
+    <form id="hai-image-settings" aria-label="图片生成设置" onSubmit={(event) => { event.preventDefault(); if (!prompt.trim()) setError("请先描述想生成的教学画面。"); else if (pointsBlocked) setError("当前积分不足，请购买积分后继续生成。"); else if (access?.allowed) void submit(); }} className="contents">
+      <ImageComposer settingsOnly prompt={prompt} setPrompt={setPrompt} size={size} setSize={setSize} style={style} setStyle={setStyle} subject={subject} setSubject={selectSubject} imageType={imageType} setImageType={setImageType} referenceFiles={referenceFiles} setReferenceFiles={setReferenceFiles} referenceRun={null} onUsePrevious={() => undefined} onClearPrevious={() => undefined} busy={busy} pointsBlocked={Boolean(pointsBlocked) || !access?.allowed} onSubmit={() => void submit()} conversation={false} />
+      {pointsBlocked && <p role="status" className="mt-4 text-sm text-amber-800">当前积分不足，请购买积分后继续生成。</p>}
+      {pending && <p role="status" className="mt-4 text-sm text-txs">正在提交图片任务…</p>}
+      {error && <p role="alert" className="mt-4 text-sm text-red-700">{error}</p>}
+    </form>
+  );
 
   return (
     <>
@@ -358,7 +401,7 @@ export default function HaiImageGenerationPage() {
   );
 }
 
-function ImageComposer({ prompt, setPrompt, size, setSize, style, setStyle, subject, setSubject, imageType, setImageType, referenceFiles, setReferenceFiles, referenceRun, onUsePrevious, onClearPrevious, busy, pointsBlocked, onSubmit, conversation }: { prompt: string; setPrompt: (value: string) => void; size: HaiImageSize; setSize: (value: HaiImageSize) => void; style: HaiImageStyle; setStyle: (value: HaiImageStyle) => void; subject: HaiImageSubject | ""; setSubject: (value: string) => void; imageType: HaiImageType; setImageType: (value: HaiImageType) => void; referenceFiles: File[]; setReferenceFiles: (value: File[]) => void; referenceRun: HaiImageGenerationRun | null; onUsePrevious: () => void; onClearPrevious: () => void; busy: boolean; pointsBlocked: boolean; onSubmit: () => void; conversation: boolean }) {
+function ImageComposer({ prompt, setPrompt, size, setSize, style, setStyle, subject, setSubject, imageType, setImageType, referenceFiles, setReferenceFiles, referenceRun, onUsePrevious, onClearPrevious, busy, pointsBlocked, onSubmit, conversation, settingsOnly = false }: { prompt: string; setPrompt: (value: string) => void; size: HaiImageSize; setSize: (value: HaiImageSize) => void; style: HaiImageStyle; setStyle: (value: HaiImageStyle) => void; subject: HaiImageSubject | ""; setSubject: (value: string) => void; imageType: HaiImageType; setImageType: (value: HaiImageType) => void; referenceFiles: File[]; setReferenceFiles: (value: File[]) => void; referenceRun: HaiImageGenerationRun | null; onUsePrevious: () => void; onClearPrevious: () => void; busy: boolean; pointsBlocked: boolean; onSubmit: () => void; conversation: boolean; settingsOnly?: boolean }) {
   const recommendedStyles = getRecommendedImageStyles(subject);
   const styleOption = (value: HaiImageStyle) => <option key={value} value={value}>{imageStyleLabel(value)}</option>;
   function selectReferenceFiles(fileList: FileList | null) {
@@ -376,14 +419,14 @@ function ImageComposer({ prompt, setPrompt, size, setSize, style, setStyle, subj
     setReferenceFiles([...referenceFiles, ...selected]);
   }
   return (
-    <div className={cn("bg-white", conversation ? "shrink-0 border-t border-[var(--paper-rule)] px-4 py-3 md:px-8" : "rounded-ds-xl border border-[var(--paper-rule)] p-3 shadow-ds-lg")}>
-      <div className="mx-auto max-w-4xl">
-        <textarea aria-label="图片提示词" value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={conversation ? 2 : 3} placeholder={conversation ? "继续描述你想怎么调整下一张图…" : "例如：一张展示‘水循环’的课堂概念图，突出蒸发、凝结和降水之间的关系。"} className="w-full resize-none bg-white px-2 py-2 text-sm leading-6 text-tx outline-none placeholder:text-txt" />
-        {(referenceFiles.length > 0 || referenceRun) && <div className="mb-2 flex flex-wrap items-center gap-2">{referenceFiles.length > 0 && <ReferenceFileStrip files={referenceFiles} onRemove={(index) => setReferenceFiles(referenceFiles.filter((_, current) => current !== index))} />}{referenceRun && <span className="inline-flex items-center gap-1.5 rounded-ds-md border border-[var(--annotation)]/30 bg-[var(--annotation-soft)] px-2 py-1 text-xs text-tl">已选择上一张生成图用于微调<button type="button" aria-label="取消上一张图参考" onClick={onClearPrevious} className="rounded-full p-0.5 hover:bg-white"><X className="h-3 w-3" /></button></span>}</div>}
-        <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-[var(--paper-rule)] pt-2">
-          <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-ds-md border border-[var(--paper-rule)] bg-white px-2 text-xs text-txs hover:border-ac"><Paperclip className="h-3.5 w-3.5" />参考图片<input aria-label="上传参考图片" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple className="sr-only" disabled={busy} onChange={(event) => { selectReferenceFiles(event.target.files); event.currentTarget.value = ""; }} /></label>
+    <div className={settingsOnly ? "contents" : cn("bg-white", conversation ? "shrink-0 border-t border-[var(--paper-rule)] px-4 py-3 md:px-8" : "rounded-ds-xl border border-[var(--paper-rule)] p-3 shadow-ds-lg")}>
+      <div className={settingsOnly ? "contents" : "mx-auto max-w-4xl"}>
+        {!settingsOnly && <textarea aria-label="图片提示词" value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={conversation ? 2 : 3} placeholder={conversation ? "继续描述你想怎么调整下一张图…" : "例如：一张展示‘水循环’的课堂概念图，突出蒸发、凝结和降水之间的关系。"} className="w-full resize-none bg-white px-2 py-2 text-sm leading-6 text-tx outline-none placeholder:text-txt" />}
+        {!settingsOnly && (referenceFiles.length > 0 || referenceRun) && <div className="mb-2 flex flex-wrap items-center gap-2">{referenceFiles.length > 0 && <ReferenceFileStrip files={referenceFiles} onRemove={(index) => setReferenceFiles(referenceFiles.filter((_, current) => current !== index))} />}{referenceRun && <span className="inline-flex items-center gap-1.5 rounded-ds-md border border-[var(--annotation)]/30 bg-[var(--annotation-soft)] px-2 py-1 text-xs text-tl">已选择上一张生成图用于微调<button type="button" aria-label="取消上一张图参考" onClick={onClearPrevious} className="rounded-full p-0.5 hover:bg-white"><X className="h-3 w-3" /></button></span>}</div>}
+        <div className={settingsOnly ? "contents" : "mt-2 flex flex-wrap items-center gap-2 border-t border-[var(--paper-rule)] pt-2"}>
+          {!settingsOnly && <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-ds-md border border-[var(--paper-rule)] bg-white px-2 text-xs text-txs hover:border-ac"><Paperclip className="h-3.5 w-3.5" />参考图片<input aria-label="上传参考图片" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple className="sr-only" disabled={busy} onChange={(event) => { selectReferenceFiles(event.target.files); event.currentTarget.value = ""; }} /></label>}
           {conversation && !referenceRun && <button type="button" disabled={busy} onClick={onUsePrevious} className="inline-flex h-8 items-center gap-1.5 rounded-ds-md border border-[var(--paper-rule)] bg-white px-2 text-xs text-txs hover:border-ac disabled:cursor-not-allowed disabled:opacity-50">沿用上一张图微调</button>}
-          <span className="text-[11px] text-txt">最多 {HAI_MAX_REFERENCE_IMAGES} 张</span>
+          {!settingsOnly && <span className="text-[11px] text-txt">最多 {HAI_MAX_REFERENCE_IMAGES} 张</span>}
           <CompactSelect label="图片尺寸" value={size} options={HAI_IMAGE_SIZES.map((item) => ({ value: item, label: sizeLabels[item] }))} onChange={(value) => setSize(value as HaiImageSize)} disabled={busy} />
           <CompactSelect label="学科" value={subject} options={[{ value: "", label: "学科（选填）" }, ...HAI_IMAGE_SUBJECTS.map((item) => ({ value: item, label: item }))]} onChange={setSubject} disabled={busy} />
           <label className="inline-flex items-center">
@@ -393,8 +436,8 @@ function ImageComposer({ prompt, setPrompt, size, setSize, style, setStyle, subj
             </select>
           </label>
           <CompactSelect label="生成图类型" value={imageType} options={HAI_IMAGE_TYPES.map((item) => ({ value: item, label: item }))} onChange={(value) => setImageType(value as HaiImageType)} disabled={busy} />
-          <span className="ml-auto text-xs text-txs">{HAI_IMAGE_GENERATION_POINTS} 积分/张</span>
-          <Button className="h-9 rounded-ds-lg bg-tl px-4 text-white hover:bg-tl/90" disabled={!prompt.trim() || busy || pointsBlocked} onClick={onSubmit}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}{pointsBlocked ? "积分不足" : busy ? "生成中" : "生成图片"}</Button>
+          <span className="text-[10px] text-txt">{HAI_IMAGE_GENERATION_POINTS} 积分/张</span>
+          {!settingsOnly && <Button type="button" className="h-9 rounded-ds-lg bg-tl px-4 text-white hover:bg-tl/90" disabled={!prompt.trim() || busy || pointsBlocked} onClick={onSubmit}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}{pointsBlocked ? "积分不足" : busy ? "生成中" : "生成图片"}</Button>}
         </div>
       </div>
     </div>

@@ -25,6 +25,7 @@
     "clsx": "^2.1.1",
     "docx": "^9.7.1",
     "embla-carousel-react": "^8.6.0",
+    "jszip": "3.10.1",
     "katex": "^0.16.47",
     "lucide-react": "^0.576.0",
     "react": "^18.0.0",

@@ -108,7 +108,7 @@ function inferProviderCodeFromUrl(baseUrl: string) {
 }
 
 export type HaiMode = "chat" | "work";
-export type HaiWorkToolSlug = "lesson-diagnosis" | "segment-optimization" | "subject-lesson-design" | "teaching-design" | "image-generation";
+export type HaiWorkToolSlug = "lesson-diagnosis" | "segment-optimization" | "subject-lesson-design" | "teaching-design" | "unit-learning-design" | "image-generation";
 export type HaiWorkRunStatus = "queued" | "running" | "completed" | "failed";
 export const HAI_CHAT_MODULE_SLUG = "hai-chat" as const;
 
@@ -449,7 +449,7 @@ export async function getHaiTextbookCatalog(
   return (data as HaiTextbookCatalogEntry[]) ?? [];
 }
 
-export async function getHaiWorkTasks(moduleSlug?: HaiWorkToolSlug): Promise<HaiWorkTask[]> {
+export async function getHaiWorkTasks(moduleSlug?: HaiWorkToolSlug, titleKeyword?: string): Promise<HaiWorkTask[]> {
   const userId = await requireCurrentUserId();
   let query = supabase
     .from("hai_work_tasks")
@@ -457,6 +457,7 @@ export async function getHaiWorkTasks(moduleSlug?: HaiWorkToolSlug): Promise<Hai
     .eq("user_id", userId)
     .eq("status", "active");
   if (moduleSlug) query = query.eq("module_slug", moduleSlug);
+  if (titleKeyword?.trim()) query = query.ilike("title", `%${titleKeyword.trim().replace(/[\\%_]/g, "\\$&")}%`);
   const { data, error } = await query
     .order("updated_at", { ascending: false })
     .limit(200); // 侧栏「最近任务」展示全部,200 覆盖个人教研工作台
@@ -464,7 +465,7 @@ export async function getHaiWorkTasks(moduleSlug?: HaiWorkToolSlug): Promise<Hai
   return (data as unknown as HaiWorkTask[]) ?? [];
 }
 
-export async function getArchivedHaiWorkTasks(moduleSlug?: HaiWorkToolSlug): Promise<HaiWorkTask[]> {
+export async function getArchivedHaiWorkTasks(moduleSlug?: HaiWorkToolSlug, titleKeyword?: string): Promise<HaiWorkTask[]> {
   const userId = await requireCurrentUserId();
   let query = supabase
     .from("hai_work_tasks")
@@ -472,6 +473,7 @@ export async function getArchivedHaiWorkTasks(moduleSlug?: HaiWorkToolSlug): Pro
     .eq("user_id", userId)
     .eq("status", "archived");
   if (moduleSlug) query = query.eq("module_slug", moduleSlug);
+  if (titleKeyword?.trim()) query = query.ilike("title", `%${titleKeyword.trim().replace(/[\\%_]/g, "\\$&")}%`);
   const { data, error } = await query
     .order("archived_at", { ascending: false, nullsFirst: false })
     .limit(200);

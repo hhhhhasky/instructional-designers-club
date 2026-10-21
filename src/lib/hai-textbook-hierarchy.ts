@@ -5,6 +5,21 @@ export type HaiTextbookHierarchySample = {
   frame_label?: string | null;
 };
 
+export function formatHaiTextbookGrade(gradeLabel: string) {
+  const grade = gradeLabel.trim();
+  const numerals = ["", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二"];
+  const numeric = grade.match(/^(\d{1,2})(?:年级)?$/);
+  if (numeric && numerals[Number(numeric[1])]) return `${numerals[Number(numeric[1])]}年级`;
+  if (/^[一二三四五六七八九十]{1,3}$/.test(grade)) return `${grade}年级`;
+  return grade;
+}
+
+export function formatHaiTextbookName(book: { grade_label: string; volume: string }) {
+  const grade = formatHaiTextbookGrade(book.grade_label);
+  const volume = book.volume.trim();
+  return volume.startsWith(grade) ? volume : `${grade}${volume}`;
+}
+
 export type HaiTextbookHierarchy = {
   top: string;
   middle: string;

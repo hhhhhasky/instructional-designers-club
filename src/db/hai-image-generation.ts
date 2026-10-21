@@ -84,11 +84,13 @@ type ImageDb = {
 };
 const imageDb = supabase as unknown as ImageDb;
 
-export async function getHaiImageGenerationTasks() {
-  const { data, error } = await imageDb
+export async function getHaiImageGenerationTasks(titleKeyword?: string) {
+  let query = imageDb
     .from("hai_image_generation_tasks")
     .select("*")
-    .eq("status", "active")
+    .eq("status", "active");
+  if (titleKeyword?.trim()) query = query.ilike("title", `%${titleKeyword.trim().replace(/[\\%_]/g, "\\$&")}%`);
+  const { data, error } = await query
     .order("updated_at", { ascending: false })
     .limit(50);
   if (error) throw error;

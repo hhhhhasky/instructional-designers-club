@@ -1,3 +1,4 @@
+import { getHaiImageGenerationTasks } from "@/db/hai-image-generation";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getHaiConversations,
@@ -348,6 +349,19 @@ describe("HAI Work task tool scoping", () => {
     getUserMock.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
   });
 
+  it("filters names before the result limit, treating wildcard characters as literal text", async () => {
+    const query = createQuery({ data: [], error: null });
+    fromMock.mockReturnValue(query);
+    const expected = String.raw`%50\%\_notes%`;
+    await getHaiWorkTasks(undefined, "  50%_notes  ");
+    expect(query.ilike).toHaveBeenCalledWith("title", expected);
+    expect(query.eq).toHaveBeenCalledWith("user_id", "user-1");
+    await getArchivedHaiWorkTasks(undefined, "50%_notes");
+    expect(query.ilike).toHaveBeenLastCalledWith("title", expected);
+    await getHaiImageGenerationTasks("50%_notes");
+    expect(query.ilike).toHaveBeenLastCalledWith("title", expected);
+  });
+
   it("scopes active and archived task queries to a selected tool", async () => {
     const query = createQuery({ data: [], error: null });
     fromMock.mockReturnValue(query);
@@ -433,6 +447,7 @@ function createQuery(result: { data: unknown; error: unknown }) {
     update: vi.fn(() => query),
     upsert: vi.fn(() => query),
     eq: vi.fn(() => query),
+    ilike: vi.fn(() => query),
     is: vi.fn(() => query),
     order: vi.fn(() => query),
     limit: vi.fn(() => Promise.resolve(result)),

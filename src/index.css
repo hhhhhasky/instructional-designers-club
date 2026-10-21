@@ -923,3 +923,10 @@
     max-height: 85vh;
   }
 }
+
+/* Task conversation expands until a document is opened. */
+@media (min-width: 768px) {
+  .hai-task-split--open {
+    grid-template-columns: minmax(240px, min(var(--hai-conversation-share, 40%), calc(100% - 268px))) 8px minmax(260px, 1fr);
+  }
+}

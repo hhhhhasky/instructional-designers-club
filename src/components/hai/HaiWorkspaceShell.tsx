@@ -64,6 +64,7 @@ type HaiWorkspaceShellProps = {
   contentMode?: "managed" | "scroll";
   contentClassName?: string;
   resizable?: boolean;
+  compactHeader?: boolean;
 };
 
 const modePresentation = {
@@ -106,6 +107,7 @@ export default function HaiWorkspaceShell({
   contentMode = "scroll",
   contentClassName,
   resizable = false,
+  compactHeader = false,
 }: HaiWorkspaceShellProps) {
   const [layout, setLayout] = useState<HaiLayout>(readHaiLayout);
 
@@ -157,7 +159,7 @@ export default function HaiWorkspaceShell({
       </div>
       <main className="flex min-h-0 flex-1 overflow-hidden md:px-5 md:pb-6 md:pt-20 print:block print:overflow-visible print:p-0">
         <div className="mx-auto flex h-full min-h-0 w-full max-w-[1500px] flex-col overflow-hidden border-[var(--paper-rule)] bg-[var(--paper)] md:h-[calc(100dvh-7rem)] md:rounded-ds-xl md:border md:shadow-ds-xl print:h-auto print:max-w-none print:overflow-visible print:border-0 print:shadow-none">
-          <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--paper-rule)] bg-[var(--paper)]/95 px-3 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))] backdrop-blur md:px-5 md:py-3 print:hidden">
+          <header className={cn("flex shrink-0 items-center justify-between gap-3 border-b border-[var(--paper-rule)] bg-[var(--paper)]/95 px-3 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))] backdrop-blur md:px-5 print:hidden", compactHeader ? "md:py-1.5" : "md:py-3")}>
             <div className="flex min-w-0 items-center gap-2.5">
               <Button
                 variant="ghost"
@@ -197,20 +199,20 @@ export default function HaiWorkspaceShell({
                   </SheetContent>
                 </Sheet>
               )}
-              <div className={cn(
+              {!compactHeader && <div className={cn(
                 "flex h-9 w-9 shrink-0 items-center justify-center rounded-ds-md shadow-ds-sm",
                 presentation.iconClassName,
               )}>
                 <WorkspaceIcon className="h-[18px] w-[18px]" />
-              </div>
+              </div>}
               <div className="min-w-0">
                 <div className="flex min-w-0 items-center gap-2">
-                  <h1 className="truncate font-serif text-base font-black tracking-tight text-[var(--ink)] md:text-lg">
+                  <h1 className={cn("truncate font-serif font-black tracking-tight text-[var(--ink)]", compactHeader ? "text-sm" : "text-base md:text-lg")}>
                     {title}
                   </h1>
-                  <span className="editorial-stamp hidden shrink-0 sm:inline-flex">{presentation.label}</span>
+                  {!compactHeader && <span className="editorial-stamp hidden shrink-0 sm:inline-flex">{presentation.label}</span>}
                 </div>
-                <p className="hidden truncate text-xs text-[var(--ink-muted)] sm:block">{subtitle}</p>
+                {!compactHeader && <p className="hidden truncate text-xs text-[var(--ink-muted)] sm:block">{subtitle}</p>}
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">

@@ -9,7 +9,7 @@ vi.mock("@/contexts/AuthContext",()=>({useAuth:()=>({user:mocks.user,loading:fal
 vi.mock("@/components/common/PageMeta",()=>({default:()=>null}));
 vi.mock("@/components/hai/HaiWorkShell",()=>({default:({children}:any)=><div>{children}</div>}));
 vi.mock("@/pages/HaiWorkPage",()=>({WorkSidebar:()=>null}));
-vi.mock("@/db/hai-api",()=>({ getHaiAccessStatus:async()=>({access:{allowed:true},usage:{quota_mode:"points",current_points:100,can_consume:true}}),getHaiWorkTools:async()=>[] }));
+vi.mock("@/db/hai-api",()=>({ getHaiAccessStatus:async()=>({access:{allowed:true},usage:{quota_mode:"points",current_points:100,can_consume:true}}),getHaiWorkTools:async()=>[],getHaiWorkTasks:async()=>[],getArchivedHaiWorkTasks:async()=>[] }));
 vi.mock("@/db/hai-image-generation",async(original)=>({...await original<object>(),getHaiImageGenerationTasks:async()=>[],getHaiImageGenerationRuns:mocks.getRuns,refreshHaiImage:mocks.refresh,generateHaiImage:mocks.generate,downloadHaiImage:mocks.download,acknowledgeHaiImage:mocks.acknowledge,failHaiImage:mocks.fail,getHaiImageAccessUrls:mocks.accessUrls}));
 const base={id:"run",task_id:"task",client_request_id:"3e116cd8-e84e-47c9-886c-d92001bca674",status:"running",prompt:"水循环",image_size:"16:9",art_style:"卡通",image_type:"课件 PPT",reference_images:[],image_url:null,r2_key:null};
 let run:typeof base & {delivery_deadline_at:string};
@@ -26,6 +26,12 @@ beforeEach(()=>{
 });
 afterEach(()=>{cleanup();vi.useRealTimers();});
 describe("image task delivery",()=>{
+  it("prefills the image prompt from the work landing request", async () => {
+    render(<MemoryRouter initialEntries={[{ pathname: "/image", state: { workDraft: "画出蒸发、凝结和降水的关系" } }]}><Routes><Route path="/image" element={<HaiImageGenerationPage />} /></Routes></MemoryRouter>);
+    await tick();
+    expect(screen.getByRole("textbox", { name: "图片提示词" })).toHaveValue("画出蒸发、凝结和降水的关系");
+    expect(mocks.generate).not.toHaveBeenCalled();
+  });
   it("keeps subject optional and offers all styles through a single selector", async () => {
     mocks.getRuns.mockResolvedValue([]); mount(); await tick();
     expect(screen.getByRole("combobox", { name: "学科" })).toHaveValue("");
