@@ -2,7 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getHaiAccessStatus, getHaiTextbookCatalog, getHaiWorkTools, type HaiFeatureModule, submitHaiWork } from "@/db/hai-api";
+import { getHaiAccessStatus, getHaiTextbookCatalog, getHaiWorkTasks, getHaiWorkTools, type HaiFeatureModule, type HaiWorkTask, submitHaiWork } from "@/db/hai-api";
 import HaiWorkPage from "@/pages/HaiWorkPage";
 
 vi.mock("@/components/layout/Header", () => ({ default: () => <div data-testid="global-header" /> }));
@@ -140,6 +140,23 @@ describe("HAI Work workbench", () => {
 
     expect((await screen.findAllByRole("link", { name: /教案诊断/ })).length).toBeGreaterThan(0);
     expect(screen.queryByRole("link", { name: /环节优化/ })).not.toBeInTheDocument();
+  });
+
+  it("renders recent tasks created by a newer backend module", async () => {
+    vi.mocked(getHaiWorkTasks).mockResolvedValueOnce([{
+      id: "future-task",
+      user_id: "user-1",
+      module_slug: "future-work-tool" as HaiWorkTask["module_slug"],
+      title: "已有工作产物",
+      status: "active",
+      latest_artifact_id: null,
+      created_at: "2026-10-21T08:00:00Z",
+      updated_at: "2026-10-21T08:00:00Z",
+      archived_at: null,
+    }]);
+    renderAt("/hai/work");
+
+    expect(await screen.findAllByRole("link", { name: /已有工作产物/ })).toHaveLength(2);
   });
 
   it("submits subject lesson generation from the built-in textbook catalog without an upload", async () => {

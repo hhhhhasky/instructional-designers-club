@@ -991,7 +991,15 @@ function isWorkToolSlug(value: string | undefined): value is HaiWorkToolSlug {
 }
 
 export function resolveWorkToolConfig(slug: HaiWorkToolSlug, module?: HaiFeatureModule): HaiWorkToolVisualConfig {
-  const fallback = HAI_WORK_TOOL_CONFIG[slug];
+  // 旧前端可能读到新模块创建的任务，未知 slug 也必须有可渲染的图标。
+  const fallback = HAI_WORK_TOOL_CONFIG[slug] ?? {
+    name: "工作任务",
+    eyebrow: "任务 · 产物",
+    description: "查看已保存的工作产物。",
+    promise: "查看工作产物",
+    icon: FileText,
+    accent: "var(--proof)",
+  };
   if (slug === "subject-lesson-design") return fallback;
   return {
     ...fallback,
