@@ -22,11 +22,13 @@ import {
   persistImage,
   persistReferenceImages,
   pollImage,
+  providerRunExpired,
   publicStoredImageUrl,
   readImageProviderConfig,
   readStoredImage,
   type StoredReferenceImage,
   submitImage,
+  submitUnconfirmedExpired,
   validateStoredReferenceImages,
 } from "../_shared/hai_image_generation.ts";
 
@@ -277,6 +279,17 @@ async function generate(
 
 async function collectResult(auth: Auth, run: Row) {
   if (run.status !== "running" || !run.provider_task_id || run.r2_key) return;
+  if (providerRunExpired(run.created_at)) {
+    // ToAPIs expires async tasks after 24h; never keep polling past that.
+    await fail(
+      auth,
+      run.id,
+      "provider_timeout",
+      run.metadata?.phase || "provider_generation",
+      { age_ms: Date.now() - Date.parse(run.created_at) },
+    );
+    return;
+  }
   if (Date.parse(run.metadata?.next_poll_at || "") > Date.now()) return;
   const deadline = Date.now() + 120_000;
   try {
@@ -314,16 +327,38 @@ async function collectResult(auth: Auth, run: Row) {
       metadata: { ...run.metadata, phase: "awaiting_delivery" },
     });
   } catch (error) {
-    if (
-      error instanceof ImageGenerationTaskError &&
-      !(error instanceof ImageGenerationPending)
-    ) {
+    const pending = error instanceof ImageGenerationPending;
+    const httpStatus = Number(
+      (pending ? error.providerResponse as Row : null)?.http_status,
+    ) || null;
+    if (error instanceof ImageGenerationTaskError && !pending) {
       await fail(
         auth,
         run.id,
         "provider_failed",
         "provider_generation",
         detail(error),
+      );
+    } else if (
+      submitUnconfirmedExpired({
+        businessIdOnly: run.provider_task_id === `hai-image-${run.id}`,
+        httpStatus,
+        unconfirmedAt: run.metadata?.submit_unconfirmed_at,
+        startedAt: run.started_at,
+      })
+    ) {
+      // The submit receipt was lost and the provider definitively reports no
+      // task: the POST never created one, so further polling cannot succeed.
+      await fail(
+        auth,
+        run.id,
+        "provider_task_not_found",
+        "provider_submit",
+        {
+          ...detail(error),
+          unconfirmed_since: run.metadata?.submit_unconfirmed_at ||
+            run.started_at || null,
+        },
       );
     } else {
       // HTTP timeouts, 404/429/5xx and R2 interruptions are retryable reads.

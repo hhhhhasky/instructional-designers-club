@@ -34,6 +34,12 @@
 
 历史有 delivery_deadline_at 的任务仍执行原期限，失败终态不自动恢复；本次不改写历史迁移、不重新打开失败记录。
 
+## 供应商线路与终态护栏
+
+供应商接入点有两条：`https://toapis.com` 为官方默认（国际）线路，`https://toapis.cn` 仅为面向中国大陆用户的线路（解析到大陆机房，如中国联通山东节点）。本站 Edge Function 运行在海外，跨境访问大陆线路会间歇性挂起，造成提交 POST 超时丢回执（“Signal timed out.”）与轮询超时，这是多起“暂未确认接单”死单的根因。2026-10-21 起 Edge secret `HAI_COURSEWARE_IMAGE_BASE_URL` 固定为 `https://toapis.com/v1/images/generations`（同一账号、同一后端，真实任务 ID 跨线路可互查；`hai-image-<run_id>` 业务 ID 同样跨线路可查）；hai-image-generation 与 hai-courseware-images 已重新部署加载新配置。
+
+两类终态护栏（2026-10-21 起）：① 提交回执丢失、任务仍只有业务 ID（`hai-image-<run_id>`）时，供应商返回明确 404（task_not_exist）即表示任务从未创建，永远不可能出图；预留 10 分钟宽限期（防刚受理任务尚未可见），过期后轮询进入失败终态 `provider_task_not_found`，不再无限“继续查询”。② provider_async 轮次创建满 24 小时强制失败终态 `provider_timeout`，与 ToAPIs 任务 24 小时过期对齐。两条护栏只关闭从未扣费的 running 轮次（acknowledge 是唯一扣费路径，失败轮次零扣费），不恢复任何失败记录。
+
 官方协议：[生成接口](https://docs.toapis.cn/docs/cn/api-reference/images/gpt-image-2/generation)、[查询接口](https://docs.toapis.cn/docs/cn/api-reference/tasks/image-status)、[异步限流](https://docs.toapis.cn/docs/cn/api-reference/rate-limits/async-tasks)。
 
 ## 前端收到图片后结算

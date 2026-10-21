@@ -27,6 +27,31 @@ export type ImageGenerationType = (typeof IMAGE_GENERATION_TYPES)[number];
 export const IMAGE_GENERATION_POINTS = 20;
 export const IMAGE_DELIVERY_TIMEOUT_MS = 150_000;
 export const IMAGE_FAILURE_MESSAGE = "本次生成失败，本轮未扣积分，请再次尝试。";
+// A businessId-only run (submit receipt lost) whose provider definitively
+// returns 404 has no provider task behind it, so polling can never succeed.
+// Keep a grace window in case a just-accepted task is not yet visible.
+export const IMAGE_SUBMIT_NOTFOUND_GRACE_MS = 600_000;
+// ToAPIs async image tasks expire after 24 hours; bound our runs alike.
+export const IMAGE_PROVIDER_ASYNC_MAX_AGE_MS = 24 * 60 * 60_000;
+
+export function submitUnconfirmedExpired(params: {
+  businessIdOnly: boolean;
+  httpStatus: number | null;
+  unconfirmedAt?: string | null;
+  startedAt?: string | null;
+  now?: number;
+}) {
+  if (!params.businessIdOnly || params.httpStatus !== 404) return false;
+  const since = Date.parse(params.unconfirmedAt || params.startedAt || "");
+  if (!Number.isFinite(since)) return false;
+  return (params.now ?? Date.now()) - since >= IMAGE_SUBMIT_NOTFOUND_GRACE_MS;
+}
+
+export function providerRunExpired(createdAt: string, now = Date.now()) {
+  const created = Date.parse(createdAt);
+  return Number.isFinite(created) &&
+    now - created >= IMAGE_PROVIDER_ASYNC_MAX_AGE_MS;
+}
 export const MAX_REFERENCE_IMAGES = 6;
 export const MAX_REFERENCE_IMAGE_BYTES = 10 * 1024 * 1024;
 

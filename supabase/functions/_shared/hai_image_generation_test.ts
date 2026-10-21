@@ -11,11 +11,15 @@ import {
   IMAGE_DELIVERY_TIMEOUT_MS,
   IMAGE_GENERATION_STYLES,
   IMAGE_GENERATION_TYPES,
+  IMAGE_PROVIDER_ASYNC_MAX_AGE_MS,
+  IMAGE_SUBMIT_NOTFOUND_GRACE_MS,
   imageBudgetSignal,
   ImageDeliveryTimeout,
   persistReferenceImages,
+  providerRunExpired,
   readImageProviderConfig,
   submitImage,
+  submitUnconfirmedExpired,
 } from "./hai_image_generation.ts";
 
 Deno.test("image provider config reads the server-side ToAPIs settings", () => {
@@ -89,6 +93,30 @@ Deno.test("image generation sends the selected size and accepts an immediate pro
   assertEquals(request.resolution, "1k");
   assertEquals(result.url, "https://example.test/generated.png");
   assertStringIncludes(String(request.prompt), "课堂概念图");
+});
+
+Deno.test("provider submission waits up to 60 seconds for a task receipt", async () => {
+  const originalTimeout = AbortSignal.timeout;
+  let timeoutMs = 0;
+  const timeoutStub = stub(AbortSignal, "timeout", (ms: number) => {
+    timeoutMs = ms;
+    return originalTimeout(ms);
+  });
+  try {
+    await submitImage(
+      {
+        provider: "toapis",
+        apiKey: "secret",
+        baseUrl: "https://example.test/images",
+        model: "image-model",
+      },
+      { prompt: "课堂配图", size: "16:9", businessId: "hai-image-test", deadlineAt: Date.now() + 120_000 },
+      async () => Response.json({ id: "tsk_original", status: "queued" }),
+    );
+    assertEquals(timeoutMs, 60_000);
+  } finally {
+    timeoutStub.restore();
+  }
 });
 
 Deno.test("image generation sends up to six R2 reference URLs to ToAPIs", async () => {
@@ -487,4 +515,109 @@ Deno.test("image types stay names only and raw text is not rewritten or truncate
     assertEquals(actual.includes("学科："), false);
     assertEquals(actual.includes("参考图片："), false);
   }
+});
+
+Deno.test("a businessId-only 404 closes the run only after the submit grace window", () => {
+  const unconfirmedAt = "2026-10-21T08:25:06Z";
+  const base = {
+    businessIdOnly: true,
+    httpStatus: 404,
+    unconfirmedAt,
+    startedAt: unconfirmedAt,
+  };
+  assertEquals(IMAGE_SUBMIT_NOTFOUND_GRACE_MS, 600_000);
+  assertEquals(
+    submitUnconfirmedExpired({
+      ...base,
+      now: Date.parse(unconfirmedAt) + IMAGE_SUBMIT_NOTFOUND_GRACE_MS - 1,
+    }),
+    false,
+  );
+  assertEquals(
+    submitUnconfirmedExpired({
+      ...base,
+      now: Date.parse(unconfirmedAt) + IMAGE_SUBMIT_NOTFOUND_GRACE_MS,
+    }),
+    true,
+  );
+  // Real receipts, retryable statuses and missing timestamps never close here.
+  assertEquals(
+    submitUnconfirmedExpired({
+      ...base,
+      businessIdOnly: false,
+      now: Date.parse(unconfirmedAt) + IMAGE_SUBMIT_NOTFOUND_GRACE_MS,
+    }),
+    false,
+  );
+  for (const httpStatus of [null, 429, 502, 503]) {
+    assertEquals(
+      submitUnconfirmedExpired({
+        ...base,
+        httpStatus,
+        now: Date.parse(unconfirmedAt) + IMAGE_SUBMIT_NOTFOUND_GRACE_MS,
+      }),
+      false,
+    );
+  }
+  assertEquals(
+    submitUnconfirmedExpired({ businessIdOnly: true, httpStatus: 404 }),
+    false,
+  );
+  // Without an unconfirmed timestamp the run start anchors the grace window.
+  assertEquals(
+    submitUnconfirmedExpired({
+      businessIdOnly: true,
+      httpStatus: 404,
+      startedAt: "2026-10-21T08:00:00Z",
+      now: Date.parse("2026-10-21T08:10:00Z"),
+    }),
+    true,
+  );
+});
+
+Deno.test("provider async runs expire after 24 hours like ToAPIs tasks", () => {
+  const created = "2026-10-20T08:00:00Z";
+  assertEquals(IMAGE_PROVIDER_ASYNC_MAX_AGE_MS, 24 * 60 * 60_000);
+  assertEquals(
+    providerRunExpired(created, Date.parse(created) + IMAGE_PROVIDER_ASYNC_MAX_AGE_MS - 1),
+    false,
+  );
+  assertEquals(
+    providerRunExpired(created, Date.parse(created) + IMAGE_PROVIDER_ASYNC_MAX_AGE_MS),
+    true,
+  );
+  assertEquals(providerRunExpired("not-a-date"), false);
+});
+
+Deno.test("a definitive 404 poll carries http_status 404 for the terminal check", async () => {
+  const { pollImage, ImageGenerationPending } = await import(
+    "./hai_image_generation.ts"
+  );
+  const config = {
+    provider: "toapis",
+    apiKey: "secret",
+    baseUrl: "https://example.test/images",
+    model: "image-model",
+  };
+  let caught: unknown = null;
+  try {
+    await pollImage(
+      config,
+      "hai-image-run-9",
+      async () =>
+        Response.json(
+          { code: "task_not_exist", message: "生成失败: 任务处理失败" },
+          { status: 404 },
+        ),
+    );
+  } catch (error) {
+    caught = error;
+  }
+  assertEquals(caught instanceof ImageGenerationPending, true);
+  const pending = caught as InstanceType<typeof ImageGenerationPending>;
+  assertEquals(pending.taskId, "hai-image-run-9");
+  assertEquals(
+    (pending.providerResponse as Record<string, unknown>).http_status,
+    404,
+  );
 });
