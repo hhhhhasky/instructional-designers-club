@@ -11,7 +11,7 @@ vi.mock("@/components/hai/HaiWorkShell",()=>({default:({children}:any)=><div>{ch
 vi.mock("@/pages/HaiWorkPage",()=>({WorkSidebar:()=>null}));
 vi.mock("@/db/hai-api",()=>({ getHaiAccessStatus:async()=>({access:{allowed:true},usage:{quota_mode:"points",current_points:100,can_consume:true}}),getHaiWorkTools:async()=>[] }));
 vi.mock("@/db/hai-image-generation",async(original)=>({...await original<object>(),getHaiImageGenerationTasks:async()=>[],getHaiImageGenerationRuns:mocks.getRuns,refreshHaiImage:mocks.refresh,generateHaiImage:mocks.generate,downloadHaiImage:mocks.download,acknowledgeHaiImage:mocks.acknowledge,failHaiImage:mocks.fail}));
-const base={id:"run",task_id:"task",status:"running",prompt:"水循环",image_size:"16:9",art_style:"卡通",image_type:"课件 PPT",reference_images:[],image_url:null,r2_key:null};
+const base={id:"run",task_id:"task",client_request_id:"3e116cd8-e84e-47c9-886c-d92001bca674",status:"running",prompt:"水循环",image_size:"16:9",art_style:"卡通",image_type:"课件 PPT",reference_images:[],image_url:null,r2_key:null};
 let run:typeof base & {delivery_deadline_at:string};
 const ready=()=>({...run,image_url:"protected-image",r2_key:"key"});
 function mount(){return render(<MemoryRouter initialEntries={["/image/task"]}><Routes><Route path="/image/:taskId" element={<HaiImageGenerationPage/>}/></Routes></MemoryRouter>);}
@@ -80,10 +80,34 @@ describe("image task delivery",()=>{
     fireEvent.change(screen.getByRole("textbox", { name: "图片提示词" }), { target: { value: "认识水循环" } });
     const started = Date.now(); fireEvent.click(screen.getByRole("button", { name: /生成图片/ })); await tick();
     expect(mocks.generate.mock.calls[0][0].deadlineAt).toBe(started + 150_000);
+    const requestId = mocks.generate.mock.calls[0][0].clientRequestId;
+    expect(screen.getByRole("button", {name: `复制任务编号 ${requestId}`})).toBeInTheDocument();
     await tick(150_000);
     expect(screen.getByText("本次生成失败，本轮未扣积分，请再次尝试。")).toBeInTheDocument();
     expect(screen.queryByText("正在提交图片任务…")).not.toBeInTheDocument();
     expect(mocks.acknowledge).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", {name: `复制任务编号 ${requestId}`})).toBeInTheDocument();
+  });
+  it("keeps the request number visible when a new-page submission fails before a run is returned", async () => {
+    mocks.getRuns.mockResolvedValue([]);
+    mocks.generate.mockRejectedValue(new Error("offline"));
+    render(<MemoryRouter initialEntries={["/image"]}><Routes><Route path="/image" element={<HaiImageGenerationPage/>}/></Routes></MemoryRouter>);
+    await tick();
+    fireEvent.change(screen.getByRole("textbox", {name: "图片提示词"}), {target: {value: "水循环配图"}});
+    fireEvent.click(screen.getByRole("button", {name: /生成图片/})); await tick();
+    const requestId = mocks.generate.mock.calls[0][0].clientRequestId;
+    expect(screen.getByText("本次生成失败，本轮未扣积分，请再次尝试。")).toBeInTheDocument();
+    expect(screen.getByRole("button", {name: `复制任务编号 ${requestId}`})).toBeInTheDocument();
+  });
+  it("shows a different full number for each response and copies the selected number", async () => {
+    const secondRequestId = "74d9ca61-0fac-467c-91d7-b281e1ce2df7";
+    mocks.getRuns.mockResolvedValue([{...run, status: "completed"}, {...run, id: "run-two", client_request_id: secondRequestId, status: "failed"}]);
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {configurable: true, value: {writeText}});
+    mount(); await tick();
+    expect(screen.getByRole("button", {name: `复制任务编号 ${run.client_request_id}`})).toHaveTextContent(run.client_request_id);
+    fireEvent.click(screen.getByRole("button", {name: `复制任务编号 ${secondRequestId}`})); await tick();
+    expect(writeText).toHaveBeenCalledWith(secondRequestId);
   });
   it("does not let a previous timed-out submission overwrite a new attempt", async () => {
     mocks.getRuns.mockResolvedValue([]);
@@ -159,6 +183,19 @@ describe("image task delivery",()=>{
     expect(mocks.fail).not.toHaveBeenCalled();
     expect(screen.getByText(/每 10 秒自动查询/)).toBeInTheDocument();
     expect(screen.getByRole("button", {name: /生成中/})).toBeDisabled();
+  });
+  it("shows a clear warning when the provider has not confirmed acceptance", async () => {
+    const unconfirmed = {...run, delivery_deadline_at: null, metadata: {execution_mode: "provider_async", phase: "provider_submit_unconfirmed"}};
+    mocks.getRuns.mockResolvedValue([unconfirmed]);
+    mocks.refresh.mockResolvedValue({run: {...unconfirmed, metadata: {execution_mode: "provider_async", phase: "provider_generation"}}});
+    mount(); await tick();
+    expect(screen.getByText("接单结果未确认")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("生图服务暂未确认接单");
+    expect(screen.queryByText(/正在生成图片，每 10 秒/)).not.toBeInTheDocument();
+    await tick(10_000);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByText(/正在生成图片，每 10 秒/)).toBeInTheDocument();
+    expect(mocks.generate).not.toHaveBeenCalled();
   });
   it("retries transient query failures without submitting another paid generation", async () => {
     const asyncRun = {...run, delivery_deadline_at: null, metadata: {execution_mode: "provider_async"}};

@@ -191,6 +191,7 @@ async function generate(
       references.map((image) => getStoredImageAccessUrl(image.key)),
     );
     let result;
+    let submitUnconfirmed = false;
     try {
       submittedToProvider = true;
       result = await submitImage(config, {
@@ -202,12 +203,18 @@ async function generate(
       });
     } catch (error) {
       if (!(error instanceof ImageGenerationPending)) throw error;
+      submitUnconfirmed = true;
       await save(auth, run, {
         provider_response: error.providerResponse || {},
-        metadata: { ...phaseMetadata(phase), last_error: detail(error) },
+        metadata: {
+          ...phaseMetadata(phase),
+          submit_error: detail(error),
+          last_error: detail(error),
+        },
       });
       result = { taskId: businessId, url: undefined, providerResponse: {} };
     }
+    submitUnconfirmed ||= result.taskId === businessId && !result.url;
     lastProviderReceipt = result;
     await save(auth, run, {
       provider_task_id: result.taskId || businessId,
@@ -215,7 +222,16 @@ async function generate(
       ...(result.url ? { source_url: result.url } : {}),
     });
     // Generation belongs to ToAPIs. A later status request collects the result.
-    await save(auth, run, { metadata: phaseMetadata("provider_generation") });
+    await save(auth, run, {
+      metadata: {
+        ...phaseMetadata(
+          submitUnconfirmed ? "provider_submit_unconfirmed" : "provider_generation",
+        ),
+        ...(submitUnconfirmed
+          ? { submit_unconfirmed_at: new Date().toISOString() }
+          : {}),
+      },
+    });
     // Saved does not mean delivered: acknowledgement is the only debit path.
   } catch (error) {
     if (
@@ -275,6 +291,9 @@ async function collectResult(auth: Auth, run: Row) {
         provider_task_id: result.taskId,
         provider_response: result.providerResponse,
         ...(result.url ? { source_url: result.url } : {}),
+        ...(result.taskId !== `hai-image-${run.id}` || result.url
+          ? { metadata: { ...run.metadata, phase: "provider_generation" } }
+          : {}),
       });
     }
     if (!run.source_url) return;
@@ -311,6 +330,9 @@ async function collectResult(auth: Auth, run: Row) {
       await save(auth, run, {
         metadata: {
           ...run.metadata,
+          ...(run.provider_task_id === `hai-image-${run.id}`
+            ? { phase: "provider_submit_unconfirmed" }
+            : {}),
           last_error: detail(error),
           next_poll_at: new Date(
             Date.now() +

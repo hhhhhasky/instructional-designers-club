@@ -56,6 +56,7 @@ Deno.test("image handler submits once and collects asynchronously without a work
     | "completed"
     | "rejected"
     | "lost"
+    | "no-id"
     | "failed"
     | "limited" = "queued";
   const fetchStub = stub(globalThis, "fetch", async (input, init) => {
@@ -75,6 +76,9 @@ Deno.test("image handler submits once and collects asynchronously without a work
         posts++;
         if (providerMode === "lost") {
           throw new TypeError("connection lost after submit");
+        }
+        if (providerMode === "no-id") {
+          return Response.json({ status: "queued" });
         }
         return providerMode === "rejected"
           ? new Response("Bad Request", { status: 400 })
@@ -327,6 +331,19 @@ Deno.test("image handler submits once and collects asynchronously without a work
       const submitted = await request({ ...input, clientRequestId: "lost" });
       assertEquals(submitted.http, 202);
       assertStringIncludes(submitted.body.run.provider_task_id, "hai-image-");
+      assertEquals(submitted.body.run.metadata.phase, "provider_submit_unconfirmed");
+      assertEquals(submitted.body.run.metadata.submit_error.message, "提交回执暂未收到，结果尚未确认；正在查询原任务，本次图片积分尚未扣除。");
+      rows.find((x) => x.id === submitted.body.run.id)!.metadata.phase = "provider_generation";
+      providerMode = "missing";
+      const unconfirmed = await request({
+        action: "status",
+        runId: submitted.body.run.id,
+      });
+      assertEquals(unconfirmed.body.run.metadata.phase, "provider_submit_unconfirmed");
+      assertEquals(unconfirmed.body.run.metadata.submit_error.message, "提交回执暂未收到，结果尚未确认；正在查询原任务，本次图片积分尚未扣除。");
+      assertEquals(unconfirmed.body.run.status, "running");
+      assertEquals(posts, before + 1);
+      rows.find((x) => x.id === submitted.body.run.id)!.metadata.next_poll_at = null;
       providerMode = "completed";
       const result = await request({
         action: "status",
@@ -334,6 +351,13 @@ Deno.test("image handler submits once and collects asynchronously without a work
       });
       assertEquals(Boolean(result.body.run.r2_key), true);
       assertEquals(posts, before + 1);
+    });
+    await test.step("a successful response without a task ID is also shown as unconfirmed", async () => {
+      providerMode = "no-id";
+      const submitted = await request({ ...input, clientRequestId: "no-id" });
+      assertEquals(submitted.http, 202);
+      assertEquals(submitted.body.run.metadata.phase, "provider_submit_unconfirmed");
+      assertStringIncludes(submitted.body.run.provider_task_id, "hai-image-");
     });
     await test.step("a database outage saving the receipt retains the pre-saved business ID", async () => {
       providerMode = "queued";

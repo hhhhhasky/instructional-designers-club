@@ -260,7 +260,7 @@ export async function submitImage(
             }
             : {}),
         }),
-        signal: imageBudgetSignal(params.deadlineAt, 30_000),
+        signal: imageBudgetSignal(params.deadlineAt, 60_000),
       }),
     );
     const taskId = providerTaskId(created) || params.businessId;
