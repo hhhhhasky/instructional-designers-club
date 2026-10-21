@@ -2,17 +2,18 @@ import { supabase } from "@/db/supabase";
 
 export const HAI_IMAGE_GENERATION_POINTS = 20;
 export const HAI_IMAGE_SIZES = ["16:9", "1:1", "3:4", "4:3", "9:16"] as const;
-export {
-  IMAGE_GENERATION_STYLES as HAI_IMAGE_STYLES,
-  IMAGE_GENERATION_SUBJECTS as HAI_IMAGE_SUBJECTS,
-  getRecommendedImageStyles,
-  imageStyleLabel,
-  isImageSubject,
-} from "../../supabase/functions/_shared/hai_image_styles.ts";
 export type {
   ImageGenerationStyle as HaiImageStyle,
   ImageGenerationSubject as HaiImageSubject,
 } from "../../supabase/functions/_shared/hai_image_styles.ts";
+export {
+  getRecommendedImageStyles,
+  IMAGE_GENERATION_STYLES as HAI_IMAGE_STYLES,
+  IMAGE_GENERATION_SUBJECTS as HAI_IMAGE_SUBJECTS,
+  imageStyleLabel,
+  isImageSubject,
+} from "../../supabase/functions/_shared/hai_image_styles.ts";
+
 import type { ImageGenerationStyle as HaiImageStyle, ImageGenerationSubject as HaiImageSubject } from "../../supabase/functions/_shared/hai_image_styles.ts";
 export const HAI_IMAGE_TYPES = ["课件 PPT", "海报", "学习单", "思维导图"] as const;
 export const HAI_IMAGE_DELIVERY_TIMEOUT_MS = 150_000;
@@ -66,6 +67,7 @@ export interface HaiImageGenerationRun {
   source_url: string | null;
   r2_key: string | null;
   image_url: string | null;
+  access_url?: string | null;
   error_message: string | null;
   metadata: Record<string, unknown>;
   duration_ms: number | null;
@@ -199,4 +201,22 @@ export async function downloadHaiImage(runId: string, deadlineAt?: number) {
     throw new Error(payload.error || "图片下载失败。");
   }
   return response.blob();
+}
+
+// Ask the Edge Function to presign short-lived direct links for saved images,
+// so the browser fetches bytes from R2 instead of relaying them through the
+// Edge. Runs restored from RLS list queries never carry access_url on their own.
+export async function getHaiImageAccessUrls(runIds: string[]): Promise<Record<string, string>> {
+  if (!runIds.length) return {};
+  const { data } = await supabase.auth.getSession();
+  if (!data.session?.access_token) throw new Error("请先登录。");
+  const baseUrl = String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
+  const response = await fetch(imageFunctionUrl(baseUrl), {
+    method: "POST",
+    headers: { authorization: `Bearer ${data.session.access_token}`, "content-type": "application/json" },
+    body: JSON.stringify({ action: "access", runIds }), signal: deadlineSignal(Date.now() + 30_000),
+  });
+  const payload = await response.json().catch(() => ({})) as { access?: Record<string, string>; error?: string };
+  if (!response.ok) throw new Error(payload.error || "暂时未取到图片链接，请稍后重试。");
+  return payload.access ?? {};
 }

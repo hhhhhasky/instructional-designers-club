@@ -3,14 +3,14 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import HaiImageGenerationPage from "@/pages/HaiImageGenerationPage";
 
-const mocks = vi.hoisted(() => ({ user:{id:"user"},getRuns:vi.fn(),refresh:vi.fn(),generate:vi.fn(),download:vi.fn(),acknowledge:vi.fn(),fail:vi.fn() }));
+const mocks = vi.hoisted(() => ({ user:{id:"user"},getRuns:vi.fn(),refresh:vi.fn(),generate:vi.fn(),download:vi.fn(),acknowledge:vi.fn(),fail:vi.fn(),accessUrls:vi.fn() }));
 vi.mock("@/db/supabase",()=>({supabase:{}}));
 vi.mock("@/contexts/AuthContext",()=>({useAuth:()=>({user:mocks.user,loading:false})}));
 vi.mock("@/components/common/PageMeta",()=>({default:()=>null}));
 vi.mock("@/components/hai/HaiWorkShell",()=>({default:({children}:any)=><div>{children}</div>}));
 vi.mock("@/pages/HaiWorkPage",()=>({WorkSidebar:()=>null}));
 vi.mock("@/db/hai-api",()=>({ getHaiAccessStatus:async()=>({access:{allowed:true},usage:{quota_mode:"points",current_points:100,can_consume:true}}),getHaiWorkTools:async()=>[] }));
-vi.mock("@/db/hai-image-generation",async(original)=>({...await original<object>(),getHaiImageGenerationTasks:async()=>[],getHaiImageGenerationRuns:mocks.getRuns,refreshHaiImage:mocks.refresh,generateHaiImage:mocks.generate,downloadHaiImage:mocks.download,acknowledgeHaiImage:mocks.acknowledge,failHaiImage:mocks.fail}));
+vi.mock("@/db/hai-image-generation",async(original)=>({...await original<object>(),getHaiImageGenerationTasks:async()=>[],getHaiImageGenerationRuns:mocks.getRuns,refreshHaiImage:mocks.refresh,generateHaiImage:mocks.generate,downloadHaiImage:mocks.download,acknowledgeHaiImage:mocks.acknowledge,failHaiImage:mocks.fail,getHaiImageAccessUrls:mocks.accessUrls}));
 const base={id:"run",task_id:"task",client_request_id:"3e116cd8-e84e-47c9-886c-d92001bca674",status:"running",prompt:"水循环",image_size:"16:9",art_style:"卡通",image_type:"课件 PPT",reference_images:[],image_url:null,r2_key:null};
 let run:typeof base & {delivery_deadline_at:string};
 const ready=()=>({...run,image_url:"protected-image",r2_key:"key"});
@@ -20,7 +20,7 @@ beforeEach(()=>{
   vi.useFakeTimers();vi.clearAllMocks();
   run={...base,delivery_deadline_at:new Date(Date.now()+150_000).toISOString()};
   mocks.getRuns.mockResolvedValue([run]);mocks.refresh.mockResolvedValue({run});
-  mocks.download.mockResolvedValue(new Blob(["image"],{type:"image/png"}));
+  mocks.download.mockResolvedValue(new Blob(["image"],{type:"image/png"}));mocks.accessUrls.mockResolvedValue({});
   mocks.acknowledge.mockResolvedValue({run:{...ready(),status:"completed"}});mocks.fail.mockResolvedValue({run:{...run,status:"failed"}});
   URL.createObjectURL=vi.fn(()=>"blob:preview");URL.revokeObjectURL=vi.fn();
 });
@@ -234,6 +234,31 @@ describe("image task delivery",()=>{
     const view = mount(); await tick(); await tick(90_000);
     expect(mocks.refresh).toHaveBeenCalledTimes(1);
     view.unmount(); await tick(90_000); expect(mocks.refresh).toHaveBeenCalledTimes(1);
+  });
+  it("loads a saved image straight from the short-lived access URL without relaying bytes", async () => {
+    const withUrl = {...ready(), delivery_deadline_at: null, metadata: {execution_mode: "provider_async"}, access_url: "https://r2.example/signed?X-Amz-Signature=abc"};
+    mocks.getRuns.mockResolvedValue([withUrl]); mocks.refresh.mockResolvedValue({run: withUrl});
+    mount(); await tick();
+    expect((screen.getByRole("img", {name: "水循环"}) as HTMLImageElement).getAttribute("src")).toBe("https://r2.example/signed?X-Amz-Signature=abc");
+    expect(mocks.download).not.toHaveBeenCalled();
+    fireEvent.load(screen.getByRole("img", {name: "水循环"})); await tick();
+    expect(mocks.acknowledge).toHaveBeenCalledTimes(1);
+  });
+  it("backfills access URLs for history runs restored through RLS and keeps the proxy as fallback", async () => {
+    mocks.accessUrls.mockResolvedValue({run: "https://r2.example/backfilled"});
+    mocks.getRuns.mockResolvedValue([ready()]); mount(); await tick();
+    expect(mocks.accessUrls).toHaveBeenCalledWith(["run"]);
+    expect((screen.getByRole("img", {name: "水循环"}) as HTMLImageElement).getAttribute("src")).toBe("https://r2.example/backfilled");
+    expect(mocks.download).toHaveBeenCalledTimes(1);
+  });
+  it("falls back to the relayed download once when the access URL fails to load", async () => {
+    const stale = {...ready(), delivery_deadline_at: null, metadata: {execution_mode: "provider_async"}, access_url: "https://r2.example/stale"};
+    mocks.getRuns.mockResolvedValue([stale]); mount(); await tick();
+    fireEvent.error(screen.getByRole("img", {name: "水循环"})); await tick();
+    expect(mocks.download).toHaveBeenCalledTimes(1);
+    expect(mocks.fail).not.toHaveBeenCalled();
+    fireEvent.load(screen.getByRole("img", {name: "水循环"})); await tick();
+    expect(mocks.acknowledge).toHaveBeenCalledTimes(1);
   });
 
 });

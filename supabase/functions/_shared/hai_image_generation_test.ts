@@ -18,6 +18,7 @@ import {
   persistReferenceImages,
   providerRunExpired,
   readImageProviderConfig,
+  getStoredImageDirectUrl,
   submitImage,
   submitUnconfirmedExpired,
 } from "./hai_image_generation.ts";
@@ -620,4 +621,36 @@ Deno.test("a definitive 404 poll carries http_status 404 for the terminal check"
     (pending.providerResponse as Record<string, unknown>).http_status,
     404,
   );
+});
+
+Deno.test("direct access links presign a private R2 object with a short expiry", async () => {
+  const env = {
+    R2_ACCOUNT_ID: "test-account",
+    R2_ACCESS_KEY_ID: "test-key",
+    R2_SECRET_ACCESS_KEY: "test-secret",
+    R2_BUCKET_NAME: "test-bucket",
+    R2_PUBLIC_URL: "https://r2.example.test",
+  };
+  const previousEnv = Object.fromEntries(
+    Object.keys(env).map((name) => [name, Deno.env.get(name)]),
+  );
+  for (const [name, value] of Object.entries(env)) Deno.env.set(name, value);
+  try {
+    const url = new URL(
+      await getStoredImageDirectUrl("hai-image-generation/user/task/run.png", 600),
+    );
+    assertEquals(url.protocol, "https:");
+    assertEquals(url.hostname, "test-bucket.test-account.r2.cloudflarestorage.com");
+    assertEquals(url.pathname, "/hai-image-generation/user/task/run.png");
+    assertEquals(url.searchParams.get("X-Amz-Expires"), "600");
+    assertEquals(url.searchParams.has("X-Amz-Signature"), true);
+    assertEquals(url.searchParams.has("X-Amz-Credential"), true);
+    // The link points at the private S3 endpoint, never the public bucket URL.
+    assertEquals(url.hostname.endsWith("r2.example.test"), false);
+  } finally {
+    for (const [name, value] of Object.entries(previousEnv)) {
+      if (value === undefined) Deno.env.delete(name);
+      else Deno.env.set(name, value);
+    }
+  }
 });

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { acknowledgeHaiImage, downloadHaiImage, generateHaiImage, refreshHaiImage } from "@/db/hai-image-generation";
+import { acknowledgeHaiImage, downloadHaiImage, generateHaiImage, getHaiImageAccessUrls, refreshHaiImage } from "@/db/hai-image-generation";
 
 vi.mock("@/db/supabase", () => ({
   supabase: { auth: { getSession: async () => ({ data: { session: { access_token: "user-token" } } }) } },
@@ -41,8 +41,16 @@ describe("image request options", () => {
     await acknowledgeHaiImage("run");
     fetchMock.mockResolvedValueOnce(new Response(new Blob(["image"], { type: "image/png" })));
     await downloadHaiImage("run");
-    expect(fetchMock.mock.calls).toHaveLength(4);
+    fetchMock.mockResolvedValueOnce(Response.json({ access: { run: "https://r2.example/signed" } }));
+    expect(await getHaiImageAccessUrls(["run"])).toEqual({ run: "https://r2.example/signed" });
+    expect(fetchMock.mock.calls).toHaveLength(5);
     expect(fetchMock.mock.calls.every(([url]) => url === "http://127.0.0.1:54329")).toBe(true);
+    expect(JSON.parse(fetchMock.mock.calls[4][1].body)).toEqual({ action: "access", runIds: ["run"] });
+  });
+
+  it("skips the access request when there is nothing to sign", async () => {
+    expect(await getHaiImageAccessUrls([])).toEqual({});
+    expect(fetchMock.mock.calls).toHaveLength(0);
   });
 
   it("ignores the local endpoint override in production", async () => {

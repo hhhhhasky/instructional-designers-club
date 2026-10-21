@@ -9,6 +9,7 @@ import {
 import {
   composeImageGenerationPrompt,
   getStoredImageAccessUrl,
+  getStoredImageDirectUrl,
   IMAGE_FAILURE_MESSAGE,
   IMAGE_GENERATION_POINTS,
   IMAGE_GENERATION_STYLES,
@@ -72,6 +73,28 @@ function publicRun(run: Row) {
     failure_stage: undefined,
     provider_response: undefined,
   };
+}
+// Short-lived presigned link lets the owner's browser fetch the private image
+// straight from R2 instead of relaying bytes through this function. Unsigned
+// access stays 401 and the signature expires on its own.
+const IMAGE_ACCESS_URL_TTL_SECONDS = 600;
+async function withAccessUrl(run: Row) {
+  if (!run.r2_key || run.status === "failed") return run;
+  try {
+    return {
+      ...run,
+      access_url: await getStoredImageDirectUrl(
+        run.r2_key,
+        IMAGE_ACCESS_URL_TTL_SECONDS,
+      ),
+    };
+  } catch (error) {
+    console.warn("hai image access url signing failed", {
+      run_id: run.id,
+      ...detail(error),
+    });
+    return run;
+  }
 }
 function response(task: Row, run: Row) {
   return jsonResponse({
@@ -409,7 +432,7 @@ export async function handleImageGeneration(
       );
     } else body = await request.json();
     const action = clean(body.action, "generate", 20);
-    if (["status", "download", "acknowledge", "fail"].includes(action)) {
+    if (["status", "download", "acknowledge", "fail", "access"].includes(action)) {
       let run = await load(auth, id(body.runId));
       const task = run.task;
       if (
@@ -464,9 +487,30 @@ export async function handleImageGeneration(
           },
         });
       }
+      if (action === "access") {
+        // Owner-scoped batch signing for runs restored from RLS list queries.
+        const requested = Array.isArray(body.runIds)
+          ? body.runIds.map(id).filter(Boolean).slice(0, 30)
+          : [];
+        const r = await auth.admin.from("hai_image_generation_runs").select(
+          "id,r2_key,status",
+        ).in("id", requested.length ? requested : [crypto.randomUUID()]).eq(
+          "user_id",
+          auth.user.id,
+        );
+        if (r.error) throw new Error(r.error.message);
+        const access: Row = {};
+        for (const row of r.data ?? []) {
+          if (!row.r2_key || row.status === "failed") continue;
+          const signed = await withAccessUrl(row);
+          if (signed.access_url) access[row.id] = signed.access_url;
+        }
+        return jsonResponse({ access }, 200);
+      }
       if (action === "status") {
         await collectResult(auth, run);
         run = await load(auth, run.id);
+        return response(task, await withAccessUrl(run));
       }
       return response(task, run);
     }
@@ -505,7 +549,7 @@ export async function handleImageGeneration(
           run.metadata?.phase || "delivery",
         );
       }
-      return response(existing.data.task, run);
+      return response(existing.data.task, await withAccessUrl(run));
     }
     let task: Row;
     if (id(body.taskId)) {

@@ -42,13 +42,19 @@
 
 官方协议：[生成接口](https://docs.toapis.cn/docs/cn/api-reference/images/gpt-image-2/generation)、[查询接口](https://docs.toapis.cn/docs/cn/api-reference/tasks/image-status)、[异步限流](https://docs.toapis.cn/docs/cn/api-reference/rate-limits/async-tasks)。
 
+## 短时效直链交付
+
+图片桶保持私有（r2.dev 与无签名对象访问均被拒绝），不向互联网开放读权限。Edge 用 AWS SigV4 为已保存的 `r2_key` 签发 600 秒预签名直链（`getStoredImageDirectUrl`，virtual-hosted 形如 `https://<桶>.<账号>.r2.cloudflarestorage.com/<key>?X-Amz-Signature=...`），在 `generate`/`status` 响应中作为 `access_url` 附带返回；签名 GET 与浏览器 `<img>` 请求完全等价，图片字节由浏览器直接从 R2（Cloudflare 边缘）拉取，不再经 Supabase Edge 中转，消除此前"所有用户经东京 Edge 中转整图字节"的传输瓶颈。桶权限不因此变更：无签名访问依然被拒，链接 10 分钟后自然失效。
+
+历史轮次经 RLS 列表查询恢复时不携带 `access_url`，页面检测到已保存图片但缺直链的轮次后，批量调用 `action=access` 补签（单次最多 30 条）。直链加载失败（过期或丢失）时，前端仅回退一次到原中转 `download`；下载按钮始终走中转 Blob，便于保存完整文件。
+
 ## 前端收到图片后结算
 
-`r2_key`/`image_url` 已保存时，轮次仍为 running，尚未扣费。前端可以下载图片 Blob；仅在图片 `onLoad` 成功时发送 `acknowledge`；历史轮次继续校验其期限。
+`r2_key`/`image_url` 已保存时，轮次仍为 running，尚未扣费。前端通过短时效直链（或回退中转）加载图片；仅在图片 `onLoad` 成功时发送 `acknowledge`；历史轮次继续校验其期限。
 
 `hai_acknowledge_image_delivery` 校验用户所有权、已保存图片和适用的历史期限，然后在同一事务内记录 `delivered_at` 并完成积分结算。失败、确认和完成采用相同的轮次行锁；重复确认不重复扣费。直接调用旧完成/结算 RPC 不能绕过新轮次的交付确认。
 
-确认请求未到数据库时不扣费，由平台承担供应商成本。确认响应丢失而事务已经成功时，前端已收到图片，数据库保持一次完成结算，不再重复收费。新异步轮次确认请求暂时失败时保留已收到的 Blob，在后续轮询中重试确认；数据库返回 completed 后才展示已完成和下载按钮，刷新后仍可重新加载已保存图片并确认。历史轮次保留旧版已按时交付时的本地 Blob 下载行为。
+确认请求未到数据库时不扣费，由平台承担供应商成本。确认响应丢失而事务已经成功时，前端已收到图片，数据库保持一次完成结算，不再重复收费。新异步轮次确认请求暂时失败时保留已收到的图片，在后续轮询中重试确认；数据库返回 completed 后才展示已完成和下载按钮，刷新后仍可重新加载已保存图片并确认。历史轮次保留旧版已按时交付时的本地 Blob 下载行为。
 
 超时失败是终态。迟到回执可以保存为后台排查证据，但不恢复成功、不下载迟到图片、不补扣积分。历史已完成图片仍可读取和下载。
 

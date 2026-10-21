@@ -604,13 +604,20 @@ export function validateStoredReferenceImages(value: unknown, userId: string) {
   });
 }
 
-export async function readStoredImage(key: string, deadlineAt?: number) {
+// Issue a short-lived presigned GET so an authorized browser can fetch the
+// private object straight from R2. The bucket itself stays closed: unsigned
+// requests still get 401, and the signature expires automatically.
+export async function getStoredImageDirectUrl(key: string, expiresIn = 600) {
   const { bucket, client } = r2Config();
-  const url = await getSignedUrl(
+  return getSignedUrl(
     client,
     new GetObjectCommand({ Bucket: bucket, Key: key }),
-    { expiresIn: 300 },
+    { expiresIn },
   );
+}
+
+export async function readStoredImage(key: string, deadlineAt?: number) {
+  const url = await getStoredImageDirectUrl(key, 300);
   const response = await fetch(url, { signal: imageBudgetSignal(deadlineAt) });
   if (!response.ok) throw new Error(`图片读取失败（${response.status}）。`);
   return {
