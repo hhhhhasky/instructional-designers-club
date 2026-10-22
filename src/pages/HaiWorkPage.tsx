@@ -207,8 +207,6 @@ export default function HaiWorkPage() {
     }
   }, [toolSlug]);
   const enabledToolSlugs = useMemo(() => new Set(tools.map((item) => item.slug)), [tools]);
-  const localUnitPreview = toolSlug === "unit-learning-design"
-    && !enabledToolSlugs.has(toolSlug) && canPreviewUnitLocally();
   const activeModule = toolSlug ? tools.find((item) => item.slug === toolSlug) : undefined;
   const activeConfig = toolSlug ? resolveWorkToolConfig(toolSlug, activeModule) : null;
   const pointsBlocked = usage?.quota_mode === "points" && (
@@ -231,10 +229,10 @@ export default function HaiWorkPage() {
         ) : !access?.allowed ? (
           <WorkLocked reason={access?.reason} />
         ) : toolSlug ? (
-          enabledToolSlugs.has(toolSlug) || localUnitPreview ? (
+          enabledToolSlugs.has(toolSlug) && !isHiddenWorkTool(toolSlug) ? (
             <WorkLanding key={location.key} tools={tools} pointsBlocked={pointsBlocked} initialTool={toolSlug} />
           ) : (
-            <WorkError message="这项工作功能尚未在后台启用。" />
+            <WorkError message="这项工作功能暂不可新建，已有任务仍可从历史任务中打开。" />
           )
         ) : (
           <WorkLanding key={location.key} tools={tools} pointsBlocked={pointsBlocked} />
@@ -942,19 +940,17 @@ export function resolveWorkToolConfig(slug: HaiWorkToolSlug, module?: HaiFeature
   };
 }
 
-function canPreviewUnitLocally() {
-  return import.meta.env.DEV && import.meta.env.MODE === "development"
-    && typeof window !== "undefined" && ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
+// 仅撤下新建入口；模块配置和历史任务仍保留。
+function isHiddenWorkTool(slug: string) {
+  return slug === "teaching-design" || slug === "unit-learning-design";
 }
 
 function getSupportedWorkTools(tools: HaiFeatureModule[] = []) {
   const modules = new Map(tools.filter((module) => isWorkToolSlug(module.slug)).map((module) => [module.slug, module]));
-  const stableOrder: HaiWorkToolSlug[] = ["lesson-diagnosis", "segment-optimization", "subject-lesson-design", "teaching-design", "unit-learning-design", "image-generation"];
+  const stableOrder: HaiWorkToolSlug[] = ["lesson-diagnosis", "segment-optimization", "subject-lesson-design", "image-generation"];
   return stableOrder.flatMap((slug) => {
     const module = modules.get(slug);
-    if (module) return [{ slug, config: resolveWorkToolConfig(slug, module), previewOnly: false }];
-    return slug === "unit-learning-design" && canPreviewUnitLocally()
-      ? [{ slug, config: HAI_WORK_TOOL_CONFIG[slug], previewOnly: true }] : [];
+    return module ? [{ slug, config: resolveWorkToolConfig(slug, module), previewOnly: false }] : [];
   });
 }
 

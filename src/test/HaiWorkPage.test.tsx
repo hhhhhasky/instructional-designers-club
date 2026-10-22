@@ -127,13 +127,13 @@ describe("HAI Work workbench", () => {
     expect(submitHaiWork).not.toHaveBeenCalled();
   });
 
-  it("shows all four enabled work tools", async () => {
+  it("shows available work tools and hides retired creation entries", async () => {
     renderAt("/hai/work");
 
     expect((await screen.findAllByRole("button", { name: /教案诊断/ })).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: /环节优化/ }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: /公开课设计/ }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("button", { name: /研发教学方案/ }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: /研发教学方案/ })).not.toBeInTheDocument();
     expect(screen.getByLabelText("描述你的教学需求")).toBeInTheDocument();
   });
 
@@ -145,20 +145,13 @@ describe("HAI Work workbench", () => {
     expect(screen.queryByRole("button", { name: /环节优化/ })).not.toBeInTheDocument();
   });
 
-  it("exposes the missing unit tool only as an interactive local preview", async () => {
-    vi.stubEnv("DEV", true);
-    vi.stubEnv("MODE", "development");
+  it.each(["development", "production"])("hides both enabled creation entries in %s", async (mode) => {
+    vi.stubEnv("DEV", mode === "development");
+    vi.stubEnv("MODE", mode);
+    vi.mocked(getHaiWorkTools).mockResolvedValueOnce([...tools, { slug: "unit-learning-design", name: "大单元教学", is_enabled: true, surface_mode: "work" } as HaiFeatureModule]);
     renderAt("/hai/work");
-    const user = userEvent.setup();
-    const links = await screen.findAllByRole("button", { name: /大单元教学/ });
-    await user.click(links[0]);
-    expect(await screen.findByText(/本地界面预览：/)).toBeInTheDocument();
-    await user.click(screen.getByRole("radio", { name: "单元内重构" }));
-    await user.selectOptions(screen.getByLabelText("教材 1 · 年级 / 册次"), "junior-politics-grade-7-volume-1-2024");
-    await user.click(screen.getByRole("radio", { name: "第一单元 少年有梦" }));
-    expect(screen.getByRole("button", { name: "提交大单元教学任务" })).toBeDisabled();
-    expect(screen.getByLabelText("上传补充材料")).toBeDisabled();
-    expect(submitHaiWork).not.toHaveBeenCalled();
+    await screen.findAllByRole("button", { name: /教案诊断/ });
+    expect(screen.queryByRole("button", { name: /研发教学方案|大单元教学/ })).not.toBeInTheDocument();
   });
 
   it("keeps an unpublished unit tool hidden in production", async () => {
@@ -529,86 +522,16 @@ describe("HAI Work workbench", () => {
     expect(screen.queryByRole("option", { name: "其他" })).not.toBeInTheDocument();
   });
 
-  it("uses the same textbook hierarchy for teaching design", async () => {
-    const user = userEvent.setup();
-    renderAt("/hai/work/teaching-design");
-
-    await screen.findByRole("form", { name: "研发教学方案设置" });
-    await user.selectOptions(await screen.findByRole("combobox", { name: "年级" }), "7年级");
-    await user.selectOptions(screen.getByRole("combobox", { name: "册次 / 教材" }), "上册");
-    await user.selectOptions(screen.getByRole("combobox", { name: "单元" }), "第一单元 少年有梦");
-    await user.selectOptions(screen.getByRole("combobox", { name: "课题" }), "第一课 开启初中生活");
-    expect(screen.getByRole("combobox", { name: /框题（可选/ })).toBeInTheDocument();
-    await user.selectOptions(screen.getByLabelText("设计类型"), "backwards-design");
-    await user.type(screen.getByRole("textbox", { name: /课时 \/ 范围/ }), "6课时");
-    await user.type(screen.getByLabelText("描述你的教学需求"), "学生能够解释单元核心概念并迁移应用。 ");
-    await user.click(screen.getByRole("button", { name: "提交研发教学方案任务" }));
-
-    expect(submitHaiWork).toHaveBeenCalledWith(
-      expect.objectContaining({
-        toolSlug: "teaching-design",
-        input: expect.objectContaining({
-          grade: "7年级",
-          volume: "上册",
-          unit: "第一单元 少年有梦",
-          topic: "第一课 开启初中生活",
-          collection_slug: "junior-politics-grade-7-volume-1-2024",
-          unit_route_number: "1",
-          lesson_route_number: "1",
-          design_type: "backwards-design",
-        }),
-      }),
-    );
-  });
-  it("collects one full unit without requiring lesson or frame fields", async () => {
+  it.each(["teaching-design", "unit-learning-design"])("blocks new tasks through the old %s URL and retains history", async (slug) => {
     vi.mocked(getHaiWorkTools).mockResolvedValueOnce([...tools, { slug: "unit-learning-design", name: "大单元教学", is_enabled: true, surface_mode: "work" } as HaiFeatureModule]);
-    renderAt("/hai/work/unit-learning-design");
-    const user = userEvent.setup();
-    await user.click(await screen.findByRole("button", { name: "提交大单元教学任务" }));
-    expect(screen.getByText("请选择重构范围。")).toBeInTheDocument();
-    await user.click(screen.getByRole("radio", { name: "单元内重构" }));
-    await user.selectOptions(screen.getByLabelText("教材 1 · 年级 / 册次"), "junior-politics-grade-7-volume-1-2024");
-    await user.click(screen.getByRole("radio", { name: "第一单元 少年有梦" }));
-    expect(screen.queryByLabelText("课题")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "提交大单元教学任务" }));
-    expect(submitHaiWork).toHaveBeenCalledWith(expect.objectContaining({ toolSlug: "unit-learning-design", input: expect.objectContaining({ reconstruction_scope: "within-unit", textbook_selections: [{ collection_slug: "junior-politics-grade-7-volume-1-2024", units: [{ unit_number: 1 }] }] }) }));
+    vi.mocked(getHaiWorkTasks).mockResolvedValueOnce([{
+      id: "old-task", user_id: "user-1", module_slug: slug,
+      title: "保留的历史教学任务", status: "active", latest_artifact_id: null,
+      created_at: "2026-10-21T08:00:00Z", updated_at: "2026-10-21T08:00:00Z",
+    } as HaiWorkTask]);
+    renderAt(`/hai/work/${slug}`);
+    expect(await screen.findByText(/这项工作功能暂不可新建/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /保留的历史教学任务/ })).toHaveAttribute("href", "/hai/work/tasks/old-task");
+    expect(submitHaiWork).not.toHaveBeenCalled();
   });
-
-  it("collects partial lessons across same-book units and clears the selection on scope changes", async () => {
-    const row = (await defaultGetHaiTextbookCatalog("初中", "道德与法治"))[0];
-    vi.mocked(getHaiTextbookCatalog).mockResolvedValueOnce([row, { ...row, unit_route_number: 2, unit_label: "第二单元", unit_title: "成长", lesson_route_number: 2, lesson_label: "第二课", lesson_title: "学习" }]);
-    vi.mocked(getHaiWorkTools).mockResolvedValueOnce([...tools, { slug: "unit-learning-design", name: "大单元教学", is_enabled: true, surface_mode: "work" } as HaiFeatureModule]);
-    renderAt("/hai/work/unit-learning-design");
-    const user = userEvent.setup();
-    await user.click(await screen.findByRole("radio", { name: "教材内重构" }));
-    await user.selectOptions(screen.getByLabelText("教材 1 · 年级 / 册次"), row.collection_slug);
-    await user.click(screen.getByRole("checkbox", { name: "第一单元 少年有梦" }));
-    await user.click(screen.getByRole("checkbox", { name: "第二单元 成长" }));
-    await user.click(screen.getAllByRole("checkbox", { name: /完整单元/ })[0]);
-    await user.click(screen.getByRole("checkbox", { name: "第一课 开启初中生活" }));
-    await user.click(screen.getByRole("button", { name: "提交大单元教学任务" }));
-    expect(submitHaiWork).toHaveBeenCalledWith(expect.objectContaining({ input: expect.objectContaining({ textbook_selections: [{ collection_slug: row.collection_slug, units: [{ unit_number: 1, lessons: [{ lesson_number: 1 }] }, { unit_number: 2 }] }] }) }));
-  });
-
-  it("requires two distinct textbooks and resets old books when the scope or subject changes", async () => {
-    const row = (await defaultGetHaiTextbookCatalog("初中", "道德与法治"))[0];
-    vi.mocked(getHaiTextbookCatalog).mockResolvedValueOnce([row, { ...row, collection_slug: "book-2", grade_label: "8年级", collection_title: "八上" }]);
-    vi.mocked(getHaiWorkTools).mockResolvedValueOnce([...tools, { slug: "unit-learning-design", name: "大单元教学", is_enabled: true, surface_mode: "work" } as HaiFeatureModule]);
-    renderAt("/hai/work/unit-learning-design");
-    const user = userEvent.setup();
-    await user.click(await screen.findByRole("radio", { name: "跨教材重构" }));
-    await user.selectOptions(screen.getByLabelText("教材 1 · 年级 / 册次"), row.collection_slug);
-    await user.click(screen.getByRole("checkbox", { name: "第一单元 少年有梦" }));
-    await user.click(screen.getByRole("button", { name: "提交大单元教学任务" }));
-    expect(screen.getByText("跨教材重构请至少选择两本教材。")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "添加另一本教材" }));
-    await user.selectOptions(screen.getByLabelText("教材 2 · 年级 / 册次"), "book-2");
-    await user.click(screen.getAllByRole("checkbox", { name: "第一单元 少年有梦" })[1]);
-    await user.click(screen.getByRole("radio", { name: "单元内重构" }));
-    expect(screen.queryByLabelText("教材 2 · 年级 / 册次")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("教材 1 · 年级 / 册次")).toHaveValue("");
-    await user.selectOptions(screen.getByLabelText("学科"), "数学");
-    expect(screen.getByLabelText("教材 1 · 年级 / 册次")).toHaveValue("");
-  });
-
 });
