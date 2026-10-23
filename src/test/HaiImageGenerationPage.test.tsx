@@ -187,7 +187,7 @@ describe("image task delivery",()=>{
     await tick(1); expect(mocks.refresh).toHaveBeenCalledTimes(2);
     await tick(140_000); expect(mocks.refresh).toHaveBeenCalledTimes(16);
     expect(mocks.fail).not.toHaveBeenCalled();
-    expect(screen.getByText(/每 10 秒自动查询/)).toBeInTheDocument();
+    expect(screen.getByText("图片正在生成。超过 10 分钟仍未出图，请联系哈老师。")).toBeInTheDocument();
     expect(screen.getByRole("button", {name: /生成中/})).toBeDisabled();
   });
   it("shows a clear warning when the provider has not confirmed acceptance", async () => {
@@ -197,10 +197,10 @@ describe("image task delivery",()=>{
     mount(); await tick();
     expect(screen.getByText("接单结果未确认")).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("生图服务暂未确认接单");
-    expect(screen.queryByText(/正在生成图片，每 10 秒/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/图片正在生成。超过 10 分钟/)).not.toBeInTheDocument();
     await tick(10_000);
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.getByText(/正在生成图片，每 10 秒/)).toBeInTheDocument();
+    expect(screen.getByText("图片正在生成。超过 10 分钟仍未出图，请联系哈老师。")).toBeInTheDocument();
     expect(mocks.generate).not.toHaveBeenCalled();
   });
   it("retries transient query failures without submitting another paid generation", async () => {
