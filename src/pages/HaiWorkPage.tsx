@@ -744,10 +744,8 @@ export function WorkSidebar({ tasks, archivedTasks, onTasksChanged, imageTasks: 
 function ImageTaskRow({ task, selected, onSelect }: { task: HaiImageGenerationTask; selected: boolean; onSelect?: (taskId: string) => void }) {
   return (
     <Link to={`/hai/work/image-generation/${task.id}`} onClick={onSelect ? (event) => { event.preventDefault(); onSelect(task.id); } : undefined} className={cn("group flex w-full min-w-0 items-center rounded-ds-md px-3 py-2.5 text-left transition hover:bg-[var(--paper)]", selected && "bg-[var(--paper)]")}>
-      <ImagePlus className="mr-2.5 h-4 w-4 shrink-0 text-txt" />
       <span className="min-w-0 flex-1">
         <span className={cn("block truncate text-xs font-bold", selected ? "text-[var(--annotation)]" : "text-tx")}>{task.title}</span>
-        <span className="mt-1 block text-[10px] text-txt">{formatDate(task.updated_at)} · 图片任务</span>
       </span>
     </Link>
   );
@@ -758,7 +756,6 @@ function TaskRow({ task, onTasksChanged }: { task: HaiWorkTask; onTasksChanged?:
     <div className="group relative flex items-center rounded-ds-md transition hover:bg-[var(--paper)]">
       <Link to={`/hai/work/tasks/${task.id}`} className="min-w-0 flex-1 px-3 py-2.5 pr-9">
         <p className="truncate text-xs font-bold text-tx">{task.title}</p>
-        <p className="mt-1 text-[10px] text-txt">{formatDate(task.updated_at)} · v{task.latest_artifact?.version_number ?? "—"}{task.module_slug === "unit-learning-design" ? " · 整体 + 课时教案" : ""}</p>
       </Link>
       <TaskActionMenu
         task={task}
@@ -952,8 +949,4 @@ function getSupportedWorkTools(tools: HaiFeatureModule[] = []) {
     const module = modules.get(slug);
     return module ? [{ slug, config: resolveWorkToolConfig(slug, module), previewOnly: false }] : [];
   });
-}
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("zh-CN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 }

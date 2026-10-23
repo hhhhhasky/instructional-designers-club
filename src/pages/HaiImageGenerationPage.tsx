@@ -348,6 +348,7 @@ export default function HaiImageGenerationPage({ inline }: { inline?: InlineImag
       onImageTaskSelected={selectTask}
     />
   );
+  const taskTitle = taskId ? imageTasks.find((task) => task.id === taskId)?.title ?? "图片生成" : "图片生成";
   const selectedReferenceRun = selectedReferenceRunId ? runs.find((run) => run.id === selectedReferenceRunId) ?? null : null;
 
   if (inline) return (
@@ -361,8 +362,8 @@ export default function HaiImageGenerationPage({ inline }: { inline?: InlineImag
 
   return (
     <>
-      <PageMeta title="图片生成 - HAI" description="HAI 教研工作台图片生成" canonicalPath={taskId ? `/hai/work/image-generation/${taskId}` : "/hai/work/image-generation"} />
-      <HaiWorkShell sidebar={sidebar} title="图片生成" subtitle="把教学画面变成可以直接保存、下载和继续调整的图片" workspaceMode="production">
+      <PageMeta title={`${taskTitle} - HAI`} description="HAI 教研工作台图片生成" canonicalPath={taskId ? `/hai/work/image-generation/${taskId}` : "/hai/work/image-generation"} />
+      <HaiWorkShell sidebar={sidebar} title={taskTitle} subtitle="把教学画面变成可以直接保存、下载和继续调整的图片" workspaceMode="production" compactHeader>
         {!access?.allowed ? (
           <div className="mx-auto max-w-xl px-5 py-20 text-center">
             <h2 className="font-serif text-2xl font-black text-tx">HAI 暂时不可用</h2>

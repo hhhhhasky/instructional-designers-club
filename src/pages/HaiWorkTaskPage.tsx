@@ -387,7 +387,6 @@ export default function HaiWorkTaskPage() {
         contentMode="managed"
         compactHeader
         title={detail?.task.title ?? "工作任务"}
-        headerActions={detail ? <TaskActionMenu task={detail.task} onArchived={() => navigate("/hai/work")} onDeleted={() => navigate("/hai/work")} onRenamed={(title) => { setDetail((current) => current ? { ...current, task: { ...current.task, title } } : current); void reloadTaskList(); }} /> : undefined}
       >
         {loading ? (
           <div className="flex min-h-[60vh] items-center justify-center text-sm text-txs"><Loader2 className="mr-2 h-4 w-4 animate-spin" />正在读取任务档案</div>
