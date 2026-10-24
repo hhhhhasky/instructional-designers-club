@@ -59,4 +59,14 @@ describe("image request options", () => {
     await refreshHaiImage("run");
     expect(fetchMock.mock.calls[0][0]).toBe("https://db.example.test/functions/v1/hai-image-generation");
   });
+
+  it("requests owner-scoped thumbnails without changing the original download", async () => {
+    fetchMock.mockResolvedValueOnce(Response.json({ access: { run: "https://r2.example/run.png.preview-640.webp?signed=1" } }));
+    expect(await getHaiImageAccessUrls(["run"], "preview")).toEqual({ run: "https://r2.example/run.png.preview-640.webp?signed=1" });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ action: "access", runIds: ["run"], variant: "preview" });
+    fetchMock.mockResolvedValueOnce(new Response(new Uint8Array([1, 2, 3]), { headers: { "content-type": "image/png" } }));
+    expect((await downloadHaiImage("run")).type).toBe("image/png");
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({ action: "download", runId: "run" });
+  });
+
 });

@@ -1,0 +1,11 @@
+{
+  "name": "hai-image-thumbnail",
+  "main": "index.js",
+  "compatibility_date": "2026-10-24",
+  "workers_dev": true,
+  "images": { "binding": "IMAGES" },
+  "r2_buckets": [
+    { "binding": "IMAGE_BUCKET", "bucket_name": "course-videos" }
+  ],
+  "observability": { "enabled": true }
+}

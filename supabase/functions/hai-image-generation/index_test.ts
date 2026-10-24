@@ -67,6 +67,7 @@ Deno.test("image handler submits once and collects asynchronously without a work
       headers?: HeadersInit;
     } | undefined;
     const method = options?.method || "GET";
+    if (method === "HEAD" && url.hostname.endsWith(".r2.cloudflarestorage.com")) return new Response(null, { status: 200 });
     const body = options?.body ? JSON.parse(String(options.body)) : {};
     if (url.hostname === "provider.example.test") {
       if (method === "POST") {
@@ -474,6 +475,18 @@ Deno.test("image handler submits once and collects asynchronously without a work
         completedSettlements,
         storageWrites,
       }, before);
+    });
+    await test.step("preview links only expose the owner's thumbnail", async () => {
+      const saved = rows.find((row) => row.user_id === userId && row.r2_key && row.status !== "failed");
+      if (!saved) throw new Error("missing saved owner image fixture");
+      const foreign = { ...saved, id: crypto.randomUUID(), user_id: crypto.randomUUID() };
+      rows.push(foreign);
+      const before = providerQueries;
+      const result = await request({ action: "access", variant: "preview", runIds: [saved.id, foreign.id] });
+      assertEquals(result.http, 200);
+      assertStringIncludes(new URL(result.body.access[saved.id]).pathname, ".preview-640.webp");
+      assertEquals(result.body.access[foreign.id], undefined);
+      assertEquals(providerQueries, before);
     });
     await test.step("another owner's run cannot be read, collected, acknowledged or downloaded", async () => {
       const foreign = {

@@ -210,7 +210,7 @@ export default function HaiImagePptPage({ embedded = false }: { embedded?: boole
     const refresh = async () => {
       try {
         const ids = readyIds.split(",");
-        const next = await getHaiImageAccessUrls(ids);
+        const next = await getHaiImageAccessUrls(ids, "preview");
         if (!alive) return;
         imageUrls.current = { ...imageUrls.current, ...next };
         setUrls(imageUrls.current);
@@ -852,7 +852,7 @@ export default function HaiImagePptPage({ embedded = false }: { embedded?: boole
                               {run?.r2_key && urls[run.id] &&
                                   !imageErrors[run.id]
                                 ? (
-                                  <a href={urls[run.id]} target="_blank" rel="noreferrer" aria-label={`放大第${index + 1}页`}>
+                                  <div className="h-full w-full">
                                     <img
                                       alt={`第${index + 1}页：${page.title}`}
                                       src={urls[run.id]}
@@ -866,7 +866,7 @@ export default function HaiImagePptPage({ embedded = false }: { embedded?: boole
                                             "图片已生成，但加载失败，请重新加载。",
                                         }))}
                                     />
-                                  </a>
+                                  </div>
                                 )
                                 : (
                                   <div className="flex h-full flex-col items-center justify-center gap-3 p-5 text-center text-sm text-txs">

@@ -206,10 +206,9 @@ export async function downloadHaiImage(runId: string, deadlineAt?: number) {
   return response.blob();
 }
 
-// Ask the Edge Function to presign short-lived direct links for saved images,
-// so the browser fetches bytes from R2 instead of relaying them through the
-// Edge. Runs restored from RLS list queries never carry access_url on their own.
-export async function getHaiImageAccessUrls(runIds: string[]): Promise<Record<string, string>> {
+// Owner-scoped expiring links. Preview requests create/reuse a small WebP;
+// original links and the download endpoint continue to serve the full image.
+export async function getHaiImageAccessUrls(runIds: string[], variant: "original" | "preview" = "original"): Promise<Record<string, string>> {
   if (!runIds.length) return {};
   const { data } = await supabase.auth.getSession();
   if (!data.session?.access_token) throw new Error("请先登录。");
@@ -217,7 +216,7 @@ export async function getHaiImageAccessUrls(runIds: string[]): Promise<Record<st
   const response = await fetch(imageFunctionUrl(baseUrl), {
     method: "POST",
     headers: { authorization: `Bearer ${data.session.access_token}`, "content-type": "application/json" },
-    body: JSON.stringify({ action: "access", runIds }), signal: deadlineSignal(Date.now() + 30_000),
+    body: JSON.stringify({ action: "access", runIds, ...(variant === "preview" ? { variant } : {}) }), signal: deadlineSignal(Date.now() + 30_000),
   });
   const payload = await response.json().catch(() => ({})) as { access?: Record<string, string>; error?: string };
   if (!response.ok) throw new Error(payload.error || "暂时未取到图片链接，请稍后重试。");

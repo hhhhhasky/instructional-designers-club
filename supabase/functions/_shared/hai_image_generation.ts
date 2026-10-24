@@ -1,6 +1,7 @@
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "npm:@aws-sdk/client-s3@3.1048.0";
@@ -617,4 +618,54 @@ export async function readStoredImage(key: string, deadlineAt?: number) {
     contentType:
       (response.headers.get("content-type") || "image/png").split(";")[0],
   };
+}
+
+
+// The transformation URL stays server-side. Browsers receive only expiring
+// R2 links to the thumbnail, preserving the same owner checks as the original.
+export function imagePreviewKey(key: string) {
+  if (!key.startsWith("hai-image-generation/") || key.includes("..")) {
+    throw new Error("图片标识不正确。");
+  }
+  return `${key}.preview-640.webp`;
+}
+
+export function imageThumbnailServiceUrl() {
+  const endpoint = new URL(Deno.env.get("HAI_IMAGE_THUMBNAIL_URL") || "https://hai-image-thumbnail.haskychuangke01.workers.dev/");
+  if (endpoint.protocol !== "https:" || endpoint.username || endpoint.password) {
+    throw new Error("缩略图服务必须使用 HTTPS。");
+  }
+  return new URL("/thumbnail", endpoint).toString();
+}
+
+export async function getStoredImagePreviewUrl(key: string, expiresIn = 600) {
+  const previewKey = imagePreviewKey(key);
+  const { client, bucket } = r2Config();
+  // Use the fetch transport already used by original downloads. The SDK's
+  // Node HTTP HEAD transport can abort the Edge runtime on an empty response.
+  const headUrl = await getSignedUrl(client, new HeadObjectCommand({ Bucket: bucket, Key: previewKey }), { expiresIn: 60 });
+  const lookup = await fetch(headUrl, { method: "HEAD", signal: AbortSignal.timeout(5_000) });
+  if (!lookup.ok && lookup.status !== 404) {
+    console.warn("hai_thumbnail_storage_status", { status: lookup.status });
+    throw new Error("缩略图存储暂时不可用。");
+  }
+  if (lookup.status === 404) {
+    const accessUrl = await getSignedUrl(client, new HeadObjectCommand({ Bucket: bucket, Key: key }), { expiresIn: 120 });
+    const response = await fetch(imageThumbnailServiceUrl(), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ key, accessUrl }),
+      signal: AbortSignal.timeout(22_000),
+      redirect: "error",
+    });
+    // The Worker has written the private WebP before reporting success.
+    if (response.status !== 204) {
+      const workerError = await response.json().catch(() => null);
+      const knownErrors = ["Image authorization required", "Invalid authorization URL", "Invalid image authorization", "Image authorization rejected", "Image authorization unavailable", "Invalid request", "Image not found", "Image exceeds processing limit", "Thumbnail conversion failed", "Not found"];
+      const reason = workerError && typeof workerError === "object" && "error" in workerError && knownErrors.includes(String(workerError.error)) ? String(workerError.error) : "unrecognized response";
+      console.warn("hai_thumbnail_worker_status", { status: response.status, reason });
+      throw new Error("缩略图暂时不可用，请稍后重试。");
+    }
+  }
+  return getStoredImageDirectUrl(previewKey, expiresIn);
 }

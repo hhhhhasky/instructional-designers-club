@@ -12,6 +12,7 @@ import {
   composeImageGenerationPrompt,
   getStoredImageAccessUrl,
   getStoredImageDirectUrl,
+  getStoredImagePreviewUrl,
   IMAGE_FAILURE_MESSAGE,
   IMAGE_GENERATION_POINTS,
   IMAGE_GENERATION_STYLES,
@@ -454,10 +455,21 @@ export async function handleImageGeneration(
       );
       if (r.error) throw new Error(r.error.message);
       const access: Row = {};
-      for (const row of r.data ?? []) {
-        if (!row.r2_key || row.status === "failed") continue;
-        const signed = await withAccessUrl(row);
-        if (signed.access_url) access[row.id] = signed.access_url;
+      const rows = (r.data ?? []).filter((row: Row) => row.r2_key && row.status !== "failed");
+      // Keep each batch bounded; a failed thumbnail must not hide other pages.
+      for (let index = 0; index < rows.length; index += 4) {
+        await Promise.all(rows.slice(index, index + 4).map(async (row: Row) => {
+          if (body.variant === "preview") {
+            try {
+              access[row.id] = await getStoredImagePreviewUrl(row.r2_key, IMAGE_ACCESS_URL_TTL_SECONDS);
+            } catch (error) {
+              console.warn("hai image thumbnail unavailable", { run_id: row.id, error_type: error instanceof Error ? error.name : "unknown" });
+            }
+          } else {
+            const signed = await withAccessUrl(row);
+            if (signed.access_url) access[row.id] = signed.access_url;
+          }
+        }));
       }
       return jsonResponse({ access }, 200);
     }

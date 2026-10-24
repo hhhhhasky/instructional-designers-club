@@ -109,6 +109,7 @@ export default function HaiImageGenerationPage({ inline }: { inline?: InlineImag
   const deliveredRuns = useRef(new Set<string>());
   const acknowledging = useRef(new Set<string>());
   const downloadedImages = useRef<Record<string, Blob>>({});
+  const loadedPreviews = useRef(new Set<string>());
   const [pending, setPending] = useState<PendingImage | null>(null);
 
   const reportBusy = inline?.onBusyChange;
@@ -207,8 +208,7 @@ export default function HaiImageGenerationPage({ inline }: { inline?: InlineImag
           if (cancelled || !result.run || deliveredRuns.current.has(runId)) continue;
           if (Date.now() >= deadlineFor(run)) { failRun(runId); continue; }
           setRuns((current) => current.map((item) => item.id === runId && item.status !== "failed" ? result.run! : item));
-          const blob = downloadedImages.current[runId];
-          if (blob && result.run.r2_key && result.run.status === "running") void delivered(result.run, blob);
+          if (loadedPreviews.current.has(runId) && result.run.r2_key && result.run.status === "running") void delivered(result.run);
         } catch { /* Keep the saved task; retry on the next poll. */ }
       }
       if (!cancelled) timer = setTimeout(() => void poll(), HAI_IMAGE_POLL_INTERVAL_MS);
@@ -216,20 +216,8 @@ export default function HaiImageGenerationPage({ inline }: { inline?: InlineImag
     timer = setTimeout(() => void poll(), HAI_IMAGE_POLL_INTERVAL_MS);
     return () => { cancelled = true; clearTimeout(timer); };
   }, [activeRunIds, user]);
-  // Runs restored from owner-only RLS list queries carry no access_url: ask
-  // the Edge function once for short-lived direct links so saved images load
-  // from R2 instead of relaying bytes through the Edge.
-  const accessBackfillKey = runs.filter((run) => run.r2_key && run.image_url && run.status !== "failed" && !run.access_url).map((run) => run.id).join(",");
-  useEffect(() => {
-    if (!accessBackfillKey || !user) return;
-    let cancelled = false;
-    void getHaiImageAccessUrls(accessBackfillKey.split(",")).then((access) => {
-      if (cancelled || !Object.keys(access).length) return;
-      setRuns((current) => current.map((run) => access[run.id] ? { ...run, access_url: access[run.id] } : run));
-    }).catch(() => undefined);
-    return () => { cancelled = true; };
-  }, [accessBackfillKey, user]);
   async function delivered(run: HaiImageGenerationRun, blob?: Blob) {
+    loadedPreviews.current.add(run.id);
     if (blob) downloadedImages.current[run.id] = blob;
     if (run.status === "completed" || deliveredRuns.current.has(run.id) || acknowledging.current.has(run.id)) return;
     if (run.metadata?.execution_mode === "provider_async") {
@@ -389,7 +377,7 @@ export default function HaiImageGenerationPage({ inline }: { inline?: InlineImag
               <>
                 <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8">
                   <div className="mx-auto max-w-4xl space-y-7">
-                    {runs.map((run) => <ImageConversation key={run.id} run={run} onDownload={() => void download(run)} deadlineAt={deadlineFor(run)} onDelivered={(blob) => void delivered(run, blob)} onFailure={(stage) => failRun(run.id, stage)} />)}
+                    {runs.map((run) => <ImageConversation key={run.id} run={run} onDownload={() => void download(run)} deadlineAt={deadlineFor(run)} onDelivered={(blob) => void delivered(run, blob)} />)}
                     {pending && <PendingConversation pending={pending} />}
                     {error && <div><div className="rounded-ds-lg border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">{error}</div><ImageTaskNumber value={errorTaskNumber} /></div>}
                   </div>
@@ -494,14 +482,14 @@ function PendingConversation({ pending }: { pending: PendingImage }) {
   return <><div className="flex justify-end"><div className="max-w-[85%] rounded-2xl rounded-br-md bg-[var(--annotation)] px-4 py-3 text-sm leading-6 text-white shadow-ds-sm"><p>{pending.prompt}</p><div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-white/80"><span>{sizeLabels[pending.size]}</span>{pending.subject && <span>· {pending.subject}</span>}<span>· {imageStyleLabel(pending.style)}</span><span>· {pending.imageType}</span>{(pending.referenceFiles.length > 0 || pending.referenceRunId) && <span>· 参考图 {pending.referenceFiles.length || 1} 张</span>}</div></div></div><div className="flex items-start gap-3 text-sm text-txs"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--annotation-soft)] text-[var(--annotation)]"><Loader2 className="h-4 w-4 animate-spin" /></span><div className="min-w-0 pt-2">正在提交图片任务…<ImageTaskNumber value={pending.requestId} /></div></div></>;
 }
 
-function ImageConversation({ run, onDownload, deadlineAt, onDelivered, onFailure }: { run: HaiImageGenerationRun; onDownload: () => void; deadlineAt: number; onDelivered: (blob?: Blob) => void; onFailure: (stage: string) => void }) {
+function ImageConversation({ run, onDownload, deadlineAt, onDelivered }: { run: HaiImageGenerationRun; onDownload: () => void; deadlineAt: number; onDelivered: (blob?: Blob) => void }) {
   const active = ["running", "queued"].includes(run.status);
   const ready = Boolean(run.r2_key && run.image_url && run.status !== "failed");
   const submitUnconfirmed = active && run.metadata?.phase === "provider_submit_unconfirmed";
   return <div className="space-y-3">
     <div className="flex justify-end"><div className="max-w-[85%] rounded-2xl rounded-br-md bg-[var(--annotation)] px-4 py-3 text-sm leading-6 text-white shadow-ds-sm"><p>{run.prompt}</p><div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-white/80"><span>{sizeLabels[run.image_size]}</span>{typeof run.metadata?.subject === "string" && run.metadata.subject && <span>· {run.metadata.subject}</span>}<span>· {imageStyleLabel(run.art_style)}</span><span>· {run.image_type}</span>{run.reference_images?.length > 0 && <span>· 参考图 {run.reference_images.length} 张</span>}</div></div></div>
     <div className="flex items-start gap-3"><span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--annotation-soft)] text-[var(--annotation)]"><Sparkles className="h-4 w-4" /></span><div className="min-w-0 max-w-[92%]"><p className="mb-2 text-xs font-bold text-txs">{run.status === "completed" ? "HAI 已生成" : submitUnconfirmed ? "接单结果未确认" : active ? "正在生成" : "本轮生成失败"}</p>
-      {ready ? <div className="overflow-hidden rounded-ds-xl border border-[var(--paper-rule)] bg-white shadow-ds-sm"><GeneratedImage run={run} deadlineAt={deadlineAt} onDelivered={onDelivered} onFailure={onFailure} />{run.status === "completed" && <div className="flex items-center justify-between gap-3 border-t border-[var(--paper-rule)] px-3 py-2"><span className="truncate text-[11px] text-txs">图片需及时保存，7 天后自动清空。</span><Button size="sm" variant="ghost" onClick={onDownload}><ArrowDownToLine className="h-4 w-4" />下载</Button></div>}</div>
+      {ready ? <div className="overflow-hidden rounded-ds-xl border border-[var(--paper-rule)] bg-white shadow-ds-sm"><GeneratedImage run={run} deadlineAt={deadlineAt} onDelivered={onDelivered} />{run.status === "completed" && <div className="flex items-center justify-between gap-3 border-t border-[var(--paper-rule)] px-3 py-2"><span className="truncate text-[11px] text-txs">图片需及时保存，7 天后自动清空。</span><Button size="sm" variant="ghost" onClick={onDownload}><ArrowDownToLine className="h-4 w-4" />下载</Button></div>}</div>
       : submitUnconfirmed ? <div role="alert" className="rounded-ds-lg border border-red-100 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">生图服务暂未确认接单。系统会继续查询这次请求；请先不要重复提交，避免重复生成或扣费。若长时间没有进展，请联系管理员。</div>
       : active ? <div className="rounded-ds-lg border border-[var(--paper-rule)] bg-white px-4 py-3 text-sm leading-6 text-txs">图片正在生成。超过 10 分钟仍未出图，请联系哈老师。</div>
       : <div className="rounded-ds-lg border border-red-100 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">{HAI_IMAGE_FAILURE_MESSAGE}</div>}
@@ -510,37 +498,23 @@ function ImageConversation({ run, onDownload, deadlineAt, onDelivered, onFailure
   </div>;
 }
 
-function GeneratedImage({ run, deadlineAt, onDelivered, onFailure }: { run: HaiImageGenerationRun; deadlineAt: number; onDelivered: (blob?: Blob) => void; onFailure: (stage: string) => void }) {
+function GeneratedImage({ run, onDelivered }: { run: HaiImageGenerationRun; deadlineAt: number; onDelivered: (blob?: Blob) => void }) {
   const [source, setSource] = useState("");
-  const [fallback, setFallback] = useState(false);
-  const downloadedBlob = useRef<Blob | null>(null);
   const [loadError, setLoadError] = useState("");
   const [attempt, setAttempt] = useState(0);
-  const callbacks = useRef({ onDelivered, onFailure }); callbacks.current = { onDelivered, onFailure };
   useEffect(() => {
-    let cancelled = false, objectUrl = "";
+    let cancelled = false;
     setSource(""); setLoadError("");
-    if (!fallback && run.access_url) {
-      // Fetch straight from R2 with the short-lived presigned link.
-      setSource(run.access_url);
-      return () => { cancelled = true; };
-    }
-    void downloadHaiImage(run.id, run.status === "completed" || !Number.isFinite(deadlineAt) ? undefined : deadlineAt).then((blob) => {
+    void getHaiImageAccessUrls([run.id], "preview").then((access) => {
       if (cancelled) return;
-      downloadedBlob.current = blob; objectUrl = URL.createObjectURL(blob); setSource(objectUrl);
+      if (!access[run.id]) throw new Error("缩略图暂时不可用，请重新加载。");
+      setSource(access[run.id]);
     }).catch(() => {
-      if (!cancelled) {
-        if (run.status !== "completed" && Number.isFinite(deadlineAt)) callbacks.current.onFailure("image_download");
-        else setLoadError("图片加载失败，请重新加载。");
-      }
+      if (!cancelled) setLoadError("缩略图加载失败，请重新加载。");
     });
-    return () => { cancelled = true; if (objectUrl) URL.revokeObjectURL(objectUrl); };
-  }, [run.id, run.access_url, fallback, attempt]);
+    return () => { cancelled = true; };
+  }, [run.id, attempt]);
   if (loadError) return <div className="flex min-h-40 items-center justify-center px-4 py-8 text-sm text-red-600"><div><p>{loadError}</p><Button variant="ghost" onClick={() => setAttempt((value) => value + 1)}>重新加载图片</Button></div></div>;
   if (!source) return <div className="flex min-h-40 items-center justify-center px-4 py-8 text-sm text-txt">正在加载图片预览…</div>;
-  return <img src={source} alt={run.prompt} onLoad={() => { if (downloadedBlob.current) callbacks.current.onDelivered(downloadedBlob.current); else callbacks.current.onDelivered(); }} onError={() => {
-    // A stale or lost presigned link falls back to the relayed download once.
-    if (!fallback && run.access_url) { setFallback(true); return; }
-    run.status !== "completed" && Number.isFinite(deadlineAt) ? callbacks.current.onFailure("image_decode") : setLoadError("图片加载失败，请重新加载。");
-  }} className="max-h-[560px] w-full object-contain" />;
+  return <img src={source} alt={run.prompt} decoding="async" onLoad={() => onDelivered()} onError={() => setLoadError("缩略图加载失败，请重新加载。")} className="max-h-80 w-full max-w-[400px] object-contain" />;
 }

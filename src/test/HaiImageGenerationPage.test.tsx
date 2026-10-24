@@ -20,7 +20,7 @@ beforeEach(()=>{
   vi.useFakeTimers();vi.clearAllMocks();
   run={...base,delivery_deadline_at:new Date(Date.now()+150_000).toISOString()};
   mocks.getRuns.mockResolvedValue([run]);mocks.refresh.mockResolvedValue({run});
-  mocks.download.mockResolvedValue(new Blob(["image"],{type:"image/png"}));mocks.accessUrls.mockResolvedValue({});
+  mocks.download.mockResolvedValue(new Blob(["image"],{type:"image/png"}));mocks.accessUrls.mockResolvedValue({ run: "https://r2.example/run.png.preview-640.webp?signed=1" });
   mocks.acknowledge.mockResolvedValue({run:{...ready(),status:"completed"}});mocks.fail.mockResolvedValue({run:{...run,status:"failed"}});
   URL.createObjectURL=vi.fn(()=>"blob:preview");URL.revokeObjectURL=vi.fn();
 });
@@ -156,15 +156,16 @@ describe("image task delivery",()=>{
   it("an undecodable image fails without acknowledgement or exposing provider details",async()=>{
     mocks.getRuns.mockResolvedValue([ready()]);mount();await tick();
     fireEvent.error(screen.getByRole("img",{name:"水循环"}));await tick();
-    expect(mocks.fail).toHaveBeenCalledWith("run","image_decode");expect(mocks.acknowledge).not.toHaveBeenCalled();
-    expect(screen.getByText("本次生成失败，本轮未扣积分，请再次尝试。")).toBeInTheDocument();
+    expect(mocks.fail).not.toHaveBeenCalled();
+    expect(mocks.acknowledge).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "重新加载图片" })).toBeInTheDocument();
+    expect(mocks.download).not.toHaveBeenCalled();
   });
   it("a lost acknowledgement keeps an image already delivered in time visible and does not resubmit",async()=>{
     mocks.getRuns.mockResolvedValue([ready()]);mocks.acknowledge.mockRejectedValue(new Error("offline"));mount();await tick();
     fireEvent.load(screen.getByRole("img",{name:"水循环"}));await tick();await tick(151_000);
     expect(screen.getByText("HAI 已生成")).toBeInTheDocument();expect(mocks.fail).not.toHaveBeenCalled();expect(mocks.generate).not.toHaveBeenCalled();
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
-    mocks.download.mockRejectedValue(new Error("database task expired"));
     fireEvent.click(screen.getByRole("button", { name: "下载" })); await tick();
     expect(mocks.download).toHaveBeenCalledTimes(1); expect(click).toHaveBeenCalledTimes(1); click.mockRestore();
   });
@@ -241,28 +242,30 @@ describe("image task delivery",()=>{
     expect(mocks.refresh).toHaveBeenCalledTimes(1);
     view.unmount(); await tick(90_000); expect(mocks.refresh).toHaveBeenCalledTimes(1);
   });
-  it("loads a saved image straight from the short-lived access URL without relaying bytes", async () => {
+  it("uses a thumbnail even when a saved run contains an original access URL", async () => {
     const withUrl = {...ready(), delivery_deadline_at: null, metadata: {execution_mode: "provider_async"}, access_url: "https://r2.example/signed?X-Amz-Signature=abc"};
     mocks.getRuns.mockResolvedValue([withUrl]); mocks.refresh.mockResolvedValue({run: withUrl});
     mount(); await tick();
-    expect((screen.getByRole("img", {name: "水循环"}) as HTMLImageElement).getAttribute("src")).toBe("https://r2.example/signed?X-Amz-Signature=abc");
+    expect((screen.getByRole("img", {name: "水循环"}) as HTMLImageElement).getAttribute("src")).toBe("https://r2.example/run.png.preview-640.webp?signed=1");
     expect(mocks.download).not.toHaveBeenCalled();
     fireEvent.load(screen.getByRole("img", {name: "水循环"})); await tick();
     expect(mocks.acknowledge).toHaveBeenCalledTimes(1);
   });
-  it("backfills access URLs for history runs restored through RLS and keeps the proxy as fallback", async () => {
+  it("loads history through the thumbnail endpoint without fetching the original", async () => {
     mocks.accessUrls.mockResolvedValue({run: "https://r2.example/backfilled"});
     mocks.getRuns.mockResolvedValue([ready()]); mount(); await tick();
-    expect(mocks.accessUrls).toHaveBeenCalledWith(["run"]);
+    expect(mocks.accessUrls).toHaveBeenCalledWith(["run"], "preview");
     expect((screen.getByRole("img", {name: "水循环"}) as HTMLImageElement).getAttribute("src")).toBe("https://r2.example/backfilled");
-    expect(mocks.download).toHaveBeenCalledTimes(1);
+    expect(mocks.download).not.toHaveBeenCalled();
   });
-  it("falls back to the relayed download once when the access URL fails to load", async () => {
+  it("retries the thumbnail link without downloading the original when preview fails", async () => {
     const stale = {...ready(), delivery_deadline_at: null, metadata: {execution_mode: "provider_async"}, access_url: "https://r2.example/stale"};
     mocks.getRuns.mockResolvedValue([stale]); mount(); await tick();
     fireEvent.error(screen.getByRole("img", {name: "水循环"})); await tick();
-    expect(mocks.download).toHaveBeenCalledTimes(1);
+    expect(mocks.download).not.toHaveBeenCalled();
     expect(mocks.fail).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "重新加载图片" })); await tick();
+    expect(mocks.accessUrls).toHaveBeenCalledTimes(2);
     fireEvent.load(screen.getByRole("img", {name: "水循环"})); await tick();
     expect(mocks.acknowledge).toHaveBeenCalledTimes(1);
   });
