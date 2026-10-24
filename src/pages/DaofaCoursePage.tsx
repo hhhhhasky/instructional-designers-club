@@ -11,6 +11,7 @@ import Header from '@/components/layout/Header';
 import { useAuth } from '@/contexts/AuthContext';
 import { type CourseProductCatalog, getCourseProductCatalog, subscribeToCourseCatalogUpdates } from '@/db/api';
 import { canAccessCourse } from '@/lib/access-control';
+import { DAOFA_CANVAS_ENTRY } from '@/lib/daofa-catalog';
 
 export default function DaofaCoursePage() {
   const { courseAccessCodes, profile } = useAuth();
@@ -57,10 +58,9 @@ export default function DaofaCoursePage() {
             <span className="editorial-kicker">选择学习内容</span>
             <nav aria-label="道法课程篇章" className="mt-4 space-y-2">
               {chapters.map((chapter, index) => <a key={chapter.id} href={`#${chapter.id}`} className="flex min-h-11 items-center justify-between rounded-ds-sm px-3 text-sm text-tx hover:bg-acl/40 hover:text-ac">
-                <span>{String(index + 1).padStart(2, '0')} · {chapter.title}</span><span className="text-xs text-txt">{chapter.lessons.length} 项</span>
+                <span>{String(index + 1).padStart(2, '0')} · {chapter.title}</span><span className="text-xs text-txt">{chapter.lessons.length + (chapter.title === DAOFA_CANVAS_ENTRY.category ? 1 : 0)} 项</span>
               </a>)}
             </nav>
-            <Link to="/courses/daofa/alignment-canvas" className="mt-4 flex min-h-11 items-center gap-2 rounded-ds-sm px-3 text-sm text-ac hover:bg-acl/40"><Compass className="h-4 w-4" />三元对齐画布</Link>
             {!hasAccess && <p className="mt-6 border-t border-dashed border-bd pt-4 text-xs leading-6 text-txs"><LockKeyhole className="mr-1 inline h-3.5 w-3.5" />开通“道法教材解读课”后，即可学习下方课程。</p>}
           </aside>
           <div className="space-y-12">
@@ -82,6 +82,15 @@ export default function DaofaCoursePage() {
                     <ArrowRight className="h-4 w-4 shrink-0 text-ac transition-transform group-hover:translate-x-1" />
                   </Link>
                 </li>)}
+                {chapter.title === DAOFA_CANVAS_ENTRY.category && <li className="border-b border-dashed border-bd last:border-b-0">
+                  <Link to={DAOFA_CANVAS_ENTRY.href} className="group flex min-h-20 items-center gap-4 px-4 py-4 transition-colors hover:bg-acl/25 focus-visible:bg-acl/25 sm:px-6">
+                    <span className="w-7 shrink-0 font-mono text-xs text-txt">{String(chapter.lessons.length + 1).padStart(2, '0')}</span>
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-bd text-ac"><Compass className="h-4 w-4" /></span>
+                    <span className="min-w-0 flex-1"><span className="block font-ds-bold text-tx group-hover:text-ac">{DAOFA_CANVAS_ENTRY.title}</span><span className="mt-1 block text-xs leading-5 text-txs">查看课标素养目标、内容要求与教材单元的对应关系。</span></span>
+                    <span className="shrink-0 text-xs text-txs">交互工具</span>
+                    <ArrowRight className="h-4 w-4 shrink-0 text-ac transition-transform group-hover:translate-x-1" />
+                  </Link>
+                </li>}
               </ol>
             </section>)}
           </div>

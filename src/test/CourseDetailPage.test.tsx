@@ -814,7 +814,8 @@ describe('正常课程详情按课程产品展示道法视频与正文', () => {
 
   it('同一课程记录的视频和图文同时显示，并使用道法自己的数据库目录', async () => {
     const nine = makeCourse({ id: 'nine-up', title: '九上教材解读', access_product_code: 'daofa-textbook', membership_type: 'plus', category: '分册解读篇' });
-    vi.mocked(getCourseProductCatalog).mockResolvedValue({ courses: [nine], categories: ['分册解读篇'], coursesByCategory: { '分册解读篇': [nine] } });
+    const overview = Array.from({ length: 4 }, (_, index) => makeCourse({ id: `overview-${index}`, title: `总论视频${index + 1}`, category: '总论篇' }));
+    vi.mocked(getCourseProductCatalog).mockResolvedValue({ courses: [...overview, nine], categories: ['总论篇', '分册解读篇'], coursesByCategory: { '总论篇': overview, '分册解读篇': [nine] } });
     const { container } = await renderAndWait('nine-up', [], {
       title: '九上教材解读', access_product_code: 'daofa-textbook', membership_type: 'plus', category: '分册解读篇',
       video_url: 'https://signed.example.test/nine.mp4', body: '## 九上正文\n\n新时代与中国梦。\n\n![课件](https://signed.example.test/slide.jpg)',
@@ -825,6 +826,15 @@ describe('正常课程详情按课程产品展示道法视频与正文', () => {
     expect(getCourseProductCatalog).toHaveBeenCalledWith('daofa-textbook');
     expect(screen.getAllByText('道法教材解读课目录').length).toBeGreaterThan(0);
     expect(screen.queryByText('教师AI课目录')).not.toBeInTheDocument();
+    const canvas = screen.getByRole('link', { name: /5\s*三元对齐画布/ });
+    expect(canvas).toHaveAttribute('href', '/courses/daofa/alignment-canvas');
+    const overviewGroup = canvas.parentElement!.parentElement!;
+    expect(within(overviewGroup).getByText('总论篇')).toBeInTheDocument();
+    expect(within(overviewGroup).getAllByText('5')).toHaveLength(2);
+    await userEvent.click(within(screen.getByTestId('mobile-course-navigation')).getByRole('button', { name: '打开课程目录' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('link', { name: /5\s*三元对齐画布/ })).toHaveAttribute('href', '/courses/daofa/alignment-canvas');
+    await userEvent.keyboard('{Escape}');
     await userEvent.click(screen.getByRole('button', { name: '道法教材解读课' }));
     expect(mockNavigate).toHaveBeenLastCalledWith('/courses/daofa');
   });

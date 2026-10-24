@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { CheckCircle2, PlayCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { getCategoryIcon } from '@/lib/categoryIcons';
 import ContentFormatBadges from './ContentFormatBadges';
@@ -13,6 +14,7 @@ interface TeacherAiCatalogTocProps {
   /** 学习记录，用于在目录项显示「已完成 / 进行中」进度（可选）。 */
   learningRecords?: LearningRecord[];
   className?: string;
+  supplementalEntries?: readonly { category: string; title: string; href: string }[];
 }
 
 /**
@@ -28,6 +30,7 @@ export default function TeacherAiCatalogToc({
   onSelect,
   learningRecords,
   className,
+  supplementalEntries = [],
 }: TeacherAiCatalogTocProps) {
   const currentRef = useRef<HTMLButtonElement | null>(null);
 
@@ -40,13 +43,14 @@ export default function TeacherAiCatalogToc({
       <nav className="p-2 pb-6">
         {categories.map((category) => {
           const courses = coursesByCategory[category] || [];
+          const extraEntries = supplementalEntries.filter((entry) => entry.category === category);
           const Icon = getCategoryIcon(category);
           return (
             <div key={category} className="mb-3 last:mb-0">
               <div className="flex items-center gap-2 px-2 py-1.5">
                 <Icon className="w-4 h-4 text-amber-600 flex-shrink-0" />
                 <span className="text-xs font-bold text-txs flex-1 truncate">{category}</span>
-                <span className="text-[10px] text-txt">{courses.length}</span>
+                <span className="text-[10px] text-txt">{courses.length + extraEntries.length}</span>
               </div>
               <div className="space-y-0.5">
                 {courses.map((course, index) => {
@@ -104,6 +108,15 @@ export default function TeacherAiCatalogToc({
                     </button>
                   );
                 })}
+                {extraEntries.map((entry, index) => <Link
+                  key={entry.href}
+                  to={entry.href}
+                  className="w-full flex items-center gap-2 px-2 py-2 rounded-md text-left text-sm text-tx transition-colors hover:bg-warm/60 hover:text-amber-700"
+                >
+                  <span className="flex-shrink-0 w-5 text-center text-xs text-txt">{courses.length + index + 1}</span>
+                  <span className="flex-1 min-w-0 truncate leading-snug">{entry.title}</span>
+                  <span className="shrink-0 text-[10px] text-txt">交互工具</span>
+                </Link>)}
               </div>
             </div>
           );

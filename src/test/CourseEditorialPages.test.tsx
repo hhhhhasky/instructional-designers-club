@@ -281,10 +281,17 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
 
 it('道法目录用数据库课程ID跳转，后台新增九上无需前端册次开关', async () => {
   const course = makeCourse({ id: 'new-nine-up', title: '九年级上册新讲义', access_product_code: 'daofa-textbook', membership_type: 'plus', category: '分册解读篇', has_body: true });
-  vi.mocked(getCourseProductCatalog).mockResolvedValue({ courses: [course], categories: ['分册解读篇'], coursesByCategory: { '分册解读篇': [course] } });
+  const overview = Array.from({ length: 4 }, (_, index) => makeCourse({ id: `overview-${index}`, title: `总论视频${index + 1}`, category: '总论篇' }));
+  vi.mocked(getCourseProductCatalog).mockResolvedValue({ courses: [...overview, course], categories: ['总论篇', '分册解读篇'], coursesByCategory: { '总论篇': overview, '分册解读篇': [course] } });
   render(<MemoryRouter><DaofaCoursePage /></MemoryRouter>);
   const link = await screen.findByRole('link', { name: /九年级上册新讲义/ });
   expect(link).toHaveAttribute('href', '/courses/new-nine-up');
   expect(getCourseProductCatalog).toHaveBeenCalledWith('daofa-textbook');
-  expect(screen.getByRole('link', { name: /三元对齐画布/ })).toHaveAttribute('href', '/courses/daofa/alignment-canvas');
+  const canvas = screen.getByRole('link', { name: /三元对齐画布/ });
+  expect(canvas).toHaveAttribute('href', '/courses/daofa/alignment-canvas');
+  expect(canvas.closest('section')).toHaveAttribute('id', '总论篇');
+  expect(within(canvas).getByText('05')).toBeInTheDocument();
+  expect(within(canvas.closest('ol')!).getAllByRole('listitem')).toHaveLength(5);
+  expect(screen.getByRole('link', { name: /总论篇.*5\s*项/ })).toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: '道法备课工具' })).not.toBeInTheDocument();
 });
