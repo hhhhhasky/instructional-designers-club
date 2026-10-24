@@ -72,8 +72,8 @@ export function CourseEditorialHero({
             )}
           </div>
 
-          <aside className="editorial-paper p-5" aria-label="卷册信息">
-            <span className="editorial-kicker">CATALOGUE NOTE · 卷册信息</span>
+          <aside className="editorial-paper p-5" aria-label="课程概览">
+            <span className="editorial-kicker">这门课有什么</span>
             <dl className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-ds-sm border border-bd bg-bd">
               {stats.map((stat) => (
                 <div key={stat.label} className="bg-[var(--paper)] px-3 py-3">
@@ -116,7 +116,7 @@ export function CourseEditorialCatalogLayout({
     <section className="mx-auto max-w-7xl px-4 pb-16 pt-6 md:pt-8" aria-label={`${label}课程目录`}>
       <header className="mb-5 flex flex-col gap-4 border-b border-dashed border-bd pb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <span className="editorial-kicker">COURSE INDEX · 课程目录</span>
+          <span className="editorial-kicker">从这里开始学习</span>
           <div className="mt-1.5 flex items-baseline gap-2.5">
             <h2 className="font-ds-bold text-tx" style={{ fontFamily: "var(--fd)" }}>{label}</h2>
             <span className="text-xs text-txt">{countLabel}</span>
@@ -132,7 +132,7 @@ export function CourseEditorialCatalogLayout({
           tocStatic && "!max-h-none !overflow-visible",
         )}>
           <div className="border-b border-dashed border-bd pb-3">
-            <span className="editorial-kicker">CONTENTS · 目录</span>
+            <span className="editorial-kicker">课程目录</span>
           </div>
           <nav className="mt-3 space-y-1" aria-label={`${label}导航`}>
             {toc}
@@ -183,7 +183,7 @@ export function CourseEditorialVolume({
           <Icon className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <span className="editorial-kicker">VOL. {String(index + 1).padStart(2, "0")}</span>
+          <span className="editorial-kicker">第 {index + 1} 部分</span>
           <h2 id={headingId} className="mt-1 text-xl font-ds-bold text-tx md:text-2xl" style={{ fontFamily: "var(--fd)" }}>
             {title}
           </h2>

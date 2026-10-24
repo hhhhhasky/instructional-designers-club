@@ -17,7 +17,7 @@ import {
   CourseEditorialVolume,
 } from '@/components/course/CourseEditorialShell';
 import CourseTypeTabs from '@/components/course/CourseTypeTabs';
-import CoursePurchaseButton from '@/components/course/CoursePurchaseButton';
+import CourseAccessNotice from '@/components/course/CourseAccessNotice';
 import CourseFormatFilter, { resolveCourseType, type CourseTypeFilterValue } from '@/components/course/CourseFormatFilter';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCourseCatalogSnapshot, getCourseDetailSnapshot, subscribeToCourseCatalogUpdates } from '@/db/api';
@@ -28,7 +28,7 @@ import type { Course } from '@/types/types';
 
 export default function TeacherAiCoursesPage() {
   const navigate = useNavigate();
-  const { user, profile, courseAccessCodes, loading: authLoading } = useAuth();
+  const { user, profile, courseAccessCodes } = useAuth();
   const [categories, setCategories] = useState<string[]>([]);
   const [coursesByCategory, setCoursesByCategory] = useState<Record<string, Course[]>>({});
   const [courseTypeFilter, setCourseTypeFilter] = useState<CourseTypeFilterValue>('all');
@@ -146,18 +146,18 @@ export default function TeacherAiCoursesPage() {
         <main className="course-reading-desk flex-1 pb-12 pt-20">
           <CourseTypeTabs />
           <CourseEditorialHero
-            kicker="COURSE CATALOGUE · 教师 AI 课"
+            kicker="教师 AI 课 · 课程目录"
             badge="课程目录"
             title="教师 AI 课"
             description="用 AI 拓展教学设计的深度和广度：理解 AI、选择工具，并把它接入备课、分析、活动设计和课程开发。"
-            audience="建议按系列卷册顺序阅读；需要解决具体问题时，也可以直接从目录定位到对应单课。"
+            audience="可以按系列顺序学习，也可以从目录中选择你当前需要的课程。"
             icon={GraduationCap}
             stats={[
-              { label: '系列卷册', value: categories.length },
-              { label: '已发布单课', value: totalCourseCount },
+              { label: '课程系列', value: categories.length },
+              { label: '可学课程', value: totalCourseCount },
             ]}
           >
-            {!authLoading && profile?.role !== 'admin' && !canAccessCourse(courseAccessCodes, 'teacher-ai') && <CoursePurchaseButton productCode="teacher-ai" />}
+            <CourseAccessNotice productCode="teacher-ai" />
           </CourseEditorialHero>
 
           {isLoading && (
@@ -236,7 +236,7 @@ function CourseSeriesList({
 
   return (
     <CourseEditorialCatalogLayout
-      label="系列卷册"
+      label="课程系列"
       countLabel={`${categories.length} 卷`}
       toolbar={toolbar}
       emptyState={categories.length === 0 ? (

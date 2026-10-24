@@ -21,14 +21,14 @@ const LABELS: Record<HomeLandingKey, Record<string, string>> = {
   home_situations: { kicker: '区块眉题', title: '区块标题', description: '区块说明', items: '教学场景卡片', label: '场景标签', detail: '具体说明' },
   home_problem: { kicker: '区块眉题', title: '区块标题', description: '区块说明', items: '常见做法', detail: '不足说明', conclusion: '区块结语' },
   home_method: { kicker: '区块眉题', title_line1: '标题第一行', title_line2: '标题第二行', description: '方法说明', items: '方法步骤', detail: '步骤说明', before_label: '调整前标签', before_text: '调整前示例', after_label: '调整后标签', after_text: '调整后示例', footnote: '示例脚注' },
-  home_founder: { kicker: '区块眉题', title: '区块标题', description: '人物介绍', closing: '人物介绍结语' },
+  home_founder: { kicker: '介绍上方短标题', title: '介绍标题', name: '姓名', roles: '身份介绍', biography: '个人简介', accounts: '社交平台', label: '平台名称' },
   home_outcomes: { kicker: '区块眉题', title: '区块标题', description: '区块说明', item_kicker: '卡片小标签', items: '学习收获', detail: '收获说明' },
   home_courses: { kicker: '区块眉题', title: '区块标题', description: '选课说明', product_label: '商品卡标签', catalogue_cta: '目录按钮文字', purchase_cta: '购买按钮前缀', access_cta: '已购按钮前缀', footnote: '购买说明', items: '三门课的适合人群与收获', audience: '适合人群', gain: '学习收获' },
   home_learning: { kicker: '区块眉题', title: '区块标题', items: '下单与观看步骤', detail: '步骤说明', footnote: '订单与开通提示', learning_cta: '学习入口文字' },
   home_extra: { free_kicker: '免费课眉题', free_title: '免费课标题', free_cta: '全部课程按钮', faq_kicker: '问答眉题', faq_title: '问答标题', faq_items: '常见问答', detail: '回答', faq_cta: '返回课程按钮', updates_title: '课程更新标题', updates_description: '课程更新说明' },
 };
 
-const labelFor = (section: HomeLandingKey, field: string) => LABELS[section][field] ?? field;
+const labelFor = (section: HomeLandingKey, field: string) => section === 'home_founder' && field === 'name' ? '姓名或账号名称' : LABELS[section][field] ?? field;
 
 export function HomeLandingEditor({ sectionKey }: { sectionKey: HomeLandingKey }) {
   const tab = LANDING_TABS.find((entry) => entry.key === sectionKey)!;

@@ -220,7 +220,7 @@ export default function HaiWorkPage() {
       <HaiWorkShell
         sidebar={sidebar}
         title={activeConfig?.name ?? "帮你干活"}
-        subtitle={activeConfig?.promise ?? "诊断、优化与生成，沉淀为可追改的工作产物"}
+        subtitle={activeConfig?.promise ?? "分析教学问题，帮你写教案、做课件"}
       >
         {loading ? (
           <WorkLoading />
@@ -923,9 +923,9 @@ export function resolveWorkToolConfig(slug: HaiWorkToolSlug, module?: HaiFeature
   // 历史页面也会读取到新模块创建的任务，未知 slug 必须有可渲染的图标。
   const fallback = HAI_WORK_TOOL_CONFIG[slug] ?? {
     name: "工作任务",
-    eyebrow: "任务 · 产物",
-    description: "查看已保存的工作产物。",
-    promise: "查看工作产物",
+    eyebrow: "我的备课记录",
+    description: "查看已保存的教案、课件和教学建议。",
+    promise: "查看备课记录",
     icon: FileText,
     accent: "var(--proof)",
   };

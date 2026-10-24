@@ -161,7 +161,7 @@ export default function TaskActionMenu({
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>重命名任务</DialogTitle>
-            <DialogDescription>修改任务名称,不影响已有版本与产物。</DialogDescription>
+            <DialogDescription>修改名称后，已保存的教案、课件等内容仍会保留。</DialogDescription>
           </DialogHeader>
           <input
             autoFocus

@@ -295,19 +295,6 @@
       var(--paper);
   }
 
-  .course-editorial-hero::after {
-    content: "教研编辑部";
-    position: absolute;
-    top: 1rem;
-    right: max(1rem, calc((100vw - 1280px) / 2));
-    color: rgba(163, 72, 48, 0.12);
-    font-family: var(--fd);
-    font-size: clamp(2.8rem, 7vw, 6rem);
-    font-weight: 900;
-    letter-spacing: 0.08em;
-    pointer-events: none;
-    writing-mode: vertical-rl;
-  }
 
   .course-editorial-mark {
     display: inline-flex;

@@ -27,12 +27,24 @@ describe('course purchase links', () => {
     const card = screen.getByRole('heading', { name: '教师 AI 课' }).closest('article');
     expect(within(card!).getByRole('link', { name: '进入教师 AI 课' })).toHaveAttribute('href', '/teacher-ai-courses');
     expect(within(card!).queryByRole('link', { name: '购买教师 AI 课' })).not.toBeInTheDocument();
+    expect(within(card!).getByText('已开通')).toBeInTheDocument();
+    const otherCard = screen.getByRole('heading', { name: '教学通识课' }).closest('article');
+    expect(within(otherCard!).getByText('未开通')).toBeInTheDocument();
   });
 
   it('shows course entry instead of purchase to an administrator', () => {
     render(<MemoryRouter><CoursePurchaseSection isAdmin /></MemoryRouter>);
     expect(screen.queryByRole('link', { name: '购买教师 AI 课' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: '进入教师 AI 课' })).toHaveAttribute('href', '/teacher-ai-courses');
+    expect(screen.getAllByText('可直接学习')).toHaveLength(3);
+    expect(screen.queryByText('已开通')).not.toBeInTheDocument();
+  });
+
+  it('waits for permissions before showing status or purchase actions', () => {
+    render(<MemoryRouter><CoursePurchaseSection isLoading /></MemoryRouter>);
+    expect(screen.queryByText('未开通')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '购买教师 AI 课' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: '查看课程目录' })).toHaveLength(3);
   });
 
   it('renders course descriptions edited in the content database', () => {

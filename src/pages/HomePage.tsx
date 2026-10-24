@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
 import PageMeta from '@/components/common/PageMeta';
-import PageNavigation from '@/components/common/PageNavigation';
 import MemberHomeHero from '@/components/home/MemberHomeHero';
 import NotificationCard from '@/components/home/NotificationCard';
 import AnnouncementFeed from '@/components/home/AnnouncementFeed';
@@ -11,15 +10,6 @@ import CoursePurchaseSection from '@/components/pricing/CoursePurchaseSection';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHomeContent } from '@/hooks/useHomeContent';
 import { HomeSnapshotProvider } from '@/hooks/useHomeSnapshot';
-
-const navigation = [
-  { id: 'teaching-problems', label: '教学难题' },
-  { id: 'free-courses', label: '免费体验课程' },
-  { id: 'teaching-method', label: '哈老师的方法' },
-  { id: 'about-han', label: '关于哈老师' },
-  { id: 'course-products', label: '三门课程' },
-  { id: 'how-to-learn', label: '如何学习' },
-];
 
 export default function HomePage() {
   return <HomeSnapshotProvider><HomePageContent /></HomeSnapshotProvider>;
@@ -30,7 +20,6 @@ function HomePageContent() {
   const { loaded, homeCourses, landing, founder } = useHomeContent();
   const { home_hero: hero, home_situations: situationCopy, home_problem: problemCopy, home_method: methodCopy, home_founder: founderCopy, home_outcomes: outcomeCopy, home_learning: learningCopy, home_extra: extraCopy } = landing;
   const freeCourses = homeCourses.free.filter((course) => course.membership_type === 'free').slice(0, 2);
-  const pageNavigation = navigation.filter((item) => item.id !== 'free-courses' || freeCourses.length > 0);
 
   if (!loaded) {
     return <>
@@ -57,7 +46,6 @@ function HomePageContent() {
     <PageMeta title="哈老师聊教学设计" description="从真实教学问题出发，和哈老师一起分析教材、学情、目标、课堂活动与评价。了解教学通识课、教师 AI 课和道法教材解读课。" canonicalPath="/" keywords="哈老师聊教学设计,教师培训,教学设计,教师AI课,道法教材解读课" />
     <div className="min-h-screen bg-cream">
       <Header />
-      {!loading && <PageNavigation items={user ? [...pageNavigation, { id: 'my-learning', label: '我的学习' }] : pageNavigation} />}
       <main>
         <section id="teaching-problems" aria-labelledby="home-title" className="relative overflow-hidden border-b border-[var(--paper-rule)] bg-[var(--paper)] px-4 pb-14 pt-28 md:pb-20 md:pt-36">
           <div className="pointer-events-none absolute -right-24 top-0 h-96 w-96 rounded-full bg-ac/5 blur-3xl" aria-hidden="true" />
@@ -140,24 +128,26 @@ function HomePageContent() {
         </section>
 
         <section id="about-han" className="scroll-mt-24 bg-[var(--paper-deep)] px-4 py-16 md:py-24" aria-labelledby="about-han-title">
-          <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[280px_1fr] lg:items-center">
+          <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[280px_1fr] lg:items-start">
             <img className="aspect-square w-full border border-[var(--paper-rule)] bg-[var(--paper)] object-cover" src={founder.avatar_url} alt={founder.avatar_alt || founder.name} loading="lazy" />
             <div>
               <span className="editorial-kicker">{founderCopy.kicker}</span>
               <h2 id="about-han-title" className="mt-4 text-3xl font-ds-black text-tx md:text-5xl" style={{ fontFamily: 'var(--fd)' }}>{founderCopy.title}</h2>
-              <p className="mt-3 text-base font-ds-bold text-ac">{founder.name}</p>
-              {founder.tags.length > 0 && <div className="mt-3 flex flex-wrap gap-2">{founder.tags.map((tag) => <span key={tag.label} className="rounded-ds-pill border border-ac/25 px-3 py-1 text-xs text-txs">{tag.label}</span>)}</div>}
-              <p className="mt-6 max-w-2xl text-lg leading-9 text-tx">{founderCopy.description}</p>
-              {founder.info_items.length > 0 && <dl className="mt-5 grid gap-2 text-sm text-txs sm:grid-cols-2">{founder.info_items.map((item) => <div key={item.label} className="flex gap-2"><dt className="font-ds-bold text-tx">{item.label}</dt><dd>{item.text}</dd></div>)}</dl>}
-              <blockquote className="mt-7 border-l-4 border-ac pl-5 text-xl font-ds-bold leading-8 text-ac" style={{ fontFamily: 'var(--fd)' }}>“{founder.motto}”</blockquote>
-              <p className="mt-5 text-sm leading-7 text-txs">{founderCopy.closing}</p>
+              <p className="mt-3 text-xl font-ds-bold text-ac">{founderCopy.name}</p>
+              <p className="mt-2 text-sm font-ds-semibold leading-7 text-txs">{founderCopy.roles}</p>
+              <div className="mt-6 max-w-2xl space-y-4 text-base leading-8 text-tx">
+                {founderCopy.biography.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+              </div>
+              <dl className="mt-6 space-y-2 border-t border-[var(--paper-rule)] pt-5 text-sm leading-7">
+                {founderCopy.accounts.map((account) => <div key={account.label} className="flex flex-wrap gap-x-2"><dt className="text-txs">{account.label}：</dt><dd className="font-ds-semibold text-tx">{account.name}</dd></div>)}
+              </dl>
             </div>
           </div>
         </section>
 
         <section id="learning-outcomes" className="scroll-mt-24 bg-warm px-4 py-16 md:py-24" aria-labelledby="outcomes-title"><div className="mx-auto max-w-6xl"><span className="editorial-kicker">{outcomeCopy.kicker}</span><h2 id="outcomes-title" className="mt-4 max-w-3xl text-3xl font-ds-black leading-tight text-tx md:text-5xl" style={{ fontFamily: 'var(--fd)' }}>{outcomeCopy.title}</h2><p className="mt-4 max-w-2xl leading-8 text-txs">{outcomeCopy.description}</p><div className="mt-9 grid gap-4 md:grid-cols-3">{outcomeCopy.items.map((item, index) => <article key={item.title} className="border border-bd bg-white p-6 md:p-7"><span className="font-mono text-xs text-ac">0{index + 1} / {outcomeCopy.item_kicker}</span><h3 className="mt-5 text-xl font-ds-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>{item.title}</h3><p className="mt-3 text-sm leading-7 text-txs">{item.detail}</p></article>)}</div></div></section>
 
-        <CoursePurchaseSection accessCodes={courseAccessCodes ?? []} isAdmin={profile?.role === 'admin'} content={landing.home_courses} />
+        <CoursePurchaseSection accessCodes={courseAccessCodes ?? []} isLoading={loading} isAdmin={profile?.role === 'admin'} content={landing.home_courses} />
 
         <section id="how-to-learn" className="scroll-mt-24 bg-[var(--paper)] px-4 py-16 md:py-24" aria-labelledby="how-to-title"><div className="mx-auto max-w-6xl"><span className="editorial-kicker">{learningCopy.kicker}</span><h2 id="how-to-title" className="mt-4 text-3xl font-ds-black text-tx md:text-5xl" style={{ fontFamily: 'var(--fd)' }}>{learningCopy.title}</h2><div className="mt-10 grid gap-4 md:grid-cols-4">{learningCopy.items.map(({ title, detail }, index) => { const number = String(index + 1).padStart(2, '0'); return <div key={number} className="border-l-2 border-ac/40 bg-[var(--paper-deep)] p-5"><span className="font-mono text-xs text-ac">STEP {number}</span><h3 className="mt-4 font-ds-bold text-tx">{title}</h3><p className="mt-2 text-sm leading-7 text-txs">{detail}</p></div>; })}</div><p className="mt-6 max-w-3xl text-sm leading-7 text-txs">{learningCopy.footnote}</p>{user && <Link to="/learning" className="mt-5 inline-flex items-center gap-2 font-ds-semibold text-ac hover:underline">{learningCopy.learning_cta} <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>}</div></section>
 

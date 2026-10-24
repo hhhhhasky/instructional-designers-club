@@ -65,11 +65,6 @@ const STATUS_OPTIONS = [
 ];
 
 const LEVEL_OPTIONS = ["入门", "初级", "中级", "高级"] as const;
-const MEMBERSHIP_OPTIONS: { value: MembershipType; label: string }[] = [
-  { value: "free", label: "Free" },
-  { value: "plus", label: "Plus" },
-  { value: "pro", label: "Pro" },
-];
 const PRODUCT_OPTIONS: { value: CourseAccessCode | null; label: string }[] = [
   { value: null, label: "免费课程" },
   { value: "teaching-general-v1", label: "教学通识课" },
@@ -596,14 +591,6 @@ export default function CourseManagementSection() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleMembershipChange = (value: MembershipType) => {
-    handleAccessProductChange(value === "free" ? null : value === "pro" ? "teacher-ai" : "teaching-general-v1");
-    if (value === "free") {
-      setAccessPassword("");
-      setRemoveAccessPassword(Boolean(editingCourse?.password_access_enabled));
-    }
-  };
-
   const handleAccessProductChange = (value: CourseForm["access_product_code"]) => {
     setProductSelected(true);
     const membershipType: MembershipType = value === null ? "free" : value === "teacher-ai" ? "pro" : "plus";
@@ -1109,20 +1096,6 @@ export default function CourseManagementSection() {
                     className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
                   />
                 </div>
-                {editingCourse && <div>
-                  <label className="block text-ds-xs text-txs mb-1">兼容会员栏目</label>
-                  <select
-                    value={form.membership_type}
-                    onChange={(e) => handleMembershipChange(e.target.value as MembershipType)}
-                    className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
-                  >
-                    {MEMBERSHIP_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>}
                 <div>
                   <label className="block text-ds-xs text-txs mb-1">课程类型</label>
                   <select

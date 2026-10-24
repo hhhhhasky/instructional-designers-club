@@ -1,7 +1,17 @@
 import { BookOpen, GraduationCap, Library, Map } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import CourseAccessBadge from './CourseAccessBadge';
+import { canAccessCourse } from '@/lib/access-control';
+import type { CourseAccessCode } from '@/lib/course-entitlements';
 import { canAccessV2 } from "@/lib/v2-access";
+
+const TAB_PRODUCTS: Record<string, CourseAccessCode> = {
+  '/courses': 'teaching-general-v1',
+  '/teacher-ai-courses': 'teacher-ai',
+  '/courses/daofa': 'daofa-textbook',
+  '/course-v2': 'teaching-general-v2',
+};
 
 const COURSE_TABS = [
   {
@@ -26,7 +36,7 @@ const COURSE_TABS = [
 
 export default function CourseTypeTabs() {
   const { pathname } = useLocation();
-  const { profile } = useAuth();
+  const { profile, courseAccessCodes, loading } = useAuth();
   const hasV2Access = canAccessV2(profile);
   const activePath = pathname.startsWith("/courses/daofa")
     ? "/courses/daofa"
@@ -53,18 +63,20 @@ export default function CourseTypeTabs() {
       <nav className="flex overflow-x-auto border-b border-bd" aria-label="课程类型导航">
         {tabs.map(({ to, label, description, icon: Icon }) => {
           const active = to === activePath;
+          const isAdmin = profile?.role === "admin";
+          const hasAccess = isAdmin || canAccessCourse(courseAccessCodes, TAB_PRODUCTS[to]);
           return (
             <Link
               key={to}
               to={to}
               aria-current={active ? "page" : undefined}
-              className={`relative flex min-w-[190px] items-center gap-3 border-r border-bd px-4 py-3 transition-colors first:border-l ${active ? "bg-bgs text-ac" : "text-txs hover:bg-bgs/70 hover:text-ac"}`}
+              className={`relative flex min-w-[210px] items-center gap-3 border-r border-bd px-4 py-3 transition-colors first:border-l ${active ? "bg-bgs text-ac" : "text-txs hover:bg-bgs/70 hover:text-ac"}`}
             >
               <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-ds-sm ${active ? "bg-acl" : "bg-bgs"}`}>
                 <Icon className="h-4 w-4" aria-hidden="true" />
               </span>
               <span className="min-w-0">
-                <span className="block text-sm font-ds-bold">{label}</span>
+                <span className="flex flex-wrap items-center gap-x-2 gap-y-1"><span className="text-sm font-ds-bold">{label}</span>{!loading && <CourseAccessBadge hasAccess={hasAccess} isAdmin={isAdmin} />}</span>
                 <span className="mt-0.5 block truncate text-[10px] text-txs">{description}</span>
               </span>
               {active && <span className="absolute inset-x-0 bottom-0 h-1 bg-ac" />}

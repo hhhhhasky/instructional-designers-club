@@ -33,7 +33,7 @@ function UpgradeBody({ requiredLevel, productCode, onClose }: Omit<UpgradePopupP
           <BookOpen className="w-7 h-7 text-ac" />
         </div>
         <h3 className="text-xl font-ds-bold text-tx mb-1">尚未开通{courseName}</h3>
-        <p className="text-ds-sm text-txs">购买后按现有流程开通课程权限</p>
+        <p className="text-ds-sm text-txs">在小红书下单后，请通过订单页联系商家，为你的官网账号开通课程。</p>
       </div>
       {product && <Button
         size="lg"

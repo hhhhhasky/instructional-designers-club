@@ -129,7 +129,7 @@ export default function CourseQuestionsPanel({ course }: CourseQuestionsPanelPro
       toast.success("问题已发布");
       await load(true);
     } catch {
-      toast.error("发布失败，请确认账号权限后重试");
+      toast.error("问题未能提交，请稍后重试；如果仍然失败，请联系管理员。");
     } finally {
       setSavingQuestion(false);
     }

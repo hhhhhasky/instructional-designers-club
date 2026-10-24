@@ -129,7 +129,7 @@ export default function PlusTrackPage() {
         {isLoading && <LoadingOverlay message="正在加载 Plus 篇章..." />}
         <main className="course-reading-desk flex-1 pb-12 pt-20">
           <CourseEditorialHero
-            kicker="PLUS VOLUME · 教学通识课卷册"
+            kicker="教学通识课 · 课程目录"
             badge={`PLUS · ${track.shortTitle}`}
             title={track.title}
             description={track.description}
@@ -138,7 +138,7 @@ export default function PlusTrackPage() {
             onBack={() => navigate('/courses')}
             backLabel="返回课程地图"
             stats={[
-              { label: '系列卷册', value: track.modules.length },
+              { label: '课程系列', value: track.modules.length },
               { label: '已发布单课', value: visibleTrackCourseCount },
             ]}
           >

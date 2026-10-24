@@ -134,7 +134,7 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
     expect(screen.getByRole('link', { name: '购买道法教材解读课' })).toHaveAttribute('href', 'https://xhslink.com/m/277IB24mn8I');
   });
 
-  it('教师 AI 课以系列卷册目录呈现，并为课程入口提供可访问名称', async () => {
+  it('教师 AI 课以课程系列目录呈现，并为课程入口提供可访问名称', async () => {
     const course = makeCourse({ id: 'pro-1', title: 'AI 导论' });
     vi.mocked(getCourseCatalogSnapshot).mockResolvedValue({
       plus_courses: [],
@@ -162,8 +162,8 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
     await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
 
     expect(screen.getByRole('heading', { level: 1, name: '教师 AI 课' })).toBeInTheDocument();
-    expect(screen.getByText('COURSE CATALOGUE · 教师 AI 课')).toBeInTheDocument();
-    expect(screen.getByRole('navigation', { name: '系列卷册导航' })).toBeInTheDocument();
+    expect(screen.getByText('教师 AI 课 · 课程目录')).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: '课程系列导航' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: '打开课程：AI 导论' })).not.toHaveLength(0);
   });
 
@@ -195,7 +195,7 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
     await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
 
     expect(screen.getByRole('heading', { level: 1, name: '教学通识课' })).toBeInTheDocument();
-    expect(screen.getByText('COURSE CATALOGUE · 教学通识课')).toBeInTheDocument();
+    expect(screen.getByText('教学通识课 · 课程目录')).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: '系列课导航' })).toBeInTheDocument();
     expect(screen.getAllByText('理论篇').length).toBeGreaterThan(0);
     expect(screen.getAllByText('教学设计原理篇').length).toBeGreaterThan(0);
@@ -226,7 +226,7 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
     );
 
     await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
-    const catalog = screen.getByRole('region', { name: '系列卷册课程目录' });
+    const catalog = screen.getByRole('region', { name: '课程系列课程目录' });
     expect(within(catalog).getByLabelText('课程类型筛选')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '筛选课程类型：视频' }));
 

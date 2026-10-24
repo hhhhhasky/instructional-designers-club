@@ -49,12 +49,12 @@ export default function CourseV2LessonPage() {
       .then((data) => {
         if (!cancelled) {
           setBundle(data);
-          if (!data) setError("课程不存在、尚未发布，或当前账号还没有 V2 权限");
+          if (!data) setError("暂时无法查看这节课，可能还未上线或尚未为你的账号开通。");
         }
       })
       .catch((loadError) => {
         console.error(loadError);
-        if (!cancelled) setError("课程加载失败，请确认账号权限后重试");
+        if (!cancelled) setError("课程未能加载，请稍后重试；如果仍无法打开，请联系管理员。");
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };

@@ -8,7 +8,6 @@ import {
   CheckCircle2,
   CircleAlert,
   Clock3,
-  Crown,
   Lightbulb,
   RefreshCw,
   Sparkles,
@@ -87,11 +86,6 @@ export default function OperationsDashboardSection({ onOpenDetail }: OperationsD
     );
   }
 
-  const memberMix = source.members.distribution.map((item) => ({
-    ...item,
-    label: levelLabel(item.access_level),
-    percentage: source.members.total > 0 ? (item.count / source.members.total) * 100 : 0,
-  }));
   const coursePerformance = [...source.courses]
     .sort((a, b) => b.total_learners - a.total_learners)
     .slice(0, 7)
@@ -133,7 +127,7 @@ export default function OperationsDashboardSection({ onOpenDetail }: OperationsD
 
         <div className="relative mt-7 grid gap-px overflow-hidden rounded-ds-lg border border-white/10 bg-white/10 sm:grid-cols-2 xl:grid-cols-5">
           <HeroKpi icon={Users} label="会员总数" value={formatNumber(metrics.total_members)} note={`本月 +${metrics.current_month_growth}`} />
-          <HeroKpi icon={Crown} label="付费会员占比" value={formatPercent(metrics.paid_ratio)} note={`${metrics.paid_members} 位 Plus / Pro`} />
+          <HeroKpi icon={BookOpenCheck} label="已开始学习" value={formatNumber(metrics.activated_members)} note="至少有一条学习记录" />
           <HeroKpi icon={UserCheck} label="学习激活率" value={formatPercent(metrics.activation_rate)} note={`${metrics.zero_record_members} 位尚未首学`} />
           <HeroKpi icon={BookOpenCheck} label="课程加权完课率" value={formatPercent(metrics.completion_rate)} note={`${formatNumber(metrics.learner_touches)} 人次学习`} />
           <HeroKpi icon={Bot} label="HAI 使用覆盖" value={formatPercent(metrics.hai_adoption_rate)} note={`${source.hai.summary.active_users} 位近 30 天用户`} />
@@ -171,23 +165,11 @@ export default function OperationsDashboardSection({ onOpenDetail }: OperationsD
         </article>
 
         <article className="rounded-ds-xl border border-bd bg-[#f8f2e9] p-4 shadow-ds-xs md:p-6">
-          <SectionHeading eyebrow="MEMBERSHIP" title="会员结构" description="会员规模与转化结构同时判断" />
-          <div className="mt-6 space-y-5">
-            {memberMix.map((item) => (
-              <div key={item.access_level}>
-                <div className="flex items-end justify-between">
-                  <div>
-                    <p className="text-ds-sm font-ds-bold text-tx">{item.label}</p>
-                    <p className="mt-0.5 text-[11px] text-txs">{item.count} 人</p>
-                  </div>
-                  <p className="font-serif text-ds-xl font-ds-black text-tx">{formatPercent(item.percentage)}</p>
-                </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-white">
-                  <div className={`h-full rounded-full ${levelColor(item.access_level)}`} style={{ width: `${Math.min(100, item.percentage)}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
+          <SectionHeading eyebrow="LEARNING" title="学习参与" description="关注学员是否已经开始学习" />
+          <dl className="mt-6 grid grid-cols-2 gap-4">
+            <div><dt className="text-sm text-txs">已开始学习</dt><dd className="mt-2 text-2xl font-ds-bold text-tl">{formatNumber(metrics.activated_members)} 人</dd></div>
+            <div><dt className="text-sm text-txs">尚未开始学习</dt><dd className="mt-2 text-2xl font-ds-bold text-tx">{formatNumber(metrics.zero_record_members)} 人</dd></div>
+          </dl>
           <button type="button" onClick={() => onOpenDetail("members")} className="mt-6 inline-flex items-center gap-1 text-ds-xs font-ds-bold text-ac hover:gap-2">
             查看会员趋势明细 <ArrowRight className="h-3.5 w-3.5" />
           </button>
@@ -317,14 +299,6 @@ function StatusCard({ icon: Icon, label, value, note, tone, onClick }: { icon: t
       <ArrowRight className="h-4 w-4 text-txt transition group-hover:translate-x-1 group-hover:text-ac" />
     </button>
   );
-}
-
-function levelLabel(level: string) {
-  return ({ free: "Free 会员", plus: "Plus 会员", pro: "Pro 会员" } as Record<string, string>)[level] ?? level;
-}
-
-function levelColor(level: string) {
-  return ({ free: "bg-tl", plus: "bg-am", pro: "bg-pp" } as Record<string, string>)[level] ?? "bg-ac";
 }
 
 function formatNumber(value: number) {

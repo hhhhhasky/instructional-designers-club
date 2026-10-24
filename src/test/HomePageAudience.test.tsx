@@ -114,9 +114,22 @@ describe("home page audience split", () => {
     expect(links[1]).toHaveAttribute('href', '/courses/e342b2c8-6734-49f1-a16c-891b7cbf9c6f');
     expect(within(section).getByText('教学设计和备课有什么区别？')).toBeInTheDocument();
     expect(within(section).getByText('给老师第一节教学通识课')).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: '免费体验课程' })).toHaveLength(2);
+    expect(screen.getAllByRole('link', { name: '免费体验课程' })).toHaveLength(1);
+    expect(screen.queryByTestId('page-navigation')).not.toBeInTheDocument();
     expect(Array.from(container.querySelectorAll('main > section')).slice(0, 3).map((element) => element.id))
       .toEqual(['teaching-problems', 'free-courses', 'real-situations']);
+  });
+
+  it('shows the updated biography and accounts without the previous identity badges', () => {
+    renderHome();
+    const about = screen.getByRole('region', { name: '哈老师是谁？' });
+    expect(within(about).getByText('教师培训师、课程产品研发者、AI教育应用研发者')).toBeInTheDocument();
+    for (const paragraph of HOME_LANDING_DEFAULTS.home_founder.biography) {
+      expect(within(about).getByText(paragraph)).toBeInTheDocument();
+    }
+    expect(within(about).getByText('哈老师聊教学设计')).toBeInTheDocument();
+    expect(within(about).getByText('哈士奇聊教学设计')).toBeInTheDocument();
+    expect(within(about).queryByText('开发小白')).not.toBeInTheDocument();
   });
 
   it("shows a text-free placeholder until homepage copy is ready", () => {

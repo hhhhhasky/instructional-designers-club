@@ -126,9 +126,7 @@ export default function InactiveStudentsSection() {
                         <th className="text-left py-2 font-ds-semibold text-txs">
                           手机号
                         </th>
-                        <th className="text-center py-2 font-ds-semibold text-tx-secondary">
-                          等级
-                        </th>
+
                         <th className="text-left py-2 font-ds-semibold text-txs">
                           注册日期
                         </th>
@@ -144,9 +142,7 @@ export default function InactiveStudentsSection() {
                           <td className="py-2 text-txs font-mono">
                             {maskPhone(s.phone)}
                           </td>
-                          <td className="py-2 text-center">
-                            <LevelBadge level={s.access_level} />
-                          </td>
+
                           <td className="py-2 text-txs">
                             {formatDate(s.created_at)}
                           </td>
@@ -233,27 +229,4 @@ function maskPhone(phone: string): string {
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function LevelBadge({ level }: { level: string }) {
-  const styles: Record<string, string> = {
-    free: "bg-mint-soft text-tl",
-    plus: "bg-yellow-soft text-am",
-    pro: "bg-blue-soft text-pp",
-  };
-  const labels: Record<string, string> = {
-    free: "Free",
-    plus: "Plus",
-    pro: "Pro",
-  };
-  return (
-    <span
-      className={cn(
-        "inline-block px-2 py-0.5 rounded-ds-pill text-ds-xs font-ds-semibold",
-        styles[level] || "bg-warm text-txs"
-      )}
-    >
-      {labels[level] || level}
-    </span>
-  );
 }

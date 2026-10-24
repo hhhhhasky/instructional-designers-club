@@ -14,18 +14,11 @@ const SORT_OPTIONS: { key: SortDimension; label: string }[] = [
   { key: "avg_completion_rate", label: "完成度" },
 ];
 
-const TIER_OPTIONS: { value: string; label: string }[] = [
-  { value: "free", label: "Free" },
-  { value: "plus", label: "Plus" },
-  { value: "pro", label: "Pro" },
-];
-
 export default function StudentLeaderboardSection() {
   const [students, setStudents] = useState<LeaderboardStudentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortDimension, setSortDimension] = useState<SortDimension>("total_credits");
-  const [tierFilter, setTierFilter] = useState("plus");
 
   useEffect(() => {
     const load = async () => {
@@ -42,14 +35,9 @@ export default function StudentLeaderboardSection() {
     load();
   }, []);
 
-  // 按等级过滤
-  const filtered = useMemo(() => {
-    return students.filter((s) => s.access_level === tierFilter);
-  }, [students, tierFilter]);
-
   // 按维度降序排列 + 分配名次（同分并列）
   const ranked = useMemo(() => {
-    const sorted = [...filtered].sort(
+    const sorted = [...students].sort(
       (a, b) => b[sortDimension] - a[sortDimension]
     );
 
@@ -67,18 +55,7 @@ export default function StudentLeaderboardSection() {
       }
       return { ...s, rank };
     });
-  }, [filtered, sortDimension]);
-
-  // 各等级人数
-  const tierCounts = useMemo(() => {
-    const counts: Record<string, number> = { free: 0, plus: 0, pro: 0 };
-    students.forEach((s) => {
-      if (counts[s.access_level] !== undefined) {
-        counts[s.access_level]++;
-      }
-    });
-    return counts;
-  }, [students]);
+  }, [students, sortDimension]);
 
   if (loading) return <LoadingOverlay message="正在加载排行榜数据..." />;
   if (error)
@@ -117,26 +94,7 @@ export default function StudentLeaderboardSection() {
           ))}
         </div>
 
-        {/* 等级筛选 */}
-        <div className="flex items-center gap-1.5 bg-warm rounded-ds-lg p-1">
-          {TIER_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setTierFilter(opt.value)}
-              className={cn(
-                "px-3 py-1.5 text-ds-sm font-ds-semibold rounded-ds-md transition-all",
-                tierFilter === opt.value
-                  ? "bg-white text-ac shadow-ds-xs"
-                  : "text-txs hover:text-tx"
-              )}
-            >
-              {opt.label}
-              <span className="ml-1 text-ds-xs opacity-60">
-                {tierCounts[opt.value] || 0}
-              </span>
-            </button>
-          ))}
-        </div>
+
       </div>
 
       {/* 排行榜表格 */}
@@ -197,7 +155,7 @@ export default function StudentLeaderboardSection() {
               {ranked.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-4 py-12 text-center text-txs">
-                    该等级暂无学员数据
+                    暂无学员数据
                   </td>
                 </tr>
               )}

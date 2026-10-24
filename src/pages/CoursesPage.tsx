@@ -17,7 +17,7 @@ import {
   CourseEditorialVolume,
 } from '@/components/course/CourseEditorialShell';
 import CourseTypeTabs from '@/components/course/CourseTypeTabs';
-import CoursePurchaseButton from '@/components/course/CoursePurchaseButton';
+import CourseAccessNotice from '@/components/course/CourseAccessNotice';
 import CourseFormatFilter, { resolveCourseType, type CourseTypeFilterValue } from '@/components/course/CourseFormatFilter';
 import { getCourseCatalogSnapshot, getCourseDetailSnapshot, subscribeToCourseCatalogUpdates } from '@/db/api';
 import type { Course } from '@/types/types';
@@ -37,7 +37,7 @@ import {
 
 export default function CoursesPage() {
   const navigate = useNavigate();
-  const { user, profile, courseAccessCodes, loading: authLoading } = useAuth();
+  const { user, profile, courseAccessCodes } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [upgradeLevel, setUpgradeLevel] = useState<'plus' | 'pro'>('plus');
   const [upgradeProductCode, setUpgradeProductCode] = useState<CourseAccessCode | null>(null);
@@ -136,18 +136,18 @@ export default function CoursesPage() {
         <main className="course-reading-desk flex-1 pb-12 pt-20">
           <CourseTypeTabs />
           <CourseEditorialHero
-            kicker="COURSE CATALOGUE · 教学通识课"
+            kicker="教学通识课 · 课程目录"
             badge="课程目录"
             title="教学通识课"
             description="从理解学习和教学的底层规律，到掌握教学设计原理，再把方法用到日常课、说课和公开课等真实任务里。"
             audience="建议按理论篇、教学设计原理篇、场景篇的顺序学习；需要解决具体问题时，也可以直接从目录定位到对应系列课。"
             icon={BookOpen}
             stats={[
-              { label: '系列卷册', value: plusTracks.length },
-              { label: '已发布单课', value: plusTracks.reduce((sum, track) => sum + getTrackCourseCount(allCourses, track.id, plusTracks), 0) },
+              { label: '课程篇章', value: plusTracks.length },
+              { label: '可学课程', value: plusTracks.reduce((sum, track) => sum + getTrackCourseCount(allCourses, track.id, plusTracks), 0) },
             ]}
           >
-            {!authLoading && profile?.role !== 'admin' && !canAccessCourse(courseAccessCodes, 'teaching-general-v1') && <CoursePurchaseButton productCode="teaching-general-v1" />}
+            <CourseAccessNotice productCode="teaching-general-v1" />
           </CourseEditorialHero>
 
           {isLoading && (
@@ -315,5 +315,5 @@ function PlusCourseCatalog({
 
 function CourseGrid({ courses, onCourseOpen }: { courses: Course[]; onCourseOpen: (course: Course) => void }) {
   if (courses.length === 0) return <p className="rounded-lg border border-dashed border-bd bg-bgs/40 p-4 text-center text-sm text-txs">该系列课程正在准备中。</p>;
-  return <div className="grid grid-cols-1 gap-3 md:grid-cols-2">{courses.map((course, index) => <button key={course.id} type="button" onClick={() => onCourseOpen(course)} onMouseEnter={() => void getCourseDetailSnapshot(course.id)} onFocus={() => void getCourseDetailSnapshot(course.id)} onTouchStart={() => void getCourseDetailSnapshot(course.id)} aria-label={`打开课程：${course.title}`} className="course-editorial-entry group"><span className="course-editorial-index">{String(index + 1).padStart(2, '0')}</span><div className="min-w-0 flex-1 text-left"><h3 className="font-semibold leading-snug text-tx group-hover:text-ac">{course.title}</h3><span className="mt-2 block text-xs text-txs">{course.duration ? `${course.duration}分钟 · ` : ''}Plus 单课</span></div><ChevronRight className="h-5 w-5 shrink-0 text-txs transition-all group-hover:translate-x-1 group-hover:text-ac" aria-hidden="true" /></button>)}</div>;
+  return <div className="grid grid-cols-1 gap-3 md:grid-cols-2">{courses.map((course, index) => <button key={course.id} type="button" onClick={() => onCourseOpen(course)} onMouseEnter={() => void getCourseDetailSnapshot(course.id)} onFocus={() => void getCourseDetailSnapshot(course.id)} onTouchStart={() => void getCourseDetailSnapshot(course.id)} aria-label={`打开课程：${course.title}`} className="course-editorial-entry group"><span className="course-editorial-index">{String(index + 1).padStart(2, '0')}</span><div className="min-w-0 flex-1 text-left"><h3 className="font-semibold leading-snug text-tx group-hover:text-ac">{course.title}</h3><span className="mt-2 block text-xs text-txs">{course.duration ? `${course.duration}分钟 · ` : ''}单课</span></div><ChevronRight className="h-5 w-5 shrink-0 text-txs transition-all group-hover:translate-x-1 group-hover:text-ac" aria-hidden="true" /></button>)}</div>;
 }

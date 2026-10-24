@@ -7,7 +7,7 @@ export default function HaiWorkShell({
   sidebar,
   inspector,
   title = "帮你干活",
-  subtitle = "把备课问题变成可交付的工作产物",
+  subtitle = "分析教学问题，帮你写教案、做课件",
   workspaceMode = "production",
   contentMode = "scroll",
   compactHeader = false,

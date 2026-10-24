@@ -6,7 +6,7 @@ interface LockOverlayProps {
   className?: string;
 }
 
-export default function LockOverlay({ level, className }: LockOverlayProps) {
+export default function LockOverlay({ className }: LockOverlayProps) {
   return (
     <div
       className={cn(
@@ -19,7 +19,7 @@ export default function LockOverlay({ level, className }: LockOverlayProps) {
       <div className="flex flex-col items-center gap-1">
         <Lock className="w-5 h-5 text-txs" />
         <span className="text-xs font-ds-semibold text-txs">
-          {level === 'pro' ? 'Pro' : 'Plus'}
+          未开通
         </span>
       </div>
     </div>

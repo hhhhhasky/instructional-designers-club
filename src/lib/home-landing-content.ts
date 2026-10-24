@@ -13,19 +13,19 @@ export const HOME_LANDING_DEFAULTS = {
     aside_note: '先找到最早断开的一环，再决定这节课怎么改。',
   },
   home_member: {
-    kicker: "TODAY'S DESK · 今日教研桌",
+    kicker: '继续学习与备课',
     greeting_prefix: 'Hi ',
     greeting_suffix: '，今天从哪里继续？',
-    description: '课程、咨询与教研产物，都在这张桌上接续。',
+    description: '继续上次的课程，或打开已保存的教案、课件。',
     error_suffix: '，欢迎回来',
-    error_description: '学习数据暂时未能载入，你仍可继续进入课程与教研工具。',
+    error_description: '暂时没能加载学习进度，你可以先进入课程或使用备课工具。',
     error_cta: '前往我的学习',
     learning_map_title: '学习地图',
     learning_map_description: '查看课程进度',
     chat_title: '问问哈老师',
     chat_description: '诊断一个教学问题',
     work_title: 'HAI Work',
-    work_description: '继续教研产物',
+    work_description: '查看教案与课件',
     completed_description: '🎉 你已学完当前课程，真棒！',
     all_courses_cta: '去看看全部课程',
     all_learning_cta: '查看全部我的学习',
@@ -70,10 +70,18 @@ export const HOME_LANDING_DEFAULTS = {
     footnote: '以上为方法说明示意，不对应某节真实课程的教学结果。',
   },
   home_founder: {
-    kicker: '04 / 关于课程主理人',
+    kicker: '04 / 关于哈老师',
     title: '哈老师是谁？',
-    description: '哈老师持续围绕教师真实的备课与课堂问题，研发教学通识、教师 AI 与道法教材解读课程。',
-    closing: '从学生如何学习出发，让专业理论成为教师可以用于分析、设计和迭代课堂的工具。',
+    name: '哈老师',
+    roles: '教师培训师、课程产品研发者、AI教育应用研发者',
+    biography: [
+      '拥有10年教育从业经验、5年教师培训经验，支持多所学校/机构的教师发展工作，主理千人教育者专业发展社群，深度支持过500余位教育者的专业成长，多平台累计拥有3万名教师粉丝。',
+      '持续从事教学设计研究与教师学习支持，提出“教学设计四阶段六要素”框架，研发《教学通识课》《教师AI课》《道法教材解读课》等系列师培课程，注重将教育教学理论转化为具体、可操作的教学策略，解决老师们“教什么”和“怎么教”的痛点，帮助教师提升教学设计与课堂实践能力。',
+    ],
+    accounts: [
+      { label: '小红书/视频号', name: '哈老师聊教学设计' },
+      { label: '公众号', name: '哈士奇聊教学设计' },
+    ],
   },
   home_outcomes: {
     kicker: '05 / 学习之后',
@@ -94,10 +102,10 @@ export const HOME_LANDING_DEFAULTS = {
     catalogue_cta: '查看课程目录',
     purchase_cta: '购买',
     access_cta: '进入',
-    footnote: '下单在小红书完成；本站课程权限由运营按现有流程核对并开通。',
+    footnote: '在小红书下单后，请通过订单页联系商家，为你的官网账号开通课程。',
     items: [
       { code: 'teaching-general-v1', audience: '适合想理顺日常课与公开课备课逻辑的教师', gain: '从教材与学情出发，练习让目标、学习过程和评价彼此对齐。' },
-      { code: 'teacher-ai', audience: '适合正在尝试用 AI 辅助教学设计的教师', gain: '学习判断、修改与组织 AI 产物，让工具服务于自己的教学任务。' },
+      { code: 'teacher-ai', audience: '适合正在尝试用 AI 辅助教学设计的教师', gain: '学习检查和修改 AI 生成的内容，把它用到自己的备课与课堂中。' },
       { code: 'daofa-textbook', audience: '适合需要梳理道法课标与教材脉络的教师', gain: '沿课标、单元与单课建立教材地图，理解内容如何进入课堂。' },
     ],
   },
@@ -107,7 +115,7 @@ export const HOME_LANDING_DEFAULTS = {
     items: [
       { title: '看课程目录', detail: '先确认课程内容是否对应你的教学问题。' },
       { title: '前往商品页', detail: '点击该课程的购买按钮，在小红书完成下单。' },
-      { title: '开通课程', detail: '运营核对订单后，按现有流程为官网账号开通对应课程。' },
+      { title: '开通课程', detail: '通过小红书订单页联系商家，提供用于学习的官网账号，核对后开通课程。' },
       { title: '登录观看', detail: '在本站进入课程目录或“我的学习”，接着上次的进度学习。' },
     ],
     footnote: '小红书订单不会自动同步到本站。若已购买但课程尚未显示，请通过商品订单页联系商家，核对订单与用于学习的官网账号。',
@@ -120,8 +128,8 @@ export const HOME_LANDING_DEFAULTS = {
     faq_kicker: '还有疑问？',
     faq_title: '关于选课和学习',
     faq_items: [
-      { title: '需要先购买教学通识课，才能学习另外两门吗？', detail: '三门课程有各自的目录和商品页，可以按自己的教学问题选择。访问权限以实际开通的课程为准。' },
-      { title: '下单后为什么还看不到课程？', detail: '目前由运营核对订单并为官网账号开通课程。请通过商品订单页联系商家，核对开通状态和学习账号。' },
+      { title: '需要先购买教学通识课，才能学习另外两门吗？', detail: '不需要。三门课可以单独购买，按你的教学需要选择即可；已开通的课程可以直接学习。' },
+      { title: '下单后为什么还看不到课程？', detail: '课程需要人工开通。请通过小红书订单页联系商家，提供用于学习的官网账号，核对订单后即可开通。' },
     ],
     faq_cta: '回到三门课程',
     updates_title: '课程最新更新',
@@ -133,11 +141,30 @@ export type HomeLandingContent = typeof HOME_LANDING_DEFAULTS;
 export type HomeLandingKey = keyof HomeLandingContent;
 export const HOME_LANDING_KEYS = Object.keys(HOME_LANDING_DEFAULTS) as HomeLandingKey[];
 
+// 只更新确定已弃用的旧文案，保留后台编辑过的其他内容与开通步骤。
+const LEGACY_HOME_COPY: Record<string, string> = {
+  "TODAY'S DESK · 今日教研桌": '继续学习与备课',
+  '课程、咨询与教研产物，都在这张桌上接续。': '继续上次的课程，或打开已保存的教案、课件。',
+  '继续教研产物': '查看教案与课件',
+  '学习判断、修改与组织 AI 产物，让工具服务于自己的教学任务。': '学习检查和修改 AI 生成的内容，把它用到自己的备课与课堂中。',
+  '下单在小红书完成；本站课程权限由运营按现有流程核对并开通。': '在小红书下单后，请按短信说明联系哈老师，为你的官网账号开通课程。',
+  '下单后务必根据短信说明添加哈老师的企业微信后，才能后台设置权限。': '下单后，请按短信说明添加哈老师的企业微信，核对订单并开通课程。',
+};
+
+function refreshLegacyHomeCopy(value: unknown): unknown {
+  if (typeof value === 'string') return LEGACY_HOME_COPY[value] ?? value;
+  if (Array.isArray(value)) return value.map(refreshLegacyHomeCopy);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, refreshLegacyHomeCopy(item)]));
+  }
+  return value;
+}
+
 export function mergeHomeLandingContent(rows: Record<string, { data?: Record<string, unknown> } | undefined>): HomeLandingContent {
   const merged = {} as Record<HomeLandingKey, unknown>;
   for (const key of HOME_LANDING_KEYS) {
     const fallback = HOME_LANDING_DEFAULTS[key] as Record<string, unknown>;
-    const saved = rows[key]?.data ?? {};
+    const saved = refreshLegacyHomeCopy(rows[key]?.data ?? {}) as Record<string, unknown>;
     merged[key] = Object.fromEntries(Object.entries(fallback).map(([field, value]) => {
       const candidate = saved[field];
       if (typeof value === 'string') return [field, typeof candidate === 'string' ? candidate : value];

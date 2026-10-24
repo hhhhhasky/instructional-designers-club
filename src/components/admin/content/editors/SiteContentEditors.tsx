@@ -116,14 +116,14 @@ export function IntroductionEditor() {
           />
 
           <TextAreaField
-            label="Plus 会员介绍"
+            label="教学通识课介绍"
             hint="用 **文字** 表示加粗"
             rows={4}
             value={asStr(data.plus_text)}
             onChange={(v) => setField("plus_text", v)}
           />
           <TextAreaField
-            label="Pro 会员介绍"
+            label="教师 AI 课介绍"
             hint="用 **文字** 表示加粗"
             rows={4}
             value={asStr(data.pro_text)}

@@ -119,7 +119,7 @@ export default function SettingsPage() {
         <main className="flex-1 flex items-center justify-center pt-20 px-4">
           <div className="text-center max-w-sm">
             <p className="text-tx font-ds-semibold mb-2">账号已登录，用户资料暂未准备好</p>
-            <p className="text-txs text-sm mb-4">请稍后刷新；如果一直出现，请检查 profiles 表触发器是否已执行。</p>
+            <p className="text-txs text-sm mb-4">请点击“重新加载”再试一次；如果仍无法显示，请联系管理员。</p>
             <Button onClick={refreshProfile}>重新加载</Button>
           </div>
         </main>
@@ -127,15 +127,6 @@ export default function SettingsPage() {
       </div>
     );
   }
-
-  const accessLabel =
-    profile.access_level === 'pro'
-      ? 'Pro 专家版'
-      : profile.access_level === 'plus'
-        ? 'Plus 会员版'
-        : profile.access_level === 'plus2025'
-          ? '2025Plus 会员版'
-          : '免费版';
 
   return (
     <>
@@ -178,9 +169,6 @@ export default function SettingsPage() {
               <div>
                 <h2 className="text-lg font-ds-bold text-tx">{profile.nickname}</h2>
                 <p className="text-ds-sm text-txs mt-0.5">{profile.phone}</p>
-                <span className="inline-block mt-1.5 px-2.5 py-0.5 rounded-ds-pill text-xs font-ds-semibold bg-acl text-ac">
-                  {accessLabel}
-                </span>
               </div>
             </div>
           </div>

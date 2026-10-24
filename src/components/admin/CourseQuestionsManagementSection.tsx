@@ -200,7 +200,6 @@ export default function CourseQuestionsManagementSection() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-2">
                       <StatusBadge status={question.status} />
-                      <span className="text-xs text-txs">{question.course_membership_type.toUpperCase()}</span>
                       <span className="text-xs text-txs">{formatDate(question.created_at)}</span>
                       {question.tags.map((tag) => (
                         <span key={tag.id} className="rounded-full bg-acl px-2 py-0.5 text-xs text-ac">
