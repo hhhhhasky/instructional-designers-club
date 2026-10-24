@@ -24,6 +24,7 @@ const loadHaiPage = () => import('./pages/HaiPage');
 const loadHaiPointsPage = () => import('./pages/HaiPointsPage');
 const loadHaiWorkPage = () => import('./pages/HaiWorkPage');
 const loadHaiImageGenerationPage = () => import('./pages/HaiImageGenerationPage');
+const loadHaiImagePptPage = () => import('./pages/HaiImagePptPage');
 const loadHaiWorkTaskPage = () => import('./pages/HaiWorkTaskPage');
 const loadAdminPage = () => import('./pages/AdminPage');
 const loadAdminManagePage = () => import('./pages/AdminManagePage');
@@ -51,6 +52,7 @@ const HaiPage = lazy(loadHaiPage);
 const HaiPointsPage = lazy(loadHaiPointsPage);
 const HaiWorkPage = lazy(loadHaiWorkPage);
 const HaiImageGenerationPage = lazy(loadHaiImageGenerationPage);
+const HaiImagePptPage = lazy(loadHaiImagePptPage);
 const HaiWorkTaskPage = lazy(loadHaiWorkTaskPage);
 const AdminPage = lazy(loadAdminPage);
 const AdminManagePage = lazy(loadAdminManagePage);
@@ -187,6 +189,20 @@ const routes: RouteConfig[] = [
     element: <HaiImageGenerationPage />,
     visible: false,
     preload: loadHaiImageGenerationPage
+  },
+  {
+    name: 'HAI 教案转图片课件',
+    path: '/hai/work/image-generation/ppt',
+    element: <HaiImagePptPage />,
+    visible: false,
+    preload: loadHaiImagePptPage
+  },
+  {
+    name: 'HAI 图片课件任务',
+    path: '/hai/work/image-generation/ppt/:deckId',
+    element: <HaiImagePptPage />,
+    visible: false,
+    preload: loadHaiImagePptPage
   },
   {
     name: 'HAI Work 功能',

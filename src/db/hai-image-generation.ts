@@ -40,6 +40,7 @@ export interface HaiReferenceImage {
 
 export interface HaiImageGenerationTask {
   id: string;
+  ppt_deck_id?: string | null;
   user_id: string;
   title: string;
   status: "active" | "archived";

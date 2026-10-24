@@ -1,6 +1,6 @@
 import { ArrowDownToLine, ImagePlus, Loader2, Paperclip, Sparkles, WandSparkles, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import PageMeta from "@/components/common/PageMeta";
 import HaiWorkShell from "@/components/hai/HaiWorkShell";
@@ -139,12 +139,14 @@ export default function HaiImageGenerationPage({ inline }: { inline?: InlineImag
       setUsage(nextUsage);
       setTools(nextTools);
       setImageTasks(nextTasks);
+      const selectedPpt = nextTasks.find((task) => task.id === taskId)?.ppt_deck_id;
+      if (selectedPpt) navigate(`/hai/work/image-generation/ppt/${selectedPpt}`, { replace: true });
       setRuns(nextRuns);
     } catch (nextError) {
       setErrorTaskNumber("");
       setError(nextError instanceof Error ? nextError.message : "图片生成记录读取失败。");
     }
-  }, [inlineMode, taskId, user]);
+  }, [inlineMode, taskId, user, navigate]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -437,6 +439,7 @@ function ImageComposer({ prompt, setPrompt, size, setSize, style, setStyle, subj
             </select>
           </label>
           <CompactSelect label="生成图类型" value={imageType} options={HAI_IMAGE_TYPES.map((item) => ({ value: item, label: item }))} onChange={(value) => setImageType(value as HaiImageType)} disabled={busy} />
+          {!conversation && <Link to="/hai/work/image-generation/ppt" state={{ workDraft: prompt }} className="inline-flex h-8 items-center gap-1.5 rounded-ds-md border border-[var(--paper-rule)] bg-white px-2 text-xs text-txs transition hover:border-ac hover:text-tx"><ImagePlus className="h-3.5 w-3.5" />从已有教案制作课件</Link>}
           <span className="text-[10px] text-txt">{HAI_IMAGE_GENERATION_POINTS} 积分/张</span>
           {!settingsOnly && <Button type="button" className="h-9 rounded-ds-lg bg-tl px-4 text-white hover:bg-tl/90" disabled={!prompt.trim() || busy || pointsBlocked} onClick={onSubmit}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}{pointsBlocked ? "积分不足" : busy ? "生成中" : "生成图片"}</Button>}
         </div>

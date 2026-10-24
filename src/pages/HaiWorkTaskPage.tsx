@@ -22,7 +22,6 @@ import PageMeta from "@/components/common/PageMeta";
 import HaiWorkShell from "@/components/hai/HaiWorkShell";
 import UnitArtifactFiles from "@/components/hai/UnitArtifactFiles";
 import { readUnitFiles } from "@/lib/hai-unit-design";
-import TaskActionMenu from "@/components/hai/TaskActionMenu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
