@@ -15,7 +15,11 @@ export function useHaiExit() {
   }, [location.state]);
 
   return useCallback(() => {
+    if (location.pathname.startsWith("/hai/work/") || (location.pathname === "/hai/work" && location.state?.imagePpt)) {
+      navigate("/hai/work", { state: { newTask: true } });
+      return;
+    }
     const target = sessionStorage.getItem(HAI_EXIT_PATH_KEY);
     navigate(target && target.startsWith("/") && !target.startsWith("/hai") ? target : "/");
-  }, [navigate]);
+  }, [navigate, location.pathname, location.state]);
 }

@@ -1,3 +1,5 @@
+import { haiTaskTitle } from "@/lib/hai-task-title";
+import { saveHaiFile } from "@/lib/hai-file-save";
 import {
   Check,
   Copy,
@@ -328,37 +330,35 @@ export default function HaiWorkTaskPage() {
     window.setTimeout(() => setCopied(false), 1500);
   }
 
-  function downloadArtifact() {
+  async function downloadArtifact() {
     if (!selectedArtifact) return;
-    const blob = new Blob([displayedMarkdown], { type: "text/markdown;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = selectedFile?.filename ?? `${safeFileName(selectedArtifact.title)}-v${selectedArtifact.version_number}.md`;
-    link.click();
-    URL.revokeObjectURL(url);
+    try {
+      await saveHaiFile(
+        selectedFile?.filename ?? `${safeFileName(selectedArtifact.title)}-v${selectedArtifact.version_number}.md`,
+        () => new Blob([displayedMarkdown], { type: "text/markdown;charset=utf-8" }),
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "教案下载失败，请重试。");
+    }
   }
 
   async function exportDocx() {
     if (!selectedArtifact || !detail || exporting) return;
     setExporting(true);
     try {
-      // 懒加载 Word 排版器:仅在真正导出时拉取,避免拖慢任务详情页首屏。
-      const { renderHaiDocx } = await import("@/lib/hai-docx");
-      const blob = await renderHaiDocx({
-        title: displayedTitle,
-        version: selectedArtifact.version_number,
-        markdown: displayedMarkdown,
-        watermark: HAI_DOC_WATERMARK,
-        metaRight: `${detail.task.title} · v${selectedArtifact.version_number} · ${formatDateTime(detail.task.created_at)}`,
+      const saved = await saveHaiFile(`${safeFileName(displayedTitle)}-v${selectedArtifact.version_number}.docx`, async () => {
+        // 懒加载 Word 排版器:仅在真正导出时拉取,避免拖慢任务详情页首屏。
+        const { renderHaiDocx } = await import("@/lib/hai-docx");
+        const blob = await renderHaiDocx({
+          title: displayedTitle,
+          version: selectedArtifact.version_number,
+          markdown: displayedMarkdown,
+          watermark: HAI_DOC_WATERMARK,
+          metaRight: `${detail.task.title} · v${selectedArtifact.version_number} · ${formatDateTime(detail.task.created_at)}`,
+        });
+        return blob;
       });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${safeFileName(displayedTitle)}-v${selectedArtifact.version_number}.docx`;
-      link.click();
-      URL.revokeObjectURL(url);
-      toast.success("Word 已生成。");
+      if (saved) toast.success("Word 已保存。");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Word 生成失败,请重试。");
     } finally {
@@ -379,13 +379,13 @@ export default function HaiWorkTaskPage() {
 
   return (
     <>
-      <PageMeta title={detail?.task.title ?? "HAI 工作任务"} description="HAI 任务对话与作品预览" canonicalPath={`/hai/work/tasks/${taskId}`} />
+      <PageMeta title={detail ? haiTaskTitle(detail.task.title) : "HAI 工作任务"} description="HAI 任务对话与作品预览" canonicalPath={`/hai/work/tasks/${taskId}`} />
       <HaiWorkShell
         sidebar={<WorkSidebar tasks={tasks} archivedTasks={archivedTasks} tools={tools} selectedToolSlug={detail?.task.module_slug} onTasksChanged={reloadTaskList} />}
         workspaceMode="proof"
         contentMode="managed"
         compactHeader
-        title={detail?.task.title ?? "工作任务"}
+        title={detail ? haiTaskTitle(detail.task.title) : "工作任务"}
       >
         {loading ? (
           <div className="flex min-h-[60vh] items-center justify-center text-sm text-txs"><Loader2 className="mr-2 h-4 w-4 animate-spin" />正在读取任务档案</div>

@@ -1,3 +1,4 @@
+import { haiTaskTitle } from "@/lib/hai-task-title";
 import { Archive, ArchiveRestore, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -49,12 +50,12 @@ export default function TaskActionMenu({
 }: TaskActionMenuProps) {
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [title, setTitle] = useState(task.title);
+  const [title, setTitle] = useState(haiTaskTitle(task.title));
   const [busy, setBusy] = useState(false);
 
   // 每次打开重命名框都重置为最新任务名,避免上一次未保存的草稿串场。
   useEffect(() => {
-    if (renameOpen) setTitle(task.title);
+    if (renameOpen) setTitle(haiTaskTitle(task.title));
   }, [renameOpen, task.title]);
 
   async function handleArchive() {
@@ -190,7 +191,7 @@ export default function TaskActionMenu({
           <DialogHeader>
             <DialogTitle>确认删除任务</DialogTitle>
             <DialogDescription>
-              将永久删除「{task.title}」及其所有版本,无法恢复。若只是暂时不用,建议改用归档。
+              将永久删除「{haiTaskTitle(task.title)}」及其所有版本,无法恢复。若只是暂时不用,建议改用归档。
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

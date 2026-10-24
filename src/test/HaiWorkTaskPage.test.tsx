@@ -1,3 +1,4 @@
+import { haiTaskTitle } from "@/lib/hai-task-title";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -92,7 +93,7 @@ describe("HAI Work task page", () => {
     render(<MemoryRouter><WorkSidebar tasks={[detail.task as HaiWorkTask]} archivedTasks={[]} imageTasks={[]} /></MemoryRouter>);
 
     expect(screen.getByText("历史任务")).toBeInTheDocument();
-    expect(screen.getByText(detail.task.title)).toBeInTheDocument();
+    expect(screen.getByText(haiTaskTitle(detail.task.title))).toBeInTheDocument();
   });
 
   it("shows history across tools even when a work tool is selected", () => {
@@ -108,14 +109,14 @@ describe("HAI Work task page", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText(detail.task.title)).toBeInTheDocument();
-    expect(screen.getByText(otherTask.title)).toBeInTheDocument();
+    expect(screen.getByText(haiTaskTitle(detail.task.title))).toBeInTheDocument();
+    expect(screen.getByText(haiTaskTitle(otherTask.title))).toBeInTheDocument();
   });
 
   it("mixes image and document history by update time with the correct destinations", () => {
     render(<MemoryRouter><WorkSidebar tasks={[detail.task as HaiWorkTask]} archivedTasks={[]} imageTasks={[{ id: "image-task", title: "水循环配图", updated_at: "2099-01-01T00:00:00Z" } as import("@/db/hai-image-generation").HaiImageGenerationTask]} /></MemoryRouter>);
     expect(screen.getByRole("link", { name: /水循环配图/ })).toHaveAttribute("href", "/hai/work/image-generation/image-task");
-    expect(screen.getByRole("link", { name: new RegExp(detail.task.title) })).toHaveAttribute("href", `/hai/work/tasks/${detail.task.id}`);
+    expect(screen.getByRole("link", { name: new RegExp(haiTaskTitle(detail.task.title)) })).toHaveAttribute("href", `/hai/work/tasks/${detail.task.id}`);
     const taskLinks = screen.getAllByRole("link").filter((link) => link.getAttribute("href") !== "/hai/work");
     expect(taskLinks[0]).toHaveTextContent("水循环配图");
   });
@@ -165,7 +166,7 @@ describe("HAI Work task page", () => {
     const composer = screen.getByRole("form", { name: "任务输入" });
     expect(composer.textContent).toBe("");
     expect(within(composer).getByLabelText("继续对话")).toHaveAttribute("rows", "1");
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(detail.task.title);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(haiTaskTitle(detail.task.title));
     await user.click(screen.getByRole("link", { name: "阅读 诊断 v2 · v2" }));
     expect(screen.getByRole("region", { name: "作品预览" })).toBeInTheDocument();
     const separator = screen.getByRole("separator", { name: "调整对话与预览宽度" });
@@ -258,7 +259,7 @@ describe("HAI Work task page", () => {
     await user.click(screen.getAllByRole("button", { name: "任务操作" })[0]);
     await user.click(await screen.findByRole("menuitem", { name: /重命名/ }));
 
-    const input = screen.getByDisplayValue(detail.task.title) as HTMLInputElement;
+    const input = screen.getByDisplayValue(haiTaskTitle(detail.task.title)) as HTMLInputElement;
     await user.clear(input);
     await user.type(input, "教案诊断｜荷塘月色");
     await user.click(screen.getByRole("button", { name: "保存" }));

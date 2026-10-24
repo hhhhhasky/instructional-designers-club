@@ -1,3 +1,4 @@
+import { useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   BriefcaseBusiness,
@@ -144,6 +145,8 @@ export default function HaiWorkspaceShell({
   }
 
   const exitHai = useHaiExit();
+  const workspaceLocation = useLocation();
+  const isWorkChild = workspaceLocation.pathname.startsWith("/hai/work/") || (workspaceLocation.pathname === "/hai/work" && workspaceLocation.state?.imagePpt);
   const presentation = modePresentation[mode];
   const WorkspaceIcon = presentation.Icon;
 
@@ -166,7 +169,7 @@ export default function HaiWorkspaceShell({
                 size="icon"
                 className="h-9 w-9 shrink-0"
                 onClick={exitHai}
-                aria-label="返回网站"
+                aria-label={isWorkChild ? "返回帮你干活主页" : "返回网站"}
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>

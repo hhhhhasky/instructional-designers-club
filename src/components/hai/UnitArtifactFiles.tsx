@@ -1,19 +1,16 @@
+import { saveHaiFile } from "@/lib/hai-file-save";
 import { Download, FileText, Loader2, Package } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { UnitFile } from "@/lib/hai-unit-design";
 
-export function saveUnitFile(file: UnitFile) {
-  downloadBlob(new Blob([file.markdown], { type: "text/markdown;charset=utf-8" }), file.filename);
-}
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
+export async function saveUnitFile(file: UnitFile) {
+  try {
+    await saveHaiFile(file.filename, () => new Blob([file.markdown], { type: "text/markdown;charset=utf-8" }));
+  } catch {
+    toast.error("文件保存失败，请重试。");
+  }
 }
 
 export default function UnitArtifactFiles({ files, selected, onSelect, title, version, compact = false }: {
@@ -24,10 +21,12 @@ export default function UnitArtifactFiles({ files, selected, onSelect, title, ve
     if (packing) return;
     setPacking(true);
     try {
-      const { default: JSZip } = await import("jszip");
-      const zip = new JSZip();
-      for (const file of files) zip.file(file.filename, file.markdown);
-      downloadBlob(await zip.generateAsync({ type: "blob" }), `${title.replace(/[\\/:*?"<>|]/g, "-").slice(0, 80)}-v${version}.zip`);
+      await saveHaiFile(`${title.replace(/[\\/:*?"<>|]/g, "-").slice(0, 80)}-v${version}.zip`, async () => {
+        const { default: JSZip } = await import("jszip");
+        const zip = new JSZip();
+        for (const file of files) zip.file(file.filename, file.markdown);
+        return zip.generateAsync({ type: "blob" });
+      });
     } catch {
       toast.error("整套下载失败，请重试或逐份下载。");
     } finally { setPacking(false); }

@@ -35,14 +35,14 @@ Deno.test("Work completion policy disables thinking and caps public lesson outpu
   });
 });
 
-Deno.test("buildWorkTaskTitle uses the canonical public lesson prefix", () => {
+Deno.test("buildWorkTaskTitle uses only the topic for all task types", () => {
   assertEquals(
     buildWorkTaskTitle("subject-lesson-design", "旧数据库模块名", { topic: "平行四边形的面积" }),
-    "公开课设计｜平行四边形的面积",
+    "平行四边形的面积",
   );
   assertEquals(
     buildWorkTaskTitle("lesson-diagnosis", "教案诊断", { topic: "背影" }),
-    "教案诊断｜背影",
+    "背影",
   );
 });
 

@@ -179,7 +179,7 @@ const routes: RouteConfig[] = [
   {
     name: 'HAI 图片生成',
     path: '/hai/work/image-generation',
-    element: <HaiImageGenerationPage />,
+    element: <Navigate to="/hai/work" replace />,
     visible: false,
     preload: loadHaiImageGenerationPage
   },
@@ -193,7 +193,7 @@ const routes: RouteConfig[] = [
   {
     name: 'HAI 教案转图片课件',
     path: '/hai/work/image-generation/ppt',
-    element: <HaiImagePptPage />,
+    element: <Navigate to="/hai/work" state={{ imagePpt: true }} replace />,
     visible: false,
     preload: loadHaiImagePptPage
   },
@@ -207,7 +207,7 @@ const routes: RouteConfig[] = [
   {
     name: 'HAI Work 功能',
     path: '/hai/work/:toolSlug',
-    element: <HaiWorkPage />,
+    element: <Navigate to="/hai/work" replace />,
     visible: false,
     preload: loadHaiWorkPage
   },

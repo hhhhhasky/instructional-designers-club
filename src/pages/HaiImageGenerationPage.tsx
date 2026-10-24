@@ -1,4 +1,6 @@
-import { ArrowDownToLine, ImagePlus, Loader2, Paperclip, Sparkles, WandSparkles, X } from "lucide-react";
+import { haiTaskTitle } from "@/lib/hai-task-title";
+import { saveHaiFile, haiImageAsPng } from "@/lib/hai-file-save";
+import { ArrowDownToLine, ImagePlus, Loader2, Plus, Sparkles, WandSparkles, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -326,13 +328,11 @@ export default function HaiImageGenerationPage({ inline }: { inline?: InlineImag
 
   async function download(run: HaiImageGenerationRun) {
     try {
-      const blob = downloadedImages.current[run.id] ?? await downloadHaiImage(run.id);
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `HAI-图片-${run.id.slice(0, 8)}.${blob.type.includes("png") ? "png" : blob.type.includes("webp") ? "webp" : "jpg"}`;
-      link.click();
-      URL.revokeObjectURL(url);
+      await saveHaiFile(`HAI-图片-${run.id.slice(0, 8)}.png`, async () => {
+        const blob = downloadedImages.current[run.id] ?? await downloadHaiImage(run.id);
+        downloadedImages.current[run.id] = blob;
+        return haiImageAsPng(blob);
+      });
     } catch (nextError) {
       toast.error(nextError instanceof Error ? nextError.message : "图片下载失败。");
     }
@@ -350,7 +350,7 @@ export default function HaiImageGenerationPage({ inline }: { inline?: InlineImag
       onImageTaskSelected={selectTask}
     />
   );
-  const taskTitle = taskId ? imageTasks.find((task) => task.id === taskId)?.title ?? "图片生成" : "图片生成";
+  const taskTitle = taskId ? haiTaskTitle(imageTasks.find((task) => task.id === taskId)?.title ?? "图片生成") : "图片生成";
   const selectedReferenceRun = selectedReferenceRunId ? runs.find((run) => run.id === selectedReferenceRunId) ?? null : null;
 
   if (inline) return (
@@ -405,6 +405,14 @@ export default function HaiImageGenerationPage({ inline }: { inline?: InlineImag
 }
 
 function ImageComposer({ prompt, setPrompt, size, setSize, style, setStyle, subject, setSubject, imageType, setImageType, referenceFiles, setReferenceFiles, referenceRun, onUsePrevious, onClearPrevious, busy, pointsBlocked, onSubmit, conversation, settingsOnly = false }: { prompt: string; setPrompt: (value: string) => void; size: HaiImageSize; setSize: (value: HaiImageSize) => void; style: HaiImageStyle; setStyle: (value: HaiImageStyle) => void; subject: HaiImageSubject | ""; setSubject: (value: string) => void; imageType: HaiImageType; setImageType: (value: HaiImageType) => void; referenceFiles: File[]; setReferenceFiles: (value: File[]) => void; referenceRun: HaiImageGenerationRun | null; onUsePrevious: () => void; onClearPrevious: () => void; busy: boolean; pointsBlocked: boolean; onSubmit: () => void; conversation: boolean; settingsOnly?: boolean }) {
+  const promptInput = useRef<HTMLTextAreaElement>(null);
+  const referenceInput = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const input = promptInput.current;
+    if (!input || !conversation) return;
+    input.style.height = "auto";
+    input.style.height = `${Math.max(36, Math.min(input.scrollHeight, 96))}px`;
+  }, [prompt, conversation]);
   const recommendedStyles = getRecommendedImageStyles(subject);
   const styleOption = (value: HaiImageStyle) => <option key={value} value={value}>{imageStyleLabel(value)}</option>;
   function selectReferenceFiles(fileList: FileList | null) {
@@ -422,14 +430,17 @@ function ImageComposer({ prompt, setPrompt, size, setSize, style, setStyle, subj
     setReferenceFiles([...referenceFiles, ...selected]);
   }
   return (
-    <div className={settingsOnly ? "contents" : cn("bg-white", conversation ? "shrink-0 border-t border-[var(--paper-rule)] px-4 py-3 md:px-8" : "rounded-ds-xl border border-[var(--paper-rule)] p-3 shadow-ds-lg")}>
+    <div className={settingsOnly ? "contents" : cn("bg-white", conversation ? "shrink-0 border-t border-[var(--paper-rule)] px-3 py-2 md:px-6" : "rounded-ds-xl border border-[var(--paper-rule)] p-3 shadow-ds-lg")}>
       <div className={settingsOnly ? "contents" : "mx-auto max-w-4xl"}>
-        {!settingsOnly && <textarea aria-label="图片提示词" value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={conversation ? 2 : 3} placeholder={conversation ? "继续描述你想怎么调整下一张图…" : "例如：一张展示‘水循环’的课堂概念图，突出蒸发、凝结和降水之间的关系。"} className="w-full resize-none bg-white px-2 py-2 text-sm leading-6 text-tx outline-none placeholder:text-txt" />}
-        {!settingsOnly && (referenceFiles.length > 0 || referenceRun) && <div className="mb-2 flex flex-wrap items-center gap-2">{referenceFiles.length > 0 && <ReferenceFileStrip files={referenceFiles} onRemove={(index) => setReferenceFiles(referenceFiles.filter((_, current) => current !== index))} />}{referenceRun && <span className="inline-flex items-center gap-1.5 rounded-ds-md border border-[var(--annotation)]/30 bg-[var(--annotation-soft)] px-2 py-1 text-xs text-tl">已选择上一张生成图用于微调<button type="button" aria-label="取消上一张图参考" onClick={onClearPrevious} className="rounded-full p-0.5 hover:bg-white"><X className="h-3 w-3" /></button></span>}</div>}
-        <div className={settingsOnly ? "contents" : "mt-2 flex flex-wrap items-center gap-2 border-t border-[var(--paper-rule)] pt-2"}>
-          {!settingsOnly && <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-ds-md border border-[var(--paper-rule)] bg-white px-2 text-xs text-txs hover:border-ac"><Paperclip className="h-3.5 w-3.5" />参考图片<input aria-label="上传参考图片" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple className="sr-only" disabled={busy} onChange={(event) => { selectReferenceFiles(event.target.files); event.currentTarget.value = ""; }} /></label>}
-          {conversation && !referenceRun && <button type="button" disabled={busy} onClick={onUsePrevious} className="inline-flex h-8 items-center gap-1.5 rounded-ds-md border border-[var(--paper-rule)] bg-white px-2 text-xs text-txs hover:border-ac disabled:cursor-not-allowed disabled:opacity-50">沿用上一张图微调</button>}
-          {!settingsOnly && <span className="text-[11px] text-txt">最多 {HAI_MAX_REFERENCE_IMAGES} 张</span>}
+        {!settingsOnly && <textarea ref={promptInput} aria-label="图片提示词" value={prompt} onChange={(event) => setPrompt(event.target.value)} rows={conversation ? 1 : 3} placeholder={conversation ? "继续描述你想怎么调整下一张图…" : "例如：一张展示‘水循环’的课堂概念图，突出蒸发、凝结和降水之间的关系。"} className={cn("block w-full resize-none overflow-y-auto bg-white px-2 text-sm leading-6 text-tx outline-none placeholder:text-txt", conversation ? "min-h-9 max-h-24 py-1.5" : "py-2")} />}
+        {!settingsOnly && referenceFiles.length > 0 && <ReferenceFileStrip files={referenceFiles} onRemove={(index) => setReferenceFiles(referenceFiles.filter((_, current) => current !== index))} />}
+        <div className={settingsOnly ? "contents" : "mt-1 flex flex-wrap items-center gap-1.5 border-t border-[var(--paper-rule)] pt-1.5"}>
+          {!settingsOnly && <>
+            <button type="button" aria-label="添加参考图片" title={`添加参考图片，最多 ${HAI_MAX_REFERENCE_IMAGES} 张`} disabled={busy} onClick={() => referenceInput.current?.click()} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-ds-md border border-[var(--paper-rule)] bg-white text-txs transition hover:border-ac hover:text-tx focus-visible:outline focus-visible:outline-2 focus-visible:outline-ac disabled:cursor-not-allowed disabled:opacity-50"><Plus className="h-4 w-4" /></button>
+            <input ref={referenceInput} aria-label="上传参考图片" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple className="sr-only" disabled={busy} onChange={(event) => { selectReferenceFiles(event.target.files); event.currentTarget.value = ""; }} />
+          </>}
+          {!settingsOnly && referenceRun && <span className="inline-flex h-7 items-center gap-1 rounded-ds-md border border-[var(--annotation)]/30 bg-[var(--annotation-soft)] pl-2 pr-1 text-[11px] text-tl">已选择上一张生成图用于微调<button type="button" aria-label="取消上一张图参考" disabled={busy} onClick={onClearPrevious} className="inline-flex h-6 w-6 items-center justify-center rounded-full hover:bg-white disabled:opacity-50"><X className="h-3 w-3" /></button></span>}
+          {conversation && !referenceRun && <button type="button" disabled={busy} onClick={onUsePrevious} className="inline-flex h-8 items-center gap-1 rounded-ds-md border border-[var(--paper-rule)] bg-white px-2 text-[11px] text-txs hover:border-ac disabled:cursor-not-allowed disabled:opacity-50">沿用上一张图微调</button>}
           <CompactSelect label="图片尺寸" value={size} options={HAI_IMAGE_SIZES.map((item) => ({ value: item, label: sizeLabels[item] }))} onChange={(value) => setSize(value as HaiImageSize)} disabled={busy} />
           <CompactSelect label="学科" value={subject} options={[{ value: "", label: "学科（选填）" }, ...HAI_IMAGE_SUBJECTS.map((item) => ({ value: item, label: item }))]} onChange={setSubject} disabled={busy} />
           <label className="inline-flex items-center">
@@ -439,9 +450,9 @@ function ImageComposer({ prompt, setPrompt, size, setSize, style, setStyle, subj
             </select>
           </label>
           <CompactSelect label="生成图类型" value={imageType} options={HAI_IMAGE_TYPES.map((item) => ({ value: item, label: item }))} onChange={(value) => setImageType(value as HaiImageType)} disabled={busy} />
-          {!conversation && <Link to="/hai/work/image-generation/ppt" state={{ workDraft: prompt }} className="inline-flex h-8 items-center gap-1.5 rounded-ds-md border border-[var(--paper-rule)] bg-white px-2 text-xs text-txs transition hover:border-ac hover:text-tx"><ImagePlus className="h-3.5 w-3.5" />从已有教案制作课件</Link>}
+          {!conversation && <Link to="/hai/work" state={{ imagePpt: true, workDraft: prompt }} className="inline-flex h-8 items-center gap-1.5 rounded-ds-md border border-[var(--paper-rule)] bg-white px-2 text-xs text-txs transition hover:border-ac hover:text-tx"><ImagePlus className="h-3.5 w-3.5" />从已有教案制作课件</Link>}
           <span className="text-[10px] text-txt">{HAI_IMAGE_GENERATION_POINTS} 积分/张</span>
-          {!settingsOnly && <Button type="button" className="h-9 rounded-ds-lg bg-tl px-4 text-white hover:bg-tl/90" disabled={!prompt.trim() || busy || pointsBlocked} onClick={onSubmit}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}{pointsBlocked ? "积分不足" : busy ? "生成中" : "生成图片"}</Button>}
+          {!settingsOnly && <Button type="button" className="h-8 shrink-0 rounded-ds-md bg-tl px-3 text-xs text-white hover:bg-tl/90" disabled={!prompt.trim() || busy || pointsBlocked} onClick={onSubmit}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}{pointsBlocked ? "积分不足" : busy ? "生成中" : "生成图片"}</Button>}
         </div>
       </div>
     </div>

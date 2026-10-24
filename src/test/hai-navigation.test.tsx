@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it } from "vitest";
 import { useHaiExit } from "@/lib/hai-navigation";
 
@@ -41,4 +41,40 @@ describe("HAI exit navigation", () => {
     await user.click(screen.getByRole("button", { name: "返回网站" }));
     expect(await screen.findByText("网站首页")).toBeInTheDocument();
   });
+
+  it.each([
+    "/hai/work/image-generation/task-1",
+    "/hai/work/image-generation/ppt/deck-1",
+    "/hai/work/tasks/task-1",
+    "/hai/work/tasks/task-1/courseware",
+  ])("returns %s to the unified Work homepage", async (path) => {
+    sessionStorage.setItem("hai-exit-path", "/courses");
+    const user = userEvent.setup();
+    const { unmount } = render(
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path={path} element={<ExitButton />} />
+          <Route path="/hai/work" element={<div>新的帮你干活主页</div>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByRole("button", { name: "返回网站" }));
+    expect(await screen.findByText("新的帮你干活主页")).toBeInTheDocument();
+    unmount();
+  });
+
+
+  it("returns the embedded courseware builder to the main input on the same route", async () => {
+    function UnifiedHome() {
+      return useLocation().state?.imagePpt ? <ExitButton /> : <div>统一任务输入框</div>;
+    }
+    const user = userEvent.setup();
+    const { unmount } = render(<MemoryRouter initialEntries={[{ pathname: "/hai/work", state: { imagePpt: true } }]}><Routes>
+      <Route path="/hai/work" element={<UnifiedHome />} />
+    </Routes></MemoryRouter>);
+    await user.click(screen.getByRole("button", { name: "返回网站" }));
+    expect(await screen.findByText("统一任务输入框")).toBeInTheDocument();
+    unmount();
+  });
+
 });

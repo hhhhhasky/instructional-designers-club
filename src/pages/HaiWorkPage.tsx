@@ -1,3 +1,5 @@
+import { haiTaskTitle } from "@/lib/hai-task-title";
+import HaiImagePptPage from "@/pages/HaiImagePptPage";
 import {
   ArrowUp,
   Plus,
@@ -235,7 +237,7 @@ export default function HaiWorkPage() {
             <WorkError message="这项工作功能暂不可新建，已有任务仍可从历史任务中打开。" />
           )
         ) : (
-          <WorkLanding key={location.key} tools={tools} pointsBlocked={pointsBlocked} />
+          location.state?.imagePpt ? <HaiImagePptPage embedded /> : <WorkLanding key={location.key} tools={tools} pointsBlocked={pointsBlocked} />
         )}
       </HaiWorkShell>
     </>
@@ -745,7 +747,7 @@ function ImageTaskRow({ task, selected, onSelect }: { task: HaiImageGenerationTa
   return (
     <Link to={task.ppt_deck_id ? `/hai/work/image-generation/ppt/${task.ppt_deck_id}` : `/hai/work/image-generation/${task.id}`} onClick={onSelect && !task.ppt_deck_id ? (event) => { event.preventDefault(); onSelect(task.id); } : undefined} className={cn("group flex w-full min-w-0 items-center rounded-ds-md px-3 py-2.5 text-left transition hover:bg-[var(--paper)]", selected && "bg-[var(--paper)]")}>
       <span className="min-w-0 flex-1">
-        <span className={cn("block truncate text-xs font-bold", selected ? "text-[var(--annotation)]" : "text-tx")}>{task.title}</span>
+        <span className={cn("block truncate text-xs font-bold", selected ? "text-[var(--annotation)]" : "text-tx")}>{haiTaskTitle(task.title)}</span>
       </span>
     </Link>
   );
@@ -755,7 +757,7 @@ function TaskRow({ task, onTasksChanged }: { task: HaiWorkTask; onTasksChanged?:
   return (
     <div className="group relative flex items-center rounded-ds-md transition hover:bg-[var(--paper)]">
       <Link to={`/hai/work/tasks/${task.id}`} className="min-w-0 flex-1 px-3 py-2.5 pr-9">
-        <p className="truncate text-xs font-bold text-tx">{task.title}</p>
+        <p className="truncate text-xs font-bold text-tx">{haiTaskTitle(task.title)}</p>
       </Link>
       <TaskActionMenu
         task={task}

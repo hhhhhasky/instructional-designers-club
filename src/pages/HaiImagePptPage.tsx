@@ -1,3 +1,5 @@
+import { haiTaskTitle } from "@/lib/hai-task-title";
+import { saveHaiFile, haiImageAsPng } from "@/lib/hai-file-save";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
@@ -48,7 +50,7 @@ import {
   type PptCourse,
   type PptPage,
 } from "@/db/hai-image-ppt";
-import { exportImagePpt, saveImagePptBlob } from "@/lib/hai-image-ppt-export";
+import { exportImagePpt } from "@/lib/hai-image-ppt-export";
 import { cn } from "@/lib/utils";
 import { WorkSidebar } from "@/pages/HaiWorkPage";
 
@@ -66,7 +68,7 @@ const stylePreviewAssets = import.meta.glob<string>(
   "/public/images/hai-ppt-styles/*.png",
   { eager: true, import: "default", query: "?url" },
 );
-export default function HaiImagePptPage() {
+export default function HaiImagePptPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { deckId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -335,21 +337,12 @@ export default function HaiImagePptPage() {
   }
   async function downloadOne(id: string, index: number) {
     try {
-      const blob = await downloadHaiImage(id);
-      const ack = await acknowledgeHaiImage(id);
-      if (ack.run?.status !== "completed") {
-        throw Error("图片交付未完成，请重试。");
-      }
-      saveImagePptBlob(
-        blob,
-        `${String(index + 1).padStart(2, "0")}-课件.${
-          blob.type.includes("png")
-            ? "png"
-            : blob.type.includes("webp")
-            ? "webp"
-            : "jpg"
-        }`,
-      );
+      await saveHaiFile(`${String(index + 1).padStart(2, "0")}-课件.png`, async () => {
+        const blob = await downloadHaiImage(id);
+        const ack = await acknowledgeHaiImage(id);
+        if (ack.run?.status !== "completed") throw Error("图片交付未完成，请重试。");
+        return haiImageAsPng(blob);
+      });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "下载失败。");
     }
@@ -386,38 +379,16 @@ export default function HaiImagePptPage() {
         r.id === p.current_run_id && r.r2_key && r.status !== "failed"
       )
     ).length ?? 0;
-  return (
-    <>
-      <PageMeta
-        title="从教案制作图片课件 - HAI"
-        description="选择已有教案，确认文字大纲和风格，逐页生成课堂课件"
-        canonicalPath="/hai/work/image-generation/ppt"
-      />
-      <HaiWorkShell
-        title={course.topic || "从教案制作课件"}
-        subtitle="让教学设计，变成课堂上看得见的画面"
-        compactHeader
-        sidebar={
-          <WorkSidebar
-            tasks={tasks}
-            archivedTasks={archived}
-            tools={tools}
-            imageTasks={imageTasks}
-            selectedToolSlug="image-generation"
-            selectedImageTaskId={deck?.image_task_id}
-            onTasksChanged={loadHistory}
-          />
-        }
-      >
+  const content = (
         <main
           ref={pageTop}
           className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 md:py-9"
         >
           <Link
-            to="/hai/work/image-generation"
+            to="/hai/work"
             className="mb-6 inline-flex items-center gap-2 text-xs text-txs hover:text-tx"
           >
-            <ArrowLeft className="h-3.5 w-3.5" />图片生成
+            <ArrowLeft className="h-3.5 w-3.5" />返回帮你干活主页
           </Link>
           <ol
             aria-label="制作课件的四个步骤"
@@ -506,7 +477,7 @@ export default function HaiImagePptPage() {
                         <option value="">选择一份公开课教案</option>
                         {lessons.map((t) => (
                           <option key={t.id} value={t.id}>
-                            {t.title}
+                            {haiTaskTitle(t.title)}
                             {t.status === "archived" ? "（已归档）" : ""}
                           </option>
                         ))}
@@ -881,15 +852,11 @@ export default function HaiImagePptPage() {
                               {run?.r2_key && urls[run.id] &&
                                   !imageErrors[run.id]
                                 ? (
-                                  <a
-                                    href={urls[run.id]}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    aria-label={`放大第${index + 1}页`}
-                                  >
+                                  <a href={urls[run.id]} target="_blank" rel="noreferrer" aria-label={`放大第${index + 1}页`}>
                                     <img
                                       alt={`第${index + 1}页：${page.title}`}
                                       src={urls[run.id]}
+                                      decoding="async"
                                       className="h-full w-full object-contain"
                                       onLoad={() => void delivered(run.id)}
                                       onError={() =>
@@ -1035,6 +1002,32 @@ export default function HaiImagePptPage() {
               </>
             )}
         </main>
+  );
+  if (embedded) return content;
+  return (
+    <>
+      <PageMeta
+        title="从教案制作图片课件 - HAI"
+        description="选择已有教案，确认文字大纲和风格，逐页生成课堂课件"
+        canonicalPath="/hai/work/image-generation/ppt"
+      />
+      <HaiWorkShell
+        title={course.topic || "从教案制作课件"}
+        subtitle="让教学设计，变成课堂上看得见的画面"
+        compactHeader
+        sidebar={
+          <WorkSidebar
+            tasks={tasks}
+            archivedTasks={archived}
+            tools={tools}
+            imageTasks={imageTasks}
+            selectedToolSlug="image-generation"
+            selectedImageTaskId={deck?.image_task_id}
+            onTasksChanged={loadHistory}
+          />
+        }
+      >
+        {content}
       </HaiWorkShell>
     </>
   );
