@@ -1,3 +1,5 @@
+import { loadImagePromptOverrides } from "../_shared/hai_image_prompt_config.ts";
+import type { ImagePromptOverrides } from "../_shared/hai_image_prompt_catalog.ts";
 import {
   assertHaiAccess,
   handleCors,
@@ -140,11 +142,12 @@ async function save(auth: Auth, run: Row, values: Row) {
   }
   Object.assign(run, r.data);
 }
-async function generate(
+export async function generate(
   auth: Auth,
   run: Row,
   files: File[],
   references: StoredReferenceImage[],
+  promptOverrides?: ImagePromptOverrides,
 ) {
   const deadline = Date.now() + 120_000;
   let phase = "quota_reservation";
@@ -192,13 +195,17 @@ async function generate(
         deadlineAt: deadline,
       }),
     ];
-    const finalPrompt = composeImageGenerationPrompt(
+    const overrides = promptOverrides ?? await loadImagePromptOverrides(auth.admin);
+    const finalPrompt = run.metadata?.prompt_strategy === "configured_template" && run.composed_prompt
+      ? run.composed_prompt
+      : composeImageGenerationPrompt(
       run.prompt,
       run.image_size,
       run.art_style,
       run.image_type,
       references.length > 0,
       run.metadata?.subject || "",
+      overrides,
     );
     phase = "provider_configuration";
     const config = readImageProviderConfig();
@@ -250,7 +257,9 @@ async function generate(
     await save(auth, run, {
       metadata: {
         ...phaseMetadata(
-          submitUnconfirmed ? "provider_submit_unconfirmed" : "provider_generation",
+          submitUnconfirmed
+            ? "provider_submit_unconfirmed"
+            : "provider_generation",
         ),
         ...(submitUnconfirmed
           ? { submit_unconfirmed_at: new Date().toISOString() }
@@ -300,7 +309,7 @@ async function generate(
   }
 }
 
-async function collectResult(auth: Auth, run: Row) {
+export async function collectResult(auth: Auth, run: Row) {
   if (run.status !== "running" || !run.provider_task_id || run.r2_key) return;
   if (providerRunExpired(run.created_at)) {
     // ToAPIs expires async tasks after 24h; never keep polling past that.
@@ -432,7 +441,28 @@ export async function handleImageGeneration(
       );
     } else body = await request.json();
     const action = clean(body.action, "generate", 20);
-    if (["status", "download", "acknowledge", "fail", "access"].includes(action)) {
+    if (action === "access") {
+      // Owner-scoped batch signing for runs restored from RLS list queries.
+      const requested = Array.isArray(body.runIds)
+        ? body.runIds.map(id).filter(Boolean).slice(0, 30)
+        : [];
+      const r = await auth.admin.from("hai_image_generation_runs").select(
+        "id,r2_key,status",
+      ).in("id", requested.length ? requested : [crypto.randomUUID()]).eq(
+        "user_id",
+        auth.user.id,
+      );
+      if (r.error) throw new Error(r.error.message);
+      const access: Row = {};
+      for (const row of r.data ?? []) {
+        if (!row.r2_key || row.status === "failed") continue;
+        const signed = await withAccessUrl(row);
+        if (signed.access_url) access[row.id] = signed.access_url;
+      }
+      return jsonResponse({ access }, 200);
+    }
+
+    if (["status", "download", "acknowledge", "fail"].includes(action)) {
       let run = await load(auth, id(body.runId));
       const task = run.task;
       if (
@@ -486,26 +516,6 @@ export async function handleImageGeneration(
             "access-control-allow-origin": "*",
           },
         });
-      }
-      if (action === "access") {
-        // Owner-scoped batch signing for runs restored from RLS list queries.
-        const requested = Array.isArray(body.runIds)
-          ? body.runIds.map(id).filter(Boolean).slice(0, 30)
-          : [];
-        const r = await auth.admin.from("hai_image_generation_runs").select(
-          "id,r2_key,status",
-        ).in("id", requested.length ? requested : [crypto.randomUUID()]).eq(
-          "user_id",
-          auth.user.id,
-        );
-        if (r.error) throw new Error(r.error.message);
-        const access: Row = {};
-        for (const row of r.data ?? []) {
-          if (!row.r2_key || row.status === "failed") continue;
-          const signed = await withAccessUrl(row);
-          if (signed.access_url) access[row.id] = signed.access_url;
-        }
-        return jsonResponse({ access }, 200);
       }
       if (action === "status") {
         await collectResult(auth, run);
@@ -606,6 +616,7 @@ export async function handleImageGeneration(
         ).maybeSingle();
       if (r.error || !r.data) throw new HttpError(400, "上一轮记录不正确。");
     }
+    const promptOverrides = await loadImagePromptOverrides(auth.admin);
     const r = await auth.admin.from("hai_image_generation_runs").insert({
       task_id: task.id,
       user_id: auth.user.id,
@@ -619,6 +630,7 @@ export async function handleImageGeneration(
         imageType,
         references.length + files.length > 0,
         subject,
+        promptOverrides,
       ),
       image_size: size,
       art_style: style,
@@ -629,7 +641,7 @@ export async function handleImageGeneration(
         points: IMAGE_GENERATION_POINTS,
         phase: "queued",
         execution_mode: "provider_async",
-        prompt_strategy: "static_template",
+        prompt_strategy: "configured_template",
         subject: subject || null,
         input: { prompt, size, style, imageType, subject: subject || null },
       },
@@ -637,7 +649,7 @@ export async function handleImageGeneration(
     if (r.error) throw new Error(r.error.message);
     // Wait only for upload/submission and persist the receipt before responding.
     // No detached Edge worker waits for the third-party generation to finish.
-    await generate(auth, r.data, files, references);
+    await generate(auth, r.data, files, references, promptOverrides);
     const submitted = await load(auth, r.data.id);
     return response(task, submitted);
   } catch (error) {

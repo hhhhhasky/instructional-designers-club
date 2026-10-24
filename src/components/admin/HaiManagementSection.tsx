@@ -1,7 +1,10 @@
+import HaiImagePromptManagement from "@/components/admin/HaiImagePromptManagement";
+import { HaiConfigWorkspace, HaiConfigPage } from "@/components/admin/hai/HaiConfigWorkspace";
 import { BookOpen, Bot, ChevronDown, Coins, Cpu, KeyRound, Loader2, Pencil, Plus, RefreshCw, Save, SlidersHorizontal, Trash2, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import HaiChatSkillManagement from "@/components/admin/HaiChatSkillManagement";
+import HaiCoursewareSkillManagement from "@/components/admin/HaiCoursewareSkillManagement";
 import HaiWorkSkillManagement from "@/components/admin/HaiWorkSkillManagement";
 import ModuleParamFields, { NumberInput } from "@/components/admin/hai/ModuleParamFields";
 import { filterPointUsers } from "@/components/admin/hai/point-user-filter";
@@ -171,6 +174,7 @@ export default function HaiManagementSection() {
   const [modules, setModules] = useState<HaiFeatureModule[]>([]);
   const [quotas, setQuotas] = useState<HaiQuotaPolicy[]>([]);
   const [knowledgeSources, setKnowledgeSources] = useState<HaiKnowledgeSource[]>([]);
+  const [selectedParamModuleId, setSelectedParamModuleId] = useState("");
   const [runtimeSettings, setRuntimeSettings] = useState<HaiRuntimeSetting[]>([]);
   const [modelProviders, setModelProviders] = useState<HaiModelProvider[]>([]);
   const [providerDraft, setProviderDraft] = useState({ id: "", label: "", provider_code: "", model_name: "", api_key: "", base_url: "", is_enabled: true, sort_order: 0 });
@@ -250,7 +254,7 @@ export default function HaiManagementSection() {
       "points.newcomer_pro_points",
       ...POINT_BILLING_MULTIPLIERS.map((item) => item.key),
     ]);
-    return runtimeSettings.filter((setting) => !dedicatedKeys.has(setting.key));
+    return runtimeSettings.filter((setting) => !dedicatedKeys.has(setting.key) && !setting.key.startsWith("image_prompt."));
   }, [runtimeSettings]);
   const methodCardItems = useMemo(
     () => buildMethodCardAdminItems(defaultMethodCards, methodCardConfigRows),
@@ -305,7 +309,6 @@ export default function HaiManagementSection() {
   }, [creatingMethodCard, selectedMethodCard]);
 
   async function loadAll() {
-    setLoading(true);
     setLoadError("");
     setStatus("");
     try {
@@ -1089,7 +1092,7 @@ export default function HaiManagementSection() {
   }
 
   return (
-    <div className="space-y-6">
+    <HaiConfigWorkspace>
       {status && (
         <div className={`rounded-ds-md border px-4 py-3 text-ds-sm ${
           status.startsWith("创建失败") || status.startsWith("新增失败") || status.startsWith("授权失败") || status.startsWith("入库失败")
@@ -1102,25 +1105,38 @@ export default function HaiManagementSection() {
         </div>
       )}
 
-      <CollapsiblePanel
+      <HaiConfigPage section="chat"
         title="Chat Skill"
         description="管理 HAI 对话 Skill、绑定关系和发布版本。"
         icon={<Bot className="h-5 w-5" />}
         summary="点击展开"
       >
         <HaiChatSkillManagement />
-      </CollapsiblePanel>
+      </HaiConfigPage>
 
-      <CollapsiblePanel
+      <HaiConfigPage section="work"
         title="Work Skill"
         description="管理帮你干活工具的 Skill、参考文档和发布版本。"
         icon={<SlidersHorizontal className="h-5 w-5" />}
         summary="点击展开"
       >
         <HaiWorkSkillManagement />
-      </CollapsiblePanel>
+      </HaiConfigPage>
 
-      <CollapsiblePanel
+      <HaiConfigPage section="courseware"
+        title="AI 课件 Skill"
+        description="管理课件生成的分学科功能页、Reference 与发布版本。"
+        icon={<SlidersHorizontal className="h-5 w-5" />}
+        summary="点击展开"
+      >
+        <HaiCoursewareSkillManagement />
+      </HaiConfigPage>
+
+      <HaiConfigPage section="images" title="生图提示词" description="统一管理所有生图模板与视觉风格。">
+        <HaiImagePromptManagement />
+      </HaiConfigPage>
+
+      <HaiConfigPage section="knowledge"
         title="课程方法卡"
         description="保留 35 张课程方法卡及新增、编辑、删减和启停能力。"
         icon={<BookOpen className="h-5 w-5" />}
@@ -1438,9 +1454,9 @@ export default function HaiManagementSection() {
                 </div>
               </div>
         </div>
-      </CollapsiblePanel>
+      </HaiConfigPage>
 
-      <CollapsiblePanel
+      <HaiConfigPage section="points"
         title="积分与套餐设置"
         description="积分消耗规则与购买页套餐均保存到数据库，保存后立即同步前端。"
         icon={<Coins className="h-5 w-5" />}
@@ -1727,11 +1743,11 @@ export default function HaiManagementSection() {
           </div>
         </form>
         <p className="mt-3 text-ds-xs text-txs">{pointPackageStatus || "购买页会以表格展示名称、积分、价格和可完成内容。"}</p>
-      </CollapsiblePanel>
+      </HaiConfigPage>
 
       <section className="grid gap-6 xl:grid-cols-2">
-        <CollapsiblePanel
-          title="用户积分"
+        <HaiConfigPage section="points"
+        title="用户积分"
           description="HAI 积分与会员等级、课程权限无关；选择用户后手动输入数量和原因即可发放。"
           icon={<Coins className="h-5 w-5" />}
           summary="手动发放积分"
@@ -1801,10 +1817,10 @@ export default function HaiManagementSection() {
             </Button>
             </div>
           </div>
-        </CollapsiblePanel>
+        </HaiConfigPage>
 
-        <CollapsiblePanel
-          title="额度策略"
+        <HaiConfigPage section="points"
+        title="额度策略"
           description="所有用户统一按积分扣减；此处仅配置单轮和并发上限。"
           icon={<KeyRound className="h-5 w-5" />}
           summary={`${quotas.length} 套`}
@@ -1827,10 +1843,10 @@ export default function HaiManagementSection() {
               </div>
             ))}
           </div>
-        </CollapsiblePanel>
+        </HaiConfigPage>
       </section>
 
-      <CollapsiblePanel
+      <HaiConfigPage section="knowledge"
         title="知识库"
         description="管理共享知识条目、原文和检索分块。"
         icon={<BookOpen className="h-5 w-5" />}
@@ -1954,9 +1970,9 @@ export default function HaiManagementSection() {
             </div>
           ))}
         </div>
-      </CollapsiblePanel>
+      </HaiConfigPage>
 
-      <CollapsiblePanel
+      <HaiConfigPage section="models"
         title="模型供应商"
         description="配置 LLM 模型后端（API Key、Base URL、模型名）。API Key 仅在服务端使用，不会暴露给前端。"
         icon={<Cpu className="h-5 w-5" />}
@@ -1967,7 +1983,7 @@ export default function HaiManagementSection() {
           <p className="mb-2 text-ds-sm font-ds-bold text-tx">
             {editingProviderId ? "编辑模型供应商" : "新增模型供应商"}
           </p>
-          <div className="grid gap-2 sm:grid-cols-6">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <input
               placeholder="provider code（如 deepseek / zhipu）"
               value={providerDraft.provider_code}
@@ -2048,31 +2064,19 @@ export default function HaiManagementSection() {
             ))}
           </div>
         )}
-      </CollapsiblePanel>
+      </HaiConfigPage>
 
-      <CollapsiblePanel
+      <HaiConfigPage section="models"
         title="功能模块与生成参数（Chat + Work）"
         description="管理所有 HAI 功能模块的模型、温度、Token 等生成参数。"
         icon={<Bot className="h-5 w-5" />}
         summary={`${modules.filter((module) => module.is_enabled).length}/${modules.length} 启用`}
       >
-        <div className="grid gap-3 xl:grid-cols-3">
-          {modules.map((module) => (
-            <div key={module.id} className="rounded-ds-md border border-bd bg-bg p-3">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <strong className="text-tx">{module.name}</strong>
-                <Button size="sm" variant="outline" onClick={() => updateModule(module, { is_enabled: !module.is_enabled })}>
-                  {module.is_enabled ? "停用" : "启用"}
-                </Button>
-              </div>
-              <p className="mb-3 min-h-10 text-ds-xs text-txs">{module.description}</p>
-              <ModuleParamFields module={module} onPatch={(updates) => updateModule(module, updates)} providers={modelProviders} />
-            </div>
-          ))}
-        </div>
-      </CollapsiblePanel>
+        <label className="mb-4 block max-w-lg text-xs text-txs">选择功能模块<select aria-label="生成参数所属模块" value={selectedParamModuleId || modules[0]?.id || ""} onChange={(event) => setSelectedParamModuleId(event.target.value)} className="mt-1 h-10 w-full rounded border border-bd bg-white px-3 text-sm text-tx">{modules.map((module) => <option key={module.id} value={module.id}>{module.name}</option>)}</select></label>
+        {modules.filter((module) => module.id === (selectedParamModuleId || modules[0]?.id)).map((module) => <div key={module.id} className="mb-6 max-w-3xl"><div className="mb-4 flex flex-wrap items-center justify-between gap-2"><p className="text-xs text-txs">{module.description}</p><Button size="sm" variant="outline" onClick={() => updateModule(module, { is_enabled: !module.is_enabled })}>{module.is_enabled ? "停用" : "启用"}</Button></div><ModuleParamFields module={module} onPatch={(updates) => updateModule(module, updates)} providers={modelProviders} /></div>)}
+      </HaiConfigPage>
 
-      <CollapsiblePanel
+      <HaiConfigPage section="models"
         title="运行时设置"
         description="管理仍在使用的检索、记忆和质检参数。"
         icon={<SlidersHorizontal className="h-5 w-5" />}
@@ -2103,9 +2107,9 @@ export default function HaiManagementSection() {
             <p className="rounded-ds-md bg-bg px-3 py-8 text-center text-ds-sm text-txs xl:col-span-3">暂无运行时设置</p>
           )}
         </div>
-      </CollapsiblePanel>
+      </HaiConfigPage>
 
-    </div>
+    </HaiConfigWorkspace>
   );
 }
 

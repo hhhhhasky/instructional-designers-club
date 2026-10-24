@@ -6,7 +6,7 @@ import {
 } from "npm:@aws-sdk/client-s3@3.1048.0";
 import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner@3.1048.0";
 
-import { imageStyleLabel, imageStylePrompt } from "./hai_image_styles.ts";
+import { configuredImagePrompt, type ImagePromptOverrides } from "./hai_image_prompt_catalog.ts";
 export {
   IMAGE_GENERATION_STYLES,
   IMAGE_GENERATION_SUBJECTS,
@@ -62,17 +62,9 @@ export function composeImageGenerationPrompt(
   imageType: string,
   hasReferences = false,
   subject = "",
+  overrides: ImagePromptOverrides = {},
 ) {
-  return [
-    "图片尺寸：" + size,
-    ...(subject ? ["学科：" + subject + "。"] : []),
-    "视觉风格：" + imageStyleLabel(style) + "。" + imageStylePrompt(style),
-    "生成图类型：" + imageType + "。",
-    ...(hasReferences
-      ? ["参考图片：按用户要求修改，保留未指定修改的内容。"]
-      : []),
-    "\n用户原始要求：\n" + prompt,
-  ].join("\n");
+  return configuredImagePrompt({ prompt, size, style, imageType, hasReferences, subject }, overrides);
 }
 
 export class ImageDeliveryTimeout extends Error {}

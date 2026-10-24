@@ -1,3 +1,5 @@
+import { imagePromptValue, renderImagePrompt, type ImagePromptOverrides } from "./hai_image_prompt_catalog.ts";
+
 export type PptCourse = {
   subject: string;
   grade: string;
@@ -246,27 +248,18 @@ export function pptPagePrompt(
   settings: PptSettings,
   index: number,
   total: number,
+  overrides: ImagePromptOverrides = {},
 ) {
-  return `生成一张完整16:9课堂PPT页面，页面序号${
-    index + 1
-  }/${total}。艺术风格只使用请求中已有的风格要求。
-整套共用设定（字体、参考字号、位置、HEX色号、课程信息必须沿用，不重新设计）：
-${JSON.stringify(settings)}
-本页标题：${page.title}
-${
-    page.content_markdown !== undefined
-      ? `本页已确认的完整页面说明：
-${page.content_markdown}
-按本页说明区分学生实际看到的文字、配图与排版建议。投屏文字逐字保留；配图／排版说明及教学环节标签用于执行，不作为文字印到页面上。允许只有标题或图像为主的页面，不补凑正文。不增加答案、材料或额外栏目。`
-      : `本页学生投屏文字（逐字保留，不改写，不增加答案或虚构材料）：
-${page.text}
-本页配图内容：${
-        page.image_description || "根据文字内容组织页面，不添加无关插图。"
-      }
-参考排版：${page.layout || "根据内容灵活构图，沿用整套标题和导航位置。"}
-所属教学环节：${page.section}`
-  }
-导航使用“${settings.navigation_label}”，页码使用“${
-    index + 1
-  } / ${total}”。封面可显示完整单元、课题与已提供教师信息，正文仅保留简洁导航；没有提供的课程信息省略。字号按统一画布参考保持视觉层级，正文过多时清楚分区，不删字。不要画PPT软件界面、水印、占位文字或额外课程名称。`;
+  const pageContent = page.content_markdown !== undefined
+    ? renderImagePrompt("ppt.markdown_page", { content_markdown: page.content_markdown }, overrides)
+    : renderImagePrompt("ppt.legacy_page", {
+      text: page.text,
+      image_description: page.image_description || imagePromptValue("ppt.default_image", overrides),
+      layout: page.layout || imagePromptValue("ppt.default_layout", overrides),
+      section: page.section,
+    }, overrides);
+  return renderImagePrompt("ppt.page", {
+    page_number: index + 1, total, settings: JSON.stringify(settings), title: page.title,
+    page_content: pageContent, navigation: settings.navigation_label,
+  }, overrides);
 }

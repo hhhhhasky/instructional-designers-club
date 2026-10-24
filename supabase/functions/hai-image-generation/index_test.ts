@@ -73,6 +73,7 @@ Deno.test("image handler submits once and collects asynchronously without a work
         assertStringIncludes(body.prompt, "学科：思想政治");
         assertStringIncludes(body.prompt, "暖金");
         assertStringIncludes(body.prompt, "调整参考图配色");
+        assertStringIncludes(body.prompt, "后台自定义规则。");
         posts++;
         if (providerMode === "lost") {
           throw new TypeError("connection lost after submit");
@@ -155,6 +156,9 @@ Deno.test("image handler submits once and collects asynchronously without a work
       }
       return Response.json(row);
     }
+    if (url.pathname.endsWith("/hai_runtime_settings")) {
+      return Response.json([{ key: "image_prompt.reference", value: "参考图片：按用户要求修改，保留未指定修改的内容。后台自定义规则。", enabled: true }]);
+    }
     if (url.pathname.endsWith("/hai_image_generation_tasks")) {
       return Response.json(method === "GET" ? [task] : task);
     }
@@ -176,6 +180,9 @@ Deno.test("image handler submits once and collects asynchronously without a work
         [...url.searchParams].every(([key, value]) => {
           if (value.startsWith("eq.")) {
             return String(row[key]) === value.slice(3);
+          }
+          if (value.startsWith("in.(")) {
+            return value.slice(4, -1).split(",").includes(String(row[key]));
           }
           if (value === "is.null") return row[key] == null;
           if (value.startsWith("gt.")) {
@@ -331,19 +338,33 @@ Deno.test("image handler submits once and collects asynchronously without a work
       const submitted = await request({ ...input, clientRequestId: "lost" });
       assertEquals(submitted.http, 202);
       assertStringIncludes(submitted.body.run.provider_task_id, "hai-image-");
-      assertEquals(submitted.body.run.metadata.phase, "provider_submit_unconfirmed");
-      assertEquals(submitted.body.run.metadata.submit_error.message, "提交回执暂未收到，结果尚未确认；正在查询原任务，本次图片积分尚未扣除。");
-      rows.find((x) => x.id === submitted.body.run.id)!.metadata.phase = "provider_generation";
+      assertEquals(
+        submitted.body.run.metadata.phase,
+        "provider_submit_unconfirmed",
+      );
+      assertEquals(
+        submitted.body.run.metadata.submit_error.message,
+        "提交回执暂未收到，结果尚未确认；正在查询原任务，本次图片积分尚未扣除。",
+      );
+      rows.find((x) => x.id === submitted.body.run.id)!.metadata.phase =
+        "provider_generation";
       providerMode = "missing";
       const unconfirmed = await request({
         action: "status",
         runId: submitted.body.run.id,
       });
-      assertEquals(unconfirmed.body.run.metadata.phase, "provider_submit_unconfirmed");
-      assertEquals(unconfirmed.body.run.metadata.submit_error.message, "提交回执暂未收到，结果尚未确认；正在查询原任务，本次图片积分尚未扣除。");
+      assertEquals(
+        unconfirmed.body.run.metadata.phase,
+        "provider_submit_unconfirmed",
+      );
+      assertEquals(
+        unconfirmed.body.run.metadata.submit_error.message,
+        "提交回执暂未收到，结果尚未确认；正在查询原任务，本次图片积分尚未扣除。",
+      );
       assertEquals(unconfirmed.body.run.status, "running");
       assertEquals(posts, before + 1);
-      rows.find((x) => x.id === submitted.body.run.id)!.metadata.next_poll_at = null;
+      rows.find((x) => x.id === submitted.body.run.id)!.metadata.next_poll_at =
+        null;
       providerMode = "completed";
       const result = await request({
         action: "status",
@@ -356,7 +377,10 @@ Deno.test("image handler submits once and collects asynchronously without a work
       providerMode = "no-id";
       const submitted = await request({ ...input, clientRequestId: "no-id" });
       assertEquals(submitted.http, 202);
-      assertEquals(submitted.body.run.metadata.phase, "provider_submit_unconfirmed");
+      assertEquals(
+        submitted.body.run.metadata.phase,
+        "provider_submit_unconfirmed",
+      );
       assertStringIncludes(submitted.body.run.provider_task_id, "hai-image-");
     });
     await test.step("a database outage saving the receipt retains the pre-saved business ID", async () => {
@@ -416,6 +440,40 @@ Deno.test("image handler submits once and collects asynchronously without a work
       }
       assertEquals(completedSettlements, 1);
       assertEquals(failedSettlements, 3);
+    });
+    await test.step("batch access signs saved owner images without a single runId or provider call", async () => {
+      const saved = {
+        ...rows[0],
+        id: crypto.randomUUID(),
+        user_id: userId,
+        status: "completed",
+        r2_key: `hai-image-generation/${userId}/saved.png`,
+      };
+      const foreign = {
+        ...saved,
+        id: crypto.randomUUID(),
+        user_id: crypto.randomUUID(),
+      };
+      rows.push(saved, foreign);
+      const before = {
+        posts,
+        providerQueries,
+        completedSettlements,
+        storageWrites,
+      };
+      const access = await request({
+        action: "access",
+        runIds: [saved.id, foreign.id],
+      });
+      assertEquals(access.http, 200);
+      assertStringIncludes(access.body.access[saved.id], "X-Amz-Signature=");
+      assertEquals(access.body.access[foreign.id], undefined);
+      assertEquals({
+        posts,
+        providerQueries,
+        completedSettlements,
+        storageWrites,
+      }, before);
     });
     await test.step("another owner's run cannot be read, collected, acknowledged or downloaded", async () => {
       const foreign = {

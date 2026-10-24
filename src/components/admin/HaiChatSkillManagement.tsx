@@ -1,3 +1,4 @@
+import { SkillAdvancedSettings, skillVersionStatus, confirmSkillNavigation, useWarnOnUnsavedChanges } from "@/components/admin/hai/HaiConfigWorkspace";
 import {
   Bot,
   CheckCircle2,
@@ -117,6 +118,16 @@ export default function HaiChatSkillManagement() {
     ? skills.find((item) => item.id === selectedBinding.skill_id) ?? null
     : null;
 
+  const originalVersion = versions.find((item) => item.id === selectedVersionId);
+  const hasUnsavedEdits = Boolean(
+    (skillDraft && selectedSkill && JSON.stringify(skillDraft) !== JSON.stringify(selectedSkill)) ||
+    (versionDraft && originalVersion && JSON.stringify(versionDraft) !== JSON.stringify(originalVersion)) ||
+    JSON.stringify(referenceDrafts) !== JSON.stringify(references.filter((item) => item.skill_version_id === selectedVersionId)) ||
+    (originalVersion && referenceConfigText !== JSON.stringify(originalVersion.reference_config ?? DEFAULT_REFERENCE_CONFIG, null, 2))
+  );
+
+  useWarnOnUnsavedChanges(hasUnsavedEdits);
+
   async function loadAll(
     preferredSkillId?: string,
     preferredVersionId?: string,
@@ -150,7 +161,7 @@ export default function HaiChatSkillManagement() {
       versionResult.error || bindingResult.error || referenceResult.error;
     if (error) {
       setStatus(
-        `Chat Skill 加载失败：${error.message}。请确认 20260722120000 和 20260722143000 两个迁移均已执行。`,
+        `对话 Skill失败：${error.message}。请确认 20260722120000 和 20260722143000 两个迁移均已执行。`,
       );
       setLoading(false);
       return;
@@ -206,7 +217,7 @@ export default function HaiChatSkillManagement() {
           nextVersions[0]?.id || "",
       );
     }
-  }, [selectedSkillId, skills, versions, selectedVersionId]);
+  }, [selectedSkillId, selectedSkill?.updated_at]);
 
   useEffect(() => {
     const version = versions.find((item) => item.id === selectedVersionId) ??
@@ -223,7 +234,7 @@ export default function HaiChatSkillManagement() {
       references.filter((item) => item.skill_version_id === selectedVersionId)
         .map((item) => ({ ...item, metadata: { ...item.metadata } })),
     );
-  }, [selectedVersionId, versions, references]);
+  }, [selectedVersionId, originalVersion?.updated_at]);
 
   async function saveSkill() {
     if (!skillDraft || saving) return;
@@ -486,16 +497,14 @@ export default function HaiChatSkillManagement() {
   }
 
   return (
-    <section className="rounded-ds-lg border border-ac/20 bg-white p-4">
+    <section className="min-w-0">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-2">
           <Bot className="mt-0.5 h-5 w-5 text-ac" />
           <div>
-            <h2 className="text-ds-lg font-ds-bold text-tx">Chat Skill 加载</h2>
+            <h2 className="text-ds-lg font-ds-bold text-tx">对话 Skill</h2>
             <p className="mt-1 text-ds-xs leading-relaxed text-txs">
-              已绑定、已启用且存在已发布版本的 Skill 优先执行；否则安全回退到
-              Context Orchestrator / 已发布
-              Prompt。来源路径仅用于审计，线上执行数据库快照。
+              管理对话主提示词、参考文档和发布版本。只有已发布、启用并绑定到模块的 Skill 才会用于新对话。
             </p>
           </div>
         </div>
@@ -574,7 +583,7 @@ export default function HaiChatSkillManagement() {
         <label className="text-ds-xs text-txs">
           准备绑定的 Skill<select
             value={selectedSkillId}
-            onChange={(event) => setSelectedSkillId(event.target.value)}
+            onChange={(event) => { if (confirmSkillNavigation(hasUnsavedEdits)) setSelectedSkillId(event.target.value); }}
             className="mt-1 h-10 w-full rounded-ds-md border border-bd bg-white px-3 text-ds-sm text-tx"
           >
             {skills.map((skill) => (
@@ -615,7 +624,7 @@ export default function HaiChatSkillManagement() {
             )
             : (
               <Badge variant="outline" className="ml-1">
-                无 Skill，使用回退链路
+                未绑定可用 Skill，暂不能生成
               </Badge>
             )}
         </div>
@@ -629,7 +638,7 @@ export default function HaiChatSkillManagement() {
         )
         : skillDraft && selectedSkill
         ? (
-          <div className="mt-4 space-y-4 rounded-ds-md border border-bd p-4">
+          <div className="mt-5 min-w-0 space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <h3 className="text-ds-base font-ds-bold text-tx">
@@ -648,6 +657,7 @@ export default function HaiChatSkillManagement() {
                 {selectedSkill.is_enabled ? "已启用" : "已停用"}
               </Badge>
             </div>
+            <SkillAdvancedSettings label="Skill 名称、说明与启停">
             <div className="grid gap-3 md:grid-cols-2">
               <AdminInput
                 label="显示名称"
@@ -694,6 +704,8 @@ export default function HaiChatSkillManagement() {
               </Button>
             </div>
 
+            </SkillAdvancedSettings>
+
             <div className="border-t border-bd pt-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-ds-sm font-ds-bold text-tx">发布版本</h3>
@@ -705,26 +717,9 @@ export default function HaiChatSkillManagement() {
                   <Plus className="h-4 w-4" />新建草稿版本
                 </Button>
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {skillVersions.map((version) => (
-                  <button
-                    key={version.id}
-                    type="button"
-                    onClick={() => setSelectedVersionId(version.id)}
-                    className={`rounded-full border px-3 py-1 text-xs ${
-                      version.id === selectedVersionId
-                        ? "border-ac bg-ac text-white"
-                        : "border-bd bg-white text-tx"
-                    }`}
-                  >
-                    {version.version_label} · {version.status}
-                  </button>
-                ))}
-              </div>
-              <div className="mt-4 rounded-ds-md border border-ac/20 bg-ac/5 p-3">
-                <h4 className="text-ds-xs font-ds-bold text-tx">
-                  导入完整 Skill 包
-                </h4>
+              <label className="mt-3 block text-xs text-txs">当前查看版本<select aria-label="Chat Skill 版本" value={selectedVersionId} onChange={(event) => { if (confirmSkillNavigation(hasUnsavedEdits)) setSelectedVersionId(event.target.value); }} className="mt-1 h-10 w-full rounded border border-bd bg-white px-3 text-sm text-tx">{skillVersions.map((version) => <option key={version.id} value={version.id}>{version.version_label} · {skillVersionStatus(version.status)}</option>)}</select></label>
+              <details className="mt-4 border-y border-bd py-3"><summary className="cursor-pointer text-xs font-bold text-txs">导入完整 Skill 包</summary>
+
                 <p className="mt-1 text-[11px] leading-relaxed text-txs">
                   新建草稿，不会直接发布。可多选上传 SKILL.md 与 references
                   文件；也可粘贴以“=== SKILL.md ===”和“=== references/文件名
@@ -788,11 +783,11 @@ export default function HaiChatSkillManagement() {
                     <Upload className="h-4 w-4" />导入为草稿快照
                   </Button>
                 </div>
-              </div>
+              </details>
             </div>
 
             {versionDraft && (
-              <div className="space-y-3 rounded-ds-md border border-bd bg-bg p-3">
+              <div className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <AdminInput
                     label="版本标签"
@@ -811,7 +806,7 @@ export default function HaiChatSkillManagement() {
                       ? "text-green-700"
                       : "text-amber-700"}
                   >
-                    {versionDraft.status}
+                    {skillVersionStatus(versionDraft.status)}
                   </Badge>
                 </div>
                 <label className="block text-ds-xs text-txs">
@@ -827,6 +822,7 @@ export default function HaiChatSkillManagement() {
                     className="mt-1 w-full rounded-ds-md border border-bd bg-white p-3 font-mono text-xs leading-relaxed text-tx read-only:bg-slate-50"
                   />
                 </label>
+                <SkillAdvancedSettings label="高级设置 · 引用与记忆参数">
                 <label className="block text-ds-xs text-txs">
                   引用配置 JSON<textarea
                     value={referenceConfigText}
@@ -841,15 +837,16 @@ export default function HaiChatSkillManagement() {
                     0–10；include_method_index、memory_enabled 支持开关。
                   </span>
                 </label>
-                <div className="space-y-2 rounded-ds-md border border-bd bg-white p-3">
+                </SkillAdvancedSettings>
+                <div className="space-y-3 border-t border-bd pt-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <h4 className="text-ds-xs font-ds-bold text-tx">
-                        Versioned references
+                        参考文档
                       </h4>
                       <p className="mt-1 text-[10px] text-txs">
                         当前版本共 {referenceDrafts.length}{" "}
-                        个文件；发布时内容、哈希和加载策略一起冻结。
+                        个文件；随版本一起保存与发布。
                       </p>
                     </div>
                     {versionDraft.status === "draft" && (
@@ -877,10 +874,7 @@ export default function HaiChatSkillManagement() {
                       </p>
                     )
                     : referenceDrafts.map((reference, index) => (
-                      <div
-                        key={reference.id}
-                        className="space-y-2 rounded-ds-md border border-bd bg-bg p-3"
-                      >
+                      <details key={reference.id} className="space-y-3 border-b border-bd py-3"><summary className="cursor-pointer text-sm font-bold text-tx">{reference.name || reference.path}</summary>
                         <div className="grid gap-2 md:grid-cols-[1fr_160px_110px]">
                           <AdminInput
                             label="相对路径"
@@ -964,13 +958,10 @@ export default function HaiChatSkillManagement() {
                             </button>
                           )}
                         </div>
-                      </div>
+                      </details>
                     ))}
                   {versionDraft.status !== "draft" && (
-                    <div className="rounded-ds-md border border-green-200 bg-green-50 px-3 py-2 text-[10px] text-green-800">
-                      快照哈希：{versionDraft.snapshot_hash ||
-                        "历史版本尚未回填"}
-                    </div>
+                    <p className="text-xs text-txs">已发布或归档版本只读，修改前请复制为草稿。</p>
                   )}
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">
