@@ -1,5 +1,6 @@
 import { haiTaskTitle } from "@/lib/hai-task-title";
 import { saveHaiFile } from "@/lib/hai-file-save";
+import WorkWorkflowCard from "@/components/hai/WorkWorkflowCard";
 import {
   Check,
   Copy,
@@ -116,7 +117,7 @@ export default function HaiWorkTaskPage() {
       else if (finished) observedRun.current = null;
       if (finished || !preserveSelection) setSelectedFileName("");
       if (nextDetail.runs.some((run) => run.id === observedRun.current && run.status === "failed")) observedRun.current = null;
-      setPendingRunId((current) => current && nextDetail.runs.some((run) => run.id === current && ["completed", "failed"].includes(run.status)) ? null : current);
+      setPendingRunId((current) => current && nextDetail.runs.some((run) => run.id === current && ["waiting_confirmation", "completed", "failed"].includes(run.status)) ? null : current);
       setDetail(nextDetail);
       setTasks(nextTasks);
       setTools(nextTools);
@@ -409,6 +410,7 @@ export default function HaiWorkTaskPage() {
                           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--annotation-soft)] text-[var(--annotation)]"><Sparkles className="h-4 w-4" /></span>
                           <div className="min-w-0 flex-1 pt-1">
                             <p className="mb-2 text-xs font-black text-[var(--annotation)]">HAI</p>
+                            {run.workflow_state && <WorkWorkflowCard key={`${run.id}-${run.workflow_state.revision}`} run={run} tool={detail.task.module_slug} disabled={busy || detail.task.status === "archived"} onChanged={() => loadDetail()} />}
                             {artifacts.length > 0 ? <>
                               <p className="text-sm leading-6 text-txs">这次的作品已生成，点击文档即可阅读。</p>
                               <div className="mt-3 space-y-2">{artifacts.map((artifact) => {
@@ -420,9 +422,9 @@ export default function HaiWorkTaskPage() {
                                   {files.length > 0 && <div className="mt-2"><UnitArtifactFiles compact files={files} selected={artifact.id === selectedArtifact?.id ? selectedFile : undefined} onSelect={(file) => openPreview(artifact.id, file.filename)} title={artifact.title} version={artifact.version_number} /></div>}
                                 </div>;
                               })}</div>
-                            </> : run.status === "failed" ? <div className="rounded-xl border border-red-100 bg-red-50 p-3"><p className="text-sm leading-6 text-red-700">{run.error_message || "本次任务执行失败，可以重新尝试。"}</p><Button size="sm" variant="ghost" disabled={executionBusy} onClick={() => void retry(run)} className="mt-2 text-red-700"><RotateCcw className="h-3.5 w-3.5" />重新执行</Button></div>
-                              : run.status === "queued" || run.status === "running" ? <p role="status" className="flex items-start gap-2 text-sm leading-6 text-txs"><Loader2 className="mt-1 h-4 w-4 shrink-0 animate-spin" /><span>{workPhaseLabel(run)}</span></p>
-                              : <p className="text-sm text-txs">这次运行尚无可预览文档。</p>}
+                            </> : run.status === "failed" && !run.workflow_state ? <div className="rounded-xl border border-red-100 bg-red-50 p-3"><p className="text-sm leading-6 text-red-700">{run.error_message || "本次任务执行失败，可以重新尝试。"}</p><Button size="sm" variant="ghost" disabled={executionBusy} onClick={() => void retry(run)} className="mt-2 text-red-700"><RotateCcw className="h-3.5 w-3.5" />重新执行</Button></div>
+                              : run.status === "queued" || run.status === "running" ? <p role="status" className="flex items-start gap-2 text-sm leading-6 text-txs"><Loader2 className="mt-1 h-4 w-4 shrink-0 animate-spin" /><span>{workPhaseLabel(run, detail.task.module_slug)}</span></p>
+                              : run.workflow_state ? null : <p className="text-sm text-txs">这次运行尚无可预览文档。</p>}
                           </div>
                         </div>
                       </div>;
@@ -492,12 +494,17 @@ function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("zh-CN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 }
 
-function workPhaseLabel(run?: HaiWorkRun) {
+function workPhaseLabel(run?: HaiWorkRun, tool?: string) {
+  if (tool === "subject-lesson-design" && run?.workflow_state?.stage === "focus") return "正在结合课标、教材与学情，整理本课的教学重点";
+  if (run?.workflow_state?.stage === "mode" && tool === "subject-lesson-design") return "正在围绕教学重点比较合适的教学模式";
+  if (run?.workflow_state?.stage === "mode") return "正在根据教材与目标整理候选方案";
+  if (run?.workflow_state?.stage === "plan") return "正在生成整体设计，完成后请你确认";
   if (run?.execution_phase === "unit_overall") return "正在生成单元整体设计与课时规划";
   const lesson = run?.execution_phase?.match(/^unit_lesson_(\d+)_(\d+)$/);
   if (lesson) return `正在生成第 ${lesson[1]} / ${lesson[2]} 份课时教案`;
   if (run?.execution_phase === "repairing") return "正在重新生成内容";
   if (run?.execution_phase === "saving") return "正在保存产物";
   if (run?.status === "queued") return "任务已提交，正在排队";
+  if (run?.workflow_state?.stage === "result" && tool === "subject-lesson-design") return "正在展开教学活动、教师支持与评价，生成完整教案";
   return "产物正在后台生成";
 }

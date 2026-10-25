@@ -1,0 +1,13 @@
+interface:
+  display_name: "大单元教学设计"
+  short_description: "按四步完成单元备课，由教师确认教学模式与整体设计，再连续生成整套课时详案"
+  default_prompt: "请使用 $design-learning-units，按输入备课信息、确定教学模式、生成单元整体设计、完成整套课时教案四步推进，结合教材、课标、学生情况与我的要求，在教学模式和完整整体设计呈现后分别等我确认，再用对应模板连续完成全部课时详案与配套材料。"
+  icon_small: "assets/icon.svg"
+  icon_large: "assets/icon.svg"
+policy:
+  products:
+  - chatgpt
+  - codex
+  - api
+  - atlas
+  allow_implicit_invocation: true

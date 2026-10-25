@@ -1,3 +1,7 @@
+import type { UnitReferences } from "../_shared/hai_unit_skill.ts";
+import { PUBLIC_LESSON_SKILL, publicLessonReferences } from "../_shared/hai_public_lesson.ts";
+import { initialWorkflow } from "../_shared/hai_workflow.ts";
+import { loadUnitTextbookContext, loadUnitCurriculumContext } from "../_shared/hai_unit_context.ts";
 import {
   assertHaiAccess,
   buildChatCompletionOptions,
@@ -51,6 +55,7 @@ type WorkRequestBody = {
   revisionInstruction?: unknown;
   clientRequestId?: unknown;
   responseMode?: unknown;
+  workflowVersion?: unknown;
 };
 
 type TextbookSource = {
@@ -140,7 +145,21 @@ Deno.serve(async (request) => {
 
     const module = await loadModule(auth.admin, toolSlug);
     const materials = await loadMaterials(auth.admin, auth.user.id, materialIds);
-    const skill = await loadSelectedSkill(auth.admin, toolSlug, input);
+    const fourStageLesson = toolSlug === "subject-lesson-design" && body.workflowVersion === 2;
+    let skill = await loadSelectedSkill(auth.admin, toolSlug, input, fourStageLesson);
+    const unitReferences: UnitReferences | undefined = toolSlug === "unit-learning-design" && body.workflowVersion === 1 && !body.parentArtifactId && skill.version.input_contract.mode_templates === true
+      ? skill.version.references ?? [] : undefined;
+    if (unitReferences) skill = { ...skill, version: { ...skill.version, references: [] } };
+    const lessonReferences = fourStageLesson ? {
+      mode: publicLessonReferences(skill, input, "mode"),
+      result: publicLessonReferences(skill, input, "result"),
+    } : undefined;
+    if (fourStageLesson) {
+      const common = publicLessonReferences(skill, input, "focus");
+      skill = { ...skill, version: { ...skill.version, references: [...common, ...(body.parentArtifactId ? lessonReferences!.result : [])] } };
+      input.teaching_mode_preference = input.teaching_mode;
+      input.teaching_mode = "";
+    }
     try {
       assertWorkSkillRuntimeReady(skill, input);
     } catch (error) {
@@ -157,7 +176,17 @@ Deno.serve(async (request) => {
       materialIds,
       buildMaterialQuery(input),
     );
-    const textbook = await loadTextbookContext(auth.admin, input, Boolean(body.parentArtifactId));
+    const textbook = toolSlug === "unit-learning-design"
+      ? await loadUnitTextbookContext(auth.admin, input).catch((error) => { throw new HttpError(422, error.message); })
+      : await loadTextbookContext(auth.admin, input, Boolean(body.parentArtifactId));
+    const curriculum = toolSlug === "unit-learning-design" || fourStageLesson
+      ? await loadUnitCurriculumContext(auth.admin, input, textbook.sources)
+      : { context: "", sources: [], status: "not_requested" };
+    if (toolSlug === "unit-learning-design" || fourStageLesson) {
+      input.textbook_identity = [...new Map(textbook.sources.map((source: any) => [source.collection_slug, { collection_slug: source.collection_slug, title: source.collection_title, grade: source.grade_label, volume: source.volume, edition: source.edition_label }])).values()];
+      input.curriculum_sources = curriculum.sources;
+      input.curriculum_status = curriculum.status;
+    }
     const politicsCases = toolSlug === "subject-lesson-design"
       ? await loadPoliticsCaseContext(auth.admin, input)
       : { context: "", sources: [] as PoliticsCaseSource[] };
@@ -188,14 +217,22 @@ Deno.serve(async (request) => {
       toolSlug,
       input,
       skill,
+      unitWorkflow: Boolean(unitReferences),
       materialContext,
-      textbookContext: textbook.context,
+      textbookContext: [textbook.context, curriculum.context ? `## 适用课标正文节选\n${curriculum.context}` : ""].filter(Boolean).join("\n\n"),
       caseContext: politicsCases.context,
       previousMarkdown: parentArtifact?.content_markdown,
       revisionInstruction,
       generationMode,
       previousArtifactKind: String(parentArtifact?.content_json?.artifact_kind ?? ""),
     });
+    const workflow = body.workflowVersion === 1 || body.workflowVersion === 2 ? initialWorkflow(toolSlug, input, Boolean(parentArtifact), fourStageLesson ? 2 : 1) : null;
+    if (workflow && skill.version.input_contract.workflow_version !== workflow.version) {
+      throw new HttpError(503, "该工具的分步 Skill 尚未发布，请联系管理员完成配套更新。");
+    }
+    if (!workflow && [1, 2].includes(Number(skill.version.input_contract.workflow_version))) {
+      prompt.system += "\n\n本次是兼容旧页面的一次性交付或已有成品追改，当前阶段为 result。按用户已有选择和原专业模板直接完成整份成果；未指定的模式由你选择适合的一种，不输出候选项、不等待确认。大单元仍按执行器指定的整体设计或课时子任务输出。";
+    }
     const estimatedInputTokens = estimateTokens(prompt.system) + estimateTokens(prompt.user);
 
     const run = await createRun(auth.admin, {
@@ -275,9 +312,9 @@ Deno.serve(async (request) => {
         p_run_id: run.id,
         p_payload: {
           prompt, module: { slug: module.slug, model_provider_id: module.model_provider_id },
-          completionOptions, estimatedInputTokens,
+          completionOptions, estimatedInputTokens, ...(workflow ? { workflow } : {}), ...(lessonReferences ? { lessonReferences } : {}), ...(unitReferences ? { unitReferences } : {}),
           title: buildWorkArtifactTitle(toolSlug, module.name, input),
-          artifactKind: generationMode === "lesson-plan-optimization" ? "lesson_plan_optimization" : "diagnosis_report",
+          artifactKind: toolSlug === "unit-learning-design" ? "unit_learning_package" : generationMode === "lesson-plan-optimization" ? "lesson_plan_optimization" : "diagnosis_report",
         },
       });
       if (error) throw new Error(error.message);
@@ -306,12 +343,13 @@ async function loadModule(admin: any, slug: string): Promise<ModuleRow> {
   return data as ModuleRow;
 }
 
-async function loadSelectedSkill(admin: any, moduleSlug: string, input: Record<string, unknown>) {
+async function loadSelectedSkill(admin: any, moduleSlug: string, input: Record<string, unknown>, fourStageLesson = false) {
   const { data: skills, error } = await admin.from("hai_work_skills").select(
     "id, slug, name, description, match_criteria, priority, is_fallback",
   ).eq("module_slug", moduleSlug).eq("is_enabled", true);
   if (error) throw new HttpError(500, error.message);
-  const skillIds = (skills ?? []).map((item: any) => item.id);
+  const applicableSkills = (skills ?? []).filter((item: any) => fourStageLesson ? item.slug === PUBLIC_LESSON_SKILL : item.slug !== PUBLIC_LESSON_SKILL);
+  const skillIds = applicableSkills.map((item: any) => item.id);
   const { data: versions, error: versionError } = skillIds.length > 0
     ? await admin.from("hai_work_skill_versions").select(
       "id, skill_id, version_label, prompt_template, input_contract, output_contract, snapshot_hash, source_metadata",
@@ -319,12 +357,13 @@ async function loadSelectedSkill(admin: any, moduleSlug: string, input: Record<s
     : { data: [], error: null };
   if (versionError) throw new HttpError(500, versionError.message);
   const bySkill = new Map((versions ?? []).map((item: any) => [item.skill_id, item]));
-  const candidates = (skills ?? []).flatMap((skill: any) => {
+  const candidates = applicableSkills.flatMap((skill: any) => {
     const version = bySkill.get(skill.id);
     return version ? [{ ...skill, version } as WorkSkillCandidate] : [];
   });
   const selected = selectWorkSkill(candidates, input);
   const resolvedSkill = selected ?? createEmptyWorkSkill(moduleSlug);
+  if (!selected && (moduleSlug === "unit-learning-design" || fourStageLesson)) throw new HttpError(503, fourStageLesson ? "四阶段公开课 Skill 尚未发布，请联系管理员。" : "大单元教学 Skill 尚未发布，请联系管理员。");
   if (!selected) console.warn(`[hai-work] ${moduleSlug} 没有可用的已发布 Skill，使用运行时空 Skill。`);
   const { data: references, error: referencesError } = resolvedSkill.version.id
     ? await admin
@@ -909,7 +948,7 @@ function normalizeMaterialIds(value: unknown) {
 
 function validateInputSize(input: Record<string, unknown>) {
   const length = Object.values(input).reduce<number>(
-    (sum, value) => sum + String(value ?? "").length,
+    (sum, value) => sum + (typeof value === "object" ? JSON.stringify(value ?? null).length : String(value ?? "").length),
     0,
   );
   if (length > maxInputTextChars) throw new HttpError(413, "粘贴内容过长，请改用文件上传或缩小材料范围。");

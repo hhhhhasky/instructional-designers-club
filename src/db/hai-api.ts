@@ -109,7 +109,16 @@ function inferProviderCodeFromUrl(baseUrl: string) {
 
 export type HaiMode = "chat" | "work";
 export type HaiWorkToolSlug = "lesson-diagnosis" | "segment-optimization" | "subject-lesson-design" | "teaching-design" | "unit-learning-design" | "image-generation";
-export type HaiWorkRunStatus = "queued" | "running" | "completed" | "failed";
+export type HaiWorkRunStatus = "queued" | "running" | "waiting_confirmation" | "completed" | "failed";
+export type HaiWorkflowAction = "confirm" | "revise" | "back" | "retry" | "cancel";
+export interface HaiWorkflowOption { id: string; title: string; reason: string; approach: string }
+export interface HaiWorkflowState {
+  version: number; revision: number; stage: "focus" | "mode" | "plan" | "result";
+  selection_source?: "form"; options?: HaiWorkflowOption[]; selected_mode?: HaiWorkflowOption; markdown?: string;
+  selected_focus?: HaiWorkflowOption;
+  history?: Array<{ stage?: "focus" | "mode" | "plan" | "result"; selected_focus?: HaiWorkflowOption; selected_mode?: HaiWorkflowOption; feedback?: string; markdown?: string }>;
+}
+
 export const HAI_CHAT_MODULE_SLUG = "hai-chat" as const;
 
 export type HaiApiErrorCode =
@@ -169,6 +178,7 @@ export interface HaiWorkTask {
 }
 
 export interface HaiWorkRun {
+  workflow_state?: HaiWorkflowState | null;
   id: string;
   task_id: string;
   user_id: string;
@@ -600,6 +610,14 @@ export type HaiWorkSubmissionInput = {
   clientRequestId?: string;
 };
 
+export async function actOnHaiWorkflow(runId: string, revision: number, action: HaiWorkflowAction, optionId = "", feedback = "") {
+  const { data, error } = await supabase.rpc("hai_act_workflow", {
+    p_run_id: runId, p_revision: revision, p_action: action, p_option_id: optionId || null, p_feedback: feedback,
+  });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 export async function submitHaiWork(payload: HaiWorkSubmissionInput): Promise<HaiWorkSubmission> {
   const { data } = await supabase.auth.getSession();
   const session = data.session;
@@ -609,11 +627,11 @@ export async function submitHaiWork(payload: HaiWorkSubmissionInput): Promise<Ha
     const response = await fetch(`${getFunctionsBaseUrl()}/hai-work`, {
       method: "POST",
       headers: { authorization: `Bearer ${session.access_token}`, "content-type": "application/json" },
-      body: JSON.stringify({ ...payload, clientRequestId, responseMode: "json" }),
+      body: JSON.stringify({ ...payload, clientRequestId, responseMode: "json", ...(payload.toolSlug === "unit-learning-design" ? { workflowVersion: 1 } : {}) }),
     });
     const result = await response.json() as HaiWorkSubmission & { message?: string };
     if (!response.ok) throw new Error(result.message || result.error || "HAI Work 提交失败。");
-    if (!result.taskId || !result.runId || !["queued", "running", "completed", "failed"].includes(result.status)) {
+    if (!result.taskId || !result.runId || !["queued", "running", "waiting_confirmation", "completed", "failed"].includes(result.status)) {
       throw new Error("任务提交回执不完整，请稍后查看最近任务。");
     }
     return result;

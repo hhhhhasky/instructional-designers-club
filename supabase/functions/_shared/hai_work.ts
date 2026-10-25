@@ -1,8 +1,11 @@
+import { compactUnitPromptInput } from "./hai_unit_prompt.ts";
+import { validateUnitSelection } from "./hai_unit_design.ts";
 export type HaiWorkToolSlug =
   | "lesson-diagnosis"
   | "segment-optimization"
   | "subject-lesson-design"
-  | "teaching-design";
+  | "teaching-design"
+  | "unit-learning-design";
 
 export type HaiWorkGenerationMode = "diagnosis" | "lesson-plan-optimization";
 
@@ -230,6 +233,7 @@ const toolSlugs = new Set<HaiWorkToolSlug>([
   "segment-optimization",
   "subject-lesson-design",
   "teaching-design",
+  "unit-learning-design",
 ]);
 
 export function isHaiWorkToolSlug(value: string): value is HaiWorkToolSlug {
@@ -262,8 +266,15 @@ export function validateWorkInput(
   input: Record<string, unknown>,
   materialCount: number,
 ) {
+  if (toolSlug === "unit-learning-design") {
+    if (!String(input.stage ?? "").trim() || !String(input.subject ?? "").trim()) throw new Error("请选择学段和学科。");
+    const error = validateUnitSelection(input.reconstruction_scope, input.textbook_selections);
+    if (error) throw new Error(error);
+    return;
+  }
   const textbookRouteFields = ["stage", "subject", "grade", "volume", "unit", "topic"];
   const requiredByTool: Record<HaiWorkToolSlug, string[]> = {
+    "unit-learning-design": [],
     "lesson-diagnosis": textbookRouteFields,
     "segment-optimization": [
       ...textbookRouteFields,
@@ -463,6 +474,8 @@ export function renderWorkMarkdown(
 
 /** 每个工具的 Markdown 直出指令。替代旧的「统一输出教案」硬编码，使诊断、环节优化等非教案工具的输出结构也对题。 */
 const MARKDOWN_DIRECTIVE: Record<HaiWorkToolSlug, string> = {
+  "unit-learning-design": "本阶段只生成一份完整单元整体设计，并规划全部课时。严格使用整体设计模板。返回 JSON 对象 {\"markdown\":\"完整整体设计 Markdown\",\"lessons\":[{\"title\":\"课题\",\"lesson_type\":\"课型\",\"objectives\":\"课时目标\",\"subtask\":\"子任务\",\"subquestion\":\"子问题\",\"connection\":\"前后课时承接\",\"source_paths\":[\"实际教材章节位置\"]}]}。lessons 每一项对应一个实际课时，数量、顺序、目标与整体课时规划一致，后续将逐一生成独立完整教案。不要省略课时，不要用总览代替整体设计正文。",
+
   "lesson-diagnosis":
     "请直接输出 Markdown 诊断报告，不要输出 JSON。结构：先给综合评分（XX/100）与一句话总评；再按七要素（教材分析、学情分析、教学目标、教学重难点、教学环节、教学评估、教学反思）逐项给出评分、问题与改进；接着给四组系统关系诊断（教学评一致性、教学目标来源、重难点与环节对应、学情回应度）；最后给 3-6 条优先修改建议，每条含理由、第一步动作与改写示范。每个评分都要有证据支撑。",
   "segment-optimization":
@@ -509,8 +522,10 @@ export function buildWorkPrompt(params: {
   revisionInstruction?: string;
   generationMode?: HaiWorkGenerationMode;
   previousArtifactKind?: string;
+  unitWorkflow?: boolean;
 }) {
-  const revisionMode = Boolean(params.previousMarkdown);
+  const stagedUnit = params.toolSlug === "unit-learning-design" && params.unitWorkflow === true;
+  const revisionMode = Boolean(params.previousMarkdown) && params.toolSlug !== "unit-learning-design";
   const optimizationMode = params.generationMode === "lesson-plan-optimization";
   const optimizingFromDiagnosis = optimizationMode && params.previousArtifactKind !== "lesson_plan_optimization";
   const selectedReferences = selectWorkSkillReferences(params.skill, params.input);
@@ -520,7 +535,7 @@ export function buildWorkPrompt(params: {
   // A revision is scoped to the prior artifact and the new instruction. The
   // initial run already established the evidence boundary, so repeating every
   // source here only inflates the request and gives the model duplicate context.
-  const promptInput = { ...params.input };
+  const promptInput = stagedUnit ? compactUnitPromptInput(params.input, params.textbookContext) : { ...params.input };
   delete promptInput.textbook_content;
   delete promptInput.output_mode;
   if (revisionMode) {
@@ -555,17 +570,20 @@ export function buildWorkPrompt(params: {
   ];
   const system = (optimizationMode ? optimizationSystem : [
     params.skill.version.prompt_template,
-    fallbackNotice,
+    params.toolSlug === "unit-learning-design" ? "所有学科、学段使用同一工作流与模板。重构边界来自 textbook_selections。课标无匹配正文时，课标分析保留栏目、正文留空，不阻断生成；在依据与待核验事项中写明课标尚未取得，不能虚构原文或宣称已对齐。" : "",
+    stagedUnit ? "" : fallbackNotice,
     !revisionMode && params.textbookContext
       ? "精确命中的内置教材知识点梳理可作为本次设计的教材事实依据，无需再要求用户上传教材；它不是教材逐字原文。必须按版本、单元、课题和框题使用；若标注待复核，须在产物中显式提醒。用户补充的教材原文与内置梳理冲突时，以用户补充内容为准。"
       : "没有命中的内置教材内容时，不得依据课名猜测教材事实。",
-    !revisionMode && params.caseContext
+    stagedUnit ? "" : !revisionMode && params.caseContext
       ? "以下案例库候选由后端按本课教材层级检索，仅用于帮助选择教学载体和问题化方向，不是可直接宣读的事实定稿。必须保留案例的核验状态；涉及时间、数据、人物或政策细节时，先要求教师核验或在产物中标注待核实，不得把案例库的候选描述当作教材结论。"
       : "本次没有命中案例库候选，不得凭空补写案例事实。",
-    revisionMode
+    stagedUnit ? "" : params.toolSlug === "unit-learning-design" && params.previousMarkdown
+      ? "当前是在上一版整套单元文档上追改：除非用户明确要求调整范围或课时，保持原先的教材边界、课时数量与前后衔接，仅落实修改要求；仍交付一份整体设计与全部课时教案。"
+      : revisionMode
       ? "当前是上一版续改：上一版产物是本轮的主要工作对象，只按本轮追改要求做必要修改，并保留未被要求修改的内容。原始教材、案例、用户材料和 Skill reference 不在本轮重复展开；不得借此凭空补充上一版没有的事实。"
       : "当前是首次生成：使用本轮提供的教材、案例、用户材料和版本化 Skill reference 建立产物。",
-    params.skill.slug === "politics-public-lesson"
+    stagedUnit ? "" : params.skill.slug === "politics-public-lesson"
       ? revisionMode
         ? `本轮续改继续保持用户选择的“${String(params.input.teaching_mode ?? "")}”主导模式，不混用另外两套主流程。`
         : selectedReferences.length > 0
@@ -581,7 +599,7 @@ export function buildWorkPrompt(params: {
     params.toolSlug === "segment-optimization" && segmentType
       ? `本次要优化的环节类型是「${segmentType}」。该类型的优化要点：\n${SEGMENT_METHODOLOGY[segmentType] ?? SEGMENT_METHODOLOGY["其他"]}`
       : "",
-    `${MARKDOWN_DIRECTIVE[params.toolSlug]}\n不要用代码围栏（\`\`\`）包裹整个输出。`,
+    stagedUnit ? "" : `${MARKDOWN_DIRECTIVE[params.toolSlug]}\n不要用代码围栏（\`\`\`）包裹整个输出。`,
   ]).filter(Boolean).join("\n\n");
 
   const user = [

@@ -145,13 +145,26 @@ describe("HAI Work workbench", () => {
     expect(screen.queryByRole("button", { name: /环节优化/ })).not.toBeInTheDocument();
   });
 
-  it.each(["development", "production"])("hides both enabled creation entries in %s", async (mode) => {
+  it.each(["development", "production"])("shows unit design while keeping research hidden in %s", async (mode) => {
     vi.stubEnv("DEV", mode === "development");
     vi.stubEnv("MODE", mode);
     vi.mocked(getHaiWorkTools).mockResolvedValueOnce([...tools, { slug: "unit-learning-design", name: "大单元教学", is_enabled: true, surface_mode: "work" } as HaiFeatureModule]);
     renderAt("/hai/work");
     await screen.findAllByRole("button", { name: /教案诊断/ });
-    expect(screen.queryByRole("button", { name: /研发教学方案|大单元教学/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /大单元教学/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /研发教学方案/ })).not.toBeInTheDocument();
+  });
+
+  it("opens unit design with four steps and submits the selected textbook", async () => {
+    vi.mocked(getHaiWorkTools).mockResolvedValueOnce([...tools, { slug: "unit-learning-design", name: "大单元教学", is_enabled: true, surface_mode: "work" } as HaiFeatureModule]);
+    renderAt("/hai/work/unit-learning-design");
+    const progress = await screen.findByRole("list", { name: "大单元教学四步流程" });
+    expect(within(progress).getAllByRole("listitem").map(item => item.querySelector("p")?.textContent)).toEqual(["输入备课信息", "确定教学模式", "生成单元整体设计", "完成整套课时教案"]);
+    expect(within(progress).getAllByRole("listitem")[0]).toHaveAttribute("aria-current", "step");
+    expect(screen.getByRole("button", { name: "提交大单元教学任务" })).toBeEnabled();
+    await userEvent.click(screen.getByRole("button", { name: "提交大单元教学任务" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("请选择重构范围");
+    expect(submitHaiWork).not.toHaveBeenCalled();
   });
 
   it("keeps an unpublished unit tool hidden in production", async () => {
@@ -522,7 +535,7 @@ describe("HAI Work workbench", () => {
     expect(screen.queryByRole("option", { name: "其他" })).not.toBeInTheDocument();
   });
 
-  it.each(["teaching-design", "unit-learning-design"])("blocks new tasks through the old %s URL and retains history", async (slug) => {
+  it.each(["teaching-design"])("blocks new tasks through the old %s URL and retains history", async (slug) => {
     vi.mocked(getHaiWorkTools).mockResolvedValueOnce([...tools, { slug: "unit-learning-design", name: "大单元教学", is_enabled: true, surface_mode: "work" } as HaiFeatureModule]);
     vi.mocked(getHaiWorkTasks).mockResolvedValueOnce([{
       id: "old-task", user_id: "user-1", module_slug: slug,

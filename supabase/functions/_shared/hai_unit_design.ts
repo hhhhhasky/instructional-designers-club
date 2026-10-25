@@ -47,15 +47,26 @@ export const UNIT_SECTION_NAMES = ["单元主题", "单元内容分析", "学情
 export const LESSON_SECTION_NAMES = ["教材分析", "学情分析", "学习目标设计", "学习评价设计", "学习活动设计", "板书设计", "作业设计", "教学反思与改进"];
 
 export function validateUnitDocument(markdown: string, kind: "unit" | "lesson") {
-  const sections = kind === "unit" ? UNIT_SECTION_NAMES : LESSON_SECTION_NAMES;
+  const modernUnit = /内容依据与组织/.test(markdown);
+  const modernLesson = /教学内容分析/.test(markdown);
+  const sections: Array<string | string[]> = kind === "unit"
+    ? modernUnit ? ["单元价值与模式选择", "内容依据与组织", "学生起点与学习目标",
+      ["共同任务与阶段推进", "核心理解与认识进阶", "核心问题与论证进程", "主题意义的丰富与表达", "方法学习与独立运用的进阶", "研究问题与证据进程"],
+      ["任务评价与个人理解", "理解表现与迁移评价", "解释与判断的评价", "主题理解与学科学习评价", "策略选择与迁移评价", "探究过程与解释质量评价"],
+      "课时安排与实施统筹", "实施局限与后续调整"] : UNIT_SECTION_NAMES
+    : modernLesson ? ["教学内容分析", "学情分析", "教学目标", "教学评价设计", "教学流程设计", "板书设计", "作业设计", "教学反思"] : LESSON_SECTION_NAMES;
   const headings = [...markdown.matchAll(/^##\s+(.+)$/gm)];
   const missing = ["基本信息", ...sections].filter((name) => {
-    const index = headings.findIndex((heading) => heading[1].includes(name));
+    const index = headings.findIndex((heading) => (Array.isArray(name) ? name : [name]).some(alias => heading[1].includes(alias)));
     if (index < 0) return true;
     const start = headings[index].index! + headings[index][0].length;
     const end = headings[index + 1]?.index ?? markdown.length;
-    const body = markdown.slice(start, end).replace(/[#|\s:：—\-]/g, "");
-    return body.length < 15 || /【填写】|【按需|同上/.test(body);
+    const sectionBody = markdown.slice(start, end);
+    const body = sectionBody.replace(/[#|\s:：—\-]/g, "");
+    // A cross-reference such as “同上，第5课时。监察机关……” contains
+    // substantive content. Reject only standalone substitutes for that content.
+    const emptyReference = /(?:^|\n)\s*同上[。.]?\s*(?=\n|$)|\|\s*同上[。.]?\s*(?=\|)/m.test(sectionBody);
+    return body.length < 15 || /【填写】|【按需/.test(body) || emptyReference;
   });
   if (missing.length) throw new Error(`文档内容不完整：${missing.join("、")}。请重试。`);
 }
@@ -71,10 +82,14 @@ export function parseUnitPlan(raw: string): { markdown: string; lessons: UnitLes
   // Persist this manifest as the authoritative planning table and file order.
   const table = ["| 课时 | 课型 | 课题 | 课时目标 | 子任务 | 子问题 | 前后承接 | 教材位置 |", "| --- | --- | --- | --- | --- | --- | --- | --- |", ...plan.lessons.map((lesson: UnitLesson, index: number) => `| ${index + 1} | ${[lesson.lesson_type, lesson.title, lesson.objectives, lesson.subtask, lesson.subquestion, lesson.connection, lesson.source_paths.join("；")].map(tableCell).join(" | ")} |`)];
   const headings = [...plan.markdown.matchAll(/^##\s+(.+)$/gm)];
-  const index = headings.findIndex((heading) => heading[1].includes("单元课时规划"));
+  const index = headings.findIndex((heading) => /单元课时规划|课时安排与实施统筹/.test(heading[1]));
   const start = headings[index].index! + headings[index][0].length;
   const end = headings[index + 1]?.index ?? plan.markdown.length;
-  const markdown = `${plan.markdown.slice(0, start)}\n\n共 ${plan.lessons.length} 课时，以下每课时独立生成一份教案。\n\n${table.join("\n")}\n\n${plan.markdown.slice(end)}`;
+  // Preserve the mode-specific progression and resource arrangements; add the
+  // persisted manifest after them so the teacher sees what the worker will use.
+  const arrangements = plan.markdown.slice(start, end);
+  const modern = headings[index][1].includes("课时安排与实施统筹");
+  const markdown = `${plan.markdown.slice(0, start)}${modern ? arrangements : ""}\n\n共 ${plan.lessons.length} 课时，以下每课时独立生成一份教案。\n\n${table.join("\n")}\n\n${plan.markdown.slice(end)}`;
   return { markdown, lessons: plan.lessons };
 }
 function tableCell(text: string) { return text.replace(/\|/g, "／").replace(/\n/g, " "); }

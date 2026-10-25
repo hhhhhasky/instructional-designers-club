@@ -1,3 +1,4 @@
+import UnitDesignProgress from "@/components/hai/UnitDesignProgress";
 import { haiTaskTitle } from "@/lib/hai-task-title";
 import HaiImagePptPage from "@/pages/HaiImagePptPage";
 import {
@@ -292,7 +293,7 @@ function WorkLanding({ tools, pointsBlocked, initialTool = null }: { tools: HaiF
         </div>
         <div role="group" aria-label="任务输入与设置" className="rounded-[28px] border border-[var(--paper-rule)] bg-[var(--paper)] p-3 shadow-[0_12px_48px_-20px_rgba(60,48,35,0.18)] transition-shadow focus-within:shadow-[0_12px_48px_-20px_rgba(60,48,35,0.28)] md:p-5">
           <label htmlFor="work-request" className="sr-only">描述你的教学需求</label>
-          <textarea id="work-request" disabled={busy} value={draft} onChange={(event) => setDraft(event.target.value)} rows={4} placeholder={isImage ? "例如：为‘水循环’设计一张课堂概念图，突出蒸发、凝结和降水的关系…" : "说说你的想法：这次想完成什么？有什么需要特别关注的地方？"} className="min-h-36 w-full resize-y border-0 bg-transparent px-3 py-3 text-base leading-8 text-tx outline-none placeholder:text-txt md:text-lg" />
+          <textarea id="work-request" disabled={busy} value={draft} onChange={(event) => setDraft(event.target.value)} rows={4} placeholder={isImage ? "例如：为‘水循环’设计一张课堂概念图，突出蒸发、凝结和降水的关系…" : selected === "unit-learning-design" ? "例如：围绕‘多边形的面积’设计6课时，让学生从记公式走向理解底、高与面积的关系…" : "说说你的想法：这次想完成什么？有什么需要特别关注的地方？"} className="min-h-36 w-full resize-y border-0 bg-transparent px-3 py-3 text-base leading-8 text-tx outline-none placeholder:text-txt md:text-lg" />
           {files.length > 0 && <div className="mb-3 flex flex-wrap gap-2 px-2">{files.map((file, index) => <span key={`${file.name}-${index}`} className="inline-flex max-w-full items-center gap-2 rounded-xl border border-[var(--paper-rule)] bg-[var(--paper-deep)] px-3 py-2 text-xs text-txs"><Paperclip className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{file.name}</span><button type="button" disabled={busy} aria-label={`移除${file.name}`} onClick={() => setFiles(files.filter((_, i) => i !== index))} className="rounded-full p-1 hover:bg-[var(--paper)]"><X className="h-3 w-3" /></button></span>)}</div>}
           <div className="flex items-center gap-3 border-t border-[var(--paper-rule)]/60 pt-3">
             <button type="button" disabled={uploadBlocked} onClick={() => fileInput.current?.click()} aria-label={isImage ? "添加参考图片" : "上传教案或教材"} title={isImage ? "上传教材截图或参考图" : "上传教案或教材"} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--paper-rule)] text-txs transition hover:bg-[var(--paper-deep)] disabled:cursor-not-allowed disabled:opacity-40"><Plus className="h-5 w-5" /></button>
@@ -516,6 +517,10 @@ function WorkToolForm({
 
   return (
     <form id="hai-work-settings" aria-label={`${config.name}设置`} onSubmit={(event) => { event.preventDefault(); void submit(); }} className="mt-4 border-t border-[var(--paper-rule)] pt-4">
+      {isUnitDesign && <section aria-label="大单元教学流程预览" className="mb-5 rounded-xl border border-[var(--paper-rule)] bg-[var(--paper-deep)] p-4 sm:p-5">
+        <UnitDesignProgress />
+        <p className="mt-4 text-xs leading-6 text-txs">先比较适合所选教材的教学模式，再审阅完整整体设计。两步均由你确认；之后连续生成全部课时详案，可分份下载或打包获取。</p>
+      </section>}
       {error && <div role="alert" className="mb-5 rounded-[18px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
       {previewOnly && (
         <div role="status" className="mt-5 rounded-[18px] border border-[var(--paper-rule)] bg-[var(--proof-soft)] px-4 py-3 text-sm leading-6 text-tx">
@@ -638,6 +643,7 @@ function WorkToolForm({
         <summary className="cursor-pointer text-xs font-bold text-txs">更多要求（选填）</summary>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {isUnitDesign && <><TextField label="单元主题（可选）" value={form.unit_theme} placeholder="留空则根据所选内容拟定" onChange={(value) => update("unit_theme", value)} /><TextField label="课时安排（可选）" value={form.unit_duration} placeholder="如：6课时，每课40分钟" onChange={(value) => update("unit_duration", value)} /></>}
+          {isUnitDesign && <TextAreaField label="学生起点与学习困难（可选）" value={form.learner_context} placeholder="如：学生会套公式，但说不清公式的由来；希望增加操作和解释的机会" minRows={3} onChange={(value) => update("learner_context", value)} />}
           <TextField label="课时与班级约束（可选）" value={form.constraints} placeholder="如：40分钟、48人、不能使用平板" onChange={(value) => update("constraints", value)} />
           {toolSlug === "teaching-design" && <TextAreaField label="预期成果 / 任务说明" value={form.desired_outcomes} placeholder="默认使用上方想法；需要时在此补充学生应理解或能做什么" minRows={3} onChange={(value) => update("desired_outcomes", value)} />}
         </div>
@@ -875,6 +881,7 @@ function initialForm(toolSlug: HaiWorkToolSlug) {
     constraints: "",
     reconstruction_scope: "",
     unit_theme: "",
+    learner_context: "",
     tool_slug: toolSlug,
   };
 }
@@ -941,12 +948,12 @@ export function resolveWorkToolConfig(slug: HaiWorkToolSlug, module?: HaiFeature
 
 // 仅撤下新建入口；模块配置和历史任务仍保留。
 function isHiddenWorkTool(slug: string) {
-  return slug === "teaching-design" || slug === "unit-learning-design";
+  return slug === "teaching-design";
 }
 
 function getSupportedWorkTools(tools: HaiFeatureModule[] = []) {
   const modules = new Map(tools.filter((module) => isWorkToolSlug(module.slug)).map((module) => [module.slug, module]));
-  const stableOrder: HaiWorkToolSlug[] = ["lesson-diagnosis", "segment-optimization", "subject-lesson-design", "image-generation"];
+  const stableOrder: HaiWorkToolSlug[] = ["lesson-diagnosis", "segment-optimization", "subject-lesson-design", "unit-learning-design", "image-generation"];
   return stableOrder.flatMap((slug) => {
     const module = modules.get(slug);
     return module ? [{ slug, config: resolveWorkToolConfig(slug, module), previewOnly: false }] : [];

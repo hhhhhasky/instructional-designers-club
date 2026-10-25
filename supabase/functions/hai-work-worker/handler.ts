@@ -1,3 +1,8 @@
+import { unitLessonBaseUser } from "../_shared/hai_unit_prompt.ts";
+import { appendUnitReferences, type UnitReferences } from "../_shared/hai_unit_skill.ts";
+import { appendLessonReferences, type LessonReferences } from "../_shared/hai_public_lesson.ts";
+import { workflowPrompt, parseWorkflowOutput, type WorkWorkflow } from "../_shared/hai_workflow.ts";
+import { parseUnitPlan, unitFile, validateUnitDocument, type UnitFile, type UnitLesson } from "../_shared/hai_unit_design.ts";
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import {
   estimateTokens,
@@ -18,6 +23,11 @@ type Attempt = Awaited<ReturnType<typeof collectWorkModelOutput>> & {
   purpose: string;
   attempt: number;
   estimated_output_tokens: number;
+  estimated_input_tokens?: number;
+  call_input_tokens?: number;
+  call_output_tokens?: number;
+  file?: UnitFile;
+  unit_plan?: { markdown: string; lessons: UnitLesson[] };
 };
 type Job = {
   run_id: string;
@@ -31,6 +41,9 @@ type Job = {
     prompt: { system: string; user: string };
     module: { slug: string; model_provider_id: string | null };
     completionOptions: HaiChatCompletionOptions;
+    workflow?: WorkWorkflow;
+    lessonReferences?: LessonReferences;
+    unitReferences?: UnitReferences;
   };
 };
 
@@ -104,10 +117,33 @@ export async function handleWorkWorker(
     if (job.phase !== "complete") {
       // One bounded model call per invocation; an empty-output repair is another
       // durable phase and receives its own worker invocation and time budget.
+      const flow = job.payload.workflow;
+      const preview = flow && flow.stage !== "result";
+      const unitMode = job.payload.module.slug === "unit-learning-design" && !preview;
+      const stagePrompt = flow?.version === 2 && flow.stage !== "focus" && job.payload.module.slug === "subject-lesson-design"
+        ? appendLessonReferences(job.payload.prompt, job.payload.lessonReferences ?? {}, flow.stage === "mode" ? "mode" : "result")
+        : job.payload.prompt;
+      const unitRefs = job.payload.unitReferences;
+      const unitPhase = preview ? flow.stage === "mode" ? "mode" : "plan" : job.attempts[0]?.unit_plan ? "lesson" : "plan";
+      const unitBase = unitRefs && unitPhase === "lesson" ? { ...stagePrompt, user: unitLessonBaseUser(stagePrompt.user) } : stagePrompt;
+      const unitPrompt = unitRefs ? appendUnitReferences(unitBase, unitRefs, unitPhase, flow?.selected_mode) : unitBase;
+      const basePrompt = flow ? workflowPrompt(unitPrompt, flow, job.payload.module.slug, Boolean(unitRefs)) : unitPrompt;
+      const plan = job.attempts[0]?.unit_plan;
+      const nextLesson = plan?.lessons[job.attempts.length - 1];
+      const prompt = unitMode && plan && nextLesson ? {
+        system: unitRefs ? basePrompt.system : `${basePrompt.system}\n\n本阶段只生成一份独立课时教案。输出完整 Markdown，不要 JSON。严格使用本阶段加载的对应模式单课模板八部分结构。目标数量与活动安排依据本课实际内容，不预设固定数量。不要重新生成整体设计。`,
+        user: `${basePrompt.user}\n\n## 已确定的单元整体设计\n${plan.markdown}\n\n## 本次课时（第 ${job.attempts.length} 课，共 ${plan.lessons.length} 课）\n${JSON.stringify(nextLesson)}${unitRefs ? "" : `\n\n## 前一课教案（用于承接；不可用同上代替本课正文）\n${job.attempts.length > 1 ? job.attempts[job.attempts.length - 1].file?.markdown ?? "" : "这是第一课，安排起点诊断。"}`}`,
+      } : unitMode ? {
+        system: basePrompt.system,
+        user: `${basePrompt.user}\n\n## 本阶段接口输出要求\n只返回一个 JSON 对象，必须同时有 lessons 和 markdown 两个顶层字段。先写 lessons：按实际课时逐项列出 title、lesson_type、objectives、subtask、subquestion、connection、source_paths；不得只在正文表格中规划课时。再写 markdown：完整单元整体设计正文（含基本信息及七项栏目）。两个字段缺一会导致本次任务失败。只生成整体设计与课时清单，完整课时教案由后续阶段逐份生成。`,
+      } : basePrompt;
       const result = await (dependencies?.generate ?? collectWorkModelOutput)({
-        ...job.payload.prompt,
+        ...prompt,
         module: job.payload.module,
-        completionOptions: job.payload.completionOptions,
+        completionOptions: preview ? { ...job.payload.completionOptions, responseFormat: "json_object" } : unitMode ? {
+          ...job.payload.completionOptions,
+          responseFormat: plan ? "text" : "json_object",
+        } : job.payload.completionOptions,
         userId: job.user_id,
         admin,
       });
@@ -117,25 +153,69 @@ export async function handleWorkWorker(
         markdown: normalizeWorkMarkdown(result.output),
         raw_output: result.output,
         output_chars: result.output.length,
-        purpose: job.phase === "initial" ? "initial" : "empty_output_repair",
+        purpose: preview ? `workflow_${flow.stage}` : unitMode ? plan ? "unit_lesson" : "unit_overall" : job.phase === "initial" ? "initial" : "empty_output_repair",
         attempt: job.attempts.length + 1,
         estimated_output_tokens: estimateTokens(result.output),
       };
-      await rpc(admin, "hai_checkpoint_work_job", {
+      attempt.estimated_input_tokens = estimateTokens(prompt.system) + estimateTokens(prompt.user);
+      attempt.call_input_tokens = attempt.estimated_input_tokens;
+      attempt.call_output_tokens = attempt.estimated_output_tokens;
+      if (preview && !attempt.error) {
+        try {
+          const parsed = parseWorkflowOutput(result.output, flow.stage, job.payload.module.slug);
+          await (dependencies?.recordCall ?? recordHaiModelCall)({
+            admin, throwOnError: true, userId: job.user_id, requestId: job.client_request_id,
+            callIndex: (flow.attempts ?? []).filter((a) => a.purpose !== "confirmed_plan").length + 1,
+            stage: "work_initial", route: "hai-work", entityType: "work_task", entityId: job.task_id,
+            model: job.payload.completionOptions.model, provider: attempt.provider_code,
+            startedAt: new Date(attempt.started_at), completedAt: new Date(attempt.completed_at),
+            status: "completed", usage: attempt.usage,
+            metadata: { run_id: job.run_id, purpose: attempt.purpose, workflow_revision: flow.revision },
+          }).catch(() => {
+            // The durable attempt is recorded again before final settlement.
+            console.warn("阶段成本记录暂未完成，将在结算前重试。");
+          });
+          await rpc(admin, "hai_checkpoint_workflow", { ...ownership, p_attempt: attempt, p_result: parsed });
+          return jsonResponse({ accepted: true, runId: job.run_id, status: "waiting_confirmation" });
+        } catch (error) {
+          attempt.error = error instanceof Error ? error.message : "阶段内容保存失败。";
+        }
+      }
+      if (unitMode) {
+        attempt.estimated_input_tokens = estimateTokens(prompt.system) + estimateTokens(prompt.user);
+        if (!attempt.error) {
+          try {
+            if (!plan) {
+              const parsed = parseUnitPlan(result.output);
+              attempt.unit_plan = parsed;
+              attempt.file = unitFile("unit", 0, "单元整体设计", parsed.markdown);
+              attempt.markdown = parsed.markdown;
+            } else {
+              if (!nextLesson) throw new Error("课时顺序与整体规划不一致。");
+              validateUnitDocument(attempt.markdown, "lesson");
+              attempt.file = unitFile("lesson", job.attempts.length, nextLesson.title, attempt.markdown);
+            }
+          } catch (error) {
+            attempt.error = error instanceof Error ? error.message : "大单元教学文档不完整。";
+          }
+        }
+      }
+      await rpc(admin, unitMode ? "hai_checkpoint_unit_work_job" : "hai_checkpoint_work_job", {
         ...ownership,
         p_attempt: attempt,
       });
     } else {
       // Calls are upserted by (request_id, call_index). A settlement retry reads
       // saved attempts, never regenerates an already checkpointed answer.
-      for (const attempt of job.attempts) {
+      const allAttempts = [...(job.payload.workflow?.attempts ?? []) as Attempt[], ...job.attempts].filter((attempt) => attempt.purpose !== "confirmed_plan");
+      for (const [index, attempt] of allAttempts.entries()) {
         await (dependencies?.recordCall ?? recordHaiModelCall)({
           admin,
           throwOnError: true,
           userId: job.user_id,
           requestId: job.client_request_id,
-          callIndex: attempt.attempt,
-          stage: attempt.attempt === 1 ? "work_initial" : "work_repair",
+          callIndex: index + 1,
+          stage: job.payload.module.slug === "unit-learning-design" || attempt.attempt === 1 ? "work_initial" : "work_repair",
           route: "hai-work",
           entityType: "work_task",
           entityId: job.task_id,
@@ -145,10 +225,10 @@ export async function handleWorkWorker(
           completedAt: new Date(attempt.completed_at),
           status: attempt.error ? "failed" : "completed",
           usage: attempt.usage,
-          metadata: { tool_slug: job.payload.module.slug, run_id: job.run_id },
+          metadata: { tool_slug: job.payload.module.slug, run_id: job.run_id, purpose: attempt.purpose, document_index: job.payload.module.slug === "unit-learning-design" ? attempt.attempt - 1 : null },
         });
       }
-      await rpc(admin, "hai_finish_work_job", ownership);
+      await rpc(admin, job.payload.workflow ? "hai_finish_guided_work_job" : job.payload.module.slug === "unit-learning-design" ? "hai_finish_unit_work_job" : "hai_finish_work_job", ownership);
     }
     // Best effort low-latency wakeup. Cron guarantees another wakeup when this
     // call/HTTP response is lost, including when the browser is already closed.
