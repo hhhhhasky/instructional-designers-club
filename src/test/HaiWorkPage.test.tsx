@@ -265,6 +265,10 @@ describe("HAI Work workbench", () => {
     renderAt("/hai/work/subject-lesson-design");
 
     await screen.findByRole("form", { name: "公开课设计设置" });
+    const progress = screen.getByRole("list", { name: "公开课设计四阶段" });
+    expect(within(progress).getAllByRole("listitem")).toHaveLength(4);
+    expect(within(progress).getAllByRole("listitem")[0]).toHaveAttribute("aria-current", "step");
+    expect(screen.getByText(/两个关键决定都由你确认/)).toBeVisible();
     expect(screen.getByLabelText("学段")).toHaveTextContent("初中");
     expect(screen.getByLabelText("学科")).toHaveTextContent("道德与法治");
     expect(screen.getByRole("option", { name: "小学" })).toBeInTheDocument();
@@ -293,7 +297,7 @@ describe("HAI Work workbench", () => {
     await user.selectOptions(screen.getByRole("combobox", { name: "册次 / 教材" }), "上册");
     await user.selectOptions(screen.getByRole("combobox", { name: "单元" }), "第一单元 少年有梦");
     await user.selectOptions(screen.getByRole("combobox", { name: "课题" }), "第一课 开启初中生活");
-    await user.click(screen.getByRole("radio", { name: /案例式/ }));
+    expect(screen.queryByRole("radio", { name: /案例式/ })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "提交公开课设计任务" }));
 
     expect(submitHaiWork).toHaveBeenCalledWith(
@@ -308,7 +312,7 @@ describe("HAI Work workbench", () => {
           collection_slug: "junior-politics-grade-7-volume-1-2024",
           unit_route_number: "1",
           lesson_route_number: "1",
-          teaching_mode: "案例式",
+          teaching_mode: "",
         }),
       }),
     );
@@ -344,6 +348,13 @@ describe("HAI Work workbench", () => {
       }),
     );
     expect(vi.mocked(submitHaiWork).mock.calls[0]?.[0].input).not.toHaveProperty("lesson_type");
+  });
+
+  it("starts politics with teaching focus rather than the old fixed mode choices", async () => {
+    renderAt("/hai/work/subject-lesson-design");
+    await screen.findByRole("form", { name: "公开课设计设置" });
+    expect(screen.queryByRole("radio", { name: /案例式|任务式|议题式/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/提交后先进入“确定教什么”/)).toBeVisible();
   });
 
   it("lets an uncovered public-lesson subject use the manual textbook path", async () => {

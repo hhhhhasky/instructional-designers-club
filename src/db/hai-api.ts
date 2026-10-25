@@ -627,7 +627,7 @@ export async function submitHaiWork(payload: HaiWorkSubmissionInput): Promise<Ha
     const response = await fetch(`${getFunctionsBaseUrl()}/hai-work`, {
       method: "POST",
       headers: { authorization: `Bearer ${session.access_token}`, "content-type": "application/json" },
-      body: JSON.stringify({ ...payload, clientRequestId, responseMode: "json", ...(payload.toolSlug === "unit-learning-design" ? { workflowVersion: 1 } : {}) }),
+      body: JSON.stringify({ ...payload, clientRequestId, responseMode: "json", ...(payload.toolSlug === "subject-lesson-design" ? { workflowVersion: 2 } : payload.toolSlug === "unit-learning-design" ? { workflowVersion: 1 } : {}) }),
     });
     const result = await response.json() as HaiWorkSubmission & { message?: string };
     if (!response.ok) throw new Error(result.message || result.error || "HAI Work 提交失败。");

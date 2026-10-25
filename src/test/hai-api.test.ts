@@ -412,13 +412,16 @@ describe("HAI Work asynchronous submission", () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it.each(["lesson-diagnosis", "segment-optimization", "subject-lesson-design", "teaching-design"] as const)("submits %s and returns immediately on a queued acknowledgement", async (toolSlug) => {
+  it.each(["lesson-diagnosis", "segment-optimization", "subject-lesson-design", "teaching-design", "unit-learning-design"] as const)("submits %s and returns immediately on a queued acknowledgement", async (toolSlug) => {
     const accepted = { taskId: "task", runId: "run", status: "queued", artifactId: null, error: null, replayed: false };
     const fetchMock = vi.fn().mockResolvedValue(Response.json(accepted, { status: 202 }));
     vi.stubGlobal("fetch", fetchMock);
     await expect(submitHaiWork({ toolSlug, input: { topic: "背影" }, clientRequestId: "stable-request" })).resolves.toEqual(accepted);
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(body).toMatchObject({ toolSlug, clientRequestId: "stable-request", responseMode: "json" });
+    if (toolSlug === "subject-lesson-design") expect(body.workflowVersion).toBe(2);
+    else if (toolSlug === "unit-learning-design") expect(body.workflowVersion).toBe(1);
+    else expect(body).not.toHaveProperty("workflowVersion");
     expect(fromMock).not.toHaveBeenCalled();
   });
 

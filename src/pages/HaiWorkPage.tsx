@@ -26,6 +26,7 @@ import PageMeta from "@/components/common/PageMeta";
 import HaiWorkShell from "@/components/hai/HaiWorkShell";
 import HaiImageGenerationPage from "@/pages/HaiImageGenerationPage";
 import UnitTextbookSelector from "@/components/hai/UnitTextbookSelector";
+import PublicLessonProgress from "@/components/hai/PublicLessonProgress";
 import { validateUnitSelection, type UnitBookSelection, type UnitScope } from "@/lib/hai-unit-design";
 import TaskActionMenu from "@/components/hai/TaskActionMenu";
 import { Button } from "@/components/ui/button";
@@ -115,16 +116,6 @@ export const HAI_WORK_TOOL_CONFIG: Record<HaiWorkToolSlug, HaiWorkToolVisualConf
 
 // 当前前端只开放教师暂时最常用的四类环节；数据库中的其他 Skill 和匹配条件暂不删除。
 const segmentTypes = ["课程导入", "问题链", "任务活动", "评价反馈"];
-const teachingModes = [
-  { value: "案例式", description: "围绕一个核心案例，引导学生分析、解释并归纳教材知识。" },
-  { value: "任务式", description: "让学生为特定对象解决问题，形成可展示、可评价的成果。" },
-  { value: "议题式", description: "围绕真实判断空间，用证据回应异议并形成有边界的结论。" },
-];
-
-function isPoliticsSubject(subject: string) {
-  return subject === "道德与法治" || subject === "思想政治";
-}
-
 function isEnglishSubject(subject: string) {
   return subject === "英语";
 }
@@ -499,7 +490,7 @@ function WorkToolForm({
         : toolSlug === "subject-lesson-design"
         ? {
             ...inputForm,
-            teaching_mode: isPoliticsSubject(form.subject) ? form.teaching_mode.trim() : "",
+            teaching_mode: "",
           }
         : inputForm;
       const requestKey = JSON.stringify({ toolSlug, form: inputForm, unitBooks, files: files.map((file) => [file.name, file.size, file.lastModified]) });
@@ -520,6 +511,11 @@ function WorkToolForm({
       {isUnitDesign && <section aria-label="大单元教学流程预览" className="mb-5 rounded-xl border border-[var(--paper-rule)] bg-[var(--paper-deep)] p-4 sm:p-5">
         <UnitDesignProgress />
         <p className="mt-4 text-xs leading-6 text-txs">先比较适合所选教材的教学模式，再审阅完整整体设计。两步均由你确认；之后连续生成全部课时详案，可分份下载或打包获取。</p>
+      </section>}
+      {toolSlug === "subject-lesson-design" && <section aria-label="公开课设计流程预览" className="mb-5 rounded-xl border border-[var(--paper-rule)] bg-[var(--paper-deep)] p-4 sm:p-5">
+        <p className="mb-4 text-xs font-bold tracking-wide text-txs">四阶段设计流程</p>
+        <PublicLessonProgress />
+        <p className="mt-4 border-t border-[var(--paper-rule)] pt-3 text-xs leading-5 text-txs">先明确本课最需要促成的学生转变，再选择合适的教学模式。两个关键决定都由你确认，最后生成完整教案。</p>
       </section>}
       {error && <div role="alert" className="mb-5 rounded-[18px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
       {previewOnly && (
@@ -559,7 +555,7 @@ function WorkToolForm({
           <SelectField label="学科" value={form.subject} options={subjectsForWorkForm(form.stage)} onChange={(value) => {
             setUnitBooks([]);
             update("subject", value);
-            update("teaching_mode", isPoliticsSubject(value) ? form.teaching_mode : "");
+            update("teaching_mode", "");
             updateTextbookField("grade", "");
           }} />
           {isUnitDesign ? <>
@@ -585,9 +581,7 @@ function WorkToolForm({
               )}
             </>
           )}
-          {toolSlug === "subject-lesson-design" && isPoliticsSubject(form.subject) ? (
-            <TeachingModeField value={form.teaching_mode} onChange={(value) => update("teaching_mode", value)} />
-          ) : toolSlug === "teaching-design" ? (
+          {toolSlug === "teaching-design" ? (
             <>
               <DesignTypeField value={form.design_type} onChange={(value) => update("design_type", value)} />
               <TextField label="课时 / 范围" value={form.unit_duration} placeholder="例如：6 课时、一学期、1 课时（45 分钟）" onChange={(value) => update("unit_duration", value)} />
@@ -624,6 +618,11 @@ function WorkToolForm({
           </div>
         )}
       </div>
+
+      {["subject-lesson-design", "unit-learning-design", "teaching-design"].includes(toolSlug) && <p className="mt-3 text-xs leading-6 text-txs">
+        {toolSlug === "subject-lesson-design" ? "提交后先进入“确定教什么”，确认教学重点后再推荐教学模式。" : isUnitDesign ? "提交后先推荐2—3种教学模式；确认模式与整体设计后，再逐课生成详案。" : "提交后分步确认设计，再生成完整成果。"}
+        确认操作不单独扣费，完整交付时按本轮实际用量统一结算；失败或停止不扣费。
+      </p>}
 
       <details ref={materialDetails} className="mt-3 border-t border-[var(--paper-rule)] pt-3">
         <summary className="cursor-pointer text-xs font-bold text-txs">粘贴正文（也可用上方“+”上传）{files.length > 0 ? ` · 已添加 ${files.length} 份材料` : ""}</summary>
@@ -806,24 +805,6 @@ function DesignTypeField({ value, onChange }: { value: string; onChange: (value:
     </select>
     {value && <span className="mt-1 block text-[11px] font-normal leading-5">{HAI_DESIGN_TYPES.find((item) => item.value === value)?.description}</span>}
   </label>;
-}
-
-function TeachingModeField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
-  return (
-    <fieldset className="sm:col-span-2">
-      <legend className="text-xs font-bold text-txs">教学模式（可选）</legend>
-      <div className="mt-2 flex flex-wrap gap-2">
-        {teachingModes.map((mode) => (
-          <label key={mode.value} title={mode.description} className={`cursor-pointer rounded-lg border px-3 py-2 transition ${value === mode.value ? "border-am bg-am-light ring-2 ring-am/10" : "border-bd bg-[var(--paper)] hover:border-am/50"}`}>
-            <span className="flex items-center gap-2 text-sm font-black text-tx">
-              <input type="radio" name="teaching-mode" value={mode.value} checked={value === mode.value} onChange={() => onChange(mode.value)} />
-              {mode.value}
-            </span>
-          </label>
-        ))}
-      </div>
-    </fieldset>
-  );
 }
 
 function TextAreaField({ label, value, placeholder, minRows, onChange }: FieldProps & { minRows: number }) {
