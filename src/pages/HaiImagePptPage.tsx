@@ -410,7 +410,7 @@ export default function HaiImagePptPage({ embedded = false }: { embedded?: boole
               >
                 <span
                   className={cn(
-                    "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px]",
+                    "flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs",
                     step >= i + 1
                       ? "bg-[var(--annotation-soft)] text-[var(--annotation)]"
                       : "bg-[var(--paper-deep)]",
@@ -450,7 +450,7 @@ export default function HaiImagePptPage({ embedded = false }: { embedded?: boole
                   <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)]">
                     <section className="space-y-5">
                       <div>
-                        <p className="mb-2 text-[11px] font-bold tracking-widest text-[var(--annotation)]">
+                        <p className="mb-2 text-xs font-bold tracking-widest text-[var(--annotation)]">
                           从已经想清楚的教学出发
                         </p>
                         <h1 className="font-serif text-2xl font-bold text-tx">

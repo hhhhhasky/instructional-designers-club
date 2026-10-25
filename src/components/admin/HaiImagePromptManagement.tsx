@@ -241,7 +241,7 @@ export default function HaiImagePromptManagement() {
                       ? " · 未保存"
                       : ""}
                   </span>
-                  <span className="mt-1 block text-[10px] font-normal text-txs">{item.group}</span>
+                  <span className="mt-1 block text-xs font-normal text-txs">{item.group}</span>
                 </button>
               ))}
             </div>
@@ -252,7 +252,7 @@ export default function HaiImagePromptManagement() {
               <div>
                 <h3 className="font-bold text-tx">{definition.label}</h3>
                 <p className="mt-1 max-w-2xl text-xs leading-relaxed text-txs">{definition.description}</p>
-                <p className="mt-2 text-[11px] text-txs">
+                <p className="mt-2 text-xs text-txs">
                   {row?.updated_at
                     ? `上次保存：${new Date(row.updated_at).toLocaleString("zh-CN")}`
                     : "当前使用默认内容"}

@@ -265,7 +265,7 @@ function PlusCourseCatalog({
         return (
           <div key={track.id}>
             <a href={`#${track.id}`} className="course-editorial-toc-link">
-              <span className="font-mono text-[10px] text-txt">{String(index + 1).padStart(2, '0')}</span>
+              <span className="font-mono text-xs text-txt">{String(index + 1).padStart(2, '0')}</span>
               <Icon className="h-4 w-4 flex-shrink-0 text-ac" aria-hidden="true" />
               <span className="flex-1 truncate">{track.title}</span>
               <span className="text-xs text-txt">{getTrackCourseCount(courses, track.id, tracks)} 节</span>
@@ -278,7 +278,7 @@ function PlusCourseCatalog({
                   className="flex min-h-8 items-center justify-between gap-2 rounded-ds-sm px-2 text-xs text-txs transition-colors hover:bg-acl/30 hover:text-ac"
                 >
                   <span className="truncate">{module.shortTitle || module.title}</span>
-                  <span className="shrink-0 text-[10px] text-txt">{getModuleCourseCount(courses, track.id, module.id, tracks)}</span>
+                  <span className="shrink-0 text-xs text-txt">{getModuleCourseCount(courses, track.id, module.id, tracks)}</span>
                 </a>
               ))}
             </div>

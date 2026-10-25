@@ -70,22 +70,22 @@ export default function V2CourseWorkbookImport({ onClose, onImported }: V2Course
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="flex items-center gap-2 text-xs font-ds-bold text-tx"><FileSpreadsheet className="h-4 w-4 text-ac" />Excel 批量创建课程</p>
-          <p className="mt-1 max-w-2xl text-[11px] leading-5 text-txs">下载模板后按工作表填写。导入只创建草稿；系统会先校验数据，确认后在一个事务中创建整套课程。</p>
+          <p className="mt-1 max-w-2xl text-xs leading-5 text-txs">下载模板后按工作表填写。导入只创建草稿；系统会先校验数据，确认后在一个事务中创建整套课程。</p>
         </div>
         <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-txs hover:bg-white hover:text-tx" aria-label="关闭 Excel 导入"><X className="h-4 w-4" /></button>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
         <a href="/templates/v2-course-import-template.xlsx" download className="inline-flex h-9 items-center gap-1.5 rounded-md border border-bdl bg-white px-3 text-xs font-ds-bold text-tx hover:border-ac hover:text-ac"><Download className="h-4 w-4" />下载 Excel 模板</a>
-        <Button onClick={() => inputRef.current?.click()} disabled={reading || importing} className="bg-[#173d39] text-white hover:bg-[#24554e]"><Upload className="h-4 w-4" />{reading ? "读取中…" : "选择填写好的 Excel"}</Button>
+        <Button onClick={() => inputRef.current?.click()} disabled={reading || importing} className="bg-[var(--sage)] text-white hover:bg-[var(--sage-dark)]"><Upload className="h-4 w-4" />{reading ? "读取中…" : "选择填写好的 Excel"}</Button>
         <input ref={inputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={(event) => void chooseFile(event.target.files?.[0])} />
       </div>
 
-      {fileName && <p className="mt-3 text-[11px] text-txs">当前文件：<span className="font-ds-bold text-tx">{fileName}</span></p>}
+      {fileName && <p className="mt-3 text-xs text-txs">当前文件：<span className="font-ds-bold text-tx">{fileName}</span></p>}
 
       {result && (
         <div className="mt-4 rounded-xl border border-bdl bg-white/70 p-3">
-          <div className="grid gap-2 text-[11px] text-txs sm:grid-cols-5">
+          <div className="grid gap-2 text-xs text-txs sm:grid-cols-5">
             <Summary label="课程" value={result.lessonCount} />
             <Summary label="资源" value={result.resourceCount} />
             <Summary label="知识卡" value={result.cardCount} />
@@ -95,15 +95,15 @@ export default function V2CourseWorkbookImport({ onClose, onImported }: V2Course
           {result.issues.length ? (
             <div className="mt-3 rounded-xl border border-red-200 bg-red-50/80 p-3">
               <p className="flex items-center gap-1.5 text-xs font-ds-bold text-red-700"><AlertTriangle className="h-3.5 w-3.5" />请修正以下问题后重新上传</p>
-              <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto text-[11px] leading-5 text-red-700">
+              <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto text-xs leading-5 text-red-700">
                 {result.issues.slice(0, 60).map((issue, index) => <li key={`${issue.sheet}-${issue.row}-${index}`}>{issue.sheet} 第 {issue.row} 行：{issue.message}</li>)}
                 {result.issues.length > 60 && <li>其余 {result.issues.length - 60} 个问题未展开。</li>}
               </ul>
             </div>
           ) : (
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ac/20 bg-bgs/50 p-3">
-              <p className="text-[11px] leading-5 text-txs">校验通过。确认后将按 Unit → Lesson 创建 {result.lessonCount} 节草稿课程；任一步失败都会整体回滚。</p>
-              <Button onClick={() => void confirmImport()} disabled={importing} className="bg-[#173d39] text-white hover:bg-[#24554e]">{importing ? "导入中…" : "确认批量创建"}</Button>
+              <p className="text-xs leading-5 text-txs">校验通过。确认后将按 Unit → Lesson 创建 {result.lessonCount} 节草稿课程；任一步失败都会整体回滚。</p>
+              <Button onClick={() => void confirmImport()} disabled={importing} className="bg-[var(--sage)] text-white hover:bg-[var(--sage-dark)]">{importing ? "导入中…" : "确认批量创建"}</Button>
             </div>
           )}
         </div>

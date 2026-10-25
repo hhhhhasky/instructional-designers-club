@@ -1,4 +1,4 @@
-import { ChevronRight, GraduationCap, Map as MapIcon } from 'lucide-react';
+import { ChevronRight, GraduationCap, TriangleAlert, Map as MapIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Footer from '@/components/common/Footer';
@@ -159,7 +159,7 @@ export default function LearningPage() {
               <GraduationCap className="w-5 h-5 text-ac" />
             </div>
             <div>
-              <h1 className="text-ds-xl font-ds-black text-tx">我的学习</h1>
+              <h1 className="font-serif text-2xl font-ds-bold text-tx">我的学习</h1>
               <p className="text-ds-sm text-txs">{profile.nickname} 的学习主页</p>
             </div>
           </div>
@@ -186,7 +186,7 @@ export default function LearningPage() {
           {error && !isLoading && (
             <div className="text-center py-12">
               <div className="w-14 h-14 rounded-ds-full bg-pink-soft flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">⚠️</span>
+                <TriangleAlert className="h-5 w-5 shrink-0" aria-hidden="true" />
               </div>
               <p className="text-txs mb-4">{error}</p>
               <Button className="btn-super-cta !text-white rounded-ds-lg">刷新页面</Button>

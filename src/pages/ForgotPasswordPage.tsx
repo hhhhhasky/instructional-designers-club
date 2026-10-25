@@ -64,13 +64,13 @@ export default function ForgotPasswordPage() {
     <>
       <PageMeta title="忘记密码" description="" noIndex />
       <div className="min-h-screen bg-cream flex flex-col">
-        <main className="flex-1 flex items-center justify-center pt-20 pb-12 px-4">
+        <main className="flex-1 flex items-center justify-center py-12 px-4">
           <div className="w-full max-w-sm animate-fade-in" style={{ animation: 'fade-in 0.6s ease-out' }}>
-            <div className="bg-white rounded-ds-lg shadow-ds-md border border-bd p-8">
+            <div className="bg-white rounded-ds-lg shadow-ds-sm border border-bd p-8">
               {/* 头部 */}
               <div className="text-center mb-8">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-ds-full bg-acl flex items-center justify-center">
-                  <KeyRound className="w-8 h-8 text-ac" />
+                <div className="w-12 h-12 mx-auto mb-4 rounded-ds-full bg-acl flex items-center justify-center">
+                  <KeyRound className="w-6 h-6 text-ac" />
                 </div>
                 <h1
                   className="text-2xl font-ds-bold text-tx mb-2"
@@ -117,6 +117,7 @@ export default function ForgotPasswordPage() {
                   <div>
                     <input
                       type="tel"
+                      aria-label="注册时使用的手机号"
                       placeholder="注册时使用的手机号"
                       maxLength={11}
                       {...register('phone')}
@@ -131,6 +132,7 @@ export default function ForgotPasswordPage() {
                   <div>
                     <input
                       type="text"
+                      aria-label="备注（选填，如昵称，便于管理员辨认）"
                       placeholder="备注（选填，如昵称，便于管理员辨认）"
                       maxLength={50}
                       {...register('note')}

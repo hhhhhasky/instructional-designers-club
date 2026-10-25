@@ -543,7 +543,7 @@ function HistoryPanel({
               onClick={() => onSelect(conversation.id)}
             >
               <p className="truncate text-xs font-semibold text-tx">{conversation.title}</p>
-              <p className="mt-1 text-[11px] text-txs">{formatHistoryDate(conversation.updated_at)}</p>
+              <p className="mt-1 text-xs text-txs">{formatHistoryDate(conversation.updated_at)}</p>
             </button>
             <button
               className="rounded-ds-sm p-1 text-txt opacity-0 transition hover:bg-bgs hover:text-ac group-hover:opacity-100"
@@ -644,7 +644,7 @@ export function MessageBubble({
                       {sharing ? "生成中" : "转发"}
                     </button>
                   )}
-                  <span className="ml-auto text-[11px] text-txs">这条回答有帮助吗？</span>
+                  <span className="ml-auto text-xs text-txs">这条回答有帮助吗？</span>
                   <button
                     type="button"
                     onClick={() => void onFeedback?.(message.id, "up")}
@@ -767,7 +767,7 @@ export function EmptyState({
               disabled={busy || quotaReached || questionsLoading}
               className="group flex min-h-11 min-w-0 items-center gap-2.5 rounded-ds-md border border-bd bg-white px-3 py-2 text-left shadow-ds-xs transition hover:-translate-y-0.5 hover:border-ac/40 hover:shadow-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/30 disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-[96px] sm:items-start sm:gap-3 sm:rounded-ds-lg sm:p-4"
             >
-              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-ds-full bg-acl text-[11px] font-ds-bold text-ac transition group-hover:bg-ac group-hover:text-white sm:h-6 sm:w-6 sm:text-ds-xs">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-ds-full bg-acl text-xs font-ds-bold text-ac transition group-hover:bg-ac group-hover:text-white sm:h-6 sm:w-6 sm:text-ds-xs">
                 {index + 1}
               </span>
               <span className="min-w-0 flex-1 truncate text-ds-sm leading-relaxed text-tx sm:whitespace-normal">{question}</span>

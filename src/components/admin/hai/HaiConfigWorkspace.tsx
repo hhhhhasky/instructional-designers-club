@@ -40,7 +40,7 @@ export function HaiConfigWorkspace({ children }: { children: ReactNode }) {
               <Icon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
                 <span className="block text-sm font-bold">{label}</span>
-                <span className="mt-1 block text-[11px] text-txs">{detail}</span>
+                <span className="mt-1 block text-xs text-txs">{detail}</span>
               </span>
             </button>
           ))}

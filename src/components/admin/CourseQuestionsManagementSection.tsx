@@ -221,7 +221,7 @@ export default function CourseQuestionsManagementSection() {
                     <p className="text-xs text-txs mt-2">
                       作者：{question.author_display_name}
                       {question.is_anonymous && (
-                        <span className="ml-1.5 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-600">
+                        <span className="ml-1.5 rounded-full bg-amber-50 px-1.5 py-0.5 text-xs text-amber-600">
                           匿名
                         </span>
                       )}
@@ -310,7 +310,7 @@ function ReplyRow({
             <span className="text-xs text-txs">
               作者：{reply.author_display_name}
               {reply.is_anonymous && (
-                <span className="ml-1.5 rounded-full bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-600">
+                <span className="ml-1.5 rounded-full bg-amber-50 px-1.5 py-0.5 text-xs text-amber-600">
                   匿名
                 </span>
               )}
@@ -365,7 +365,7 @@ function StatusBadge({ status }: { status: CourseQuestionStatus }) {
     <span
       className={cn(
         "rounded-full px-2 py-0.5 text-xs",
-        status === "visible" && "bg-green-50 text-green-700",
+        status === "visible" && "bg-sage-soft text-sage",
         status === "hidden" && "bg-amber-50 text-amber-700",
         status === "deleted" && "bg-red-50 text-red-700",
       )}

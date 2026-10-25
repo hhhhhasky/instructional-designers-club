@@ -676,7 +676,7 @@ export default function LiveManagementSection() {
                     <span className="line-clamp-1 font-ds-bold text-ds-sm text-tx">{session.title}</span>
                     <span className="mt-2 flex items-center justify-between gap-2">
                       <span className="font-mono text-ds-xs text-txs">{session.room_code ?? "—"}</span>
-                      <span className={`rounded-ds-pill px-2 py-0.5 text-[10px] font-ds-bold ${statusClass(session.status)}`}>
+                      <span className={`rounded-ds-pill px-2 py-0.5 text-xs font-ds-bold ${statusClass(session.status)}`}>
                         {LIVE_STATUS_LABELS[session.status]}
                       </span>
                     </span>
@@ -696,7 +696,7 @@ export default function LiveManagementSection() {
             <section className="rounded-ds-xl border border-bd bg-white/75 p-4 shadow-ds-xs">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-ds-black tracking-[.16em] text-txs">A · 房间信息与控制</p>
+                  <p className="text-xs font-ds-black tracking-[.16em] text-txs">A · 房间信息与控制</p>
                   {selectedSession.status === "draft" ? (
                     <div className="mt-2 flex gap-2">
                       <input
@@ -780,7 +780,7 @@ export default function LiveManagementSection() {
             <section className="rounded-ds-xl border border-bd bg-white/75 p-4 shadow-ds-xs">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="text-[10px] font-ds-black tracking-[.16em] text-txs">B · 题目内容管理</p>
+                  <p className="text-xs font-ds-black tracking-[.16em] text-txs">B · 题目内容管理</p>
                   <p className="mt-1 text-ds-xs text-txs">只管理题目内容；发布和控课在下方 D 区。</p>
                 </div>
                 <Button
@@ -824,7 +824,7 @@ export default function LiveManagementSection() {
                             </td>
                             <td className="py-2.5 pr-3 text-txs">{LIVE_QUESTION_TYPE_LABELS[question.type]}</td>
                             <td className="py-2.5 pr-3">
-                              <span className={`rounded-ds-pill px-2 py-1 text-[10px] font-ds-bold ${question.audience_mode === "all" ? "bg-warm text-txs" : "bg-acl text-ac"}`}>
+                              <span className={`rounded-ds-pill px-2 py-1 text-xs font-ds-bold ${question.audience_mode === "all" ? "bg-warm text-txs" : "bg-acl text-ac"}`}>
                                 {formatLiveAudience(question)} · 当前匹配 {targetCount} 人
                               </span>
                             </td>
@@ -871,7 +871,7 @@ export default function LiveManagementSection() {
             <section className="rounded-ds-xl border border-bd bg-white/75 p-4 shadow-ds-xs">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
-                  <p className="text-[10px] font-ds-black tracking-[.16em] text-txs">C · 学员标签与分组</p>
+                  <p className="text-xs font-ds-black tracking-[.16em] text-txs">C · 学员标签与分组</p>
                   <p className="mt-1 text-ds-xs leading-5 text-txs">给进入过本场房间的学员添加标签；题目可按标签或指定个人定向发布。</p>
                 </div>
                 <div className="flex flex-wrap gap-2 text-ds-xs">
@@ -895,11 +895,11 @@ export default function LiveManagementSection() {
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className={`h-2.5 w-2.5 rounded-full ${online ? "bg-emerald-500" : "bg-bd"}`} />
+                              <span className={`h-2.5 w-2.5 rounded-full ${online ? "bg-sage" : "bg-bd"}`} />
                               <h3 className="truncate text-ds-sm font-ds-bold text-tx">{participant.nickname}</h3>
-                              <span className="text-[10px] text-txt">{online ? "在线" : "已离线"}</span>
+                              <span className="text-xs text-txt">{online ? "在线" : "已离线"}</span>
                             </div>
-                            <p className="mt-1 font-mono text-[10px] text-txt">{participant.user_id.slice(0, 8)}</p>
+                            <p className="mt-1 font-mono text-xs text-txt">{participant.user_id.slice(0, 8)}</p>
                           </div>
                           {saving ? <Loader2 className="h-4 w-4 animate-spin text-ac" /> : null}
                         </div>
@@ -928,7 +928,7 @@ export default function LiveManagementSection() {
                               type="button"
                               disabled={saving || selectedSession.status === "ended"}
                               onClick={() => addParticipantTag(participant, tag)}
-                              className="rounded-ds-pill border border-bd bg-white px-2 py-1 text-[10px] text-txs hover:border-ac hover:text-ac disabled:opacity-40"
+                              className="rounded-ds-pill border border-bd bg-white px-2 py-1 text-xs text-txs hover:border-ac hover:text-ac disabled:opacity-40"
                             >
                               + {tag}
                             </button>
@@ -962,22 +962,22 @@ export default function LiveManagementSection() {
               )}
             </section>
 
-            <section className="rounded-ds-xl border border-[#244f48]/15 bg-[#244f48] p-4 text-white shadow-ds-md">
+            <section className="rounded-ds-xl border border-[var(--sage-dark)]/15 bg-[var(--sage-dark)] p-4 text-white shadow-ds-md">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
-                  <p className="text-[10px] font-ds-black tracking-[.16em] text-[#efb393]">D · 互动控制 / 实时结果</p>
+                  <p className="text-xs font-ds-black tracking-[.16em] text-[var(--sand)]">D · 互动控制 / 实时结果</p>
                   <p className="mt-1 text-ds-xs text-white/55">这里只负责发布、停止、公布与下一题；数据分析已移至独立看板。</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-ds-xs">
                   <div className="flex items-center gap-2 rounded-ds-lg border border-white/10 bg-white/[.06] px-3 py-2">
-                    <Users className="h-4 w-4 text-[#efb393]" />
+                    <Users className="h-4 w-4 text-[var(--sand)]" />
                     学员在线 {new Set(onlineUsers.filter((item) => item.role !== "admin").map((item) => item.user_id ?? JSON.stringify(item))).size}
                   </div>
                   <div className="flex items-center gap-2 rounded-ds-lg border border-white/10 bg-white/[.06] px-3 py-2">
                     <span
                       className={`h-2 w-2 rounded-full ${
                         realtimeStatus === "connected"
-                          ? "bg-emerald-300"
+                          ? "bg-sage-soft"
                           : realtimeStatus === "recovering"
                             ? "animate-pulse bg-amber-300"
                             : "bg-white/35"
@@ -996,7 +996,7 @@ export default function LiveManagementSection() {
                       value={selectedQuestionId ?? ""}
                       onChange={(event) => setSelectedQuestionId(event.target.value || null)}
                       disabled={questions.length === 0 || selectedSession.status !== "live"}
-                      className="h-10 rounded-ds-md border border-white/15 bg-[#173d39] px-2 text-ds-sm text-white disabled:opacity-50"
+                      className="h-10 rounded-ds-md border border-white/15 bg-[var(--sage)] px-2 text-ds-sm text-white disabled:opacity-50"
                     >
                       {questions.length === 0 ? <option value="">暂无题目</option> : null}
                       {questions.map((question) => (
@@ -1013,7 +1013,7 @@ export default function LiveManagementSection() {
                     <Button
                       onClick={handlePublish}
                       disabled={!capabilities?.publish || !selectedQuestionId || action === "publish"}
-                      className="bg-[#efb393] text-[#244f48] hover:bg-[#e39c76] hover:text-[#244f48]"
+                      className="bg-[var(--sand)] text-[var(--sage-dark)] hover:bg-[#e39c76] hover:text-[var(--sage-dark)]"
                     >
                       <Radio className="h-4 w-4" />
                       发布题目
@@ -1046,19 +1046,19 @@ export default function LiveManagementSection() {
                   {currentQuestion && summary ? (
                     <>
                       <div>
-                        <p className="text-[10px] font-ds-black tracking-[.14em] text-[#efb393]">CURRENT SNAPSHOT</p>
+                        <p className="text-xs font-ds-black tracking-[.14em] text-[var(--sand)]">CURRENT SNAPSHOT</p>
                         <p className="mt-2 font-serif text-ds-lg font-ds-black">Q{currentQuestion.position} · {currentQuestion.title}</p>
-                        <p className="mt-1 text-ds-xs text-[#efb393]">{formatLiveAudience(currentQuestion)}</p>
+                        <p className="mt-1 text-ds-xs text-[var(--sand)]">{formatLiveAudience(currentQuestion)}</p>
                         <p className="mt-2 text-ds-sm text-white/60">已答 <span className="font-ds-black text-white">{summary.answeredCount}</span> 人 · 正确率 <span className="font-ds-black text-white">{summary.correctRate}%</span></p>
                       </div>
-                      <Button asChild className="mt-5 w-full bg-[#efb393] text-[#244f48] hover:bg-[#e39c76] hover:text-[#244f48]">
+                      <Button asChild className="mt-5 w-full bg-[var(--sand)] text-[var(--sage-dark)] hover:bg-[#e39c76] hover:text-[var(--sage-dark)]">
                         <Link to="/admin?tab=live"><BarChart3 className="h-4 w-4" />打开大型 Live 数据看板</Link>
                       </Button>
                     </>
                   ) : (
                     <>
                       <div className="grid flex-1 place-items-center text-center text-ds-sm text-white/55">等待主持人发布问题……</div>
-                      <Button asChild className="mt-5 w-full bg-[#efb393] text-[#244f48] hover:bg-[#e39c76] hover:text-[#244f48]">
+                      <Button asChild className="mt-5 w-full bg-[var(--sand)] text-[var(--sage-dark)] hover:bg-[#e39c76] hover:text-[var(--sage-dark)]">
                         <Link to="/admin?tab=live"><BarChart3 className="h-4 w-4" />打开大型 Live 数据看板</Link>
                       </Button>
                     </>

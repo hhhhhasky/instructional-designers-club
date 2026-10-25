@@ -51,7 +51,7 @@ export function V2ReviewPanel() {
     <div className="rounded-3xl border border-bdl bg-white/65 p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-ds-black tracking-[.16em] text-ac">V2 REVIEW CENTER</p>
+          <p className="text-xs font-ds-black tracking-[.16em] text-ac">V2 REVIEW CENTER</p>
           <h3 className="mt-2 font-serif text-2xl font-ds-black text-tx">批阅中心</h3>
           <p className="mt-1 text-xs text-txs">标准题和开放任务的提交、反馈与二次修改记录都保留。</p>
         </div>
@@ -65,15 +65,15 @@ export function V2ReviewPanel() {
       ) : (
         <div className="mt-5 overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-xs">
-            <thead><tr className="border-b border-bdl text-[10px] tracking-wide text-txs"><th className="px-3 py-2">学员</th><th className="px-3 py-2">课程路径</th><th className="px-3 py-2">任务</th><th className="px-3 py-2">提交时间</th><th className="px-3 py-2">状态</th><th className="px-3 py-2" /></tr></thead>
-            <tbody>{queue.map((item) => <tr key={item.id} className="border-b border-bdl/70"><td className="px-3 py-3"><p className="font-ds-bold text-tx">{item.learner_name}</p><p className="mt-1 text-[10px] text-txs">{item.learner_phone}</p></td><td className="px-3 py-3 text-txs">{item.unit_title} / {item.lesson_title}</td><td className="px-3 py-3 text-txs">{item.assessment_title} · 第 {item.attempt_no} 次</td><td className="px-3 py-3 text-txs">{item.submitted_at ? new Date(item.submitted_at).toLocaleString("zh-CN") : "—"}</td><td className="px-3 py-3"><StatusPill status={item.status} /></td><td className="px-3 py-3 text-right"><Button size="sm" onClick={() => getV2ReviewDetail(item.id).then(setDetail).catch(() => toast.error("详情加载失败"))}>打开</Button></td></tr>)}</tbody>
+            <thead><tr className="border-b border-bdl text-xs tracking-wide text-txs"><th className="px-3 py-2">学员</th><th className="px-3 py-2">课程路径</th><th className="px-3 py-2">任务</th><th className="px-3 py-2">提交时间</th><th className="px-3 py-2">状态</th><th className="px-3 py-2" /></tr></thead>
+            <tbody>{queue.map((item) => <tr key={item.id} className="border-b border-bdl/70"><td className="px-3 py-3"><p className="font-ds-bold text-tx">{item.learner_name}</p><p className="mt-1 text-xs text-txs">{item.learner_phone}</p></td><td className="px-3 py-3 text-txs">{item.unit_title} / {item.lesson_title}</td><td className="px-3 py-3 text-txs">{item.assessment_title} · 第 {item.attempt_no} 次</td><td className="px-3 py-3 text-txs">{item.submitted_at ? new Date(item.submitted_at).toLocaleString("zh-CN") : "—"}</td><td className="px-3 py-3"><StatusPill status={item.status} /></td><td className="px-3 py-3 text-right"><Button size="sm" onClick={() => getV2ReviewDetail(item.id).then(setDetail).catch(() => toast.error("详情加载失败"))}>打开</Button></td></tr>)}</tbody>
           </table>
         </div>
       )}
 
       {detail && (
         <div className="mt-5 rounded-2xl border border-ac/25 bg-acl/30 p-5">
-          <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-xs font-ds-bold text-tx">{detail.learner_name} · {detail.block.title}</p><p className="mt-1 text-[11px] text-txs">{detail.lesson?.title ?? "单元任务"} · 第 {detail.attempt.attempt_no} 次提交</p></div><button type="button" onClick={() => setDetail(null)} className="text-xs text-txs hover:text-tx">关闭</button></div>
+          <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-xs font-ds-bold text-tx">{detail.learner_name} · {detail.block.title}</p><p className="mt-1 text-xs text-txs">{detail.lesson?.title ?? "单元任务"} · 第 {detail.attempt.attempt_no} 次提交</p></div><button type="button" onClick={() => setDetail(null)} className="text-xs text-txs hover:text-tx">关闭</button></div>
           <div className="mt-4 space-y-3">
             {detail.items.map((item, index) => {
               const answer = detail.answers.find((row) => row.item_id === item.id);
@@ -82,7 +82,7 @@ export function V2ReviewPanel() {
             })}
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-[140px_1fr]"><input value={score} onChange={(event) => setScore(event.target.value)} type="number" placeholder="分数" className="rounded-xl border border-bdl bg-white px-3 py-2 text-sm text-tx outline-none focus:border-ac" /><textarea value={feedback} onChange={(event) => setFeedback(event.target.value)} rows={4} placeholder="Markdown 反馈" className="rounded-xl border border-bdl bg-white px-3 py-2 text-sm text-tx outline-none focus:border-ac" /></div>
-          <div className="mt-3 flex flex-wrap gap-2"><Button onClick={() => void submitReview("reviewed")} className="bg-[#173d39] text-white hover:bg-[#24554e]"><Check className="h-4 w-4" />通过并保存</Button><Button onClick={() => void submitReview("revision_required")} variant="outline" className="border-[#bb704c] bg-white text-[#bb704c]">要求修改</Button></div>
+          <div className="mt-3 flex flex-wrap gap-2"><Button onClick={() => void submitReview("reviewed")} className="bg-[var(--sage)] text-white hover:bg-[var(--sage-dark)]"><Check className="h-4 w-4" />通过并保存</Button><Button onClick={() => void submitReview("revision_required")} variant="outline" className="border-[#bb704c] bg-white text-[#bb704c]">要求修改</Button></div>
         </div>
       )}
     </div>
@@ -91,5 +91,5 @@ export function V2ReviewPanel() {
 
 function StatusPill({ status }: { status: string }) {
   const labels: Record<string, string> = { draft: "草稿", submitted: "待批阅", reviewed: "已批阅", revision_required: "要求修改" };
-  return <span className={`rounded-full px-2 py-1 text-[10px] font-ds-bold ${status === "reviewed" ? "bg-bgs text-ac" : status === "revision_required" ? "bg-[#fff0e8] text-[#bb704c]" : "bg-bgs text-txs"}`}>{labels[status] ?? status}</span>;
+  return <span className={`rounded-full px-2 py-1 text-xs font-ds-bold ${status === "reviewed" ? "bg-bgs text-ac" : status === "revision_required" ? "bg-[var(--acl)] text-[#bb704c]" : "bg-bgs text-txs"}`}>{labels[status] ?? status}</span>;
 }

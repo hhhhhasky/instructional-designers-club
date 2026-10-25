@@ -240,10 +240,10 @@ function AdminTopNav({ activeSection }: { activeSection: AdminPageShellProps["ac
     <nav className="border-b border-bd bg-white/80" aria-label="平台管理后台导航">
       <div className="flex min-h-16 min-w-0 flex-col sm:flex-row sm:items-stretch">
         <Link to="/admin" className="flex items-center gap-3 border-b border-bdl px-5 py-3 sm:w-[245px] sm:shrink-0 sm:border-b-0 sm:border-r">
-          <span className="grid h-9 w-9 place-items-center rounded-ds-md bg-[#173d39] text-[#efb393]"><ShieldCheck className="h-4 w-4" /></span>
+          <span className="grid h-9 w-9 place-items-center rounded-ds-md bg-[var(--sage)] text-[var(--sand)]"><ShieldCheck className="h-4 w-4" /></span>
           <span>
             <span className="block text-ds-sm font-ds-black tracking-tight text-tx">平台管理后台</span>
-            <span className="mt-0.5 block text-[10px] tracking-[0.12em] text-txs">ADMIN STUDIO</span>
+            <span className="mt-0.5 block text-xs tracking-[0.12em] text-txs">ADMIN STUDIO</span>
           </span>
         </Link>
         <div className="flex min-w-0 flex-1 items-stretch overflow-x-auto">
@@ -260,12 +260,12 @@ function AdminTopLink({ to, label, description, active }: { to: string; label: s
     <Link
       to={to}
       aria-current={active ? "page" : undefined}
-      className={`relative flex min-w-[142px] flex-1 items-center gap-3 border-r border-bdl px-4 py-3 transition-colors last:border-r-0 sm:min-w-[180px] sm:px-7 ${active ? "bg-bgs text-[#173d39]" : "text-tx hover:bg-bgs"}`}
+      className={`relative flex min-w-[142px] flex-1 items-center gap-3 border-r border-bdl px-4 py-3 transition-colors last:border-r-0 sm:min-w-[180px] sm:px-7 ${active ? "bg-bgs text-[var(--sage)]" : "text-tx hover:bg-bgs"}`}
     >
       <span className={`h-2 w-2 rounded-full ${active ? "bg-ac" : "bg-bdl"}`} />
       <span>
         <span className="block text-ds-sm font-ds-bold">{label}</span>
-        <span className="mt-0.5 block text-[10px] text-txs">{description}</span>
+        <span className="mt-0.5 block text-xs text-txs">{description}</span>
       </span>
       {active && <span className="absolute inset-x-0 bottom-0 h-1 bg-ac" />}
     </Link>

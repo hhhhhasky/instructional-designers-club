@@ -44,7 +44,7 @@ export default function ContentFormatBadges({ course, compact = false, className
         return (
           <span
             key={f}
-            className="inline-flex items-center gap-1 rounded bg-bgs px-1.5 py-0.5 text-[11px] font-medium text-txs"
+            className="inline-flex items-center gap-1 rounded bg-bgs px-1.5 py-0.5 text-xs font-medium text-txs"
           >
             <Icon className="w-3 h-3" />
             {meta.label}

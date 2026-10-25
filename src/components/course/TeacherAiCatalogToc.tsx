@@ -50,7 +50,7 @@ export default function TeacherAiCatalogToc({
               <div className="flex items-center gap-2 px-2 py-1.5">
                 <Icon className="w-4 h-4 text-amber-600 flex-shrink-0" />
                 <span className="text-xs font-bold text-txs flex-1 truncate">{category}</span>
-                <span className="text-[10px] text-txt">{courses.length + extraEntries.length}</span>
+                <span className="text-xs text-txt">{courses.length + extraEntries.length}</span>
               </div>
               <div className="space-y-0.5">
                 {courses.map((course, index) => {
@@ -77,7 +77,7 @@ export default function TeacherAiCatalogToc({
                         {isCurrent ? (
                           <PlayCircle className="w-4 h-4 text-amber-600" />
                         ) : isCompleted ? (
-                          <CheckCircle2 className="w-4 h-4 text-green-500" />
+                          <CheckCircle2 className="w-4 h-4 text-sage" />
                         ) : (
                           <span
                             className={cn(
@@ -115,7 +115,7 @@ export default function TeacherAiCatalogToc({
                 >
                   <span className="flex-shrink-0 w-5 text-center text-xs text-txt">{courses.length + index + 1}</span>
                   <span className="flex-1 min-w-0 truncate leading-snug">{entry.title}</span>
-                  <span className="shrink-0 text-[10px] text-txt">交互工具</span>
+                  <span className="shrink-0 text-xs text-txt">交互工具</span>
                 </Link>)}
               </div>
             </div>

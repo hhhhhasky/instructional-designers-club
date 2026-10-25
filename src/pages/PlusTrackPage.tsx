@@ -156,7 +156,7 @@ export default function PlusTrackPage() {
                       : 'border-bd bg-[var(--paper)] text-txs hover:border-ac/40 hover:text-ac',
                   )}
                 >
-                  <span className="mr-1.5 font-mono text-[10px] opacity-70">{String(index + 1).padStart(2, '0')}</span>
+                  <span className="mr-1.5 font-mono text-xs opacity-70">{String(index + 1).padStart(2, '0')}</span>
                   {item.title}
                 </button>
               ))}
@@ -181,7 +181,7 @@ export default function PlusTrackPage() {
                 const Icon = getModuleIcon(module.iconKey || module.id);
                 return (
                   <a key={module.id} href={`#${encodeURIComponent(module.id)}`} className="course-editorial-toc-link">
-                    <span className="font-mono text-[10px] text-txt">{String(index + 1).padStart(2, '0')}</span>
+                    <span className="font-mono text-xs text-txt">{String(index + 1).padStart(2, '0')}</span>
                     <Icon className="h-4 w-4 flex-shrink-0 text-ac" aria-hidden="true" />
                     <span className="flex-1 truncate">{module.title}</span>
                     <span className="text-xs text-txt">{count}</span>
@@ -311,7 +311,7 @@ function CourseList({
                   {course.duration}分钟
                 </span>
               )}
-              {course.is_trial && <Badge className="bg-green-500 text-white text-xs px-2 py-0">试看</Badge>}
+              {course.is_trial && <Badge className="bg-sage text-white text-xs px-2 py-0">试看</Badge>}
               <span className="inline-flex items-center gap-1">
                 <PlayCircle className="w-3 h-3" />
                 单课

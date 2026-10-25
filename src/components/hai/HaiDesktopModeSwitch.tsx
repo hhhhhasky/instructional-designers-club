@@ -25,8 +25,8 @@ function Mode({ to, label, icon: Icon }: {
     <NavLink to={to} className={({ isActive }) => cn(
       "relative flex h-9 rounded-md items-center justify-center gap-1.5 px-3 text-ds-xs font-ds-bold transition-colors",
       isActive
-        ? "bg-[#f1e9dc] text-[#a45d3d]"
-        : "text-[#746b60] hover:bg-white/60 hover:text-[#353733]",
+        ? "bg-acl text-ac"
+        : "text-txs hover:bg-white/60 hover:text-tx",
     )}>
       <Icon className="h-3.5 w-3.5" />
       {label}

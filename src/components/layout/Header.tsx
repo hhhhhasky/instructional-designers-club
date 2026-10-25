@@ -260,7 +260,7 @@ export default function Header() {
               /* 已登录：头像 + 下拉菜单 */
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="w-8 h-8 rounded-ds-full bg-acl flex items-center justify-center overflow-hidden ring-2 ring-transparent hover:ring-ac/30 transition-all">
+                  <button aria-label="打开账号菜单" className="w-8 h-8 rounded-ds-full bg-acl flex items-center justify-center overflow-hidden ring-2 ring-transparent hover:ring-ac/30 transition-all">
                     {avatarEl}
                   </button>
                 </DropdownMenuTrigger>
@@ -312,6 +312,7 @@ export default function Header() {
                   variant="ghost"
                   size="icon"
                   className="xl:hidden"
+                  aria-label={isOpen ? "关闭网站菜单" : "打开网站菜单"}
                 >
                   {isOpen ? (
                     <X className="w-5 h-5" />

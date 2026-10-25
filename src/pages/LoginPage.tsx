@@ -44,13 +44,13 @@ export default function LoginPage() {
     <>
       <PageMeta title="登录" description="" noIndex />
     <div className="min-h-screen bg-cream flex flex-col">
-      <main className="flex-1 flex items-center justify-center pt-20 pb-12 px-4">
+      <main className="flex-1 flex items-center justify-center py-12 px-4">
         <div className="w-full max-w-sm animate-fade-in" style={{ animation: 'fade-in 0.6s ease-out' }}>
-          <div className="bg-white rounded-ds-lg shadow-ds-md border border-bd p-8">
+          <div className="bg-white rounded-ds-lg shadow-ds-sm border border-bd p-8">
             {/* 头部 */}
             <div className="text-center mb-8">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-ds-full bg-acl flex items-center justify-center">
-                <GraduationCap className="w-8 h-8 text-ac" />
+              <div className="w-12 h-12 mx-auto mb-4 rounded-ds-full bg-acl flex items-center justify-center">
+                <GraduationCap className="w-6 h-6 text-ac" />
               </div>
               <h1
                 className="text-2xl font-ds-bold text-tx mb-2"
@@ -66,6 +66,7 @@ export default function LoginPage() {
               <div>
                 <input
                   type="tel"
+                  aria-label="手机号"
                   placeholder="手机号"
                   maxLength={11}
                   {...register('phone')}
@@ -80,12 +81,14 @@ export default function LoginPage() {
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  aria-label="密码"
                   placeholder="密码"
                   {...register('password')}
                   className="w-full h-12 px-4 pr-12 text-base border border-bd rounded-ds-lg bg-bg text-tx placeholder:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
                 />
                 <button
                   type="button"
+                  aria-label={showPassword ? "隐藏密码" : "显示密码"}
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-txt hover:text-tx transition-colors"
                 >

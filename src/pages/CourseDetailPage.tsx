@@ -892,7 +892,7 @@ export default function CourseDetailPage() {
                     aria-label="展开目录"
                   >
                     <PanelLeftOpen className="w-5 h-5" />
-                    <span className="text-[10px] [writing-mode:vertical-rl] tracking-widest">目录</span>
+                    <span className="text-xs [writing-mode:vertical-rl] tracking-widest">目录</span>
                   </button>
                 )}
               </aside>
@@ -937,7 +937,7 @@ export default function CourseDetailPage() {
                     aria-label="展开目录"
                   >
                     <PanelLeftOpen className="w-5 h-5" />
-                    <span className="text-[10px] [writing-mode:vertical-rl] tracking-widest">目录</span>
+                    <span className="text-xs [writing-mode:vertical-rl] tracking-widest">目录</span>
                   </button>
                 )}
               </aside>
@@ -1087,10 +1087,10 @@ export default function CourseDetailPage() {
                                 {isCurrent ? (
                                   <PlayCircle className="w-4 h-4 text-ac" />
                                 ) : status === 'completed' ? (
-                                  <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                  <CheckCircle2 className="w-4 h-4 text-sage" />
                                 ) : (
                                   <span className={cn(
-                                    "inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold",
+                                    "inline-flex items-center justify-center w-4 h-4 rounded-full text-xs font-bold",
                                     progress > 0 ? "bg-ac/10 text-ac" : "bg-bgs text-txs"
                                   )}>
                                     {index + 1}
@@ -1106,7 +1106,7 @@ export default function CourseDetailPage() {
                                   {sibling.title}
                                 </p>
                                 {status === 'completed' && !isCurrent && (
-                                  <span className="text-[10px] text-green-500 flex-shrink-0">已完成</span>
+                                  <span className="text-xs text-sage flex-shrink-0">已完成</span>
                                 )}
                               </div>
                             </div>
@@ -1309,7 +1309,7 @@ export default function CourseDetailPage() {
                               {isCurrent ? (
                                 <PlayCircle className="w-5 h-5 text-ac" />
                               ) : status === 'completed' ? (
-                                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                <CheckCircle2 className="w-5 h-5 text-sage" />
                               ) : (
                                 <span className={cn(
                                   "inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-bold",
@@ -1336,7 +1336,7 @@ export default function CourseDetailPage() {
                                 </div>
                               )}
                               {status === 'completed' && !isCurrent && (
-                                <p className="text-xs text-green-500 mt-0.5">已完成</p>
+                                <p className="text-xs text-sage mt-0.5">已完成</p>
                               )}
                             </div>
                           </div>
@@ -1436,7 +1436,7 @@ export default function CourseDetailPage() {
                             {isCurrent ? (
                               <PlayCircle className="w-4 h-4 text-ac" />
                             ) : status === 'completed' ? (
-                              <CheckCircle2 className="w-4 h-4 text-green-500" />
+                              <CheckCircle2 className="w-4 h-4 text-sage" />
                             ) : (
                               <span className={cn('text-xs', progress > 0 ? 'text-ac font-semibold' : 'text-txt')}>
                                 {index + 1}
@@ -1477,7 +1477,7 @@ export default function CourseDetailPage() {
             aria-label="打开课程目录"
           >
             <List className="w-5 h-5" />
-            <span className="text-[11px] font-semibold">目录</span>
+            <span className="text-xs font-semibold">目录</span>
           </button>
 
           <div className="flex items-center gap-2">

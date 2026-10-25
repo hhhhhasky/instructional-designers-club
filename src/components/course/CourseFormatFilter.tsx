@@ -48,7 +48,7 @@ export default function CourseFormatFilter({ courses, value, onChange }: CourseF
                 )}
               >
                 <span>{option.label}</span>
-                <span className={cn('text-[11px] tabular-nums', selected ? 'text-ac/70' : 'text-txt')}>
+                <span className={cn('text-xs tabular-nums', selected ? 'text-ac/70' : 'text-txt')}>
                   {counts[option.value]}
                 </span>
               </button>

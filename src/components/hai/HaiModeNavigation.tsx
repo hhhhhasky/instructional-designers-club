@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 export default function HaiModeNavigation() {
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-[#ded7ca] bg-[#fffdf8]/95 pb-safe shadow-[0_-12px_32px_rgba(64,49,28,0.08)] backdrop-blur-xl md:hidden"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-bd bg-[var(--paper)]/95 pb-safe  backdrop-blur-xl md:hidden"
       aria-label="HAI 模式导航"
       data-testid="hai-mode-navigation"
     >
@@ -36,16 +36,16 @@ function ModeLink({
       to={to}
       className={({ isActive }) => cn(
         "group relative flex items-center justify-center gap-2 border-t-2 px-3 transition-colors active:bg-[#eee6da]",
-        divided && "border-l border-l-[#ded7ca]",
+        divided && "border-l border-l-bd",
         isActive
-          ? "border-t-[#b56238] bg-[#f7efe4] text-[#8f4e30]"
-          : "border-t-transparent text-[#746b60] hover:bg-white",
+          ? "border-t-ac bg-acl/50 text-ac"
+          : "border-t-transparent text-txs hover:bg-white",
       )}
     >
       <Icon className="h-5 w-5" />
       <span className="text-left leading-none">
         <span className="block text-sm font-black tracking-wide">{label}</span>
-        <span className="mt-1 block text-[10px] opacity-75">{description}</span>
+        <span className="mt-1 block text-xs opacity-75">{description}</span>
       </span>
     </NavLink>
   );

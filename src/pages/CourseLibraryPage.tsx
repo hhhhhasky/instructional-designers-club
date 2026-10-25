@@ -7,9 +7,9 @@ import { canAccessCourse } from '@/lib/access-control';
 import { COURSE_PURCHASE_PRODUCTS } from '@/lib/course-purchase';
 
 const COURSE_DETAILS = [
-  { topic: '教学设计与课堂实践', headline: '把一堂课，想清楚。', color: '#405c4b', background: '#e8ede5', words: ['理解学习', '设计教学', '改进课堂'], content: '从学习与教学的底层规律，到教材、学情、目标、活动和评价，建立一套能用在日常课、说课与公开课中的设计方法。', audience: '想系统理顺备课思路的老师' },
-  { topic: 'AI 工具与教学协作', headline: '让 AI，接住具体工作。', color: '#78523d', background: '#f1e6d8', words: ['认识工具', '人机协作', '工作流程'], content: '理解 AI 工具的用法，把教学分析、教学设计与课程开发中的具体工作交给 AI 辅助完成，同时保留教师自己的判断。', audience: '想把 AI 用进教学工作的老师' },
-  { topic: '课标、教材与单课解读', headline: '读懂教材，才好教。', color: '#465f70', background: '#e5ecef', words: ['课程标准', '单元结构', '单课教学'], content: '从总论到一至九年级分册，贯通道德与法治课标、教材单元与单课内容，理解教材为什么这样编、课堂可以怎样教。', audience: '需要深入研读道法教材的老师' },
+  { topic: '教学设计与课堂实践', headline: '把一堂课，想清楚。', color: 'var(--sage)', background: 'var(--sage-soft)', words: ['理解学习', '设计教学', '改进课堂'], content: '从学习与教学的底层规律，到教材、学情、目标、活动和评价，建立一套能用在日常课、说课与公开课中的设计方法。', audience: '想系统理顺备课思路的老师' },
+  { topic: 'AI 工具与教学协作', headline: '让 AI，接住具体工作。', color: 'var(--brown)', background: 'var(--brown-soft)', words: ['认识工具', '人机协作', '工作流程'], content: '理解 AI 工具的用法，把教学分析、教学设计与课程开发中的具体工作交给 AI 辅助完成，同时保留教师自己的判断。', audience: '想把 AI 用进教学工作的老师' },
+  { topic: '课标、教材与单课解读', headline: '读懂教材，才好教。', color: 'var(--slate)', background: 'var(--slate-soft)', words: ['课程标准', '单元结构', '单课教学'], content: '从总论到一至九年级分册，贯通道德与法治课标、教材单元与单课内容，理解教材为什么这样编、课堂可以怎样教。', audience: '需要深入研读道法教材的老师' },
 ];
 
 export default function CourseLibraryPage() {
@@ -19,7 +19,7 @@ export default function CourseLibraryPage() {
   const visible = products.filter((product) => filter === 'all' || (!loading && product.hasAccess));
 
   return (
-    <div className="min-h-screen bg-[#f7f6f0] text-tx">
+    <div className="min-h-screen bg-bg text-tx">
       <PageMeta title="课程" description="浏览教学通识课、教师 AI 课与道法教材解读课，选择适合自己的学习方向。" canonicalPath="/course-library" />
       <header className="flex h-16 items-center justify-between border-b border-bd px-5 md:px-10">
         <Link to="/" className="inline-flex min-h-11 items-center gap-2 text-sm text-txs hover:text-ac"><ArrowLeft className="h-4 w-4" />返回官网首页</Link>
@@ -43,7 +43,7 @@ export default function CourseLibraryPage() {
                 <div className="flex flex-wrap gap-2">{product.words.map((word) => <span key={word} className="border border-current/20 px-2 py-1 text-xs">{word}</span>)}</div>
               </div>
               <div className="flex flex-1 flex-col p-6 md:p-7">
-                <p className={`mb-3 flex items-center gap-1.5 text-xs ${product.hasAccess ? 'text-[#405c4b]' : 'text-txs'}`} role="status">{loading ? '正在确认观看权限…' : product.hasAccess ? <><Check className="h-3.5 w-3.5" />已开通 · 可观看</> : <><LockKeyhole className="h-3.5 w-3.5" />{user ? '未开通' : '登录后确认观看权限'}</>}</p>
+                <p className={`mb-3 flex items-center gap-1.5 text-xs ${product.hasAccess ? 'text-sage' : 'text-txs'}`} role="status">{loading ? '正在确认观看权限…' : product.hasAccess ? <><Check className="h-3.5 w-3.5" />已开通 · 可观看</> : <><LockKeyhole className="h-3.5 w-3.5" />{user ? '未开通' : '登录后确认观看权限'}</>}</p>
                 <h2 className="text-xl font-bold"><Link to={product.cataloguePath} className="after:absolute after:inset-0 focus:outline-none">{product.name}</Link></h2>
                 <p className="mt-3 text-sm leading-7 text-txs">{product.content}</p>
                 <p className="mb-6 mt-4 text-xs leading-6 text-txs">适合：{product.audience}</p>

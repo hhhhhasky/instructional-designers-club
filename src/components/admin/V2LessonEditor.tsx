@@ -172,10 +172,10 @@ export default function V2LessonEditor({ bundle, unitId, onSaved }: V2LessonEdit
     <div className="rounded-3xl border border-bdl bg-white/65 p-5">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-bdl pb-4">
         <div>
-          <p className="text-[10px] font-ds-black tracking-[.16em] text-ac">LESSON EDITOR</p>
+          <p className="text-xs font-ds-black tracking-[.16em] text-ac">LESSON EDITOR</p>
           <h3 className="mt-2 font-serif text-2xl font-ds-black text-tx">{lesson.title}</h3>
           <p className="mt-1 text-xs text-txs">基础信息、学习设计、正文资源和评估在同一 Lesson 下维护。</p>
-          {saveNotice && <p className={`mt-2 text-[11px] font-ds-bold ${saveNotice === "保存失败" ? "text-red-600" : "text-ac"}`}>{saveNotice}</p>}
+          {saveNotice && <p className={`mt-2 text-xs font-ds-bold ${saveNotice === "保存失败" ? "text-red-600" : "text-ac"}`}>{saveNotice}</p>}
         </div>
         <div className="flex gap-2">
           <Link
@@ -185,7 +185,7 @@ export default function V2LessonEditor({ bundle, unitId, onSaved }: V2LessonEdit
           >
             <LinkIcon className="h-3.5 w-3.5" />预览
           </Link>
-          <Button onClick={() => void saveLesson()} disabled={saving} className="bg-[#173d39] text-white hover:bg-[#24554e]">
+          <Button onClick={() => void saveLesson()} disabled={saving} className="bg-[var(--sage)] text-white hover:bg-[var(--sage-dark)]">
             <Save className="h-4 w-4" />{saving ? "保存中…" : "保存"}
           </Button>
         </div>
@@ -232,7 +232,7 @@ export default function V2LessonEditor({ bundle, unitId, onSaved }: V2LessonEdit
         </div>
         <TextArea label="描述" value={lesson.description ?? ""} onChange={(value) => setLesson({ ...lesson, description: value || null })} />
 
-        <div className="rounded-2xl border border-[#efb393]/35 bg-[#fffaf2] p-4">
+        <div className="rounded-2xl border border-[var(--sand)]/35 bg-[#fffaf2] p-4">
           <p className="text-xs font-ds-bold text-tx">学习设计</p>
           <div className="mt-3 grid gap-3">
             <Field label="今天的挑战" value={lesson.challenge_title ?? ""} onChange={(value) => setLesson({ ...lesson, challenge_title: value || null })} />
@@ -286,7 +286,7 @@ function ObjectiveEditor({ objectives, setObjectives, typeOptions }: { objective
         <button
           type="button"
           onClick={() => setObjectives([...objectives, { id: crypto.randomUUID(), text: "", type_id: null }])}
-          className="inline-flex items-center gap-1 text-[10px] font-ds-bold text-ac hover:underline"
+          className="inline-flex items-center gap-1 text-xs font-ds-bold text-ac hover:underline"
         >
           <Plus className="h-3 w-3" />添加目标
         </button>
@@ -315,7 +315,7 @@ function ObjectiveEditor({ objectives, setObjectives, typeOptions }: { objective
             </button>
           </div>
         ))}
-        {objectives.length === 0 && <p className="rounded-xl border border-dashed border-bdl bg-white/50 px-3 py-4 text-center text-[11px] text-txs">暂无学习目标，点击“添加目标”并显式选择类型。</p>}
+        {objectives.length === 0 && <p className="rounded-xl border border-dashed border-bdl bg-white/50 px-3 py-4 text-center text-xs text-txs">暂无学习目标，点击“添加目标”并显式选择类型。</p>}
       </div>
     </div>
   );
@@ -382,10 +382,10 @@ function KnowledgeCardEditor({ lessonId, cards, typeOptions, onSaved }: { lesson
   }
 
   return (
-    <div className="rounded-2xl border border-[#efb393]/35 bg-[#fffaf2] p-4">
+    <div className="rounded-2xl border border-[var(--sand)]/35 bg-[#fffaf2] p-4">
       <div className="flex items-center justify-between">
         <p className="text-xs font-ds-bold text-tx">知识卡（{cards.length}）</p>
-        <span className="text-[10px] text-txs">可编辑、删除和独立收藏</span>
+        <span className="text-xs text-txs">可编辑、删除和独立收藏</span>
       </div>
       <div className="mt-3 grid gap-3">
         <div className="grid gap-2 sm:grid-cols-2">
@@ -404,7 +404,7 @@ function KnowledgeCardEditor({ lessonId, cards, typeOptions, onSaved }: { lesson
             <div className="flex items-start gap-2">
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-ds-bold text-tx">{card.title}</p>
-                <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-[11px] text-txs">{card.content_markdown}</p>
+                <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-xs text-txs">{card.content_markdown}</p>
               </div>
               <button type="button" onClick={() => edit(card)} aria-label={`编辑知识卡 ${card.title}`} className="rounded-lg p-1.5 text-ac hover:bg-acl"><Pencil className="h-3.5 w-3.5" /></button>
               <button type="button" onClick={() => void remove(card)} aria-label={`删除知识卡 ${card.title}`} className="rounded-lg p-1.5 text-txs hover:bg-red-50 hover:text-red-600"><Trash2 className="h-3.5 w-3.5" /></button>
@@ -466,15 +466,15 @@ function AssessmentEditor({ lessonId, assessments, assessmentTypes, itemTypes, g
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="text-xs font-ds-bold text-tx">评估区块（{assessments.length}）</p>
-          <p className="mt-1 text-[10px] text-txs">新建区块默认为草稿。添加完试题后，点击“发布到课程详情页”才会对学员显示。</p>
+          <p className="mt-1 text-xs text-txs">新建区块默认为草稿。添加完试题后，点击“发布到课程详情页”才会对学员显示。</p>
         </div>
         <div className="flex flex-wrap gap-1.5">
           {assessmentTypes.map((type) => (
-            <button key={type.id} type="button" onClick={() => selectPreset(type.key)} className="rounded-full border border-bdl bg-white px-2.5 py-1 text-[10px] font-ds-bold text-ac hover:border-ac">{type.label}</button>
+            <button key={type.id} type="button" onClick={() => selectPreset(type.key)} className="rounded-full border border-bdl bg-white px-2.5 py-1 text-xs font-ds-bold text-ac hover:border-ac">{type.label}</button>
           ))}
         </div>
       </div>
-      <div className="mt-4 rounded-xl border border-[#efb393]/35 bg-[#fffaf2] p-3">
+      <div className="mt-4 rounded-xl border border-[var(--sand)]/35 bg-[#fffaf2] p-3">
         <div className="grid gap-2 sm:grid-cols-2">
           <SelectField label="评估类型" value={typeId} onChange={setTypeId} options={assessmentTypes} placeholder="选择前测 / 后测 / 真实任务" />
           <Field label="区块标题" value={title} onChange={setTitle} placeholder="例如：课后达标测试" />
@@ -536,14 +536,14 @@ function AssessmentBlockEditor({ assessment, assessmentTypes, itemTypes, grading
 
   return (
     <div className="rounded-xl border border-bdl bg-bgs/35 p-4">
-      <div className={`mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3 py-2 ${isV2AssessmentVisibleOnLesson(block.status) ? "border-tl/20 bg-tll text-tl" : "border-[#efb393]/45 bg-[#fffaf2] text-[#9a5b3c]"}`}>
-        <p className="text-[11px] font-ds-bold">
+      <div className={`mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border px-3 py-2 ${isV2AssessmentVisibleOnLesson(block.status) ? "border-tl/20 bg-tll text-tl" : "border-[var(--sand)]/45 bg-[#fffaf2] text-[#9a5b3c]"}`}>
+        <p className="text-xs font-ds-bold">
           {isV2AssessmentVisibleOnLesson(block.status)
             ? "已发布：该区块及试题会显示在 V2 课程详情页"
             : "当前为草稿：区块和试题不会显示在 V2 课程详情页"}
         </p>
         {canPublishV2AssessmentBlock(block.status, assessment.items.length) && (
-          <Button onClick={() => void publishBlock()} size="sm" className="bg-[#173d39] text-white hover:bg-[#24554e]">
+          <Button onClick={() => void publishBlock()} size="sm" className="bg-[var(--sage)] text-white hover:bg-[var(--sage-dark)]">
             <PlayCircle className="h-3.5 w-3.5" />发布到课程详情页
           </Button>
         )}
@@ -558,12 +558,12 @@ function AssessmentBlockEditor({ assessment, assessmentTypes, itemTypes, grading
       <label className="mt-2 flex items-center gap-2 text-xs text-txs"><input type="checkbox" checked={block.required} onChange={(event) => setBlock({ ...block, required: event.target.checked })} />必做区块</label>
       <div className="mt-3 flex flex-wrap gap-2">
         <Button onClick={() => void saveBlock()} size="sm" variant="outline" className="border-bdl bg-white text-tx"><Save className="h-3.5 w-3.5" />保存区块</Button>
-        <Button onClick={() => { setEditingItem(null); setNewItemTypeId(itemTypes[0]?.id ?? ""); setShowComposer(true); }} size="sm" className="bg-[#173d39] text-white hover:bg-[#24554e]"><Plus className="h-3.5 w-3.5" />新建题目</Button>
+        <Button onClick={() => { setEditingItem(null); setNewItemTypeId(itemTypes[0]?.id ?? ""); setShowComposer(true); }} size="sm" className="bg-[var(--sage)] text-white hover:bg-[var(--sage-dark)]"><Plus className="h-3.5 w-3.5" />新建题目</Button>
         <Button onClick={() => void removeBlock()} size="sm" variant="ghost" className="text-red-600 hover:bg-red-50"><Trash2 className="h-3.5 w-3.5" />删除区块</Button>
       </div>
 
       <div className="mt-3 rounded-xl border border-ac/15 bg-white/70 p-3">
-        <p className="text-[10px] font-ds-bold text-txs">按题型添加</p>
+        <p className="text-xs font-ds-bold text-txs">按题型添加</p>
         <div className="mt-2 flex flex-wrap gap-2">
           {itemTypes.map((type) => (
             <button
@@ -602,8 +602,8 @@ function AssessmentBlockEditor({ assessment, assessmentTypes, itemTypes, grading
           <div key={item.id} className="rounded-lg border border-bdl bg-white/70 px-3 py-3">
             <div className="flex items-start gap-2">
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-ds-bold text-tx">{index + 1}. {item.prompt_markdown}</p>
-                <p className="mt-1 text-[10px] text-txs">{dictionaryLabel(itemTypes, item.item_type_id)} · {dictionaryLabel(gradingModes, item.grading_mode_id)}{item.options.length > 0 ? ` · ${item.options.length} 个选项` : ""}</p>
+                <p className="text-xs font-ds-bold text-tx">{index + 1}. {item.prompt_markdown}</p>
+                <p className="mt-1 text-xs text-txs">{dictionaryLabel(itemTypes, item.item_type_id)} · {dictionaryLabel(gradingModes, item.grading_mode_id)}{item.options.length > 0 ? ` · ${item.options.length} 个选项` : ""}</p>
               </div>
               <button type="button" onClick={() => { setEditingItem(item); setNewItemTypeId(""); setShowComposer(false); }} aria-label={`编辑试题 ${index + 1}`} className="rounded-lg p-1.5 text-ac hover:bg-acl"><Pencil className="h-3.5 w-3.5" /></button>
               <button type="button" onClick={async () => { if (!window.confirm("确定删除这道试题吗？")) return; await deleteV2AssessmentItemAdmin(item.id); toast.success("试题已删除"); await onSaved(); }} aria-label={`删除试题 ${index + 1}`} className="rounded-lg p-1.5 text-txs hover:bg-red-50 hover:text-red-600"><Trash2 className="h-3.5 w-3.5" /></button>
@@ -749,7 +749,7 @@ function AssessmentItemComposer({ assessmentId, item, initialTypeId, itemTypes, 
         <Field label="分值" value={maxScore} onChange={setMaxScore} placeholder="10" />
       </div>
       {(typeKey === "open_task" || typeKey === "short_answer") && <div className="mt-2 grid gap-2"><TextArea label="案例 / 真实情境 Markdown（可选）" value={caseMarkdown} onChange={setCaseMarkdown} /><TextArea label="批阅标准（每行一条）" value={rubricText} onChange={setRubricText} /></div>}
-      <Button onClick={() => void save()} disabled={saving} className="mt-4 bg-[#173d39] text-white hover:bg-[#24554e]"><Save className="h-4 w-4" />{saving ? "保存中…" : "保存试题"}</Button>
+      <Button onClick={() => void save()} disabled={saving} className="mt-4 bg-[var(--sage)] text-white hover:bg-[var(--sage-dark)]"><Save className="h-4 w-4" />{saving ? "保存中…" : "保存试题"}</Button>
     </div>
   );
 }
@@ -757,7 +757,7 @@ function AssessmentItemComposer({ assessmentId, item, initialTypeId, itemTypes, 
 function ResourceEditor({ resources, resourceTitle, resourceUrl, setResourceTitle, setResourceUrl, onAdd, onUpload }: { resources: V2LessonBundle["resources"]; resourceTitle: string; resourceUrl: string; setResourceTitle: (value: string) => void; setResourceUrl: (value: string) => void; onAdd: () => void; onUpload: (file: File) => void }) {
   return (
     <div className="rounded-2xl border border-bdl p-4">
-      <div className="flex items-center justify-between"><p className="text-xs font-ds-bold text-tx">正文与资源（{resources.length}）</p><span className="text-[10px] text-txs">支持外链或上传到 R2</span></div>
+      <div className="flex items-center justify-between"><p className="text-xs font-ds-bold text-tx">正文与资源（{resources.length}）</p><span className="text-xs text-txs">支持外链或上传到 R2</span></div>
       <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1.5fr_auto_auto]">
         <input value={resourceTitle} onChange={(event) => setResourceTitle(event.target.value)} placeholder="资源名称" className="rounded-xl border border-bdl bg-white px-3 py-2 text-xs text-tx outline-none focus:border-ac" />
         <input value={resourceUrl} onChange={(event) => setResourceUrl(event.target.value)} placeholder="https://... 外链" className="rounded-xl border border-bdl bg-white px-3 py-2 text-xs text-tx outline-none focus:border-ac" />

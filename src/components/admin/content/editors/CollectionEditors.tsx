@@ -321,13 +321,13 @@ function typeStyle(kind: string): { badge: string } {
   switch (kind) {
     case "translation":
     case "live":
-      return { badge: "bg-blue-500/10 text-blue-600 border-blue-500/20" };
+      return { badge: "bg-steel-soft text-steel border-steel/20" };
     case "wechat":
     case "study_group":
-      return { badge: "bg-green-500/10 text-green-600 border-green-500/20" };
+      return { badge: "bg-sage-soft text-sage border-sage/20/20" };
     case "article":
     case "announcement":
-      return { badge: "bg-purple-500/10 text-purple-600 border-purple-500/20" };
+      return { badge: "bg-brown-soft text-brown border-brown/20" };
     case "new_course":
       return { badge: getColor("ac").badge };
     case "event":

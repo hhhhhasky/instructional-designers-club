@@ -40,7 +40,7 @@ export default function UnitArtifactFiles({ files, selected, onSelect, title, ve
       <h3 className="mb-2 text-xs font-bold text-txs">{kind === "unit" ? "单元整体设计" : "课时设计 · 按授课顺序"}</h3>
       <div className={kind === "lesson" && !compact ? "grid gap-2 sm:grid-cols-2" : "grid gap-2"}>
         {files.filter((file) => file.kind === kind).map((file) => <div key={file.filename} className={`flex min-w-0 items-center rounded-ds-md border bg-[var(--paper)] ${selected?.filename === file.filename ? "border-ac ring-1 ring-ac/20" : "border-bd"}`}>
-          <button type="button" aria-label={`预览 ${file.title}`} aria-pressed={selected?.filename === file.filename} onClick={() => onSelect(file)} className="flex min-w-0 flex-1 items-center gap-2 p-3 text-left text-sm font-bold text-tx"><FileText className="h-4 w-4 shrink-0 text-ac" /><span className="min-w-0"><span className="block truncate">{file.title}</span><span className="mt-1 block truncate text-[10px] font-normal text-txt">{file.filename}</span></span></button>
+          <button type="button" aria-label={`预览 ${file.title}`} aria-pressed={selected?.filename === file.filename} onClick={() => onSelect(file)} className="flex min-w-0 flex-1 items-center gap-2 p-3 text-left text-sm font-bold text-tx"><FileText className="h-4 w-4 shrink-0 text-ac" /><span className="min-w-0"><span className="block truncate">{file.title}</span><span className="mt-1 block truncate text-xs font-normal text-txt">{file.filename}</span></span></button>
           <button type="button" aria-label={`下载 ${file.title}`} onClick={() => saveUnitFile(file)} className="m-1 rounded p-2 text-txs hover:bg-[var(--paper-deep)] hover:text-ac"><Download className="h-4 w-4" /></button>
         </div>)}
       </div>

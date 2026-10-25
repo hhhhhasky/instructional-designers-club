@@ -617,7 +617,7 @@ export default function HaiChatSkillManagement() {
             ? (
               <Badge
                 variant="outline"
-                className="ml-1 border-green-200 text-green-700"
+                className="ml-1 border-sage/20 text-sage"
               >
                 {effectiveSkill.name}
               </Badge>
@@ -644,14 +644,14 @@ export default function HaiChatSkillManagement() {
                 <h3 className="text-ds-base font-ds-bold text-tx">
                   {selectedSkill.name}
                 </h3>
-                <p className="mt-1 text-[11px] text-txs">
+                <p className="mt-1 text-xs text-txs">
                   {selectedSkill.slug}
                 </p>
               </div>
               <Badge
                 variant="outline"
                 className={selectedSkill.is_enabled
-                  ? "text-green-700"
+                  ? "text-sage"
                   : "text-txs"}
               >
                 {selectedSkill.is_enabled ? "已启用" : "已停用"}
@@ -720,7 +720,7 @@ export default function HaiChatSkillManagement() {
               <label className="mt-3 block text-xs text-txs">当前查看版本<select aria-label="Chat Skill 版本" value={selectedVersionId} onChange={(event) => { if (confirmSkillNavigation(hasUnsavedEdits)) setSelectedVersionId(event.target.value); }} className="mt-1 h-10 w-full rounded border border-bd bg-white px-3 text-sm text-tx">{skillVersions.map((version) => <option key={version.id} value={version.id}>{version.version_label} · {skillVersionStatus(version.status)}</option>)}</select></label>
               <details className="mt-4 border-y border-bd py-3"><summary className="cursor-pointer text-xs font-bold text-txs">导入完整 Skill 包</summary>
 
-                <p className="mt-1 text-[11px] leading-relaxed text-txs">
+                <p className="mt-1 text-xs leading-relaxed text-txs">
                   新建草稿，不会直接发布。可多选上传 SKILL.md 与 references
                   文件；也可粘贴以“=== SKILL.md ===”和“=== references/文件名
                   ===”分隔的文本包。
@@ -803,7 +803,7 @@ export default function HaiChatSkillManagement() {
                   <Badge
                     variant="outline"
                     className={versionDraft.status === "published"
-                      ? "text-green-700"
+                      ? "text-sage"
                       : "text-amber-700"}
                   >
                     {skillVersionStatus(versionDraft.status)}
@@ -832,7 +832,7 @@ export default function HaiChatSkillManagement() {
                     rows={6}
                     className="mt-1 w-full rounded-ds-md border border-bd bg-white p-3 font-mono text-xs text-tx read-only:bg-slate-50"
                   />
-                  <span className="mt-1 block text-[10px]">
+                  <span className="mt-1 block text-xs">
                     method_card_limit 取
                     0–10；include_method_index、memory_enabled 支持开关。
                   </span>
@@ -844,7 +844,7 @@ export default function HaiChatSkillManagement() {
                       <h4 className="text-ds-xs font-ds-bold text-tx">
                         参考文档
                       </h4>
-                      <p className="mt-1 text-[10px] text-txs">
+                      <p className="mt-1 text-xs text-txs">
                         当前版本共 {referenceDrafts.length}{" "}
                         个文件；随版本一起保存与发布。
                       </p>
@@ -939,7 +939,7 @@ export default function HaiChatSkillManagement() {
                             className="mt-1 w-full rounded-ds-md border border-bd bg-white p-3 font-mono text-xs leading-relaxed text-tx read-only:bg-slate-50"
                           />
                         </label>
-                        <div className="flex items-center justify-between gap-2 text-[10px] text-txs">
+                        <div className="flex items-center justify-between gap-2 text-xs text-txs">
                           <span>
                             {reference.content.length} 字符 · 顺序 {index + 1}
                           </span>
@@ -1000,7 +1000,7 @@ export default function HaiChatSkillManagement() {
                     )
                     : versionDraft.status === "published"
                     ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-bold text-green-700">
+                      <span className="inline-flex items-center gap-1 text-xs font-bold text-sage">
                         <CheckCircle2 className="h-4 w-4" />当前已发布
                       </span>
                     )

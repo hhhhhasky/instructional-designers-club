@@ -1,3 +1,4 @@
+import { MapPin } from "lucide-react";
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { LearningMapData, NodeExploration } from '@/lib/learningMap';
@@ -155,7 +156,7 @@ function MobileCard({ node, expl, isCurrent = false, accent = 'ac', onClick }: M
         isCurrent ? 'border-ac bg-acl shadow-ds-sm' : isPlanned ? 'border-dashed border-bd bg-bgs' : 'border-bd bg-card'
       }`}
     >
-      {isCurrent && <span className="absolute top-1.5 right-1.5 text-ds-xs">📍</span>}
+      {isCurrent && <span className="absolute top-1.5 right-1.5 text-ds-xs"><MapPin className="inline h-3.5 w-3.5 align-middle" aria-hidden="true" /></span>}
       <span className={`w-10 h-10 rounded-ds-full flex items-center justify-center ${iconBg}`}>
         <Icon className={`w-5 h-5 ${iconColor}`} />
       </span>

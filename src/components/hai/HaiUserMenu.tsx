@@ -152,7 +152,7 @@ function UsagePanel({
           ) : memories.map((memory) => (
             <div key={memory.id} className="group rounded-ds-md border border-bd bg-bg p-2">
               <div className="mb-1 flex items-center justify-between gap-2">
-                <Badge variant="outline" className="text-[11px]">
+                <Badge variant="outline" className="text-xs">
                   {memoryLabel(memory.category)}
                 </Badge>
                 <button

@@ -57,7 +57,7 @@ export default function V2CourseManagementSection() {
             onClick={() => setPanel(value)}
             className={`flex items-center gap-2 rounded-2xl border px-3 py-3 text-left text-xs font-ds-bold transition ${
               panel === value
-                ? "border-[#173d39] bg-[#173d39] text-white"
+                ? "border-[var(--sage)] bg-[var(--sage)] text-white"
                 : "border-bdl bg-white/60 text-txs hover:border-ac"
             }`}
           >
@@ -152,13 +152,13 @@ function V2OutlinePanel() {
       <section className="rounded-3xl border border-bdl bg-white/65 p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[10px] font-ds-black tracking-[.16em] text-ac">V2 OUTLINE</p>
+            <p className="text-xs font-ds-black tracking-[.16em] text-ac">V2 OUTLINE</p>
             <h3 className="mt-2 font-serif text-2xl font-ds-black text-tx">Unit → Lesson</h3>
             <p className="mt-1 text-xs text-txs">单元是一级目录，展开后管理其下的单课。</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button onClick={() => setImporting((current) => !current)} variant="outline" className="border-bdl bg-white text-tx"><FileSpreadsheet className="h-4 w-4" />Excel 批量导入</Button>
-            <Button onClick={() => setCreating({ type: "unit" })} className="bg-[#173d39] text-white hover:bg-[#24554e]"><FolderPlus className="h-4 w-4" />新增单元</Button>
+            <Button onClick={() => setCreating({ type: "unit" })} className="bg-[var(--sage)] text-white hover:bg-[var(--sage-dark)]"><FolderPlus className="h-4 w-4" />新增单元</Button>
           </div>
         </div>
 
@@ -188,7 +188,7 @@ function V2OutlinePanel() {
                     {expanded[unit.id] ? <ChevronDown className="h-4 w-4 shrink-0 text-ac" /> : <ChevronRight className="h-4 w-4 shrink-0 text-ac" />}
                     <span className="truncate font-ds-bold text-tx">{unit.title}</span>
                     <StatusPill status={unit.status} />
-                    <span className="ml-auto text-[10px] text-txs">{lessons.length} 课</span>
+                    <span className="ml-auto text-xs text-txs">{lessons.length} 课</span>
                   </button>
                   <button type="button" onClick={() => setCreating({ type: "lesson", parentId: unit.id })} aria-label={`在 ${unit.title} 中新增单课`} className="rounded-lg p-1.5 text-ac hover:bg-acl"><Plus className="h-3.5 w-3.5" /></button>
                   <button type="button" onClick={() => setDeleteTarget({ type: "unit", id: unit.id, title: unit.title, lessonCount: lessons.length })} aria-label={`删除单元 ${unit.title}`} className="rounded-lg p-1.5 text-txs hover:bg-red-50 hover:text-red-600"><Trash2 className="h-3.5 w-3.5" /></button>
@@ -196,7 +196,7 @@ function V2OutlinePanel() {
                 {expanded[unit.id] && (
                   <div className="space-y-1 border-t border-bdl px-4 py-3">
                     {lessons.map((lesson) => (
-                      <div key={lesson.id} className={`flex items-center gap-1 rounded-lg transition ${selectedLessonId === lesson.id ? "bg-[#173d39] text-white" : "text-txs hover:bg-white"}`}>
+                      <div key={lesson.id} className={`flex items-center gap-1 rounded-lg transition ${selectedLessonId === lesson.id ? "bg-[var(--sage)] text-white" : "text-txs hover:bg-white"}`}>
                         <button type="button" onClick={() => setSelectedLessonId(lesson.id)} className="flex min-w-0 flex-1 items-center gap-2 px-2 py-2 text-left text-xs">
                           <BookOpen className="h-3.5 w-3.5 shrink-0" />
                           <span className="truncate">{lesson.title}</span>
@@ -205,7 +205,7 @@ function V2OutlinePanel() {
                         <button type="button" onClick={() => setDeleteTarget({ type: "lesson", id: lesson.id, title: lesson.title })} aria-label={`删除单课 ${lesson.title}`} className={`mr-1 rounded-md p-1.5 ${selectedLessonId === lesson.id ? "text-white/60 hover:bg-white/10 hover:text-white" : "text-txs hover:bg-red-50 hover:text-red-600"}`}><Trash2 className="h-3.5 w-3.5" /></button>
                       </div>
                     ))}
-                    {lessons.length === 0 && <p className="py-2 pl-2 text-[11px] text-txs">暂无单课</p>}
+                    {lessons.length === 0 && <p className="py-2 pl-2 text-xs text-txs">暂无单课</p>}
                   </div>
                 )}
               </div>
@@ -283,7 +283,7 @@ function OutlineCreateForm({ type, initialParentId, outlines, onClose, onSaved }
           </label>
         )}
       </div>
-      <Button onClick={() => void submit()} disabled={saving || (type === "lesson" && !parentId)} className="mt-3 bg-[#173d39] text-white hover:bg-[#24554e]"><Plus className="h-4 w-4" />{saving ? "创建中…" : "创建"}</Button>
+      <Button onClick={() => void submit()} disabled={saving || (type === "lesson" && !parentId)} className="mt-3 bg-[var(--sage)] text-white hover:bg-[var(--sage-dark)]"><Plus className="h-4 w-4" />{saving ? "创建中…" : "创建"}</Button>
     </div>
   );
 }

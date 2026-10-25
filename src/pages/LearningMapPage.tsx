@@ -1,4 +1,4 @@
-import { Map as MapIcon, PartyPopper, Sparkles } from 'lucide-react';
+import { MapPin, Map as MapIcon, PartyPopper, Sparkles } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Footer from '@/components/common/Footer';
@@ -125,7 +125,7 @@ export default function LearningMapPage() {
                 <MapIcon className="w-5 h-5 text-ac" />
               </div>
               <div>
-                <h1 className="text-ds-xl font-ds-black text-tx">教学设计学习地图</h1>
+                <h1 className="font-serif text-2xl font-ds-bold text-tx">教学设计学习地图</h1>
                 <p className="text-ds-sm text-txs">六大要素 · 看清你在哪里、下一步学什么</p>
               </div>
             </div>
@@ -199,7 +199,7 @@ function CurrentPositionCard({
     <div className="bg-acl border border-ac/20 rounded-ds-lg p-4 flex items-center gap-3">
       <Sparkles className="w-5 h-5 text-ac shrink-0" />
       <div className="flex-1 min-w-0">
-        <p className="text-ds-xs text-txs">📍 你当前在</p>
+        <p className="text-ds-xs text-txs"><MapPin className="inline h-3.5 w-3.5 align-middle" aria-hidden="true" /> 你当前在</p>
         <p className="text-ds-md font-ds-bold text-tx truncate">「{currentNode.name}」要素</p>
       </div>
       {nextCourse && (

@@ -367,7 +367,7 @@ export default function LiveParticipantPage() {
                       ))}
                     </div>
                     {question.type === "multiple_choice" ? (
-                      <p className="mt-3 text-[11px] text-txt">多选题按每个选项分别统计，各项占比之和可能超过 100%。</p>
+                      <p className="mt-3 text-xs text-txt">多选题按每个选项分别统计，各项占比之和可能超过 100%。</p>
                     ) : null}
                   </div>
                 ) : null}

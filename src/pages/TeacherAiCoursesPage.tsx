@@ -248,7 +248,7 @@ function CourseSeriesList({
         const Icon = getCategoryIcon(category);
         return (
           <a key={category} href={`#${encodeURIComponent(category)}`} className="course-editorial-toc-link">
-            <span className="font-mono text-[10px] text-txt">{String(index + 1).padStart(2, '0')}</span>
+            <span className="font-mono text-xs text-txt">{String(index + 1).padStart(2, '0')}</span>
             <Icon className="h-4 w-4 flex-shrink-0 text-ac" aria-hidden="true" />
             <span className="flex-1 truncate">{category}</span>
             <span className="text-xs text-txt">{count}</span>
@@ -415,7 +415,7 @@ function CourseCard({
             </Badge>
           )}
           {course.is_trial && (
-            <Badge className="bg-green-500 text-white text-xs px-2 py-0">试看</Badge>
+            <Badge className="bg-sage text-white text-xs px-2 py-0">试看</Badge>
           )}
           <ContentFormatBadges course={course} />
         </div>

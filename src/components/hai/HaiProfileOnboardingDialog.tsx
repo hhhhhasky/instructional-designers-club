@@ -136,10 +136,10 @@ export default function HaiProfileOnboardingDialog({
         hideCloseButton
         onEscapeKeyDown={(event) => event.preventDefault()}
         onInteractOutside={(event) => event.preventDefault()}
-        className="flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-2xl flex-col gap-0 overflow-hidden rounded-[22px] border border-[#e4d8ca] bg-[#fffdf8] p-0 shadow-[0_28px_90px_rgba(83,57,40,0.28)] sm:h-[min(680px,calc(100dvh-2rem))] sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100%-2rem)] sm:rounded-[28px]"
+        className="flex h-[calc(100dvh-1rem)] max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-2xl flex-col gap-0 overflow-hidden rounded-[22px] border border-[#e4d8ca] bg-[var(--paper)] p-0 shadow-[0_28px_90px_rgba(83,57,40,0.28)] sm:h-[min(680px,calc(100dvh-2rem))] sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100%-2rem)] sm:rounded-[28px]"
         data-testid="hai-profile-onboarding"
       >
-        <div className="relative shrink-0 overflow-hidden border-b border-[#eadfD2] bg-[#f7ede5] px-4 pb-4 pt-4 sm:px-8 sm:pb-6 sm:pt-6">
+        <div className="relative shrink-0 overflow-hidden border-b border-[#eadfd2] bg-[#f7ede5] px-4 pb-4 pt-4 sm:px-8 sm:pb-6 sm:pt-6">
           <div className="absolute -right-12 -top-16 h-44 w-44 rounded-full bg-ac/10" />
           <div className="absolute -bottom-20 right-20 h-32 w-32 rounded-full border-[18px] border-white/50" />
           <DialogHeader className="relative text-left">

@@ -1,3 +1,4 @@
+import { MapPin } from "lucide-react";
 /** 地图图例：说明节点状态色与当前位置标记。 */
 export default function MapLegend() {
   return (
@@ -12,7 +13,7 @@ export default function MapLegend() {
         <span className="inline-block w-3 h-3 rounded-full bg-tll border border-tl" /> 已通览
       </span>
       <span className="inline-flex items-center gap-1.5">
-        <span className="inline-block px-1.5 py-0.5 rounded-ds-pill bg-ac text-white text-ds-xs leading-none">📍</span>
+        <span className="inline-block px-1.5 py-0.5 rounded-ds-pill bg-ac text-white text-ds-xs leading-none"><MapPin className="inline h-3.5 w-3.5 align-middle" aria-hidden="true" /></span>
         你在这里
       </span>
     </div>

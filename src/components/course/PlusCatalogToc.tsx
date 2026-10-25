@@ -55,7 +55,7 @@ export default function PlusCatalogToc({
               className={cn('mb-3 last:mb-0', trackIdx > 0 && 'mt-2 pt-2 border-t border-bdl')}
             >
               {tracks.length > 1 && (
-                <p className="px-2 mb-1 text-[11px] font-bold tracking-wide text-txs/70 truncate">
+                <p className="px-2 mb-1 text-xs font-bold tracking-wide text-txs/70 truncate">
                   {track.shortTitle || track.title}
                 </p>
               )}
@@ -66,7 +66,7 @@ export default function PlusCatalogToc({
                     <div className="flex items-center gap-2 px-2 py-1.5">
                       <Icon className="w-4 h-4 text-ac flex-shrink-0" />
                       <span className="text-xs font-bold text-txs flex-1 truncate">{module.title}</span>
-                      <span className="text-[10px] text-txt">{moduleCourses.length}</span>
+                      <span className="text-xs text-txt">{moduleCourses.length}</span>
                     </div>
                     <div className="space-y-0.5">
                       {moduleCourses.map((course, idx) => {
@@ -93,7 +93,7 @@ export default function PlusCatalogToc({
                               {isCurrent ? (
                                 <PlayCircle className="w-4 h-4 text-ac" />
                               ) : isCompleted ? (
-                                <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                <CheckCircle2 className="w-4 h-4 text-sage" />
                               ) : (
                                 <span
                                   className={cn(

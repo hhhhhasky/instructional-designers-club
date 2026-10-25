@@ -136,7 +136,7 @@ export default function HaiDashboardSection() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-ds-xl bg-[#244f48] p-5 text-white shadow-ds-lg md:p-7">
+      <section className="relative overflow-hidden rounded-ds-xl bg-[var(--sage-dark)] p-5 text-white shadow-ds-lg md:p-7">
         <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full border border-white/10 bg-white/[0.04]" />
         <div className="pointer-events-none absolute bottom-[-90px] left-[42%] h-52 w-52 rounded-full bg-[#c45d3e]/20 blur-3xl" />
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
@@ -159,7 +159,7 @@ export default function HaiDashboardSection() {
                   type="button"
                   onClick={() => setRangeDays(option.value)}
                   className={`rounded-ds-sm px-3 py-1.5 text-ds-xs font-ds-bold transition ${
-                    rangeDays === option.value ? "bg-white text-[#244f48]" : "text-white/70 hover:text-white"
+                    rangeDays === option.value ? "bg-white text-[var(--sage-dark)]" : "text-white/70 hover:text-white"
                   }`}
                 >
                   {option.label}
@@ -351,7 +351,7 @@ export default function HaiDashboardSection() {
                 <Tooltip formatter={(value: number, name: string) => [name === "Token" ? formatNumber(value) : `${value} 次`, name]} />
                 <Legend />
                 <Bar yAxisId="requests" dataKey="requests" name="调用次数" fill="#c45d3e" radius={[5, 5, 0, 0]} maxBarSize={26} />
-                <Line yAxisId="tokens" type="monotone" dataKey="tokens" name="Token" stroke="#2a7a6e" strokeWidth={2.5} dot={false} />
+                <Line yAxisId="tokens" type="monotone" dataKey="tokens" name="Token" stroke="var(--sage)" strokeWidth={2.5} dot={false} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
@@ -471,7 +471,7 @@ export default function HaiDashboardSection() {
                   <Badge variant="outline" className={alert.severity === "critical" ? "border-red-200 text-red-600" : "border-amber-200 text-amber-700"}>
                     {alert.severity}
                   </Badge>
-                  <span className="text-[11px] text-txs">{formatDateTime(alert.created_at)}</span>
+                  <span className="text-xs text-txs">{formatDateTime(alert.created_at)}</span>
                 </div>
                 <p className="mt-2 text-ds-sm font-ds-bold text-tx">{alert.title}</p>
                 <p className="mt-1 text-ds-xs leading-relaxed text-txs">{alert.description || alert.profile?.nickname || "HAI 运行告警"}</p>
@@ -501,10 +501,10 @@ export default function HaiDashboardSection() {
                       <Badge variant="outline" className={trace.passed === false ? "border-red-200 text-red-600" : "border-tl/30 text-tl"}>
                         {trace.score === null ? "未评分" : `${trace.score} 分`}
                       </Badge>
-                      <span className="text-[11px] text-txs">{formatDateTime(trace.created_at)}</span>
+                      <span className="text-xs text-txs">{formatDateTime(trace.created_at)}</span>
                     </div>
                     <p className="mt-2 line-clamp-2 text-ds-sm leading-relaxed text-tx">{trace.question}</p>
-                    <p className="mt-1 text-[11px] text-txs">{haiSceneLabel(trace.scene)} · {trace.route_method} · 诊断 {trace.diagnostic_module} · 方法卡 {trace.method_card_ids.length} 张 · 记忆 {trace.memory_selection.loaded === true ? "已加载" : "未加载"}</p>
+                    <p className="mt-1 text-xs text-txs">{haiSceneLabel(trace.scene)} · {trace.route_method} · 诊断 {trace.diagnostic_module} · 方法卡 {trace.method_card_ids.length} 张 · 记忆 {trace.memory_selection.loaded === true ? "已加载" : "未加载"}</p>
                   </div>
                   <span className="shrink-0 text-ds-xs text-txs transition group-open:rotate-180">⌄</span>
                 </div>
@@ -535,15 +535,15 @@ export default function HaiDashboardSection() {
                   <TraceDetail title={`实际发送给模型的消息组合${trace.prompt_assembly ? ` · ${trace.prompt_assembly.model_calls.length} 次调用 · 最终 ${trace.prompt_assembly.final_stage}` : " · 旧 trace 无快照"}`}>
                     {trace.prompt_assembly ? (
                       <div className="space-y-2">
-                        <p className="text-[11px] text-txs">记录时间：{formatDateTime(trace.prompt_assembly.captured_at)}</p>
+                        <p className="text-xs text-txs">记录时间：{formatDateTime(trace.prompt_assembly.captured_at)}</p>
                         {trace.prompt_assembly.model_calls.map((call, index) => (
                           <details key={`${trace.id}-${call.stage}-${index}`} className="rounded-ds-md border border-bd bg-white p-3">
                             <summary className="cursor-pointer text-ds-xs font-ds-bold text-tx">{index + 1}. {call.stage} · 估算输入 {formatNumber(call.estimated_input_tokens)} tokens · {call.messages.length} 条消息</summary>
                             <div className="mt-3 space-y-3">
                               {call.messages.map((message, messageIndex) => (
                                 <div key={`${trace.id}-${index}-${messageIndex}`} className="rounded-ds-sm border border-bdl bg-bg p-3">
-                                  <p className="mb-1 text-[11px] font-ds-bold text-ac">{message.role}</p>
-                                  <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words text-[11px] leading-relaxed text-tx">{message.content}</pre>
+                                  <p className="mb-1 text-xs font-ds-bold text-ac">{message.role}</p>
+                                  <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words text-xs leading-relaxed text-tx">{message.content}</pre>
                                 </div>
                               ))}
                             </div>
@@ -576,10 +576,10 @@ export default function HaiDashboardSection() {
                     <div className="flex flex-wrap items-center gap-1.5">
                       <Badge variant="outline">{workToolLabel(run.module_slug)}</Badge>
                       <Badge variant="outline" className={run.status === "failed" ? "border-red-200 text-red-600" : "border-tl/30 text-tl"}>{workStatusLabel(run.status)}</Badge>
-                      <span className="text-[11px] text-txs">{formatDateTime(run.created_at)}</span>
+                      <span className="text-xs text-txs">{formatDateTime(run.created_at)}</span>
                     </div>
                     <p className="mt-2 text-ds-sm font-ds-bold text-tx">{run.task_title}</p>
-                    <p className="mt-1 text-[11px] text-txs">
+                    <p className="mt-1 text-xs text-txs">
                       {run.profile?.nickname ?? "未知用户"} · 输入 {formatNumber(run.input_tokens ?? 0)} · 输出 {formatNumber(run.output_tokens ?? 0)} · 耗时 {formatDuration(run.duration_ms ?? 0)}
                     </p>
                   </div>
@@ -617,7 +617,7 @@ function WalletMetric({ label, value, note }: { label: string; value: string; no
     <div className="rounded-ds-md border border-bd bg-bg p-3">
       <p className="text-ds-xs text-txs">{label}</p>
       <p className="mt-1 font-serif text-ds-xl font-ds-black text-tx">{value}</p>
-      <p className="mt-1 text-[10px] text-txs">{note}</p>
+      <p className="mt-1 text-xs text-txs">{note}</p>
     </div>
   );
 }
@@ -646,7 +646,7 @@ function WorkTraceDetails({ trace, run }: { trace: Record<string, unknown>; run:
       <TraceDetail title="教材、案例与用户材料实际送入内容">
         <div className="space-y-2">
           <JsonBlock value={{ textbook, case_library: cases, materials }} />
-          <p className="text-[11px] text-txs">本次运行用户：{run.profile?.nickname ?? "未知用户"}</p>
+          <p className="text-xs text-txs">本次运行用户：{run.profile?.nickname ?? "未知用户"}</p>
         </div>
       </TraceDetail>
       <TraceDetail title="最终发送给模型的完整 Prompt">
@@ -660,7 +660,7 @@ function WorkTraceDetails({ trace, run }: { trace: Record<string, unknown>; run:
                 <summary className="cursor-pointer text-ds-xs font-ds-bold text-tx">
                   第 {Number(attempt.attempt ?? index + 1)} 次 · {String(attempt.purpose ?? "model_call")} · {String(attempt.output_chars ?? 0)} 字 · {formatDuration(Number(attempt.duration_ms ?? 0))}
                 </summary>
-                <pre className="mt-3 max-h-[32rem] overflow-auto whitespace-pre-wrap break-words rounded-ds-sm bg-bg p-3 text-[11px] leading-relaxed text-tx">{String(attempt.raw_output ?? "")}</pre>
+                <pre className="mt-3 max-h-[32rem] overflow-auto whitespace-pre-wrap break-words rounded-ds-sm bg-bg p-3 text-xs leading-relaxed text-tx">{String(attempt.raw_output ?? "")}</pre>
               </details>
             ))}
             {attempts.length === 0 && <p className="text-ds-xs text-txs">尚未记录模型返回原文。</p>}
@@ -694,7 +694,7 @@ function arrayOfRecords(value: unknown): Array<Record<string, unknown>> {
 
 function HeroMetric({ icon: Icon, label, value, suffix }: { icon: typeof Activity; label: string; value: string; suffix: string }) {
   return (
-    <div className="bg-[#244f48]/90 px-4 py-4 md:px-5">
+    <div className="bg-[var(--sage-dark)]/90 px-4 py-4 md:px-5">
       <div className="flex items-center gap-2 text-white/55"><Icon className="h-4 w-4" /><span className="text-ds-xs">{label}</span></div>
       <p className="mt-2 font-serif text-ds-2xl font-ds-black tracking-tight text-white">{value}<span className="ml-1 text-ds-xs font-ds-regular text-white/55">{suffix}</span></p>
     </div>
@@ -708,7 +708,7 @@ function SignalCard({ icon: Icon, label, value, note, tone }: { icon: typeof Act
       <div className={`flex h-9 w-9 items-center justify-center rounded-ds-full ${tones[tone]}`}><Icon className="h-4 w-4" /></div>
       <p className="mt-3 text-ds-xs text-txs">{label}</p>
       <p className="mt-1 text-ds-xl font-ds-black text-tx">{value}</p>
-      <p className="mt-1 line-clamp-1 text-[11px] text-txt">{note}</p>
+      <p className="mt-1 line-clamp-1 text-xs text-txt">{note}</p>
     </div>
   );
 }
@@ -722,7 +722,7 @@ function TraceDetail({ title, children }: { title: string; children: React.React
 }
 
 function JsonBlock({ value }: { value: unknown }) {
-  return <pre className="max-h-56 overflow-auto whitespace-pre-wrap break-words rounded-ds-sm bg-bg p-2 text-[11px] leading-relaxed text-txs">{JSON.stringify(value, null, 2)}</pre>;
+  return <pre className="max-h-56 overflow-auto whitespace-pre-wrap break-words rounded-ds-sm bg-bg p-2 text-xs leading-relaxed text-txs">{JSON.stringify(value, null, 2)}</pre>;
 }
 
 function TokenMeter({ label, value, total, color }: { label: string; value: number; total: number; color: string }) {
@@ -736,11 +736,11 @@ function TokenMeter({ label, value, total, color }: { label: string; value: numb
 }
 
 function MiniMetric({ label, value }: { label: string; value: string }) {
-  return <div><p className="text-[11px] text-txs">{label}</p><p className="mt-1 text-ds-lg font-ds-black text-tx">{value}</p></div>;
+  return <div><p className="text-xs text-txs">{label}</p><p className="mt-1 text-ds-lg font-ds-black text-tx">{value}</p></div>;
 }
 
 function ReviewMetric({ label, value, note }: { label: string; value: string; note: string }) {
-  return <div className="rounded-ds-md bg-bg p-3"><p className="text-[11px] text-txs">{label}</p><p className="mt-1 text-ds-lg font-ds-black text-tx">{value}</p><p className="mt-1 line-clamp-1 text-[11px] text-txs">{note}</p></div>;
+  return <div className="rounded-ds-md bg-bg p-3"><p className="text-xs text-txs">{label}</p><p className="mt-1 text-ds-lg font-ds-black text-tx">{value}</p><p className="mt-1 line-clamp-1 text-xs text-txs">{note}</p></div>;
 }
 
 function reviewStatusLabel(status: "running" | "completed" | "failed" | "skipped") {

@@ -93,27 +93,27 @@ export default function OperationsDashboardSection({ onOpenDetail }: OperationsD
 
   return (
     <div className="space-y-5">
-      <section className="relative isolate overflow-hidden rounded-[24px] bg-[#173d39] px-5 py-6 text-white shadow-ds-xl md:px-8 md:py-8">
+      <section className="relative isolate overflow-hidden rounded-[24px] bg-[var(--sage)] px-5 py-6 text-white shadow-ds-xl md:px-8 md:py-8">
         <div className="pointer-events-none absolute inset-0 opacity-30 [background-image:radial-gradient(circle_at_1px_1px,rgba(255,255,255,.18)_1px,transparent_0)] [background-size:22px_22px]" />
-        <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full border-[42px] border-[#de7856]/15" />
+        <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full border-[42px] border-[var(--ac)]/15" />
         <div className="pointer-events-none absolute bottom-[-110px] left-[35%] h-60 w-60 rounded-full bg-[#e2a75c]/10 blur-3xl" />
 
         <div className="relative grid gap-7 xl:grid-cols-[minmax(0,1fr)_240px] xl:items-center">
           <div>
             <div className="flex flex-wrap items-center gap-2 text-[#f0b596]">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-3 py-1 text-[11px] font-ds-bold tracking-[0.16em]">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-3 py-1 text-xs font-ds-bold tracking-[0.16em]">
                 <Activity className="h-3.5 w-3.5" /> CLUB PULSE
               </span>
               <span className="text-ds-xs text-white/55">数据更新时间 {updatedAt ? formatTime(updatedAt) : "-"}</span>
             </div>
             <h2 className="mt-4 max-w-3xl font-serif text-[1.8rem] font-ds-black leading-[1.3] tracking-tight md:text-[2.35rem]">
-              不只看数字，<span className="text-[#efb393]">看见运营下一步</span>
+              不只看数字，<span className="text-[var(--sand)]">看见运营下一步</span>
             </h2>
             <p className="mt-3 max-w-2xl text-ds-sm leading-7 text-white/65">
               把会员增长、首课激活、课程完成、内容供给与 HAI 质量放进同一条运营链，自动识别值得优先处理的信号。
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
-              <Button className="bg-[#de7856] text-white hover:bg-[#c96546]" onClick={() => navigate("/admin/manage") }>
+              <Button className="bg-[var(--ac)] text-white hover:bg-[var(--acd)]" onClick={() => navigate("/admin/manage") }>
                 进入数据维护 <ArrowRight className="ml-1 h-4 w-4" />
               </Button>
               <Button variant="outline" className="border-white/20 bg-white/[0.05] text-white hover:bg-white/10 hover:text-white" onClick={() => void load()} disabled={loading}>
@@ -150,15 +150,15 @@ export default function OperationsDashboardSection({ onOpenDetail }: OperationsD
               <AreaChart data={source.members.monthly_growth} margin={{ top: 12, right: 8, left: -18, bottom: 0 }}>
                 <defs>
                   <linearGradient id="memberGrowthFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#c65f42" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#c65f42" stopOpacity={0.02} />
+                    <stop offset="0%" stopColor="var(--ac)" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="var(--ac)" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid stroke="var(--bdl)" strokeDasharray="3 4" vertical={false} />
                 <XAxis dataKey="month" tickFormatter={(value: string) => value.slice(5)} tick={{ fontSize: 11, fill: "var(--txs)" }} axisLine={false} tickLine={false} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "var(--txs)" }} axisLine={false} tickLine={false} />
                 <Tooltip formatter={(value: number) => [`${value} 人`, "新增会员"]} labelFormatter={(label: string) => `${label}`} />
-                <Area type="monotone" dataKey="new_members" stroke="#c65f42" strokeWidth={3} fill="url(#memberGrowthFill)" activeDot={{ r: 5, fill: "#c65f42", stroke: "#fff", strokeWidth: 2 }} />
+                <Area type="monotone" dataKey="new_members" stroke="var(--ac)" strokeWidth={3} fill="url(#memberGrowthFill)" activeDot={{ r: 5, fill: "var(--ac)", stroke: "#fff", strokeWidth: 2 }} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -188,7 +188,7 @@ export default function OperationsDashboardSection({ onOpenDetail }: OperationsD
                 <XAxis type="number" domain={[0, 100]} tickFormatter={(value) => `${value}%`} tick={{ fontSize: 11, fill: "var(--txs)" }} axisLine={false} tickLine={false} />
                 <YAxis dataKey="shortTitle" type="category" width={105} tick={{ fontSize: 11, fill: "var(--tx)" }} axisLine={false} tickLine={false} />
                 <Tooltip formatter={(value: number) => [`${value}%`, "完课率"]} labelFormatter={(_, payload) => payload[0]?.payload?.title ?? ""} />
-                <Bar dataKey="completion_rate" fill="#2f7469" radius={[0, 6, 6, 0]} barSize={16} background={{ fill: "#eef1eb", radius: 6 }} />
+                <Bar dataKey="completion_rate" fill="var(--sage)" radius={[0, 6, 6, 0]} barSize={16} background={{ fill: "#eef1eb", radius: 6 }} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -206,14 +206,14 @@ export default function OperationsDashboardSection({ onOpenDetail }: OperationsD
                       <p className="text-ds-sm font-ds-black text-tx">{insight.title}</p>
                       <ToneLabel tone={insight.tone} />
                     </div>
-                    <p className="mt-1.5 text-[11px] leading-5 text-txs">{insight.evidence}</p>
-                    <p className="mt-2 border-l-2 border-am/50 pl-2 text-[11px] leading-5 text-tx">{insight.recommendation}</p>
+                    <p className="mt-1.5 text-xs leading-5 text-txs">{insight.evidence}</p>
+                    <p className="mt-2 border-l-2 border-am/50 pl-2 text-xs leading-5 text-tx">{insight.recommendation}</p>
                     <button
                       type="button"
                       onClick={() => insight.action_tab === "inactive" || insight.action_tab === "courses" || insight.action_tab === "hai"
                         ? onOpenDetail(insight.action_tab)
                         : navigate(`/admin/manage?tab=${insight.action_tab}`)}
-                      className="mt-2 inline-flex items-center gap-1 text-[11px] font-ds-bold text-ac"
+                      className="mt-2 inline-flex items-center gap-1 text-xs font-ds-bold text-ac"
                     >
                       {insight.action_label} <ArrowRight className="h-3 w-3 transition group-hover:translate-x-0.5" />
                     </button>
@@ -232,7 +232,7 @@ export default function OperationsDashboardSection({ onOpenDetail }: OperationsD
         <StatusCard icon={Clock3} label="待处理服务项" value={source.maintenance.pending_resets + source.maintenance.open_hai_alerts} note={`${source.maintenance.pending_resets} 重置 · ${source.maintenance.open_hai_alerts} 告警`} tone="red" onClick={() => navigate("/admin/manage?tab=reset")} />
       </section>
 
-      <div className="flex items-start gap-2 rounded-ds-lg border border-dashed border-bd bg-white/60 px-4 py-3 text-[11px] leading-5 text-txs">
+      <div className="flex items-start gap-2 rounded-ds-lg border border-dashed border-bd bg-white/60 px-4 py-3 text-xs leading-5 text-txs">
         <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-am" />
         <p><strong className="text-tx">指标口径：</strong>学习激活率 = 有学习记录会员 / 全部会员；课程加权完课率 = 各课程完课人次 / 学习人次。课程人次会跨课程重复，不等同于独立会员数。运营健康度是用于发现趋势的组合信号，不替代财务或教学质量判断。</p>
       </div>
@@ -245,21 +245,21 @@ function HealthDial({ score }: { score: number }) {
   return (
     <div className="mx-auto flex w-full max-w-[220px] flex-col items-center rounded-[22px] border border-white/10 bg-black/10 p-5 backdrop-blur-sm">
       <div className="relative grid h-32 w-32 place-items-center rounded-full" style={{ background: `conic-gradient(#efb393 ${score * 3.6}deg, rgba(255,255,255,.12) 0deg)` }}>
-        <div className="grid h-[108px] w-[108px] place-items-center rounded-full bg-[#173d39] text-center">
-          <div><p className="font-serif text-3xl font-ds-black">{score}</p><p className="text-[10px] tracking-[0.14em] text-white/45">HEALTH</p></div>
+        <div className="grid h-[108px] w-[108px] place-items-center rounded-full bg-[var(--sage)] text-center">
+          <div><p className="font-serif text-3xl font-ds-black">{score}</p><p className="text-xs tracking-[0.14em] text-white/45">HEALTH</p></div>
         </div>
       </div>
-      <div className="mt-3 flex items-center gap-1.5 text-ds-xs"><span className="h-1.5 w-1.5 rounded-full bg-[#efb393]" />综合状态：{status}</div>
+      <div className="mt-3 flex items-center gap-1.5 text-ds-xs"><span className="h-1.5 w-1.5 rounded-full bg-[var(--sand)]" />综合状态：{status}</div>
     </div>
   );
 }
 
 function HeroKpi({ icon: Icon, label, value, note }: { icon: typeof Users; label: string; value: string; note: string }) {
   return (
-    <div className="bg-[#173d39]/90 p-4 md:p-5">
-      <div className="flex items-center gap-2 text-white/50"><Icon className="h-4 w-4" /><span className="text-[11px]">{label}</span></div>
+    <div className="bg-[var(--sage)]/90 p-4 md:p-5">
+      <div className="flex items-center gap-2 text-white/50"><Icon className="h-4 w-4" /><span className="text-xs">{label}</span></div>
       <p className="mt-2 font-serif text-[1.55rem] font-ds-black tracking-tight text-white">{value}</p>
-      <p className="mt-1 text-[10px] text-white/45">{note}</p>
+      <p className="mt-1 text-xs text-white/45">{note}</p>
     </div>
   );
 }
@@ -267,27 +267,27 @@ function HeroKpi({ icon: Icon, label, value, note }: { icon: typeof Users; label
 function SectionHeading({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: React.ReactNode }) {
   return (
     <div className="flex items-end justify-between gap-4">
-      <div><p className="text-[10px] font-ds-black tracking-[0.18em] text-ac">{eyebrow}</p><h3 className="mt-1 text-ds-lg font-ds-black text-tx">{title}</h3><p className="mt-1 text-[11px] text-txs">{description}</p></div>
+      <div><p className="text-xs font-ds-black tracking-[0.18em] text-ac">{eyebrow}</p><h3 className="mt-1 text-ds-lg font-ds-black text-tx">{title}</h3><p className="mt-1 text-xs text-txs">{description}</p></div>
       {action}
     </div>
   );
 }
 
 function GrowthPill({ value }: { value: number | null }) {
-  if (value === null) return <span className="rounded-full bg-bgs px-2.5 py-1 text-[11px] text-txs">暂无环比基数</span>;
+  if (value === null) return <span className="rounded-full bg-bgs px-2.5 py-1 text-xs text-txs">暂无环比基数</span>;
   const rising = value >= 0;
   const Icon = rising ? TrendingUp : TrendingDown;
-  return <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-ds-bold ${rising ? "bg-tll text-tl" : "bg-red-50 text-red-600"}`}><Icon className="h-3.5 w-3.5" />{rising ? "+" : ""}{value}% 环比</span>;
+  return <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-ds-bold ${rising ? "bg-tll text-tl" : "bg-red-50 text-red-600"}`}><Icon className="h-3.5 w-3.5" />{rising ? "+" : ""}{value}% 环比</span>;
 }
 
 function InsightMark({ tone, index }: { tone: InsightTone; index: number }) {
-  const classes: Record<InsightTone, string> = { critical: "bg-red-100 text-red-600", watch: "bg-amber-100 text-amber-700", positive: "bg-emerald-100 text-emerald-700", info: "bg-sky-100 text-sky-700" };
-  return <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-[11px] font-ds-black ${classes[tone]}`}>{String(index).padStart(2, "0")}</span>;
+  const classes: Record<InsightTone, string> = { critical: "bg-red-100 text-red-600", watch: "bg-amber-100 text-amber-700", positive: "bg-sage-soft text-sage", info: "bg-sky-100 text-sky-700" };
+  return <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-xs font-ds-black ${classes[tone]}`}>{String(index).padStart(2, "0")}</span>;
 }
 
 function ToneLabel({ tone }: { tone: InsightTone }) {
-  const config: Record<InsightTone, [string, string]> = { critical: ["优先", "text-red-600"], watch: ["观察", "text-amber-700"], positive: ["良好", "text-emerald-700"], info: ["提示", "text-sky-700"] };
-  return <span className={`shrink-0 text-[10px] font-ds-bold ${config[tone][1]}`}>{config[tone][0]}</span>;
+  const config: Record<InsightTone, [string, string]> = { critical: ["优先", "text-red-600"], watch: ["观察", "text-amber-700"], positive: ["良好", "text-sage"], info: ["提示", "text-sky-700"] };
+  return <span className={`shrink-0 text-xs font-ds-bold ${config[tone][1]}`}>{config[tone][0]}</span>;
 }
 
 function StatusCard({ icon: Icon, label, value, note, tone, onClick }: { icon: typeof Users; label: string; value: number; note: string; tone: "teal" | "clay" | "amber" | "red"; onClick: () => void }) {
@@ -295,7 +295,7 @@ function StatusCard({ icon: Icon, label, value, note, tone, onClick }: { icon: t
   return (
     <button type="button" onClick={onClick} className="group flex items-center gap-3 rounded-ds-lg border border-bd bg-white p-4 text-left shadow-ds-xs transition hover:-translate-y-0.5 hover:shadow-ds-md">
       <span className={`grid h-10 w-10 place-items-center rounded-full ${colors[tone]}`}><Icon className="h-4.5 w-4.5" /></span>
-      <span className="min-w-0 flex-1"><span className="block text-[11px] text-txs">{label}</span><span className="mt-0.5 block text-ds-xl font-ds-black text-tx">{value}</span><span className="block truncate text-[10px] text-txt">{note}</span></span>
+      <span className="min-w-0 flex-1"><span className="block text-xs text-txs">{label}</span><span className="mt-0.5 block text-ds-xl font-ds-black text-tx">{value}</span><span className="block truncate text-xs text-txt">{note}</span></span>
       <ArrowRight className="h-4 w-4 text-txt transition group-hover:translate-x-1 group-hover:text-ac" />
     </button>
   );

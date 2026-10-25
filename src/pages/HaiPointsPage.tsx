@@ -90,8 +90,8 @@ export default function HaiPointsPage() {
       <main className="mx-auto w-full max-w-5xl px-3 py-6 md:px-4 md:py-12">
 
 
-        <section className="overflow-hidden rounded-ds-xl border border-bd bg-white shadow-ds-lg">
-          <div className="border-b border-bd bg-gradient-to-br from-acl via-white to-white px-4 py-6 sm:px-5 md:px-8 md:py-10">
+        <section className="overflow-hidden rounded-ds-xl border border-bd bg-white shadow-ds-sm">
+          <div className="border-b border-bd bg-brown-soft px-4 py-6 sm:px-5 md:px-8 md:py-10">
             <div className="flex items-start gap-3 md:items-center">
               <span className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-ds-full bg-ac text-white md:mt-0 md:h-11 md:w-11">
                 <Coins className="h-5 w-5" />
@@ -280,19 +280,19 @@ function PointLedgerRow({ entry }: { entry: HaiPointLedgerEntry }) {
   return (
     <article className="rounded-ds-md border border-bd bg-bg px-3 py-3">
       <div className="flex items-start gap-3">
-        <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-ds-full ${isFailed ? "bg-red-50 text-red-600" : isIncrease ? "bg-emerald-50 text-emerald-600" : "bg-acl/60 text-ac"}`}>
+        <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-ds-full ${isFailed ? "bg-red-50 text-red-600" : isIncrease ? "bg-sage-soft text-sage" : "bg-acl/60 text-ac"}`}>
           {isFailed ? <XCircle className="h-4 w-4" /> : isIncrease ? <ArrowDownLeft className="h-4 w-4" /> : <ArrowUpRight className="h-4 w-4" />}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
             <p className="text-ds-sm font-ds-semibold text-tx">{entry.purpose}</p>
-            <p className={`text-ds-sm font-ds-bold ${isIncrease ? "text-emerald-600" : isFailed ? "text-txs" : "text-ac"}`}>
+            <p className={`text-ds-sm font-ds-bold ${isIncrease ? "text-sage" : isFailed ? "text-txs" : "text-ac"}`}>
               {isIncrease ? "+" : ""}{formatPoints(entry.points_delta)} 积分
             </p>
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-ds-xs text-txs">
             <time dateTime={entry.created_at}>{formatLedgerTime(entry.created_at)}</time>
-            <span className={`inline-flex items-center gap-1 ${isFailed ? "text-red-600" : "text-emerald-600"}`}>
+            <span className={`inline-flex items-center gap-1 ${isFailed ? "text-red-600" : "text-sage"}`}>
               {isFailed ? <XCircle className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
               {isFailed ? "失败，未扣分" : isUsage ? "成功" : "已入账"}
             </span>

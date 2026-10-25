@@ -77,7 +77,7 @@ export default function CourseTypeTabs() {
               </span>
               <span className="min-w-0">
                 <span className="flex flex-wrap items-center gap-x-2 gap-y-1"><span className="text-sm font-ds-bold">{label}</span>{!loading && <CourseAccessBadge hasAccess={hasAccess} isAdmin={isAdmin} />}</span>
-                <span className="mt-0.5 block truncate text-[10px] text-txs">{description}</span>
+                <span className="mt-0.5 block truncate text-xs text-txs">{description}</span>
               </span>
               {active && <span className="absolute inset-x-0 bottom-0 h-1 bg-ac" />}
             </Link>

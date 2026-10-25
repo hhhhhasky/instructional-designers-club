@@ -219,13 +219,13 @@ export default function LiveDashboardSection() {
 
   return (
     <div className="space-y-5">
-      <section className="relative isolate overflow-hidden rounded-[24px] bg-[#173d39] px-5 py-6 text-white shadow-ds-xl md:px-8 md:py-8">
+      <section className="relative isolate overflow-hidden rounded-[24px] bg-[var(--sage)] px-5 py-6 text-white shadow-ds-xl md:px-8 md:py-8">
         <div className="pointer-events-none absolute inset-0 opacity-25 [background-image:radial-gradient(circle_at_1px_1px,rgba(255,255,255,.2)_1px,transparent_0)] [background-size:22px_22px]" />
-        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full border-[44px] border-[#de7856]/15" />
+        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full border-[44px] border-[var(--ac)]/15" />
         <div className="relative flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2 text-[#efb393]">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[.06] px-3 py-1 text-[11px] font-ds-bold tracking-[.16em]"><Activity className="h-3.5 w-3.5" /> LIVE PULSE</span>
+            <div className="flex flex-wrap items-center gap-2 text-[var(--sand)]">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[.06] px-3 py-1 text-xs font-ds-bold tracking-[.16em]"><Activity className="h-3.5 w-3.5" /> LIVE PULSE</span>
               <span className="text-ds-xs text-white/55">更新于 {formatTime(updatedAt)}</span>
             </div>
             <h2 className="mt-4 font-serif text-[1.8rem] font-ds-black leading-tight md:text-[2.4rem]">{dashboard.session.title}</h2>
@@ -240,7 +240,7 @@ export default function LiveDashboardSection() {
               value={selectedId ?? ""}
               onChange={(event) => setSelectedId(event.target.value)}
               aria-label="选择 Live 场次"
-              className="h-11 min-w-[240px] rounded-ds-lg border border-white/15 bg-[#244f48] px-3 text-ds-sm text-white focus:outline-none"
+              className="h-11 min-w-[240px] rounded-ds-lg border border-white/15 bg-[var(--sage-dark)] px-3 text-ds-sm text-white focus:outline-none"
             >
               {sessions.map((session) => <option key={session.id} value={session.id}>{LIVE_STATUS_LABELS[session.status]} · {session.title}</option>)}
             </select>
@@ -248,7 +248,7 @@ export default function LiveDashboardSection() {
               <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />刷新
             </Button>
             {dashboard.session.room_code && dashboard.session.status === "live" ? (
-              <Button asChild className="bg-[#de7856] text-white hover:bg-[#c96546]">
+              <Button asChild className="bg-[var(--ac)] text-white hover:bg-[var(--acd)]">
                 <a href={`/live/${dashboard.session.room_code}/dashboard`} target="_blank" rel="noreferrer">学员展示屏 <ArrowUpRight className="h-4 w-4" /></a>
               </Button>
             ) : null}
@@ -277,7 +277,7 @@ export default function LiveDashboardSection() {
                   <XAxis type="number" domain={[0, 100]} tickFormatter={(value) => `${value}%`} tick={{ fontSize: 11, fill: "var(--txs)" }} axisLine={false} tickLine={false} />
                   <YAxis dataKey="name" type="category" width={42} tick={{ fontSize: 11, fill: "var(--tx)" }} axisLine={false} tickLine={false} />
                   <Tooltip formatter={(value: number) => [`${value}%`, "参与率"]} labelFormatter={(_, payload) => payload[0]?.payload?.title ?? ""} />
-                  <Bar dataKey="rate" fill="#2f7469" radius={[0, 6, 6, 0]} barSize={18} background={{ fill: "#eef1eb", radius: 6 }} />
+                  <Bar dataKey="rate" fill="var(--sage)" radius={[0, 6, 6, 0]} barSize={18} background={{ fill: "#eef1eb", radius: 6 }} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -307,32 +307,32 @@ export default function LiveDashboardSection() {
             {dashboard.questions.map((item) => (
               <article key={item.question.id} className="rounded-ds-xl border border-bd bg-bg/70 p-4">
                 <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0"><p className="text-[10px] font-ds-black tracking-[.14em] text-ac">Q{item.question.position} · {LIVE_QUESTION_TYPE_LABELS[item.question.type]}</p><h3 className="mt-1 line-clamp-2 font-serif text-ds-lg font-ds-black text-tx">{item.question.title}</h3><p className="mt-1 text-[10px] font-ds-bold text-ac">{formatLiveAudience(item.question)} · 目标 {item.targetParticipantCount} 人</p></div>
-                  <div className="shrink-0 text-right"><p className="font-serif text-ds-2xl font-ds-black text-tx">{item.answeredCount}</p><p className="text-[10px] text-txs">/{item.targetParticipantCount} 人 · {item.responseRate}%</p></div>
+                  <div className="min-w-0"><p className="text-xs font-ds-black tracking-[.14em] text-ac">Q{item.question.position} · {LIVE_QUESTION_TYPE_LABELS[item.question.type]}</p><h3 className="mt-1 line-clamp-2 font-serif text-ds-lg font-ds-black text-tx">{item.question.title}</h3><p className="mt-1 text-xs font-ds-bold text-ac">{formatLiveAudience(item.question)} · 目标 {item.targetParticipantCount} 人</p></div>
+                  <div className="shrink-0 text-right"><p className="font-serif text-ds-2xl font-ds-black text-tx">{item.answeredCount}</p><p className="text-xs text-txs">/{item.targetParticipantCount} 人 · {item.responseRate}%</p></div>
                 </div>
                 <OptionBars options={item.options} compact />
-                <div className="mt-3 flex items-center justify-between border-t border-bdl pt-3 text-[11px] text-txs"><span>正确率 {item.correctRate}%</span><span>正确答案 {formatLiveAnswer(item.question.correct_answer)}</span></div>
+                <div className="mt-3 flex items-center justify-between border-t border-bdl pt-3 text-xs text-txs"><span>正确率 {item.correctRate}%</span><span>正确答案 {formatLiveAnswer(item.question.correct_answer)}</span></div>
               </article>
             ))}
           </div>
         ) : <EmptyState text="当前场次还没有题目数据" />}
       </section>
 
-      <p className="px-1 text-[11px] leading-5 text-txt">数据口径：“当前在线”来自 Realtime Presence；“累计进入”为本场去重进入账号；单题参与率按该题目标受众计算，指定学员与标签命中者去重。记录功能上线前的历史场次只能从已有作答者回填，因此其累计进入数是可恢复的下限。</p>
+      <p className="px-1 text-xs leading-5 text-txt">数据口径：“当前在线”来自 Realtime Presence；“累计进入”为本场去重进入账号；单题参与率按该题目标受众计算，指定学员与标签命中者去重。记录功能上线前的历史场次只能从已有作答者回填，因此其累计进入数是可恢复的下限。</p>
     </div>
   );
 }
 
 function Kpi({ icon: Icon, label, value, note }: { icon: typeof Users; label: string; value: number; note: string }) {
-  return <div className="bg-[#173d39]/90 p-4"><div className="flex items-center gap-2 text-[#efb393]"><Icon className="h-4 w-4" /><span className="text-[10px] font-ds-black tracking-[.12em]">{label}</span></div><p className="mt-2 font-serif text-[2rem] font-ds-black leading-none">{value.toLocaleString("zh-CN")}</p><p className="mt-2 text-[10px] text-white/45">{note}</p></div>;
+  return <div className="bg-[var(--sage)]/90 p-4"><div className="flex items-center gap-2 text-[var(--sand)]"><Icon className="h-4 w-4" /><span className="text-xs font-ds-black tracking-[.12em]">{label}</span></div><p className="mt-2 font-serif text-[2rem] font-ds-black leading-none">{value.toLocaleString("zh-CN")}</p><p className="mt-2 text-xs text-white/45">{note}</p></div>;
 }
 
 function SectionHeading({ eyebrow, title, description }: { eyebrow: string; title: string; description: string }) {
-  return <div><p className="text-[10px] font-ds-black tracking-[.16em] text-ac">{eyebrow}</p><h3 className="mt-1 font-serif text-ds-xl font-ds-black text-tx">{title}</h3><p className="mt-1 text-ds-xs leading-5 text-txs">{description}</p></div>;
+  return <div><p className="text-xs font-ds-black tracking-[.16em] text-ac">{eyebrow}</p><h3 className="mt-1 font-serif text-ds-xl font-ds-black text-tx">{title}</h3><p className="mt-1 text-ds-xs leading-5 text-txs">{description}</p></div>;
 }
 
 function OptionBars({ options, compact = false }: { options: AdminLiveSessionDashboard["questions"][number]["options"]; compact?: boolean }) {
-  return <div className={`${compact ? "mt-4 gap-2" : "mt-5 gap-3"} grid`}>{options.map((option) => <div key={option.id}><div className="flex justify-between gap-3 text-ds-xs"><span className="min-w-0 truncate font-ds-semibold text-tx">{option.id.length === 1 ? `${option.id} · ` : ""}{option.label}</span><span className="shrink-0 text-txs">{option.count} 人 · {option.percentage}%</span></div><div className={`${compact ? "mt-1 h-2" : "mt-1.5 h-2.5"} overflow-hidden rounded-full bg-white`}><div className="h-full rounded-full bg-gradient-to-r from-[#2f7469] to-[#de7856] transition-[width] duration-300" style={{ width: `${Math.min(100, option.percentage)}%` }} /></div></div>)}</div>;
+  return <div className={`${compact ? "mt-4 gap-2" : "mt-5 gap-3"} grid`}>{options.map((option) => <div key={option.id}><div className="flex justify-between gap-3 text-ds-xs"><span className="min-w-0 truncate font-ds-semibold text-tx">{option.id.length === 1 ? `${option.id} · ` : ""}{option.label}</span><span className="shrink-0 text-txs">{option.count} 人 · {option.percentage}%</span></div><div className={`${compact ? "mt-1 h-2" : "mt-1.5 h-2.5"} overflow-hidden rounded-full bg-white`}><div className="h-full rounded-full bg-gradient-to-r from-[var(--sage)] to-[var(--ac)] transition-[width] duration-300" style={{ width: `${Math.min(100, option.percentage)}%` }} /></div></div>)}</div>;
 }
 
 function EmptyState({ text }: { text: string }) {

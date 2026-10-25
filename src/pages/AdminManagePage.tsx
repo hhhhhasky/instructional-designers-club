@@ -96,7 +96,7 @@ export default function AdminManagePage() {
 function ManageSidebar() {
   return (
     <TabsList className="h-auto w-full flex-col items-stretch border-b border-bd bg-transparent pb-4 md:sticky md:top-4 md:border-b-0 md:border-r md:pr-5" aria-label="数据管理导航">
-      <div className="px-3 pb-2 pt-2 text-[10px] font-ds-black tracking-[0.16em] text-txs">维护模块</div>
+      <div className="px-3 pb-2 pt-2 text-xs font-ds-black tracking-[0.16em] text-txs">维护模块</div>
       <div className="grid grid-cols-2 gap-1 md:flex md:flex-col">
         {MANAGE_TABS.map((tab) => <ManageTabTrigger key={tab.value} {...tab} />)}
       </div>
@@ -116,20 +116,20 @@ function MaintenancePulse({ snapshot, onOpen }: { snapshot: MaintenanceSnapshot 
   ];
 
   return (
-    <section className="relative overflow-hidden rounded-ds-xl border border-[#244f48]/10 bg-[#244f48] px-4 py-5 text-white shadow-ds-lg md:px-6">
+    <section className="relative overflow-hidden rounded-ds-xl border border-[var(--sage-dark)]/10 bg-[var(--sage-dark)] px-4 py-5 text-white shadow-ds-lg md:px-6">
       <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_center,rgba(226,167,92,.18),transparent_68%)]" />
       <div className="relative flex min-w-0 flex-col gap-4 xl:flex-row xl:items-center">
         <div className="min-w-0 xl:w-[245px] xl:shrink-0">
-          <div className="flex items-center gap-2 text-[#efb393]"><RefreshCw className="h-4 w-4" /><span className="text-[10px] font-ds-black tracking-[.16em]">MAINTENANCE PULSE</span></div>
+          <div className="flex items-center gap-2 text-[var(--sand)]"><RefreshCw className="h-4 w-4" /><span className="text-xs font-ds-black tracking-[.16em]">MAINTENANCE PULSE</span></div>
           <h2 className="mt-2 font-serif text-ds-xl font-ds-black">七个真实写入工作区</h2>
-          <p className="mt-1 text-[11px] leading-5 text-white/55">每项修改都会同步到 Supabase，并按权限与业务规则校验。</p>
+          <p className="mt-1 text-xs leading-5 text-white/55">每项修改都会同步到 Supabase，并按权限与业务规则校验。</p>
         </div>
         <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-7">
           {items.map((item) => (
             <button key={item.tab} type="button" onClick={() => onOpen(item.tab)} className="group rounded-ds-lg border border-white/10 bg-white/[0.06] p-3 text-left transition hover:-translate-y-0.5 hover:bg-white/10">
-              <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-ds-bold ${item.tone}`}>{item.label}</span>
+              <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-ds-bold ${item.tone}`}>{item.label}</span>
               <p className="mt-2 font-serif text-ds-2xl font-ds-black">{item.value ?? <span className="text-white/30">—</span>}</p>
-              <p className="mt-0.5 truncate text-[10px] text-white/45">{item.note}</p>
+              <p className="mt-0.5 truncate text-xs text-white/45">{item.note}</p>
             </button>
           ))}
         </div>
@@ -140,7 +140,7 @@ function MaintenancePulse({ snapshot, onOpen }: { snapshot: MaintenanceSnapshot 
 
 function ManageTabTrigger({ value, label, icon: Icon }: { value: ManageTab; label: string; short: string; description: string; icon: LucideIcon }) {
   return (
-    <TabsTrigger value={value} className="h-11 w-full justify-start gap-2 rounded-ds-md px-3 text-left text-ds-xs text-txs data-[state=active]:bg-[#173d39] data-[state=active]:text-white data-[state=active]:shadow-none">
+    <TabsTrigger value={value} className="h-11 w-full justify-start gap-2 rounded-ds-md px-3 text-left text-ds-xs text-txs data-[state=active]:bg-[var(--sage)] data-[state=active]:text-white data-[state=active]:shadow-none">
       <Icon className="h-3.5 w-3.5" />
       <span>{label}</span>
     </TabsTrigger>
@@ -152,7 +152,7 @@ function WorkspaceIntro({ tab }: { tab: typeof MANAGE_TABS[number] }) {
   return (
     <div className="flex items-start gap-3 border-b border-bdl pb-4">
       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-ds-md bg-bgs text-ac"><Icon className="h-4 w-4" /></span>
-      <div className="min-w-0"><p className="text-ds-md font-ds-black text-tx">{tab.label}</p><p className="mt-0.5 text-[11px] text-txs">{tab.description}</p></div>
+      <div className="min-w-0"><p className="text-ds-md font-ds-black text-tx">{tab.label}</p><p className="mt-0.5 text-xs text-txs">{tab.description}</p></div>
     </div>
   );
 }

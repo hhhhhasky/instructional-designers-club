@@ -1189,10 +1189,10 @@ export default function HaiManagementSection() {
                             {card.enabled ? "启用" : "停用"}
                           </Badge>
                         </div>
-                        <p className="mt-1 truncate text-[11px] text-txs">
+                        <p className="mt-1 truncate text-xs text-txs">
                           {card.course} · {card.id}
                         </p>
-                        <p className="mt-1 text-[11px] text-txs">
+                        <p className="mt-1 text-xs text-txs">
                           {card.hasDatabaseOverride ? "数据库版本" : "代码默认"}
                         </p>
                       </button>
@@ -1220,7 +1220,7 @@ export default function HaiManagementSection() {
                               </Badge>
                             )}
                           </div>
-                          <p className="mt-1 text-[11px] text-txs">
+                          <p className="mt-1 text-xs text-txs">
                             方法卡名称、适用边界、判断逻辑、动作与关键词都会参与路由和回答。
                           </p>
                         </div>
@@ -1440,7 +1440,7 @@ export default function HaiManagementSection() {
                           )}
                         />
                       </div>
-                      <p className="text-[11px] text-txs">
+                      <p className="text-xs text-txs">
                         {methodCardDraft.updatedAt
                           ? `数据库更新于 ${formatDateTime(methodCardDraft.updatedAt)}`
                           : "当前为代码默认版本，保存后会生成数据库覆盖记录。"}
@@ -2088,7 +2088,7 @@ export default function HaiManagementSection() {
               <div className="mb-2 flex items-start justify-between gap-3">
                 <div>
                   <p className="text-ds-sm font-ds-bold text-tx">{setting.label}</p>
-                  <p className="mt-1 text-[11px] text-txs">{setting.key}</p>
+                  <p className="mt-1 text-xs text-txs">{setting.key}</p>
                 </div>
                 <label className="flex items-center gap-1 text-ds-xs text-txs">
                   <input
@@ -2144,7 +2144,7 @@ export function CollapsiblePanel({
           <span className="mt-0.5 block truncate text-ds-xs text-txs">{description}</span>
         </span>
         {summary && (
-          <span className="hidden shrink-0 rounded-full border border-bd bg-bg px-2.5 py-1 text-[11px] text-txs sm:inline">
+          <span className="hidden shrink-0 rounded-full border border-bd bg-bg px-2.5 py-1 text-xs text-txs sm:inline">
             {summary}
           </span>
         )}

@@ -23,22 +23,29 @@ export default {
     extend: {
       fontFamily: {
         serif: ['Noto Serif SC', 'Georgia', 'Songti SC', 'serif'],
-        body: ['LXGW WenKai', '-apple-system', 'BlinkMacSystemFont', 'PingFang SC', 'sans-serif'],
+        sans: ['var(--fb)'],
+        body: ['var(--fb)'],
         mono: ['SF Mono', 'Consolas', 'monospace'],
       },
       colors: {
         /* === 设计系统：暖色学术风 === */
         /* 主强调色（陶土色） */
         ac: 'var(--ac)',
+        sage: 'var(--sage)',
+        'sage-soft': 'var(--sage-soft)',
+        brown: 'var(--brown)',
+        'brown-soft': 'var(--brown-soft)',
+        steel: 'var(--slate)',
+        'steel-soft': 'var(--slate-soft)',
         'ac-light': 'var(--acl)',
         'ac-dark': 'var(--acd)',
-        /* 次强调色（青绿色） */
+        /* 次强调色（鼠尾草绿；兼容旧 tl 名称） */
         tl: 'var(--tl)',
         'tl-light': 'var(--tll)',
         /* 第三强调色（琥珀金色） */
         am: 'var(--am)',
         'am-light': 'var(--aml)',
-        /* 紫色辅助 */
+        /* 灰蓝辅助；兼容旧 pp 名称 */
         pp: 'var(--pp)',
         'pp-light': 'var(--ppl)',
         /* 背景色 */
@@ -79,7 +86,7 @@ export default {
           foreground: 'var(--txs)',
         },
         accent: {
-          DEFAULT: 'var(--tl)',
+          DEFAULT: 'var(--acl)',
           foreground: 'var(--tx)',
         },
         popover: {
@@ -102,15 +109,15 @@ export default {
         },
       },
       fontSize: {
-        'ds-xs': ['0.72rem', { lineHeight: '1.5' }],
-        'ds-sm': ['0.82rem', { lineHeight: '1.6' }],
-        'ds-base': ['0.88rem', { lineHeight: '1.7' }],
-        'ds-md': ['0.95rem', { lineHeight: '1.75' }],
-        'ds-lg': ['1rem', { lineHeight: '1.8' }],
-        'ds-xl': ['1.125rem', { lineHeight: '1.7' }],
-        'ds-2xl': ['1.25rem', { lineHeight: '1.6' }],
-        'ds-3xl': ['1.5rem', { lineHeight: '1.5' }],
-        'ds-4xl': ['2rem', { lineHeight: '1.4' }],
+        'ds-xs': ['0.75rem', { lineHeight: '1.5' }],
+        'ds-sm': ['0.875rem', { lineHeight: '1.6' }],
+        'ds-base': ['1rem', { lineHeight: '1.7' }],
+        'ds-md': ['1.0625rem', { lineHeight: '1.75' }],
+        'ds-lg': ['1.125rem', { lineHeight: '1.8' }],
+        'ds-xl': ['1.25rem', { lineHeight: '1.7' }],
+        'ds-2xl': ['1.5rem', { lineHeight: '1.6' }],
+        'ds-3xl': ['1.875rem', { lineHeight: '1.5' }],
+        'ds-4xl': ['2.25rem', { lineHeight: '1.4' }],
         'ds-hero': ['clamp(2.4rem, 5.5vw, 3.6rem)', { lineHeight: '1.3' }],
       },
       fontWeight: {
@@ -119,13 +126,14 @@ export default {
         'ds-medium': '500',
         'ds-semibold': '600',
         'ds-bold': '700',
-        'ds-black': '900',
+        'ds-black': '700',
+        black: '700',
       },
       borderRadius: {
         'ds-sm': '6px',
-        'ds-md': '12px',
-        'ds-lg': '16px',
-        'ds-xl': '20px',
+        'ds-md': '8px',
+        'ds-lg': '12px',
+        'ds-xl': '16px',
         'ds-pill': '100px',
         'ds-full': '50%',
       },
@@ -154,8 +162,8 @@ export default {
         hover: 'var(--shadow-hover)',
       },
       backgroundImage: {
-        'gradient-primary': 'linear-gradient(135deg, var(--ac), #d4724e)',
-        'gradient-progress': 'linear-gradient(90deg, var(--ac), var(--tl))',
+        'gradient-primary': 'linear-gradient(var(--ac), var(--ac))',
+        'gradient-progress': 'linear-gradient(90deg, var(--ac), var(--ac))',
         'gradient-card': 'var(--gradient-card)',
         'gradient-background': 'var(--gradient-background)',
       },

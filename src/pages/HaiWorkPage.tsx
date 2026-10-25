@@ -271,7 +271,7 @@ function WorkLanding({ tools, pointsBlocked, initialTool = null }: { tools: HaiF
         <div className="mb-7 flex items-center justify-center gap-3">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--annotation)] text-[var(--paper)] shadow-ds-sm"><Sparkles className="h-6 w-6" /></span>
           <div>
-            <p className="mb-1 text-[10px] font-bold tracking-[0.2em] text-[var(--annotation)]">HAI · 你的教研搭档</p>
+            <p className="mb-1 text-xs font-bold tracking-[0.2em] text-[var(--annotation)]">HAI · 你的教研搭档</p>
             <h2 className="font-serif text-2xl font-black tracking-tight text-tx md:text-3xl">今天，想一起完成什么？</h2>
           </div>
         </div>
@@ -290,7 +290,7 @@ function WorkLanding({ tools, pointsBlocked, initialTool = null }: { tools: HaiF
           <div className="flex items-center gap-3 border-t border-[var(--paper-rule)]/60 pt-3">
             <button type="button" disabled={uploadBlocked} onClick={() => fileInput.current?.click()} aria-label={isImage ? "添加参考图片" : "上传教案或教材"} title={isImage ? "上传教材截图或参考图" : "上传教案或教材"} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--paper-rule)] text-txs transition hover:bg-[var(--paper-deep)] disabled:cursor-not-allowed disabled:opacity-40"><Plus className="h-5 w-5" /></button>
             <input ref={fileInput} type="file" multiple aria-label={isImage ? "上传参考图片" : "上传补充材料"} accept={isImage ? "image/png,image/jpeg,image/webp,image/gif" : acceptedFileTypes} className="sr-only" disabled={uploadBlocked} onChange={(event) => { addFiles(event.target.files); event.currentTarget.value = ""; }} />
-            {isImage ? <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2"><HaiImageGenerationPage inline={{ prompt: draft, setPrompt: setDraft, referenceFiles: imageFiles, setReferenceFiles: setImageFiles, onBusyChange: setBusy }} /></div> : <span className="min-w-0 flex-1 text-[11px] leading-5 text-txt">教案 / 教材 · TXT、MD、DOCX</span>}
+            {isImage ? <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2"><HaiImageGenerationPage inline={{ prompt: draft, setPrompt: setDraft, referenceFiles: imageFiles, setReferenceFiles: setImageFiles, onBusyChange: setBusy }} /></div> : <span className="min-w-0 flex-1 text-xs leading-5 text-txt">教案 / 教材 · TXT、MD、DOCX</span>}
             <button type="submit" form={isImage ? "hai-image-settings" : "hai-work-settings"} disabled={!active || uploadBlocked} aria-label={active ? `提交${active.config.name}任务` : "请先选择工作功能"} title="提交任务" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--annotation)] text-[var(--paper)] transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-30">{busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-5 w-5" />}</button>
           </div>
         {active && !isImage && <WorkToolForm key={active.slug} toolSlug={active.slug} config={active.config} pointsBlocked={pointsBlocked} previewOnly={active.previewOnly} request={draft} attachedFiles={documentFiles} onBusyChange={setBusy} />}
@@ -603,7 +603,7 @@ function WorkToolForm({
           <p className="mt-4 text-xs text-txs">正在读取教材目录…</p>
         )}
         {selectedEdition && (
-          <div className={`mt-3 rounded-lg border px-3 py-2 text-xs leading-5 ${selectedEdition.requires_confirmation ? "border-amber-300 bg-amber-50 text-amber-900" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}>
+          <div className={`mt-3 rounded-lg border px-3 py-2 text-xs leading-5 ${selectedEdition.requires_confirmation ? "border-amber-300 bg-amber-50 text-amber-900" : "border-sage/20 bg-sage-soft text-sage"}`}>
             当前版本：{selectedEdition.edition_label}。内置内容为知识点梳理，不是教材逐字原文。
             {selectedEdition.requires_confirmation ? " 该册标记为待纸质教材复核，生成结果会同步提醒核对。" : ""}
           </div>
@@ -643,7 +643,7 @@ function WorkToolForm({
         <summary className="cursor-pointer text-xs font-bold text-txs">更多要求（选填）</summary>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {isUnitDesign && <><TextField label="单元主题（可选）" value={form.unit_theme} placeholder="留空则根据所选内容拟定" onChange={(value) => update("unit_theme", value)} /><TextField label="课时安排（可选）" value={form.unit_duration} placeholder="如：6课时，每课40分钟" onChange={(value) => update("unit_duration", value)} /></>}
-          {isUnitDesign && <TextAreaField label="学生起点与学习困难（可选）" value={form.learner_context} placeholder="如：学生会套公式，但说不清公式的由来；希望增加操作和解释的机会" minRows={3} onChange={(value) => update("learner_context", value)} />}
+          {(isUnitDesign || toolSlug === "subject-lesson-design") && <TextAreaField label="学生起点与学习困难（可选）" value={form.learner_context} placeholder="如：学生知道结论，但说不清理由；希望材料更贴近本班生活" minRows={3} onChange={(value) => update("learner_context", value)} />}
           <TextField label="课时与班级约束（可选）" value={form.constraints} placeholder="如：40分钟、48人、不能使用平板" onChange={(value) => update("constraints", value)} />
           {toolSlug === "teaching-design" && <TextAreaField label="预期成果 / 任务说明" value={form.desired_outcomes} placeholder="默认使用上方想法；需要时在此补充学生应理解或能做什么" minRows={3} onChange={(value) => update("desired_outcomes", value)} />}
         </div>
@@ -698,7 +698,7 @@ export function WorkSidebar({ tasks, archivedTasks, onTasksChanged, imageTasks: 
         <input type="search" aria-label="搜索历史任务" placeholder="搜索任务名称" value={search} onChange={(event) => setSearch(event.target.value)} className="h-10 w-full min-w-0 rounded-md border border-[var(--paper-rule)] bg-[var(--paper)] pl-9 pr-8 text-xs text-tx outline-none transition placeholder:text-txt focus:border-[var(--annotation)]/50 [&::-webkit-search-cancel-button]:hidden" />
         {search && <button type="button" aria-label="清空任务搜索" onClick={() => setSearch("")} className="absolute right-1 top-1/2 -translate-y-1/2 rounded-lg p-2 text-txt hover:text-tx"><X className="h-3.5 w-3.5" /></button>}
       </div>
-      {keyword && <p role="status" className="mt-2 px-1 text-[11px] text-txt">{searchPending ? "正在搜索…" : searchError || `匹配 ${history.length + matchingArchived.length} 项任务`}</p>}
+      {keyword && <p role="status" className="mt-2 px-1 text-xs text-txt">{searchPending ? "正在搜索…" : searchError || `匹配 ${history.length + matchingArchived.length} 项任务`}</p>}
       <div className="mt-3 space-y-1">
         {visibleHistory.map((item) => item.kind === "image"
           ? <ImageTaskRow key={`image-${item.task.id}`} task={item.task} selected={item.task.id === selectedImageTaskId} onSelect={onImageTaskSelected} />
@@ -710,7 +710,7 @@ export function WorkSidebar({ tasks, archivedTasks, onTasksChanged, imageTasks: 
         <button
           type="button"
           onClick={() => setShowAllActive((open) => !open)}
-          className="mt-2 flex w-full items-center justify-center gap-1 rounded-ds-md px-3 py-2 text-[11px] font-bold text-txt transition hover:bg-[var(--paper)] hover:text-ac"
+          className="mt-2 flex w-full items-center justify-center gap-1 rounded-ds-md px-3 py-2 text-xs font-bold text-txt transition hover:bg-[var(--paper)] hover:text-ac"
           aria-expanded={showAllActive}
         >
           {showAllActive ? "收起" : `展示全部(${history.length})`}
@@ -727,7 +727,7 @@ export function WorkSidebar({ tasks, archivedTasks, onTasksChanged, imageTasks: 
             className="flex w-full items-center justify-between px-1 text-left"
             aria-expanded={Boolean(keyword) || archivedOpen}
           >
-            <span className="text-[11px] font-black tracking-[0.16em] text-txt">已归档 · {matchingArchived.length}</span>
+            <span className="text-xs font-black tracking-[0.16em] text-txt">已归档 · {matchingArchived.length}</span>
             <ChevronDown className={cn("h-3.5 w-3.5 text-txt transition-transform", (keyword || archivedOpen) && "rotate-180")} />
           </button>
           {(keyword || archivedOpen) && (
@@ -746,7 +746,7 @@ function ImageTaskRow({ task, selected, onSelect }: { task: HaiImageGenerationTa
     <Link to={task.ppt_deck_id ? `/hai/work/image-generation/ppt/${task.ppt_deck_id}` : `/hai/work/image-generation/${task.id}`} onClick={onSelect && !task.ppt_deck_id ? (event) => { event.preventDefault(); onSelect(task.id); } : undefined} className={cn(`${HAI_HISTORY_ROW_CLASS} w-full min-w-0 items-center px-3 py-2.5 text-left`, selected && "bg-[var(--paper)]")}>
       <span className="min-w-0 flex-1">
         <span className={cn("block truncate text-xs font-semibold", selected ? "text-[var(--annotation)]" : "text-tx")}>{haiTaskTitle(task.title)}</span>
-        <span className="mt-1 block text-[11px] text-txs">{formatHistoryDate(task.updated_at)}</span>
+        <span className="mt-1 block text-xs text-txs">{formatHistoryDate(task.updated_at)}</span>
       </span>
     </Link>
   );
@@ -758,7 +758,7 @@ function TaskRow({ task, onTasksChanged }: { task: HaiWorkTask; onTasksChanged?:
     <div className={cn(HAI_HISTORY_ROW_CLASS, "relative items-center", pathname.includes(task.id) && "border-ac/30 bg-[var(--paper)]")}>
       <Link to={`/hai/work/tasks/${task.id}`} className="min-w-0 flex-1 px-3 py-2.5 pr-9">
         <p className="truncate text-xs font-semibold text-tx">{haiTaskTitle(task.title)}</p>
-        <p className="mt-1 text-[11px] text-txs">{formatHistoryDate(task.updated_at)}</p>
+        <p className="mt-1 text-xs text-txs">{formatHistoryDate(task.updated_at)}</p>
       </Link>
       <TaskActionMenu
         task={task}
@@ -799,7 +799,7 @@ function DesignTypeField({ value, onChange }: { value: string; onChange: (value:
       <option value="">请选择</option>
       {HAI_DESIGN_TYPES.map((item) => <option key={item.value} value={item.value}>{item.name}</option>)}
     </select>
-    {value && <span className="mt-1 block text-[11px] font-normal leading-5">{HAI_DESIGN_TYPES.find((item) => item.value === value)?.description}</span>}
+    {value && <span className="mt-1 block text-xs font-normal leading-5">{HAI_DESIGN_TYPES.find((item) => item.value === value)?.description}</span>}
   </label>;
 }
 

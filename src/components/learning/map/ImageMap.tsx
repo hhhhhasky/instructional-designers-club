@@ -1,4 +1,4 @@
-import { CheckCircle, Copy, RotateCcw } from 'lucide-react';
+import { MapPin as MapPinIcon, CheckCircle, Copy, RotateCcw } from 'lucide-react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useReducer, useRef, useState } from 'react';
 import type { LearningMapData, NodeExploration } from '@/lib/learningMap';
@@ -149,7 +149,7 @@ function MapPin({
         {/* 当前位置 flag */}
         {isCurrent && !editMode && (
           <span className="absolute -top-9 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-ds-pill bg-ac text-white text-ds-xs font-ds-bold whitespace-nowrap shadow-ds-sm">
-            📍 你在这里
+            <MapPinIcon className="inline h-3.5 w-3.5 align-middle" aria-hidden="true" /> 你在这里
           </span>
         )}
 
@@ -165,7 +165,7 @@ function MapPin({
 
         {/* editMode：坐标标签 */}
         {editMode && (
-          <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-1.5 py-0.5 rounded bg-tx/80 text-white text-[10px] whitespace-nowrap pointer-events-none">
+          <span className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-1.5 py-0.5 rounded bg-tx/80 text-white text-xs whitespace-nowrap pointer-events-none">
             {node.id} · {pos.x},{pos.y}
           </span>
         )}
@@ -277,7 +277,7 @@ function EditPanel({ onReset }: { onReset: () => void }) {
       <p className="text-txs mb-1.5">
         拖动每个标记对准对应建筑的中心，满意后点「复制 JSON」发给开发写入配置。坐标仅保存在本浏览器。
       </p>
-      <pre className="bg-white/60 rounded-ds-md p-2 overflow-x-auto text-[10px] text-tx leading-relaxed">
+      <pre className="bg-white/60 rounded-ds-md p-2 overflow-x-auto text-xs text-tx leading-relaxed">
         <code>{json}</code>
       </pre>
     </div>

@@ -4,48 +4,52 @@
 @tailwind utilities;
 
 /* =============================================
-   哈老师 Design System v1.1 · 教研编辑部
+   哈老师 Design System · 温暖、清楚的教师工作空间
    ============================================= */
 
 @layer base {
   :root {
     /* === 主强调色（陶土色） === */
-    --ac:    #c45d3e;
+    --ac:    #b9563b;
     --acd:   #a34830;
-    --acl:   #f0d5cc;
+    --acl:   #f3e4dc;
 
-    /* === 次强调色（青绿色） === */
-    --tl:    #2a7a6e;
-    --tll:   #d4ede8;
-
-    /* === 第三强调色（琥珀金色） === */
-    --am:    #b8860b;
-    --aml:   #fdf3dc;
-
-    /* === 紫色辅助 === */
-    --pp:    #6b4d8a;
-    --ppl:   #e8e0f0;
+    /* 选课卡片的三组辅助色；旧 tl / pp 名称保留兼容。 */
+    --sage: #405c4b;
+    --sage-dark: #354b3e;
+    --sage-soft: #e8ede5;
+    --brown: #78523d;
+    --brown-soft: #f1e6d8;
+    --slate: #465f70;
+    --slate-soft: #e5ecef;
+    --sand: #eadbc6;
+    --tl: var(--sage);
+    --tll: var(--sage-soft);
+    --am: #866a30;
+    --aml: #f5eddd;
+    --pp: var(--slate);
+    --ppl: var(--slate-soft);
 
     /* === 背景色 === */
-    --bg:    #faf8f5;
-    --bgs:   #f5f0ea;
+    --bg:    #f7f6f0;
+    --bgs:   #f1ece4;
     --bc:    #ffffff;
 
     /* === 教研编辑部语义表面 === */
-    --paper:       #fffdf8;
-    --paper-deep:  #f2eadf;
-    --paper-rule:  #ded3c5;
+    --paper:       #fffdf9;
+    --paper-deep:  #f1ece4;
+    --paper-rule:  #ded7cc;
     --ink:         #2c2420;
     --ink-muted:   #6b5e54;
     --proof:       #a34830;
     --proof-soft:  #f6e4dd;
-    --annotation:  #2a7a6e;
-    --annotation-soft: #e4f2ee;
+    --annotation:  var(--brown);
+    --annotation-soft: var(--brown-soft);
 
     /* === 文本色 === */
     --tx:    #2c2420;
     --txs:   #6b5e54;
-    --txt:   #9e8e80;
+    --txt:   #796f65;
 
     /* === 边框色 === */
     --bd:    #e8e0d6;
@@ -59,15 +63,15 @@
 
     /* === 字体 === */
     --fd: 'Noto Serif SC', Georgia, 'Songti SC', serif;
-    --fb: 'LXGW WenKai', -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+    --fb: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
     --fm: 'SF Mono', Consolas, monospace;
 
     /* === 圆角 === */
-    --radius: 16px;
+    --radius: 12px;
     --radius-sm: 6px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    --radius-xl: 20px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
     --radius-pill: 100px;
 
     /* === 阴影 === */
@@ -79,11 +83,11 @@
     --shadow-lg:  0 8px 32px rgba(44,36,32,0.1);
     --shadow-hover: 0 8px 24px rgba(44,36,32,0.12);
     --shadow-xl:  0 20px 60px rgba(44,36,32,0.12);
-    --shadow-accent: 0 4px 16px rgba(196,93,62,0.25);
+    --shadow-accent: 0 2px 8px rgba(44,36,32,0.08);
 
     /* === 渐变 === */
-    --gradient-primary: linear-gradient(135deg, var(--ac), #d4724e);
-    --gradient-progress: linear-gradient(90deg, var(--ac), var(--tl));
+    --gradient-primary: linear-gradient(var(--ac), var(--ac));
+    --gradient-progress: linear-gradient(90deg, var(--ac), var(--ac));
 
     /* === 过渡 === */
     --transition-fast: all 0.2s ease;
@@ -107,14 +111,17 @@
 
   body {
     font-family: var(--fb);
-    font-size: 17px;
-    line-height: 1.8;
+    font-size: 16px;
+    line-height: 1.7;
     color: var(--tx);
     background: var(--bg);
     -webkit-font-smoothing: antialiased;
     min-height: 100vh;
     overflow-x: hidden;
   }
+
+  button, input, select, textarea { font-family: var(--fb); }
+  .lucide { stroke-width: 1.75; }
 
   /* iOS Safari 会在聚焦小于 16px 的表单控件时自动放大页面。 */
   .hai-page input,
@@ -540,41 +547,24 @@
     transition: var(--transition-smooth);
   }
   .hover-scale:hover {
-    transform: scale(1.05);
+    transform: translateY(-1px);
   }
 
   .hover-glow {
     transition: var(--transition-smooth);
   }
   .hover-glow:hover {
-    box-shadow: var(--shadow-accent);
+    box-shadow: var(--shadow-sm);
   }
 
   /* === 渐变文字 === */
-  .gradient-text {
-    background: linear-gradient(135deg, var(--ac), var(--tl));
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    color: transparent;
+  .gradient-text, .shimmer-text {
+    color: var(--ac);
+    background: none;
+    -webkit-text-fill-color: currentColor;
   }
 
-  /* 渐变文字闪烁 */
-  .shimmer-text {
-    background: linear-gradient(90deg, var(--ac) 0%, #e88a6e 25%, var(--ac) 50%, #e88a6e 75%, var(--ac) 100%);
-    background-size: 200% auto;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: shimmer 4s linear infinite;
-  }
-
-  /* === 渐变背景动画 === */
-  .gradient-animate {
-    background: linear-gradient(135deg, rgba(196,93,62,0.06), rgba(42,122,110,0.04), rgba(184,134,11,0.06));
-    background-size: 200% 200%;
-    animation: gradientShift 8s ease infinite;
-  }
+  .gradient-animate { background: var(--bg); }
 
   /* === 脉冲动画 === */
   .animate-pulse-slow {
@@ -588,32 +578,12 @@
 
   /* === 按钮：主操作（设计系统 btn-primary） === */
   .btn-super-cta {
-    position: relative;
-    background: var(--gradient-primary);
-    box-shadow: var(--shadow-accent);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow: hidden;
+    background: var(--ac);
+    box-shadow: var(--shadow-xs);
+    transition: background-color 0.2s ease;
   }
-  .btn-super-cta::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-    transition: left 0.6s;
-  }
-  .btn-super-cta:hover::before {
-    left: 100%;
-  }
-  .btn-super-cta:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 24px rgba(196,93,62,0.35);
-  }
-  .btn-super-cta:active {
-    transform: translateY(0) scale(0.98);
-  }
+  .btn-super-cta:hover { background: var(--acd); }
+  .btn-super-cta:active { transform: translateY(1px); }
 
   /* CTA 按钮呼吸发光 */
   .animate-glow-pulse {
@@ -634,7 +604,7 @@
     background-color: var(--tll);
   }
   .bg-blue-soft {
-    background-color: #dce8f3;
+    background-color: var(--slate-soft);
   }
   .bg-pink-soft {
     background-color: var(--acl);
@@ -915,5 +885,15 @@
 @media (min-width: 768px) {
   .hai-task-split--open {
     grid-template-columns: minmax(240px, min(var(--hai-conversation-share, 40%), calc(100% - 268px))) 8px minmax(260px, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

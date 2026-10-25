@@ -28,9 +28,9 @@ function toArticle(r: Resource): Article {
 }
 
 const TYPE_STYLES: Record<string, { label: string; color: string }> = {
-  translation: { label: "翻译", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-  wechat: { label: "公众号", color: "bg-green-500/10 text-green-600 border-green-500/20" },
-  article: { label: "文章", color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
+  translation: { label: "翻译", color: "bg-steel-soft text-steel border-steel/20" },
+  wechat: { label: "公众号", color: "bg-sage-soft text-sage border-sage/20" },
+  article: { label: "文章", color: "bg-brown-soft text-brown border-brown/20" },
 };
 
 export default function ResourcesPage() {
@@ -67,26 +67,24 @@ export default function ResourcesPage() {
     <div className="min-h-screen bg-cream">
       <PageBackBar />
       {/* Hero Section */}
-      <section className="relative py-10 xl:py-16 px-4 overflow-hidden gradient-animate">
-        <div className="absolute top-20 right-10 w-72 h-72 bg-acl rounded-full blur-3xl pointer-events-none animate-pulse-slow" />
-        <div className="absolute bottom-20 left-10 w-96 h-96 bg-acl rounded-full blur-3xl pointer-events-none animate-pulse-slow" />
+      <section className="border-b border-bd px-4 py-8 md:py-10">
 
-        <div className="relative max-w-5xl mx-auto text-center space-y-6">
+        <div className="max-w-6xl mx-auto space-y-3">
 
-          <h1 className="text-4xl xl:text-6xl font-ds-bold text-tx tracking-tight drop-shadow-sm animate-fade-in-down" style={{ fontFamily: 'var(--fd)' }}>
+          <h1 className="text-3xl md:text-4xl font-ds-bold text-tx tracking-tight" style={{ fontFamily: 'var(--fd)' }}>
             资源中心
           </h1>
-          <p className="text-lg xl:text-2xl text-tx max-w-3xl mx-auto leading-relaxed font-medium animate-fade-in-up">
+          <p className="max-w-3xl text-base leading-7 text-txs">
             精选<span className="gradient-text">教学设计</span>文章与翻译作品
           </p>
         </div>
       </section>
       {/* 文章列表 */}
-      <section className="py-12 xl:py-16 px-4">
-        <div className="max-w-5xl mx-auto">
+      <section className="px-4 py-8 md:py-10">
+        <div className="max-w-6xl mx-auto">
           <div className="flex items-center gap-3 mb-8 animate-fade-in">
-            <BookOpen className="w-6 h-6 xl:w-8 xl:h-8 text-ac" />
-            <h2 className="text-2xl xl:text-3xl font-ds-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>全部文章</h2>
+            <BookOpen className="w-5 h-5 text-ac" />
+            <h2 className="text-xl md:text-2xl font-ds-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>全部文章</h2>
             <span className="text-sm text-txs">共 {articles.length} 篇</span>
           </div>
 
@@ -94,10 +92,10 @@ export default function ResourcesPage() {
             {articles.map((article, index) => {
               const typeInfo = getTypeInfo(article.type);
               return (
-                <Card key={index} className="border-bd shadow-sm hover-lift hover-glow transition-all duration-300 group animate-fade-in-up">
+                <Card key={index} className="border-bd shadow-none transition-colors hover:border-ac/30 group">
                   <CardHeader>
                     <div className="flex items-start justify-between gap-4">
-                      <CardTitle className="text-lg xl:text-xl group-hover:text-ac transition-colors">
+                      <CardTitle className="text-lg leading-7 group-hover:text-ac transition-colors">
                         {article.title}
                       </CardTitle>
                       <span className={`px-3 py-1 rounded-full text-xs font-medium border flex-shrink-0 hover-scale transition-transform duration-300 ${typeInfo.color}`}>
@@ -113,9 +111,9 @@ export default function ResourcesPage() {
                           href={link.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-warm hover:bg-acl text-sm font-medium text-tx hover:text-ac transition-all hover:scale-105 hover:shadow-md"
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-warm hover:bg-acl text-sm font-medium text-tx hover:text-ac transition-all "
                         >
-                          <ExternalLink className="w-4 h-4 transition-transform group-hover:rotate-12" />
+                          <ExternalLink className="w-4 h-4 transition-transform group-" />
                           <span>{link.label}</span>
                         </a>
                       ))}

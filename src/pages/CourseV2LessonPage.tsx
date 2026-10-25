@@ -120,27 +120,27 @@ export default function CourseV2LessonPage() {
     <>
       <PageMeta title={`${lesson.title}｜V2课程`} description={lesson.description ?? lesson.subtitle ?? "教学通识课 V2"} noIndex />
       <PageBackBar to="/course-v2" label="返回 V2 课程目录" />
-      <main className="min-h-screen bg-[#f4efe7] px-4 pb-20 pt-4 sm:px-6">
+      <main className="min-h-screen bg-[var(--bg)] px-4 pb-20 pt-4 sm:px-6">
         <div className="mx-auto max-w-6xl">
 
 
-          <section className="overflow-hidden rounded-[28px] border border-[#173d39]/10 bg-[#173d39] px-6 py-8 text-white shadow-ds-lg sm:px-10 sm:py-10">
+          <section className="overflow-hidden rounded-[28px] border border-[var(--sage)]/10 bg-[var(--sage)] px-6 py-8 text-white shadow-ds-lg sm:px-10 sm:py-10">
             <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
               <div className="max-w-3xl">
-                <p className="text-[10px] font-ds-black tracking-[.18em] text-[#efb393]">V2 · {unit.title}</p>
+                <p className="text-xs font-ds-black tracking-[.18em] text-[var(--sand)]">V2 · {unit.title}</p>
                 <h1 className="mt-3 font-serif text-3xl font-ds-black leading-tight sm:text-5xl">{lesson.title}</h1>
                 {lesson.subtitle && <p className="mt-3 text-sm leading-7 text-white/65">{lesson.subtitle}</p>}
                 <div className="mt-5 flex flex-wrap gap-3 text-xs text-white/60">
                   {lesson.duration_minutes != null && <span className="inline-flex items-center gap-1.5"><Clock3 className="h-3.5 w-3.5" />约 {lesson.duration_minutes} 分钟</span>}
                   <span className="inline-flex items-center gap-1.5"><Award className="h-3.5 w-3.5" />{lesson.credits ?? 0} 学分</span>
-                  {lesson.is_trial && <span className="rounded-full bg-[#efb393]/15 px-2.5 py-1 text-[#efb393]">试看内容</span>}
+                  {lesson.is_trial && <span className="rounded-full bg-[var(--sand)]/15 px-2.5 py-1 text-[var(--sand)]">试看内容</span>}
                   <span className="rounded-full bg-white/10 px-2.5 py-1">独立学习记录</span>
                 </div>
               </div>
               <div className="min-w-[170px] rounded-2xl border border-white/10 bg-white/[.07] p-4">
-                <p className="text-[10px] tracking-[.14em] text-white/45">CURRENT PROGRESS</p>
+                <p className="text-xs tracking-[.14em] text-white/45">CURRENT PROGRESS</p>
                 <p className="mt-2 font-serif text-4xl font-ds-black">{Math.round(learningRecord?.progress ?? 0)}<span className="ml-1 text-base text-white/45">%</span></p>
-                <Button onClick={markComplete} disabled={saving || learningRecord?.status === "completed"} className="mt-3 w-full bg-[#efb393] text-[#173d39] hover:bg-[#f2c4a9]">
+                <Button onClick={markComplete} disabled={saving || learningRecord?.status === "completed"} className="mt-3 w-full bg-[var(--sand)] text-[var(--sage)] hover:bg-[#f2c4a9]">
                   {learningRecord?.status === "completed" ? <><Check className="h-4 w-4" />已完成</> : "完成本课"}
                 </Button>
               </div>
@@ -150,7 +150,7 @@ export default function CourseV2LessonPage() {
           <div className="mt-6 space-y-6">
               <LessonDesign lesson={lesson} />
               <AssessmentGroups groups={assessmentLayout.beforeContent} bundle={bundle} latestAttemptByBlock={latestAttemptByBlock} answerDrafts={answerDrafts} setAnswerDrafts={setAnswerDrafts} onSubmit={submitAssessment} saving={saving} />
-              <section className="rounded-3xl border border-[#173d39]/10 bg-white/75 p-6 shadow-ds-sm sm:p-8">
+              <section className="rounded-3xl border border-[var(--sage)]/10 bg-white/75 p-6 shadow-ds-sm sm:p-8">
                 <SectionHeading eyebrow="核心课程内容" title="把判断变成可以复用的动作" />
                 {lesson.body_markdown ? <MarkdownRenderer content={lesson.body_markdown} /> : <p className="mt-5 text-sm text-txs">课程正文还在整理中。</p>}
                 {fileResources.length > 0 && <ResourceList resources={fileResources} />}
@@ -171,27 +171,27 @@ function LessonDesign({ lesson }: { lesson: V2LessonBundle["lesson"] }) {
   const objectives = Array.isArray(lesson.objectives) ? lesson.objectives : [];
   return (
     <section className="grid gap-4 md:grid-cols-2">
-      <div className="rounded-3xl border border-[#efb393]/35 bg-[#fffaf2] p-6 sm:p-7">
-        <div className="flex items-center gap-2 text-[#bb704c]"><Sparkles className="h-4 w-4" /><span className="text-[10px] font-ds-black tracking-[.16em]">TODAY'S CHALLENGE</span></div>
+      <div className="rounded-3xl border border-[var(--sand)]/35 bg-[#fffaf2] p-6 sm:p-7">
+        <div className="flex items-center gap-2 text-[#bb704c]"><Sparkles className="h-4 w-4" /><span className="text-xs font-ds-black tracking-[.16em]">TODAY'S CHALLENGE</span></div>
         <h2 className="mt-4 font-serif text-2xl font-ds-black text-tx">{lesson.challenge_title ?? "今天，你要带走一个可判断的问题"}</h2>
         {lesson.challenge_markdown && <div className="mt-3 text-sm leading-7 text-txs"><MarkdownRenderer content={lesson.challenge_markdown} /></div>}
       </div>
-      <div className="rounded-3xl border border-[#173d39]/10 bg-white/75 p-6 sm:p-7">
-        <p className="text-[10px] font-ds-black tracking-[.16em] text-ac">LEARNING OBJECTIVES</p>
+      <div className="rounded-3xl border border-[var(--sage)]/10 bg-white/75 p-6 sm:p-7">
+        <p className="text-xs font-ds-black tracking-[.16em] text-ac">LEARNING OBJECTIVES</p>
         <h2 className="mt-3 font-serif text-2xl font-ds-black text-tx">学完之后，你应该能</h2>
         <ul className="mt-4 space-y-3 text-sm leading-6 text-txs">{objectives.length ? objectives.map((objective) => <li key={objective.id} className="flex gap-2"><Check className="mt-1 h-4 w-4 shrink-0 text-ac" />{objective.text}</li>) : <li>目标正在补充中。</li>}</ul>
       </div>
-      {(lesson.success_criteria_markdown || lesson.takeaway_markdown) && <div className="rounded-3xl border border-[#173d39]/10 bg-[#173d39] p-6 text-white md:col-span-2 sm:p-7"><p className="text-[10px] font-ds-black tracking-[.16em] text-[#efb393]">TAKEAWAY</p><div className="mt-3 grid gap-5 md:grid-cols-2"><div><h2 className="font-serif text-xl font-ds-black">达标标准</h2>{lesson.success_criteria_markdown && <MarkdownRenderer content={lesson.success_criteria_markdown} />}</div><div><h2 className="font-serif text-xl font-ds-black">核心带走内容</h2>{lesson.takeaway_markdown && <MarkdownRenderer content={lesson.takeaway_markdown} />}</div></div></div>}
+      {(lesson.success_criteria_markdown || lesson.takeaway_markdown) && <div className="rounded-3xl border border-[var(--sage)]/10 bg-[var(--sage)] p-6 text-white md:col-span-2 sm:p-7"><p className="text-xs font-ds-black tracking-[.16em] text-[var(--sand)]">TAKEAWAY</p><div className="mt-3 grid gap-5 md:grid-cols-2"><div><h2 className="font-serif text-xl font-ds-black">达标标准</h2>{lesson.success_criteria_markdown && <MarkdownRenderer content={lesson.success_criteria_markdown} />}</div><div><h2 className="font-serif text-xl font-ds-black">核心带走内容</h2>{lesson.takeaway_markdown && <MarkdownRenderer content={lesson.takeaway_markdown} />}</div></div></div>}
     </section>
   );
 }
 
 function ResourceList({ resources }: { resources: V2LessonBundle["resources"] }) {
-  return <div className="mt-8 border-t border-bdl pt-6"><p className="text-[10px] font-ds-black tracking-[.16em] text-ac">RESOURCES</p><div className="mt-3 grid gap-3 sm:grid-cols-2">{resources.map((resource) => { const url = resource.external_url; const isVideo = resource.mime_type?.startsWith("video/"); const isAudio = resource.mime_type?.startsWith("audio/"); const Icon = isVideo ? PlayCircle : isAudio ? Headphones : resource.mime_type?.startsWith("image/") ? ImageIcon : FileDown; return <a key={resource.id} href={url ?? undefined} target={url ? "_blank" : undefined} rel="noreferrer" className={`group rounded-2xl border border-bdl bg-bgs/45 p-4 ${url ? "hover:border-ac" : "opacity-70"}`}><div className="flex items-start gap-3"><Icon className="mt-0.5 h-5 w-5 shrink-0 text-ac" /><div className="min-w-0"><p className="truncate text-sm font-ds-bold text-tx">{resource.title ?? resource.file_name ?? "课程资源"}</p><p className="mt-1 text-xs text-txs">{resource.description ?? (resource.is_downloadable ? "可下载附件" : resource.storage_key ? "R2 资源，需由运行时生成播放地址" : "课程辅助资源")}</p></div></div></a>; })}</div></div>;
+  return <div className="mt-8 border-t border-bdl pt-6"><p className="text-xs font-ds-black tracking-[.16em] text-ac">RESOURCES</p><div className="mt-3 grid gap-3 sm:grid-cols-2">{resources.map((resource) => { const url = resource.external_url; const isVideo = resource.mime_type?.startsWith("video/"); const isAudio = resource.mime_type?.startsWith("audio/"); const Icon = isVideo ? PlayCircle : isAudio ? Headphones : resource.mime_type?.startsWith("image/") ? ImageIcon : FileDown; return <a key={resource.id} href={url ?? undefined} target={url ? "_blank" : undefined} rel="noreferrer" className={`group rounded-2xl border border-bdl bg-bgs/45 p-4 ${url ? "hover:border-ac" : "opacity-70"}`}><div className="flex items-start gap-3"><Icon className="mt-0.5 h-5 w-5 shrink-0 text-ac" /><div className="min-w-0"><p className="truncate text-sm font-ds-bold text-tx">{resource.title ?? resource.file_name ?? "课程资源"}</p><p className="mt-1 text-xs text-txs">{resource.description ?? (resource.is_downloadable ? "可下载附件" : resource.storage_key ? "R2 资源，需由运行时生成播放地址" : "课程辅助资源")}</p></div></div></a>; })}</div></div>;
 }
 
 function KnowledgeCards({ cards, savedCardIds, userId, onSaved }: { cards: V2LessonBundle["cards"]; savedCardIds: string[]; userId: string; onSaved: (id: string, saved: boolean) => void }) {
-  return <section className="rounded-3xl border border-[#efb393]/35 bg-[#fffaf2] p-6 sm:p-8"><SectionHeading eyebrow="KNOWLEDGE CARDS" title="带走这些" /><div className="mt-5 grid gap-4 md:grid-cols-2">{cards.map((card) => { const saved = savedCardIds.includes(card.id); return <article key={card.id} className="rounded-2xl border border-[#efb393]/30 bg-white/60 p-5"><div className="flex items-start justify-between gap-3"><h3 className="font-serif text-xl font-ds-black text-tx">{card.title}</h3><button type="button" aria-label={saved ? "取消收藏" : "收藏知识卡"} onClick={() => { void saveV2Card(userId, card.id, !saved).then(() => { onSaved(card.id, !saved); toast.success(!saved ? "知识卡已收藏" : "已取消收藏"); }).catch(() => toast.error("收藏失败")); }} className={saved ? "text-[#bb704c]" : "text-txs hover:text-ac"}><Bookmark className="h-5 w-5" fill={saved ? "currentColor" : "none"} /></button></div><div className="mt-3 text-sm leading-7 text-txs"><MarkdownRenderer content={card.content_markdown} /></div></article>; })}</div></section>;
+  return <section className="rounded-3xl border border-[var(--sand)]/35 bg-[#fffaf2] p-6 sm:p-8"><SectionHeading eyebrow="KNOWLEDGE CARDS" title="带走这些" /><div className="mt-5 grid gap-4 md:grid-cols-2">{cards.map((card) => { const saved = savedCardIds.includes(card.id); return <article key={card.id} className="rounded-2xl border border-[var(--sand)]/30 bg-white/60 p-5"><div className="flex items-start justify-between gap-3"><h3 className="font-serif text-xl font-ds-black text-tx">{card.title}</h3><button type="button" aria-label={saved ? "取消收藏" : "收藏知识卡"} onClick={() => { void saveV2Card(userId, card.id, !saved).then(() => { onSaved(card.id, !saved); toast.success(!saved ? "知识卡已收藏" : "已取消收藏"); }).catch(() => toast.error("收藏失败")); }} className={saved ? "text-[#bb704c]" : "text-txs hover:text-ac"}><Bookmark className="h-5 w-5" fill={saved ? "currentColor" : "none"} /></button></div><div className="mt-3 text-sm leading-7 text-txs"><MarkdownRenderer content={card.content_markdown} /></div></article>; })}</div></section>;
 }
 
 function AssessmentGroups({ groups, bundle, latestAttemptByBlock, answerDrafts, setAnswerDrafts, onSubmit, saving }: { groups: V2AssessmentGroup[]; bundle: V2LessonBundle; latestAttemptByBlock: Map<string, V2LessonBundle["attempts"][number]>; answerDrafts: Record<string, string | string[]>; setAnswerDrafts: (value: Record<string, string | string[]>) => void; onSubmit: (blockId: string, items: V2LessonBundle["assessments"][number]["items"]) => void; saving: boolean }) {
@@ -218,10 +218,10 @@ export function V2AssessmentSection({ assessment, dictionaryItems, latestAttempt
   const review = latest ? reviews.find((row) => row.attempt_id === latest.id && row.answer_id === null) : null;
   const locked = latest?.status === "submitted" || latest?.status === "reviewed";
   return (
-    <section className="rounded-3xl border border-[#173d39]/10 bg-white/75 p-6 sm:p-8">
+    <section className="rounded-3xl border border-[var(--sage)]/10 bg-white/75 p-6 sm:p-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div><h2 className="font-serif text-2xl font-ds-black text-tx sm:text-3xl">{assessment.title}</h2>{assessment.instructions_markdown && <div className="mt-2 text-sm leading-6 text-txs"><MarkdownRenderer content={assessment.instructions_markdown} /></div>}</div>
-        {latest && <span className={`rounded-full px-2.5 py-1 text-[10px] font-ds-bold ${latest.status === "revision_required" ? "bg-[#fff0e8] text-[#bb704c]" : "bg-bgs text-ac"}`}>{latest.status === "submitted" ? "等待批阅" : latest.status === "reviewed" ? "已批阅" : latest.status === "revision_required" ? "要求修改" : "草稿"}</span>}
+        {latest && <span className={`rounded-full px-2.5 py-1 text-xs font-ds-bold ${latest.status === "revision_required" ? "bg-[var(--acl)] text-[#bb704c]" : "bg-bgs text-ac"}`}>{latest.status === "submitted" ? "等待批阅" : latest.status === "reviewed" ? "已批阅" : latest.status === "revision_required" ? "要求修改" : "草稿"}</span>}
       </div>
       {review && <div className="mt-4 rounded-xl bg-[#fffaf2] p-4 text-sm text-txs"><p className="font-ds-bold text-tx">教师反馈{review.score != null ? ` · ${review.score} 分` : ""}</p>{review.feedback_markdown && <MarkdownRenderer content={review.feedback_markdown} />}</div>}
       <div className="mt-5 space-y-5">
@@ -272,12 +272,12 @@ export function V2AssessmentSection({ assessment, dictionaryItems, latestAttempt
                   );
                 })}
       </div>
-      {!locked && <Button onClick={() => onSubmit(assessment.id, assessment.items)} disabled={saving} className="mt-5 bg-[#173d39] text-white hover:bg-[#24554e]"><Send className="h-4 w-4" />{latest?.status === "revision_required" ? "再次提交" : "保存并提交"}</Button>}
+      {!locked && <Button onClick={() => onSubmit(assessment.id, assessment.items)} disabled={saving} className="mt-5 bg-[var(--sage)] text-white hover:bg-[var(--sage-dark)]"><Send className="h-4 w-4" />{latest?.status === "revision_required" ? "再次提交" : "保存并提交"}</Button>}
     </section>
   );
 }
 
-function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) { return <div><p className="text-[10px] font-ds-black tracking-[.16em] text-ac">{eyebrow}</p><h2 className="mt-2 font-serif text-2xl font-ds-black text-tx sm:text-3xl">{title}</h2></div>; }
+function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) { return <div><p className="text-xs font-ds-black tracking-[.16em] text-ac">{eyebrow}</p><h2 className="mt-2 font-serif text-2xl font-ds-black text-tx sm:text-3xl">{title}</h2></div>; }
 
-function LoadingScreen() { return <div className="min-h-screen bg-[#f4efe7]"><PageBackBar to="/course-v2" label="返回 V2 课程目录" /><LoadingOverlay message="正在打开 V2 课程..." /></div>; }
-function ErrorScreen({ message }: { message: string }) { return <><PageBackBar to="/course-v2" label="返回 V2 课程目录" /><main className="flex min-h-screen items-center justify-center bg-[#f4efe7] px-4 pt-4"><div className="max-w-md rounded-3xl border border-[#173d39]/10 bg-white/75 p-8 text-center"><LockKeyhole className="mx-auto h-10 w-10 text-ac" /><h1 className="mt-4 font-serif text-2xl font-ds-black text-tx">V2 课程暂不可用</h1><p className="mt-3 text-sm leading-6 text-txs">{message}</p><Link to="/learning" className="mt-6 inline-flex text-sm font-ds-bold text-ac hover:underline">回到学习主页</Link></div></main><Footer /></>; }
+function LoadingScreen() { return <div className="min-h-screen bg-[var(--bg)]"><PageBackBar to="/course-v2" label="返回 V2 课程目录" /><LoadingOverlay message="正在打开 V2 课程..." /></div>; }
+function ErrorScreen({ message }: { message: string }) { return <><PageBackBar to="/course-v2" label="返回 V2 课程目录" /><main className="flex min-h-screen items-center justify-center bg-[var(--bg)] px-4 pt-4"><div className="max-w-md rounded-3xl border border-[var(--sage)]/10 bg-white/75 p-8 text-center"><LockKeyhole className="mx-auto h-10 w-10 text-ac" /><h1 className="mt-4 font-serif text-2xl font-ds-black text-tx">V2 课程暂不可用</h1><p className="mt-3 text-sm leading-6 text-txs">{message}</p><Link to="/learning" className="mt-6 inline-flex text-sm font-ds-bold text-ac hover:underline">回到学习主页</Link></div></main><Footer /></>; }

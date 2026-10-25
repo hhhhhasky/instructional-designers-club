@@ -1,4 +1,4 @@
-import { Map as MapIcon } from 'lucide-react';
+import { MapPin, Map as MapIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -61,7 +61,7 @@ export default function MapPreviewCard() {
             {currentNode ? (
               <>
                 <p className="text-ds-sm font-ds-bold text-tx truncate">
-                  📍 你在「{currentNode.name}」
+                  <MapPin className="inline h-3.5 w-3.5 align-middle" aria-hidden="true" /> 你在「{currentNode.name}」
                 </p>
                 {next && (
                   <p className="text-ds-xs text-txs truncate mt-0.5">

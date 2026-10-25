@@ -34,7 +34,7 @@ export function CourseEditorialHero({
   children,
 }: CourseEditorialHeroProps) {
   return (
-    <section className="course-editorial-hero border-b border-bd px-4 py-9 md:py-14">
+    <section className="course-editorial-hero border-b border-bd px-4 py-8 md:py-10">
       <div className="mx-auto max-w-7xl">
         {onBack && backLabel && (
           <button
@@ -57,12 +57,12 @@ export function CourseEditorialHero({
               <span className="editorial-stamp">{badge}</span>
             </div>
             <h1
-              className="mt-5 text-3xl font-ds-black leading-tight tracking-tight text-tx md:text-5xl"
+              className="mt-5 text-3xl font-ds-black leading-tight tracking-tight text-tx md:text-4xl"
               style={{ fontFamily: "var(--fd)" }}
             >
               {title}
             </h1>
-            <p className="mt-4 max-w-3xl text-base leading-8 text-txs md:text-lg">
+            <p className="mt-4 max-w-3xl text-base leading-7 text-txs">
               {description}
             </p>
             {audience && (
@@ -77,7 +77,7 @@ export function CourseEditorialHero({
             <dl className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-ds-sm border border-bd bg-bd">
               {stats.map((stat) => (
                 <div key={stat.label} className="bg-[var(--paper)] px-3 py-3">
-                  <dt className="text-[11px] text-txt">{stat.label}</dt>
+                  <dt className="text-xs text-txt">{stat.label}</dt>
                   <dd className="mt-1 font-ds-black text-tx">{stat.value}</dd>
                 </div>
               ))}

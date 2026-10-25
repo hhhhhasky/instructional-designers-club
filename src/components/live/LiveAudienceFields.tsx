@@ -141,8 +141,8 @@ export default function LiveAudienceFields({
                   <label key={participant.user_id} className="flex cursor-pointer items-start gap-2 rounded-ds-md border border-transparent px-2.5 py-2 hover:border-bd hover:bg-bg">
                     <input type="checkbox" checked={targetUserIds.includes(participant.user_id)} onChange={() => toggleUser(participant.user_id)} disabled={disabled} className="mt-0.5 h-4 w-4 accent-[var(--ac)]" />
                     <span className="min-w-0 flex-1">
-                      <span className="flex items-center gap-2 text-ds-xs font-ds-bold text-tx"><span className={`h-2 w-2 rounded-full ${onlineSet.has(participant.user_id) ? "bg-emerald-500" : "bg-bd"}`} />{participant.nickname}</span>
-                      <span className="mt-1 block truncate text-[10px] text-txt">{participant.tags.length > 0 ? participant.tags.join(" · ") : `ID ${participant.user_id.slice(0, 8)}`}</span>
+                      <span className="flex items-center gap-2 text-ds-xs font-ds-bold text-tx"><span className={`h-2 w-2 rounded-full ${onlineSet.has(participant.user_id) ? "bg-sage" : "bg-bd"}`} />{participant.nickname}</span>
+                      <span className="mt-1 block truncate text-xs text-txt">{participant.tags.length > 0 ? participant.tags.join(" · ") : `ID ${participant.user_id.slice(0, 8)}`}</span>
                     </span>
                   </label>
                 ))}

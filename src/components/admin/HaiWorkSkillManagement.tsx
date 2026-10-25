@@ -523,7 +523,7 @@ export default function HaiWorkSkillManagement() {
                     className={`min-w-0 border-l-2 px-3 py-3 text-left ${skill.id === selectedSkillId ? "border-ac bg-ac/5" : "border-transparent hover:bg-bg"}`}
                   >
                     <span className="block text-sm font-bold text-tx">{skill.name}</span>
-                    <span className="mt-1 block text-[11px] text-txs">
+                    <span className="mt-1 block text-xs text-txs">
                       {skill.is_enabled ? "已启用" : "已停用"}
                       {skill.is_fallback ? " · 通用降级" : ""} ·{" "}
                       {versions.find(
@@ -855,7 +855,7 @@ function WorkReferenceEditor({
           <FileText className="mt-0.5 h-4 w-4 text-ac" />
           <div>
             <h4 className="text-ds-xs font-ds-bold text-tx">Reference 文档</h4>
-            <p className="mt-1 text-[10px] leading-relaxed text-txs">
+            <p className="mt-1 text-xs leading-relaxed text-txs">
               共 {references.length} 个文件。always 每次加载；case、issue、task
               根据用户选择三选一；evaluation_only 不进入正式生成。
             </p>
@@ -881,7 +881,7 @@ function WorkReferenceEditor({
         )}
       </div>
 
-      <div className="rounded-ds-md border border-blue-200 bg-blue-50 px-3 py-2 text-[10px] leading-relaxed text-blue-900">
+      <div className="rounded-ds-md border border-steel/20 bg-steel-soft px-3 py-2 text-xs leading-relaxed text-steel">
         参考文档随版本一起保存与发布；按各工具的实际加载策略进入生成。
       </div>
 
@@ -896,13 +896,13 @@ function WorkReferenceEditor({
               {reference.name || reference.path}
             </summary>
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] font-ds-bold uppercase tracking-wide text-txs">
+              <span className="text-xs font-ds-bold uppercase tracking-wide text-txs">
                 Reference {index + 1}
               </span>
               {!readOnly && (
                 <button
                   type="button"
-                  className="text-[10px] text-red-600 hover:underline"
+                  className="text-xs text-red-600 hover:underline"
                   onClick={() => onChange(references.filter((item) => item.id !== reference.id))}
                 >
                   移除
@@ -973,7 +973,7 @@ function WorkReferenceEditor({
                 className="mt-1 w-full rounded-ds-md border border-bd bg-white p-3 font-mono text-xs leading-relaxed text-tx read-only:bg-slate-50"
               />
             </label>
-            <div className="flex flex-wrap justify-between gap-2 text-[10px] text-txs">
+            <div className="flex flex-wrap justify-between gap-2 text-xs text-txs">
               <span>
                 {reference.content.length} 字符 · 保存顺序 {index + 1}
               </span>
