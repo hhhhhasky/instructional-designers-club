@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen, ExternalLink } from "lucide-react";
-import Header from "@/components/layout/Header";
+import PageBackBar from "@/components/common/PageBackBar";
 import Footer from "@/components/common/Footer";
 import PageMeta from "@/components/common/PageMeta";
 import { getResources } from "@/db/api";
@@ -65,9 +65,9 @@ export default function ResourcesPage() {
         keywords="教学设计文章,教育翻译,教学理论,教学资源"
       />
     <div className="min-h-screen bg-cream">
-      <Header />
+      <PageBackBar />
       {/* Hero Section */}
-      <section className="relative py-20 xl:py-32 px-4 overflow-hidden gradient-animate pt-32 xl:pt-40">
+      <section className="relative py-10 xl:py-16 px-4 overflow-hidden gradient-animate">
         <div className="absolute top-20 right-10 w-72 h-72 bg-acl rounded-full blur-3xl pointer-events-none animate-pulse-slow" />
         <div className="absolute bottom-20 left-10 w-96 h-96 bg-acl rounded-full blur-3xl pointer-events-none animate-pulse-slow" />
 

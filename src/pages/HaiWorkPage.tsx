@@ -8,7 +8,6 @@ import {
   BookOpenCheck,
   ChevronDown,
   ClipboardCheck,
-  Clock3,
   Search,
   FileText,
   ImagePlus,
@@ -23,6 +22,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import PageMeta from "@/components/common/PageMeta";
+import HaiHistorySidebar, { HAI_HISTORY_ROW_CLASS, formatHistoryDate } from "@/components/hai/HaiHistorySidebar";
 import HaiWorkShell from "@/components/hai/HaiWorkShell";
 import HaiImageGenerationPage from "@/pages/HaiImageGenerationPage";
 import UnitTextbookSelector from "@/components/hai/UnitTextbookSelector";
@@ -213,6 +213,7 @@ export default function HaiWorkPage() {
       <PageMeta title={activeConfig ? `${activeConfig.name} - HAI` : "帮你干活 - HAI"} description="HAI 教研工作台" canonicalPath={toolSlug ? `/hai/work/${toolSlug}` : "/hai/work"} />
       <HaiWorkShell
         sidebar={sidebar}
+        usage={usage}
         title={activeConfig?.name ?? "帮你干活"}
         subtitle={activeConfig?.promise ?? "分析教学问题，帮你写教案、做课件"}
       >
@@ -691,18 +692,10 @@ export function WorkSidebar({ tasks, archivedTasks, onTasksChanged, imageTasks: 
   const matchingArchived = (results?.archived ?? archivedTasks).filter(matches);
   const visibleHistory = keyword || showAllActive ? history : history.slice(0, 10);
   return (
-    <div>
-      <Button asChild className="h-12 w-full justify-center gap-2 rounded-xl bg-[var(--annotation)] text-[var(--paper)] hover:bg-[var(--annotation)]/90">
-        <Link to="/hai/work" state={{ newTask: true }}><Plus className="h-4 w-4" />新建任务</Link>
-      </Button>
-      <div className="my-5 h-px bg-[var(--paper-rule)]" />
-      <div className="flex items-center justify-between px-1">
-        <p className="text-[11px] font-black tracking-[0.16em] text-txs">历史任务</p>
-        <Clock3 className="h-3.5 w-3.5 text-txt" />
-      </div>
-      <div className="relative mt-3">
+    <HaiHistorySidebar title="历史任务" action={<Button asChild size="icon-sm" variant="ghost"><Link to="/hai/work" state={{ newTask: true }} aria-label="新建任务"><Plus className="h-4 w-4" /></Link></Button>}>
+      <div className="relative mt-1">
         <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-txt" />
-        <input type="search" aria-label="搜索历史任务" placeholder="搜索任务名称" value={search} onChange={(event) => setSearch(event.target.value)} className="h-10 w-full min-w-0 rounded-xl border border-[var(--paper-rule)] bg-[var(--paper)] pl-9 pr-8 text-xs text-tx outline-none transition placeholder:text-txt focus:border-[var(--annotation)]/50 [&::-webkit-search-cancel-button]:hidden" />
+        <input type="search" aria-label="搜索历史任务" placeholder="搜索任务名称" value={search} onChange={(event) => setSearch(event.target.value)} className="h-10 w-full min-w-0 rounded-md border border-[var(--paper-rule)] bg-[var(--paper)] pl-9 pr-8 text-xs text-tx outline-none transition placeholder:text-txt focus:border-[var(--annotation)]/50 [&::-webkit-search-cancel-button]:hidden" />
         {search && <button type="button" aria-label="清空任务搜索" onClick={() => setSearch("")} className="absolute right-1 top-1/2 -translate-y-1/2 rounded-lg p-2 text-txt hover:text-tx"><X className="h-3.5 w-3.5" /></button>}
       </div>
       {keyword && <p role="status" className="mt-2 px-1 text-[11px] text-txt">{searchPending ? "正在搜索…" : searchError || `匹配 ${history.length + matchingArchived.length} 项任务`}</p>}
@@ -744,25 +737,28 @@ export function WorkSidebar({ tasks, archivedTasks, onTasksChanged, imageTasks: 
           )}
         </>
       )}
-    </div>
+    </HaiHistorySidebar>
   );
 }
 
 function ImageTaskRow({ task, selected, onSelect }: { task: HaiImageGenerationTask; selected: boolean; onSelect?: (taskId: string) => void }) {
   return (
-    <Link to={task.ppt_deck_id ? `/hai/work/image-generation/ppt/${task.ppt_deck_id}` : `/hai/work/image-generation/${task.id}`} onClick={onSelect && !task.ppt_deck_id ? (event) => { event.preventDefault(); onSelect(task.id); } : undefined} className={cn("group flex w-full min-w-0 items-center rounded-ds-md px-3 py-2.5 text-left transition hover:bg-[var(--paper)]", selected && "bg-[var(--paper)]")}>
+    <Link to={task.ppt_deck_id ? `/hai/work/image-generation/ppt/${task.ppt_deck_id}` : `/hai/work/image-generation/${task.id}`} onClick={onSelect && !task.ppt_deck_id ? (event) => { event.preventDefault(); onSelect(task.id); } : undefined} className={cn(`${HAI_HISTORY_ROW_CLASS} w-full min-w-0 items-center px-3 py-2.5 text-left`, selected && "bg-[var(--paper)]")}>
       <span className="min-w-0 flex-1">
-        <span className={cn("block truncate text-xs font-bold", selected ? "text-[var(--annotation)]" : "text-tx")}>{haiTaskTitle(task.title)}</span>
+        <span className={cn("block truncate text-xs font-semibold", selected ? "text-[var(--annotation)]" : "text-tx")}>{haiTaskTitle(task.title)}</span>
+        <span className="mt-1 block text-[11px] text-txs">{formatHistoryDate(task.updated_at)}</span>
       </span>
     </Link>
   );
 }
 
 function TaskRow({ task, onTasksChanged }: { task: HaiWorkTask; onTasksChanged?: () => void }) {
+  const { pathname } = useLocation();
   return (
-    <div className="group relative flex items-center rounded-ds-md transition hover:bg-[var(--paper)]">
+    <div className={cn(HAI_HISTORY_ROW_CLASS, "relative items-center", pathname.includes(task.id) && "border-ac/30 bg-[var(--paper)]")}>
       <Link to={`/hai/work/tasks/${task.id}`} className="min-w-0 flex-1 px-3 py-2.5 pr-9">
-        <p className="truncate text-xs font-bold text-tx">{haiTaskTitle(task.title)}</p>
+        <p className="truncate text-xs font-semibold text-tx">{haiTaskTitle(task.title)}</p>
+        <p className="mt-1 text-[11px] text-txs">{formatHistoryDate(task.updated_at)}</p>
       </Link>
       <TaskActionMenu
         task={task}

@@ -111,8 +111,8 @@ export default function Header() {
 
   const isRouteActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
-    if (path === '/courses') {
-      return location.pathname === '/courses' || location.pathname.startsWith('/courses/plus') || location.pathname === '/teacher-ai-courses';
+    if (path === '/course-library') {
+      return location.pathname === '/course-library' || location.pathname.startsWith('/courses') || location.pathname === '/teacher-ai-courses';
     }
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };

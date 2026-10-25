@@ -1,10 +1,12 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
+import type { HaiUsageSummary } from "@/db/hai-api";
 import HaiWorkspaceShell from "@/components/hai/HaiWorkspaceShell";
 
 export default function HaiWorkShell({
   children,
   sidebar,
+  usage,
   inspector,
   title = "帮你干活",
   subtitle = "分析教学问题，帮你写教案、做课件",
@@ -15,6 +17,7 @@ export default function HaiWorkShell({
 }: {
   children: ReactNode;
   sidebar?: ReactNode;
+  usage?: HaiUsageSummary | null;
   inspector?: ReactNode;
   title?: string;
   subtitle?: string;
@@ -30,6 +33,7 @@ export default function HaiWorkShell({
     <HaiWorkspaceShell
       mode={workspaceMode}
       sidebar={sidebar}
+      usage={usage}
       mobileSidebarOpen={historyOpen}
       onMobileSidebarOpenChange={setHistoryOpen}
       inspector={inspector}

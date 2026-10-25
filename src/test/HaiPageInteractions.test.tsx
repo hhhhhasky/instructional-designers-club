@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -207,8 +207,8 @@ describe("HAI mobile chat shell", () => {
     expect(document.body).toHaveClass("hai-chat-active");
     expect(scrollRegion).toHaveClass("overflow-y-auto", "overscroll-contain", "flex-1");
     expect(composer).toHaveClass("shrink-0");
-    expect(screen.getByTestId("global-header").parentElement).toHaveClass("hidden", "md:block");
-    expect(screen.getByTestId("global-footer").parentElement).toHaveClass("hidden", "md:block");
+    expect(screen.queryByTestId("global-header")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("global-footer")).not.toBeInTheDocument();
 
     unmount();
     expect(document.body).not.toHaveClass("hai-chat-active");
@@ -223,7 +223,7 @@ describe("HAI mobile chat shell", () => {
 
     expect(await screen.findByTestId("hai-message-scroll-region")).toBeInTheDocument();
     expect(getHaiConversations).toHaveBeenCalledWith("user-1");
-    expect(getHaiMemories).toHaveBeenCalledWith("user-1");
+    expect(getHaiMemories).not.toHaveBeenCalled();
     expect(hasCompletedHaiProfileOnboarding).toHaveBeenCalledWith("user-1");
   });
 
@@ -266,8 +266,9 @@ describe("HAI mobile chat shell", () => {
       </MemoryRouter>,
     );
 
+    await userEvent.setup().click(await screen.findByRole("button", { name: "用户与记忆设置" }));
     expect(await screen.findByText("积分额度")).toBeInTheDocument();
-    expect(screen.getByText("1,050 积分")).toBeInTheDocument();
+    expect(within(screen.getByRole("dialog")).getByText("1,050 积分")).toBeInTheDocument();
     expect(screen.getByText("积分")).toBeInTheDocument();
     expect(screen.queryByText("Pro")).not.toBeInTheDocument();
     expect(screen.getByText("累计已消耗 450 积分")).toBeInTheDocument();
@@ -295,7 +296,8 @@ describe("HAI mobile chat shell", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("15 积分")).toBeInTheDocument();
+    await userEvent.setup().click(await screen.findByRole("button", { name: "用户与记忆设置" }));
+    expect(await within(screen.getByRole("dialog")).findByText("15 积分")).toBeInTheDocument();
     expect(screen.getByText("积分额度")).toBeInTheDocument();
     expect(screen.getByText("累计已消耗 3.5 积分")).toBeInTheDocument();
     expect(screen.queryByText(/Token/i)).not.toBeInTheDocument();

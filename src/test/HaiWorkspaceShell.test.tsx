@@ -3,6 +3,8 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import HaiWorkspaceShell from "@/components/hai/HaiWorkspaceShell";
 
+vi.mock("@/contexts/AuthContext", () => ({ useAuth: () => ({ user: null, profile: null }) }));
+
 vi.mock("@/components/layout/Header", () => ({
   default: () => <div data-testid="workspace-global-header" />,
 }));
@@ -26,7 +28,8 @@ describe("HAI editorial workspace shell", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("咨询笔记")).toBeInTheDocument();
+    expect(screen.queryByTestId("workspace-global-header")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "返回官网首页" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "打开对话记录" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "打开咨询上下文" })).toBeInTheDocument();
     expect(screen.getByText("咨询正文").parentElement).toHaveClass("overflow-hidden");
@@ -56,7 +59,7 @@ describe("HAI editorial workspace shell", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("校样档案")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "教案诊断" })).toBeInTheDocument();
     expect(screen.getByText("版本化产物").parentElement).toHaveClass("hai-work-scroll", "overflow-y-auto");
   });
 });

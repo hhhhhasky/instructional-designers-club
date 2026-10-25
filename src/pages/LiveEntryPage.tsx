@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Loader2, Radio } from "lucide-react";
 import Footer from "@/components/common/Footer";
-import Header from "@/components/layout/Header";
+import PageBackBar from "@/components/common/PageBackBar";
 import PageMeta from "@/components/common/PageMeta";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -48,8 +48,8 @@ export default function LiveEntryPage() {
     <>
       <PageMeta title="Live 互动" description="进入当前正在进行的直播互动课堂" noIndex />
       <div className="flex min-h-screen flex-col bg-cream">
-        <Header />
-        <main className="flex-1 px-4 pb-16 pt-24 md:pb-12">
+        <PageBackBar />
+        <main className="flex-1 px-4 pb-16 pt-6 md:pb-12">
           <div className="mx-auto max-w-4xl">
             <section className="editorial-paper relative overflow-hidden p-5 md:p-8">
               <span className="editorial-stamp">NOW LIVE</span>

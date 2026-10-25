@@ -4,7 +4,7 @@ import { ArrowLeft, BarChart3, CheckCircle2, Eye, Loader2, Radio, Users } from "
 import { Link, useParams } from "react-router-dom";
 import Footer from "@/components/common/Footer";
 import PageMeta from "@/components/common/PageMeta";
-import Header from "@/components/layout/Header";
+import PageBackBar from "@/components/common/PageBackBar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -117,8 +117,8 @@ export default function LiveAudienceDashboardPage() {
     <>
       <PageMeta title="Live 互动数据展示屏" description="查看当前 Live 房间的匿名互动数据" noIndex />
       <div className="flex min-h-screen flex-col bg-[#f4efe7]">
-        <Header />
-        <main className="flex-1 px-3 pb-16 pt-24 sm:px-5 md:pb-12">
+        <PageBackBar />
+        <main className="flex-1 px-3 pb-16 pt-6 sm:px-5 md:pb-12">
           <div className="mx-auto max-w-[1500px]">
             <Link to={`/live/${roomCode}`} className="inline-flex items-center gap-1.5 text-ds-sm text-txs transition-colors hover:text-ac"><ArrowLeft className="h-4 w-4" />返回答题</Link>
 

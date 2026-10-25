@@ -401,6 +401,8 @@ describe('CourseDetailPage — 课程导航功能', () => {
     const user = userEvent.setup();
     await renderAndWait('c1');
 
+    expect(screen.getByRole('link', { name: '返回课程目录' })).toHaveAttribute('href', '/teacher-ai-courses');
+    expect(screen.queryByTestId('header')).not.toBeInTheDocument();
     await user.click(screen.getByText('教师AI课'));
     expect(mockNavigate).toHaveBeenCalledWith('/teacher-ai-courses');
   });

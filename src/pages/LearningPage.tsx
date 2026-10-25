@@ -1,10 +1,10 @@
-import { ArrowLeft, ChevronRight, GraduationCap, Map as MapIcon } from 'lucide-react';
+import { ChevronRight, GraduationCap, Map as MapIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
 import PageMeta from '@/components/common/PageMeta';
-import Header from '@/components/layout/Header';
+import PageBackBar from '@/components/common/PageBackBar';
 import EmptyLearningState from '@/components/learning/EmptyLearningState';
 import GamificationPanel from '@/components/learning/gamification/GamificationPanel';
 import LearningOverview from '@/components/learning/LearningOverview';
@@ -95,7 +95,7 @@ export default function LearningPage() {
   if (loading && !session) {
     return (
       <div className="min-h-screen bg-cream flex flex-col">
-        <Header />
+        <PageBackBar />
         <LoadingOverlay message="正在确认登录状态..." />
         <Footer />
       </div>
@@ -106,8 +106,8 @@ export default function LearningPage() {
   if (!user) {
     return (
       <div className="min-h-screen bg-cream flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center pt-20 px-4">
+        <PageBackBar />
+        <main className="flex-1 flex items-center justify-center pt-4 px-4">
           <div className="text-center">
             <p className="text-txs mb-4">请先登录</p>
             <Button onClick={() => navigate('/login')}>前往登录</Button>
@@ -122,8 +122,8 @@ export default function LearningPage() {
   if (!profile) {
     return (
       <div className="min-h-screen bg-cream flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center pt-20 px-4">
+        <PageBackBar />
+        <main className="flex-1 flex items-center justify-center pt-4 px-4">
           <div className="text-center max-w-sm">
             <p className="text-tx font-ds-semibold mb-2">账号已登录，用户资料暂未准备好</p>
             <p className="text-txs text-sm mb-4">请稍后刷新；如果一直出现，请联系管理员。</p>
@@ -148,17 +148,11 @@ export default function LearningPage() {
     <>
       <PageMeta title="学习主页" description="" noIndex />
     <div className="min-h-screen bg-cream flex flex-col">
-      <Header />
-      <main className="flex-1 pt-20 pb-24 md:pb-12 px-4">
+      <PageBackBar />
+      <main className="flex-1 pt-4 pb-24 md:pb-12 px-4">
         <div className="max-w-4xl mx-auto pt-4 md:pt-8 animate-fade-in">
           {/* 返回 + 标题 */}
-          <button
-            onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-1.5 text-ds-sm text-txs hover:text-ac transition-colors mb-4 group"
-          >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-            返回
-          </button>
+
 
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-ds-full bg-acl flex items-center justify-center shadow-ds-sm">

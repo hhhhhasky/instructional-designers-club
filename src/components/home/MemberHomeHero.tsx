@@ -185,7 +185,7 @@ export default function MemberHomeHero() {
                     {copy.completed_description}
                   </p>
                   <Link
-                    to="/courses"
+                    to="/course-library"
                     className="text-ds-sm text-ac font-ds-semibold hover:underline"
                   >
                     {copy.all_courses_cta} →

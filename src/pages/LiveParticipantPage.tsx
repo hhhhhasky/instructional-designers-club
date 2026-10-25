@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, BarChart3, CheckCircle2, Loader2, Radio } from "lucide-react";
 import { toast } from "sonner";
 import Footer from "@/components/common/Footer";
-import Header from "@/components/layout/Header";
+import PageBackBar from "@/components/common/PageBackBar";
 import PageMeta from "@/components/common/PageMeta";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -163,8 +163,8 @@ export default function LiveParticipantPage() {
     <>
       <PageMeta title="互动课堂" description="参与当前 Live 互动答题" noIndex />
       <div className="flex min-h-screen flex-col bg-cream">
-        <Header />
-        <main className="flex-1 px-4 pb-16 pt-24 md:pb-12">
+        <PageBackBar />
+        <main className="flex-1 px-4 pb-16 pt-6 md:pb-12">
           <div className="mx-auto max-w-3xl">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <Link

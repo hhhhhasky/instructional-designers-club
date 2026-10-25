@@ -95,7 +95,7 @@ export default function AdminManagePage() {
 
 function ManageSidebar() {
   return (
-    <TabsList className="h-auto w-full flex-col items-stretch border-b border-bd bg-transparent pb-4 md:sticky md:top-24 md:border-b-0 md:border-r md:pr-5" aria-label="数据管理导航">
+    <TabsList className="h-auto w-full flex-col items-stretch border-b border-bd bg-transparent pb-4 md:sticky md:top-4 md:border-b-0 md:border-r md:pr-5" aria-label="数据管理导航">
       <div className="px-3 pb-2 pt-2 text-[10px] font-ds-black tracking-[0.16em] text-txs">维护模块</div>
       <div className="grid grid-cols-2 gap-1 md:flex md:flex-col">
         {MANAGE_TABS.map((tab) => <ManageTabTrigger key={tab.value} {...tab} />)}

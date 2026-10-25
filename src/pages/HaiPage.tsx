@@ -4,10 +4,8 @@ import {
   Brain,
   Check,
   Copy,
-  History,
   Loader2,
   LockKeyhole,
-  Pin,
   Plus,
   Send,
   Share2,
@@ -18,14 +16,13 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import Footer from "@/components/common/Footer";
 import MarkdownRenderer from "@/components/common/MarkdownRenderer";
 import PageMeta from "@/components/common/PageMeta";
 import HaiProfileOnboardingDialog, {
   type HaiProfileOnboardingMemory,
 } from "@/components/hai/HaiProfileOnboardingDialog";
+import HaiHistorySidebar, { HAI_HISTORY_ROW_CLASS, formatHistoryDate } from "@/components/hai/HaiHistorySidebar";
 import HaiWorkspaceShell from "@/components/hai/HaiWorkspaceShell";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -39,12 +36,9 @@ import { SheetClose } from "@/components/ui/sheet";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   archiveHaiConversation,
-  archiveHaiMemory,
-  createHaiMemory,
   getHaiAccessStatus,
   getHaiChatModule,
   getHaiConversations,
-  getHaiMemories,
   getHaiMessageFeedback,
   getHaiMessages,
   getHaiStarterQuestions,
@@ -54,7 +48,6 @@ import {
   type HaiMessage,
   type HaiMessageFeedback,
   type HaiUsageSummary,
-  type HaiUserMemory,
   hasCompletedHaiProfileOnboarding,
   saveHaiProfileMemories,
   setHaiMessageFeedback,
@@ -86,10 +79,7 @@ export default function HaiPage() {
   );
   const [starterQuestionsLoading, setStarterQuestionsLoading] = useState(true);
   const [messageFeedback, setMessageFeedback] = useState<Record<string, HaiMessageFeedback["rating"]>>({});
-  const [memories, setMemories] = useState<HaiUserMemory[]>([]);
   const [draft, setDraft] = useState("");
-  const [memoryDraft, setMemoryDraft] = useState("");
-  const [memoryCategory, setMemoryCategory] = useState("teaching_preference");
   const [status, setStatus] = useState("");
   const [initializationError, setInitializationError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -127,16 +117,14 @@ export default function HaiPage() {
         setAccess(access);
         setUsage(usage);
         if (access.allowed) {
-          const [moduleRow, rows, memoryRows, profileCompleted] = await Promise.all([
+          const [moduleRow, rows, profileCompleted] = await Promise.all([
             getHaiChatModule(),
             getHaiConversations(userId),
-            getHaiMemories(userId),
             hasCompletedHaiProfileOnboarding(userId),
           ]);
           if (cancelled) return;
           setChatModule(moduleRow);
           setConversations(rows);
-          setMemories(memoryRows);
           setActiveConversationId((current) => current ?? rows[0]?.id ?? null);
           setProfileOnboardingOpen(!profileCompleted);
         }
@@ -352,31 +340,6 @@ export default function HaiPage() {
     }
   }
 
-  async function handleCreateMemory() {
-    const content = memoryDraft.trim();
-    if (!user || !content || busy) return;
-    setBusy(true);
-    setStatus("");
-    try {
-      await createHaiMemory({
-        userId: user.id,
-        category: memoryCategory,
-        content,
-      });
-      setMemoryDraft("");
-      setMemories(await getHaiMemories(user.id));
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "记忆保存失败。");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleArchiveMemory(memoryId: string) {
-    await archiveHaiMemory(memoryId);
-    setMemories((current) => current.filter((item) => item.id !== memoryId));
-  }
-
   async function handleProfileOnboardingSubmit(profileMemories: HaiProfileOnboardingMemory[]) {
     if (!user || profileOnboardingSaving) return;
     setProfileOnboardingSaving(true);
@@ -386,7 +349,6 @@ export default function HaiPage() {
         userId: user.id,
         memories: profileMemories,
       });
-      setMemories(await getHaiMemories(user.id));
       setProfileOnboardingOpen(false);
       toast.success("个人信息已保存，HAI 会在之后的咨询中记住这些背景");
     } catch (error) {
@@ -417,20 +379,6 @@ export default function HaiPage() {
     />
   );
 
-  const contextPanel = (
-    <UsagePanel
-      usage={usage}
-      memories={memories}
-      memoryDraft={memoryDraft}
-      memoryCategory={memoryCategory}
-      busy={busy}
-      onMemoryDraftChange={setMemoryDraft}
-      onMemoryCategoryChange={setMemoryCategory}
-      onCreateMemory={handleCreateMemory}
-      onArchiveMemory={handleArchiveMemory}
-    />
-  );
-
   return (
     <>
       <PageMeta
@@ -444,14 +392,12 @@ export default function HaiPage() {
         title="聊聊问题"
         subtitle={chatModule ? chatModule.name : "和 HAI 一起想清楚教学问题"}
         sidebar={history}
-        inspector={access?.allowed ? contextPanel : undefined}
+        usage={usage}
         sidebarLabel="打开对话记录"
-        inspectorLabel="打开咨询上下文"
         mobileSidebarOpen={historyOpen}
         onMobileSidebarOpenChange={setHistoryOpen}
-        sidebarPadded={false}
         contentMode="managed"
-        footer={<Footer />}
+        resizable
       >
         {booting ? (
           <div className="flex flex-1 items-center justify-center text-txs">
@@ -480,7 +426,7 @@ export default function HaiPage() {
                   onQuestionSelect={(question) => void handleSend(question)}
                 />
               ) : (
-                <div className="mx-auto flex max-w-3xl flex-col gap-4">
+                <div className="mx-auto flex max-w-4xl flex-col gap-4">
                   {messages.map((message, index) => (
                     <MessageBubble
                       key={message.id}
@@ -513,7 +459,7 @@ export default function HaiPage() {
                   HAI 积分已用完。<Link className="ml-1 font-ds-semibold text-ac underline" to="/hai/points">购买积分</Link>
                 </p>
               )}
-              <div className="mx-auto flex w-full max-w-3xl min-w-0 gap-2">
+              <div className="mx-auto flex w-full max-w-4xl min-w-0 gap-2">
                 <textarea
                   rows={1}
                   value={draft}
@@ -578,32 +524,17 @@ function HistoryPanel({
   showClose?: boolean;
 }) {
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[var(--paper-deep)] p-4">
-      <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-2 text-[11px] font-black tracking-[0.16em] text-[var(--proof)]">
-          <History className="h-4 w-4" />
-          对话记录
-        </div>
-        <div className="flex items-center gap-1">
-          <Button size="icon-sm" variant="ghost" onClick={onNew} aria-label="新建对话">
-            <Plus className="h-4 w-4" />
-          </Button>
-          {showClose && (
-            <SheetClose asChild>
-              <Button size="icon-sm" variant="ghost" aria-label="关闭对话记录">
-                <X className="h-4 w-4" />
-              </Button>
-            </SheetClose>
-          )}
-        </div>
-      </div>
-      <div className="mt-3 flex-1 space-y-1.5 overflow-y-auto">
+    <HaiHistorySidebar title="对话记录" action={<div className="flex items-center gap-1">
+      <Button size="icon-sm" variant="ghost" onClick={onNew} aria-label="新建对话"><Plus className="h-4 w-4" /></Button>
+      {showClose && <SheetClose asChild><Button size="icon-sm" variant="ghost" aria-label="关闭对话记录"><X className="h-4 w-4" /></Button></SheetClose>}
+    </div>}>
+      <div className="space-y-1">
         {conversations.length === 0 ? (
           <p className="px-2 py-6 text-center text-ds-sm text-txs">还没有历史对话</p>
         ) : conversations.map((conversation) => (
           <div
             key={conversation.id}
-            className={`group flex items-start gap-2 rounded-[14px] border p-3 transition ${
+            className={`${HAI_HISTORY_ROW_CLASS} items-start gap-2 px-3 py-2.5 ${
               activeConversationId === conversation.id ? "border-ac/30 bg-[var(--paper)]" : "border-transparent hover:bg-[var(--paper)]/75"
             }`}
           >
@@ -611,8 +542,8 @@ function HistoryPanel({
               className="min-w-0 flex-1 text-left"
               onClick={() => onSelect(conversation.id)}
             >
-              <p className="truncate text-ds-sm font-ds-semibold text-tx">{conversation.title}</p>
-              <p className="mt-1 text-ds-xs text-txs">{formatDate(conversation.updated_at)}</p>
+              <p className="truncate text-xs font-semibold text-tx">{conversation.title}</p>
+              <p className="mt-1 text-[11px] text-txs">{formatHistoryDate(conversation.updated_at)}</p>
             </button>
             <button
               className="rounded-ds-sm p-1 text-txt opacity-0 transition hover:bg-bgs hover:text-ac group-hover:opacity-100"
@@ -624,7 +555,7 @@ function HistoryPanel({
           </div>
         ))}
       </div>
-    </div>
+    </HaiHistorySidebar>
   );
 }
 
@@ -677,7 +608,7 @@ export function MessageBubble({
     <>
       <div className={`flex min-w-0 ${isUser ? "justify-end" : "justify-start"}`}>
         <div
-          className={`min-w-0 max-w-[94%] rounded-ds-lg border px-4 py-3 shadow-ds-xs sm:max-w-[88%] ${
+          className={`min-w-0 max-w-[94%] rounded-ds-lg px-4 py-3 sm:max-w-[88%] ${
             isUser
               ? "border-ac/20 bg-ac text-white"
               : "border-bd bg-white text-tx"
@@ -882,141 +813,9 @@ function LockedPanel({ reason }: { reason?: string }) {
   );
 }
 
-function UsagePanel({
-  usage,
-  memories,
-  memoryDraft,
-  memoryCategory,
-  busy,
-  onMemoryDraftChange,
-  onMemoryCategoryChange,
-  onCreateMemory,
-  onArchiveMemory,
-}: {
-  usage: HaiUsageSummary | null;
-  memories: HaiUserMemory[];
-  memoryDraft: string;
-  memoryCategory: string;
-  busy: boolean;
-  onMemoryDraftChange: (value: string) => void;
-  onMemoryCategoryChange: (value: string) => void;
-  onCreateMemory: () => void;
-  onArchiveMemory: (memoryId: string) => void;
-}) {
-  return (
-    <div className="space-y-4">
-      <div className="rounded-ds-lg border border-ac/20 bg-acl/40 p-3">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-ds-sm font-ds-bold text-tx">积分额度</h2>
-          <Badge variant="outline" className="border-ac/30 text-ac">
-            积分
-          </Badge>
-        </div>
-        <p className="text-2xl font-ds-black text-tx">{formatPoints(usage?.current_points)} 积分</p>
-        <p className="mt-1 text-ds-xs text-txs">
-          累计已消耗 {formatPoints(usage?.consumed_points)} 积分
-        </p>
-        <Button asChild size="sm" className="mt-3 w-full bg-ac text-white hover:bg-acd">
-          <Link to="/hai/points">购买积分</Link>
-        </Button>
-      </div>
-      <div className="rounded-ds-lg border border-bd bg-white p-3">
-        <div className="mb-3 flex items-center gap-2">
-          <Pin className="h-4 w-4 text-ac" />
-          <h2 className="text-ds-sm font-ds-bold text-tx">用户记忆</h2>
-        </div>
-        <div className="space-y-2">
-          <select
-            value={memoryCategory}
-            onChange={(event) => onMemoryCategoryChange(event.target.value)}
-            className="h-9 w-full rounded-ds-sm border border-bd bg-bg px-2 text-ds-sm"
-            disabled={busy}
-          >
-            <option value="basic_info">基本情况</option>
-            <option value="teaching_preference">教学偏好</option>
-            <option value="constraint">现实限制</option>
-            <option value="student_view">学生特点</option>
-            <option value="challenge">当前困难</option>
-            <option value="vision">长期追求</option>
-          </select>
-          <textarea
-            value={memoryDraft}
-            onChange={(event) => onMemoryDraftChange(event.target.value)}
-            className="min-h-[76px] w-full resize-none rounded-ds-sm border border-bd bg-bg px-2 py-2 text-[16px] leading-relaxed md:text-ds-sm"
-            placeholder="写一条 HAI 需要记住的信息"
-            disabled={busy}
-          />
-          <Button
-            className="w-full bg-ac text-white hover:bg-acd"
-            size="sm"
-            disabled={busy || !memoryDraft.trim()}
-            onClick={onCreateMemory}
-          >
-            保存记忆
-          </Button>
-        </div>
-        <div className="mt-4 space-y-2">
-          {memories.length === 0 ? (
-            <p className="rounded-ds-md bg-bg px-3 py-4 text-center text-ds-xs text-txs">暂无记忆</p>
-          ) : memories.slice(0, 8).map((memory) => (
-            <div key={memory.id} className="group rounded-ds-md border border-bd bg-bg p-2">
-              <div className="mb-1 flex items-center justify-between gap-2">
-                <Badge variant="outline" className="text-[11px]">
-                  {memoryLabel(memory.category)}
-                </Badge>
-                <button
-                  className="rounded-ds-sm p-1 text-txt opacity-0 transition hover:bg-white hover:text-ac group-hover:opacity-100"
-                  onClick={() => onArchiveMemory(memory.id)}
-                  aria-label="归档记忆"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-              <p className="text-ds-xs leading-relaxed text-tx">{memory.content}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function formatPoints(value?: number) {
-  const points = Number(value ?? 0);
-  return Number.isInteger(points) ? points.toLocaleString("zh-CN") : points.toLocaleString("zh-CN", { maximumFractionDigits: 2 });
-}
-
-function formatDate(value: string) {
-  try {
-    return new Intl.DateTimeFormat("zh-CN", {
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(value));
-  } catch {
-    return "";
-  }
-}
-
 function findPreviousQuestion(messages: DraftMessage[], assistantIndex: number) {
   for (let index = assistantIndex - 1; index >= 0; index -= 1) {
     if (messages[index]?.role === "user") return messages[index].content;
   }
   return undefined;
-}
-
-function memoryLabel(category: string) {
-  const labels: Record<string, string> = {
-    basic_info: "基本情况",
-    education_philosophy: "教育观",
-    student_view: "学生特点",
-    teaching_view: "教学观",
-    teaching_preference: "教学偏好",
-    constraint: "现实限制",
-    behavior: "已尝试",
-    vision: "长期追求",
-    challenge: "当前困难",
-  };
-  return labels[category] ?? category;
 }

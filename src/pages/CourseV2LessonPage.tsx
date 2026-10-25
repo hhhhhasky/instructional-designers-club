@@ -7,7 +7,7 @@ import LoadingOverlay from "@/components/common/LoadingOverlay";
 import MarkdownRenderer from "@/components/common/MarkdownRenderer";
 import PageMeta from "@/components/common/PageMeta";
 import V2SubjectExampleExplorer from "@/components/course/V2SubjectExampleExplorer";
-import Header from "@/components/layout/Header";
+import PageBackBar from "@/components/common/PageBackBar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { clearLearningDataCache } from "@/db/api";
@@ -119,8 +119,8 @@ export default function CourseV2LessonPage() {
   return (
     <>
       <PageMeta title={`${lesson.title}｜V2课程`} description={lesson.description ?? lesson.subtitle ?? "教学通识课 V2"} noIndex />
-      <Header />
-      <main className="min-h-screen bg-[#f4efe7] px-4 pb-20 pt-20 sm:px-6">
+      <PageBackBar to="/course-v2" label="返回 V2 课程目录" />
+      <main className="min-h-screen bg-[#f4efe7] px-4 pb-20 pt-4 sm:px-6">
         <div className="mx-auto max-w-6xl">
           <div className="mb-6 flex flex-wrap items-center gap-2 text-xs text-txs">
             <Link to="/course-v2" className="inline-flex items-center gap-1 transition-colors hover:text-ac"><ArrowLeft className="h-3.5 w-3.5" />回到 V2 课程目录</Link>
@@ -282,5 +282,5 @@ export function V2AssessmentSection({ assessment, dictionaryItems, latestAttempt
 
 function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) { return <div><p className="text-[10px] font-ds-black tracking-[.16em] text-ac">{eyebrow}</p><h2 className="mt-2 font-serif text-2xl font-ds-black text-tx sm:text-3xl">{title}</h2></div>; }
 
-function LoadingScreen() { return <div className="min-h-screen bg-[#f4efe7]"><Header /><LoadingOverlay message="正在打开 V2 课程..." /></div>; }
-function ErrorScreen({ message }: { message: string }) { return <><Header /><main className="flex min-h-screen items-center justify-center bg-[#f4efe7] px-4 pt-20"><div className="max-w-md rounded-3xl border border-[#173d39]/10 bg-white/75 p-8 text-center"><LockKeyhole className="mx-auto h-10 w-10 text-ac" /><h1 className="mt-4 font-serif text-2xl font-ds-black text-tx">V2 课程暂不可用</h1><p className="mt-3 text-sm leading-6 text-txs">{message}</p><Link to="/learning" className="mt-6 inline-flex text-sm font-ds-bold text-ac hover:underline">回到学习主页</Link></div></main><Footer /></>; }
+function LoadingScreen() { return <div className="min-h-screen bg-[#f4efe7]"><PageBackBar to="/course-v2" label="返回 V2 课程目录" /><LoadingOverlay message="正在打开 V2 课程..." /></div>; }
+function ErrorScreen({ message }: { message: string }) { return <><PageBackBar to="/course-v2" label="返回 V2 课程目录" /><main className="flex min-h-screen items-center justify-center bg-[#f4efe7] px-4 pt-4"><div className="max-w-md rounded-3xl border border-[#173d39]/10 bg-white/75 p-8 text-center"><LockKeyhole className="mx-auto h-10 w-10 text-ac" /><h1 className="mt-4 font-serif text-2xl font-ds-black text-tx">V2 课程暂不可用</h1><p className="mt-3 text-sm leading-6 text-txs">{message}</p><Link to="/learning" className="mt-6 inline-flex text-sm font-ds-bold text-ac hover:underline">回到学习主页</Link></div></main><Footer /></>; }

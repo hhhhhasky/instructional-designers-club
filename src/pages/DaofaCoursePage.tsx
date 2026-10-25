@@ -6,8 +6,7 @@ import PageMeta from '@/components/common/PageMeta';
 import ContentFormatBadges from '@/components/course/ContentFormatBadges';
 import { CourseEditorialHero } from '@/components/course/CourseEditorialShell';
 import CourseAccessNotice from '@/components/course/CourseAccessNotice';
-import CourseTypeTabs from '@/components/course/CourseTypeTabs';
-import Header from '@/components/layout/Header';
+import PageBackBar from '@/components/common/PageBackBar';
 import { useAuth } from '@/contexts/AuthContext';
 import { type CourseProductCatalog, getCourseProductCatalog, subscribeToCourseCatalogUpdates } from '@/db/api';
 import { canAccessCourse } from '@/lib/access-control';
@@ -39,9 +38,8 @@ export default function DaofaCoursePage() {
   return <>
     <PageMeta title="道法教材解读课" description="从课标到单元，再从单元到单课，建立一至九年级道法教材地图。" noIndex />
     <div className="min-h-screen bg-cream flex flex-col">
-      <Header />
-      <main className="flex-1 pt-20">
-        <CourseTypeTabs />
+      <PageBackBar to="/course-library" label="返回课程" />
+      <main className="flex-1 pt-4">
         <CourseEditorialHero
           kicker="道法教材解读课 · 课程目录"
           badge="1—9 年级 · 18 册教材"

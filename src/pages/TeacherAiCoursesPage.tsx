@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { AlertCircle, BookOpen, ChevronRight, Clock, GraduationCap } from 'lucide-react';
 import { getCategoryIcon } from '@/lib/categoryIcons';
 import ContentFormatBadges from '@/components/course/ContentFormatBadges';
-import Header from '@/components/layout/Header';
+import PageBackBar from '@/components/common/PageBackBar';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
 import PageMeta from '@/components/common/PageMeta';
@@ -16,7 +16,6 @@ import {
   CourseEditorialHero,
   CourseEditorialVolume,
 } from '@/components/course/CourseEditorialShell';
-import CourseTypeTabs from '@/components/course/CourseTypeTabs';
 import CourseAccessNotice from '@/components/course/CourseAccessNotice';
 import CourseFormatFilter, { resolveCourseType, type CourseTypeFilterValue } from '@/components/course/CourseFormatFilter';
 import { useAuth } from '@/contexts/AuthContext';
@@ -141,10 +140,9 @@ export default function TeacherAiCoursesPage() {
         keywords="教师AI课,AI教学课程,ClaudeCode教程,AI工具测评"
       />
       <div className="min-h-screen bg-cream flex flex-col">
-        <Header />
+        <PageBackBar to="/course-library" label="返回课程" />
         {isNavigating && <LoadingOverlay message="正在加载课程..." />}
-        <main className="course-reading-desk flex-1 pb-12 pt-20">
-          <CourseTypeTabs />
+        <main className="course-reading-desk flex-1 pb-12 pt-4">
           <CourseEditorialHero
             kicker="教师 AI 课 · 课程目录"
             badge="课程目录"

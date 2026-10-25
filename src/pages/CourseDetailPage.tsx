@@ -43,7 +43,7 @@ import CoursePurchaseButton from '@/components/course/CoursePurchaseButton';
 import CourseQuestionsPanel from '@/components/course/CourseQuestionsPanel';
 import PlusCatalogToc from '@/components/course/PlusCatalogToc';
 import TeacherAiCatalogToc from '@/components/course/TeacherAiCatalogToc';
-import Header from '@/components/layout/Header';
+import PageBackBar from '@/components/common/PageBackBar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
@@ -652,10 +652,12 @@ export default function CourseDetailPage() {
     }
   };
 
+  const courseBackPath = course ? getCourseListPath(course.membership_type) : "/course-library";
+
   if (isLoading || authLoading) {
     return (
       <div className="min-h-screen bg-cream flex flex-col">
-        <Header />
+        <PageBackBar to={courseBackPath} label="返回课程目录" />
         <LoadingOverlay message="正在加载课程详情..." />
       </div>
     );
@@ -664,8 +666,8 @@ export default function CourseDetailPage() {
   if (error) {
     return (
       <div className="min-h-screen bg-cream flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center pt-20 px-4">
+        <PageBackBar to={courseBackPath} label="返回课程目录" />
+        <main className="flex-1 flex items-center justify-center pt-0 px-4">
           <div className="text-center animate-fade-in max-w-md">
             <AlertCircle className="w-14 h-14 text-ac/60 mx-auto mb-5" />
             <h1 className="text-ds-2xl font-ds-bold text-tx font-serif mb-5">{error}</h1>
@@ -693,7 +695,7 @@ export default function CourseDetailPage() {
   ) {
     return (
       <div className="min-h-screen bg-cream flex flex-col">
-        <Header />
+        <PageBackBar to={courseBackPath} label="返回课程目录" />
         <CoursePasswordGate
           courseTitle={course.title}
           productCode={getCourseAccessCode(course)}
@@ -711,8 +713,8 @@ export default function CourseDetailPage() {
   if (showUpgrade || (course && !hasStandardCourseAccess && !hasPasswordPreviewAccess)) {
     return (
       <div className="min-h-screen bg-cream flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center pt-20 px-4">
+        <PageBackBar to={courseBackPath} label="返回课程目录" />
+        <main className="flex-1 flex items-center justify-center pt-0 px-4">
           <div className="text-center animate-fade-in max-w-md">
             <AlertCircle className="w-14 h-14 text-ac/60 mx-auto mb-5" />
             <h1 className="text-ds-2xl font-ds-bold text-tx font-serif mb-5">
@@ -737,7 +739,7 @@ export default function CourseDetailPage() {
   if (course && hasStandardCourseAccess && protectedContentCourseId !== course.id) {
     return (
       <div className="min-h-screen bg-cream flex flex-col">
-        <Header />
+        <PageBackBar to={courseBackPath} label="返回课程目录" />
         <LoadingOverlay message={protectedContentLoading ? '正在验证课程权限并加载内容...' : '正在准备课程内容...'} />
       </div>
     );
@@ -748,8 +750,8 @@ export default function CourseDetailPage() {
   if (!course) {
     return (
       <div className="min-h-screen bg-cream flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center pt-20 px-4">
+        <PageBackBar to={courseBackPath} label="返回课程目录" />
+        <main className="flex-1 flex items-center justify-center pt-0 px-4">
           <div className="text-center animate-fade-in max-w-md">
             <AlertCircle className="w-14 h-14 text-ac/60 mx-auto mb-5" />
             <h1 className="text-ds-2xl font-ds-bold text-tx font-serif mb-5">
@@ -826,11 +828,11 @@ export default function CourseDetailPage() {
         />
       )}
     <div className="course-reading-desk min-h-screen flex flex-col lg:h-dvh lg:min-h-0 lg:overflow-hidden">
-      <Header />
+      <PageBackBar to={courseBackPath} label="返回课程目录" />
 
       <main
         data-testid="course-reading-desk"
-        className="flex-1 pt-20 pb-ds-11 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden lg:pb-4"
+        className="flex-1 pt-0 pb-ds-11 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden lg:pb-4"
       >
         {/* Breadcrumb — 不用动画，避免叠层上下文问题 */}
         <div className="max-w-7xl mx-auto w-full px-4 pt-5 pb-2 lg:flex-none">

@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, ShieldCheck } from "lucide-react";
-import Header from "@/components/layout/Header";
+import { ShieldCheck } from "lucide-react";
+import PageBackBar from "@/components/common/PageBackBar";
 import Footer from "@/components/common/Footer";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
 import PageMeta from "@/components/common/PageMeta";
@@ -157,7 +157,7 @@ export default function AdminPageShell({
   if (loading && !session) {
     return (
       <div className="min-h-screen bg-cream flex flex-col">
-        <Header />
+        <PageBackBar />
         <LoadingOverlay message="正在确认登录状态..." />
         <Footer />
       </div>
@@ -167,8 +167,8 @@ export default function AdminPageShell({
   if (!user) {
     return (
       <div className="min-h-screen bg-cream flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center pt-20 px-4">
+        <PageBackBar />
+        <main className="flex-1 flex items-center justify-center pt-4 px-4">
           <div className="text-center">
             <p className="text-txs mb-4">请先登录</p>
             <Button onClick={() => navigate("/login")}>前往登录</Button>
@@ -182,8 +182,8 @@ export default function AdminPageShell({
   if (!profile) {
     return (
       <div className="min-h-screen bg-cream flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center pt-20 px-4">
+        <PageBackBar />
+        <main className="flex-1 flex items-center justify-center pt-4 px-4">
           <div className="text-center max-w-sm">
             <p className="text-tx font-ds-semibold mb-2">
               账号已登录，用户资料暂未准备好
@@ -202,8 +202,8 @@ export default function AdminPageShell({
   if (profile.role !== "admin") {
     return (
       <div className="min-h-screen bg-cream flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center pt-20 px-4">
+        <PageBackBar />
+        <main className="flex-1 flex items-center justify-center pt-4 px-4">
           <div className="text-center max-w-sm">
             <ShieldCheck className="w-12 h-12 text-ac mx-auto mb-4" />
             <p className="text-tx font-ds-bold text-ds-xl mb-2">无访问权限</p>
@@ -221,25 +221,12 @@ export default function AdminPageShell({
   return (
     <>
       <PageMeta title={title} description={description} noIndex />
-      <div className="min-h-screen bg-[#f4efe7] flex flex-col">
-        <Header />
-        <main className="relative min-w-0 flex-1 overflow-x-hidden px-3 pb-14 pt-20 sm:px-4">
-          <div className="pointer-events-none absolute left-[-120px] top-32 h-72 w-72 rounded-full bg-ac/5 blur-3xl" />
-          <div className="pointer-events-none absolute right-[-80px] top-[420px] h-64 w-64 rounded-full bg-tl/5 blur-3xl" />
-          <div className="relative mx-auto max-w-[1400px] animate-fade-in pt-4 md:pt-7">
-            <button
-              onClick={() => navigate("/")}
-              className="group mb-3 inline-flex items-center gap-1.5 text-ds-xs font-ds-bold text-txs transition-colors hover:text-ac"
-            >
-              <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
-              返回俱乐部前台
-            </button>
-            <div className="min-w-0 overflow-hidden rounded-ds-xl border border-[#173d39]/15 bg-white/60 shadow-ds-sm backdrop-blur-sm">
-              <AdminTopNav activeSection={activeSection} />
-              <div className="min-w-0 p-3 md:p-5">
-                {children}
-              </div>
-            </div>
+      <div className="min-h-screen bg-[var(--paper)] flex flex-col">
+        <PageBackBar />
+        <main className="min-w-0 flex-1 pb-10">
+          <AdminTopNav activeSection={activeSection} />
+          <div className="min-w-0 px-3 py-5 sm:px-4 md:px-6">
+            {children}
           </div>
         </main>
         <Footer />

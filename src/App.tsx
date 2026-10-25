@@ -17,13 +17,15 @@ const App: React.FC = () => {
 function AppContent() {
   const location = useLocation();
   const isAdmin = location.pathname === '/admin' || location.pathname.startsWith('/admin/');
+  const isCourseLibrary = location.pathname === '/course-library';
+  const isHai = location.pathname === '/hai' || location.pathname.startsWith('/hai/');
   const isDaofaCanvas = location.pathname === '/courses/daofa/alignment-canvas';
 
   return (
     <>
       <ScrollToTop />
       <div className="flex min-h-screen flex-col">
-        <main className={isAdmin || isDaofaCanvas ? 'flex-grow' : 'flex-grow pb-16 md:pb-0'}>
+        <main className={isAdmin || isDaofaCanvas || isCourseLibrary || isHai ? 'flex-grow' : 'flex-grow pb-16 md:pb-0'}>
           <Suspense
             fallback={(
               <div className="editorial-route-loading" role="status" aria-live="polite">

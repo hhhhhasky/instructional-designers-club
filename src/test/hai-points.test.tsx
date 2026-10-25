@@ -61,6 +61,7 @@ describe("HAI points purchase page", () => {
       </MemoryRouter>,
     );
 
+    expect(screen.getByRole("link", { name: "返回 HAI" })).toHaveAttribute("href", "/hai/chat");
     expect(await screen.findByText("15 积分")).toBeInTheDocument();
     expect(screen.getByText("已消耗 5 积分")).toBeInTheDocument();
     expect(screen.getAllByText("25 积分")).toHaveLength(2);

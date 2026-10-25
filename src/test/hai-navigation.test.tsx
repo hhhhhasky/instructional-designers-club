@@ -12,19 +12,19 @@ function ExitButton() {
 describe("HAI exit navigation", () => {
   beforeEach(() => sessionStorage.clear());
 
-  it("returns to the site page that opened HAI", async () => {
+  it("returns to the homepage even when opened from a course", async () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter initialEntries={[{ pathname: "/hai/chat", state: { fromSite: "/courses" } }]}>
         <Routes>
           <Route path="/hai/chat" element={<ExitButton />} />
-          <Route path="/courses" element={<div>课程列表</div>} />
+          <Route path="/" element={<div>网站首页</div>} />
         </Routes>
       </MemoryRouter>,
     );
 
     await user.click(screen.getByRole("button", { name: "返回网站" }));
-    expect(await screen.findByText("课程列表")).toBeInTheDocument();
+    expect(await screen.findByText("网站首页")).toBeInTheDocument();
   });
 
   it("falls back to the homepage for a direct HAI entry", async () => {

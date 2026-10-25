@@ -1,10 +1,9 @@
-import { ArrowDownLeft, ArrowLeft, ArrowUpRight, CheckCircle2, ChevronDown, Coins, Loader2, MessageCircleMore, XCircle } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, CheckCircle2, ChevronDown, Coins, Loader2, MessageCircleMore, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import PageBackBar from "@/components/common/PageBackBar";
 import Footer from "@/components/common/Footer";
 import PageMeta from "@/components/common/PageMeta";
-import Header from "@/components/layout/Header";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { getHaiAccessStatus, getHaiPointLedger, type HaiPointLedgerEntry, type HaiUsageSummary } from "@/db/hai-api";
 
@@ -85,13 +84,11 @@ export default function HaiPointsPage() {
     .filter((pointPackage) => pointPackage.points > 0 && pointPackage.price_cny > 0);
 
   return (
-    <div className="min-h-screen bg-bg text-tx">
+    <div className="min-h-screen bg-bg pb-16 text-tx md:pb-0">
       <PageMeta title="购买 HAI 积分" description="查看 HAI 积分套餐并联系企业微信购买" noIndex />
-      <Header />
+      <PageBackBar to="/hai/chat" label="返回 HAI" />
       <main className="mx-auto w-full max-w-5xl px-3 py-6 md:px-4 md:py-12">
-        <Button asChild variant="ghost" className="mb-4 text-txs md:mb-5">
-          <Link to="/hai/chat"><ArrowLeft className="h-4 w-4" />返回 HAI</Link>
-        </Button>
+
 
         <section className="overflow-hidden rounded-ds-xl border border-bd bg-white shadow-ds-lg">
           <div className="border-b border-bd bg-gradient-to-br from-acl via-white to-white px-4 py-6 sm:px-5 md:px-8 md:py-10">

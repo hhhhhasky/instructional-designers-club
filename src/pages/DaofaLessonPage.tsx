@@ -49,7 +49,7 @@ export default function DaofaLessonPage() {
           className="absolute inset-0 h-full w-full border-0"
         /> : mediaError ? <div className="flex h-full flex-col items-center justify-center gap-4 text-sm text-white"><p>{mediaError}</p><button type="button" className="rounded-lg border border-white/40 px-4 py-2" onClick={() => setRetryCount((count) => count + 1)}>重新加载</button></div>
           : <div className="flex h-full items-center justify-center text-sm text-white">{mediaLoading ? '正在载入画布…' : '正在准备画布…'}</div>}
-      <Link to="/courses/daofa" className="absolute right-4 top-4 z-10 inline-flex min-h-10 items-center gap-2 rounded-lg border border-white/25 bg-[#102f2b] px-4 text-sm font-ds-bold text-white shadow-lg transition-colors hover:bg-[#24554e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d0a453] sm:right-6">
+      <Link to="/courses/daofa" className="absolute left-4 top-4 z-10 inline-flex min-h-10 items-center gap-2 rounded-lg border border-white/25 bg-[#102f2b] px-4 text-sm font-ds-bold text-white shadow-lg transition-colors hover:bg-[#24554e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d0a453] sm:left-6">
         <ArrowLeft className="h-4 w-4" />返回课程目录
       </Link>
     </main>

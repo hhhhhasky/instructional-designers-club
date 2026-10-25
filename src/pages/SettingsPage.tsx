@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, Camera, GraduationCap, Lock, User } from 'lucide-react';
+import { Camera, GraduationCap, Lock, User } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -7,7 +7,7 @@ import { z } from 'zod';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
 import PageMeta from '@/components/common/PageMeta';
-import Header from '@/components/layout/Header';
+import PageBackBar from '@/components/common/PageBackBar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { changePassword, updateAvatar, updateNickname } from '@/lib/access-control';
@@ -90,7 +90,7 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-cream flex flex-col">
-        <Header />
+        <PageBackBar />
         <LoadingOverlay message="正在确认登录状态..." />
         <Footer />
       </div>
@@ -100,8 +100,8 @@ export default function SettingsPage() {
   if (!user) {
     return (
       <div className="min-h-screen bg-cream flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center pt-20 px-4">
+        <PageBackBar />
+        <main className="flex-1 flex items-center justify-center pt-4 px-4">
           <div className="text-center">
             <p className="text-txs mb-4">请先登录</p>
             <Button onClick={() => navigate('/login')}>前往登录</Button>
@@ -115,8 +115,8 @@ export default function SettingsPage() {
   if (!profile) {
     return (
       <div className="min-h-screen bg-cream flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center pt-20 px-4">
+        <PageBackBar />
+        <main className="flex-1 flex items-center justify-center pt-4 px-4">
           <div className="text-center max-w-sm">
             <p className="text-tx font-ds-semibold mb-2">账号已登录，用户资料暂未准备好</p>
             <p className="text-txs text-sm mb-4">请点击“重新加载”再试一次；如果仍无法显示，请联系管理员。</p>
@@ -132,17 +132,11 @@ export default function SettingsPage() {
     <>
       <PageMeta title="账号设置" description="" noIndex />
     <div className="min-h-screen bg-cream flex flex-col">
-      <Header />
-      <main className="flex-1 pt-20 pb-12 px-4">
+      <PageBackBar />
+      <main className="flex-1 pt-4 pb-12 px-4">
         <div className="max-w-lg mx-auto pt-8 animate-fade-in">
           {/* 返回 */}
-          <button
-            onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-1.5 text-ds-sm text-txs hover:text-ac transition-colors mb-6 group"
-          >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-            返回
-          </button>
+
 
           {/* 用户信息卡片 */}
           <div className="bg-white rounded-ds-lg shadow-ds-md border border-bd p-6 mb-6 hover-lift">

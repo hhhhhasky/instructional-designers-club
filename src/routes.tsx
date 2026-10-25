@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 
 const loadHomePage = () => import('./pages/HomePage');
 const loadResourcesPage = () => import('./pages/ResourcesPage');
+const loadCourseLibraryPage = () => import('./pages/CourseLibraryPage');
 const loadCoursesPage = () => import('./pages/CoursesPage');
 const loadTeacherAiCoursesPage = () => import('./pages/TeacherAiCoursesPage');
 const loadCourseDetailPage = () => import('./pages/CourseDetailPage');
@@ -31,6 +32,7 @@ const loadAdminManagePage = () => import('./pages/AdminManagePage');
 
 const HomePage = lazy(loadHomePage);
 const ResourcesPage = lazy(loadResourcesPage);
+const CourseLibraryPage = lazy(loadCourseLibraryPage);
 const CoursesPage = lazy(loadCoursesPage);
 const TeacherAiCoursesPage = lazy(loadTeacherAiCoursesPage);
 const CourseDetailPage = lazy(loadCourseDetailPage);
@@ -75,9 +77,16 @@ const routes: RouteConfig[] = [
   },
   {
     name: '课程',
+    path: '/course-library',
+    element: <CourseLibraryPage />,
+    visible: true,
+    preload: loadCourseLibraryPage
+  },
+  {
+    name: '教学通识课',
     path: '/courses',
     element: <CoursesPage />,
-    visible: true,
+    visible: false,
     preload: loadCoursesPage
   },
   {

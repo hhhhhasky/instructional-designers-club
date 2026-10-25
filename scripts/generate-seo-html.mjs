@@ -20,6 +20,11 @@ const routes = {
       '从真实教学问题出发，和哈老师一起分析教材、学情、目标、课堂活动与评价。了解教学通识课、教师 AI 课和道法教材解读课。',
     keywords: '哈老师聊教学设计,教师培训,教学设计,教师AI课,道法教材解读课',
   },
+  '/course-library': {
+    title: `课程 | ${SITE_NAME}`,
+    description: '浏览教学通识课、教师 AI 课与道法教材解读课，选择适合自己的学习方向。',
+    keywords: '教师课程,教学设计,教师AI课,道法教材解读课',
+  },
   '/courses': {
     title: `教学通识课 | ${SITE_NAME}`,
     description:

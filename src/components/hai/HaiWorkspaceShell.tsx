@@ -1,15 +1,13 @@
 import { useLocation } from "react-router-dom";
 import {
   ArrowLeft,
-  BriefcaseBusiness,
-  FileCheck2,
   Menu,
-  NotebookPen,
   PanelRight,
 } from "lucide-react";
 import { useEffect, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import HaiUserMenu from "@/components/hai/HaiUserMenu";
+import type { HaiUsageSummary } from "@/db/hai-api";
 import HaiDesktopModeSwitch from "@/components/hai/HaiDesktopModeSwitch";
-import Header from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useHaiExit } from "@/lib/hai-navigation";
@@ -17,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 // 可调宽布局:桌面三栏宽度本地持久化(仅 resizable 页面启用;移动端走 Sheet 不受影响)。
 const HAI_LAYOUT_STORAGE_KEY = "hai-work-layout";
-const HAI_LAYOUT_DEFAULTS = { sidebar: 260, inspector: 280 };
+const HAI_LAYOUT_DEFAULTS = { sidebar: 232, inspector: 280 };
 const HAI_LAYOUT_LIMITS = {
   sidebar: { min: 200, max: 420 },
   inspector: { min: 220, max: 460 },
@@ -53,6 +51,7 @@ type HaiWorkspaceShellProps = {
   title: string;
   subtitle: string;
   sidebar?: ReactNode;
+  usage?: HaiUsageSummary | null;
   inspector?: ReactNode;
   sidebarLabel?: string;
   inspectorLabel?: string;
@@ -61,50 +60,27 @@ type HaiWorkspaceShellProps = {
   hideMobileSidebarClose?: boolean;
   sidebarPadded?: boolean;
   headerActions?: ReactNode;
-  footer?: ReactNode;
   contentMode?: "managed" | "scroll";
   contentClassName?: string;
   resizable?: boolean;
   compactHeader?: boolean;
 };
 
-const modePresentation = {
-  consultation: {
-    label: "咨询笔记",
-    Icon: NotebookPen,
-    iconClassName: "bg-[var(--proof-soft)] text-[var(--proof)]",
-  },
-  production: {
-    label: "教研生产台",
-    Icon: BriefcaseBusiness,
-    iconClassName: "bg-[var(--annotation-soft)] text-[var(--annotation)]",
-  },
-  proof: {
-    label: "校样档案",
-    Icon: FileCheck2,
-    iconClassName: "bg-[var(--paper-deep)] text-[var(--ink)]",
-  },
-} satisfies Record<HaiWorkspaceMode, {
-  label: string;
-  Icon: typeof NotebookPen;
-  iconClassName: string;
-}>;
-
 export default function HaiWorkspaceShell({
   children,
   mode,
   title,
-  subtitle,
+  subtitle: _subtitle,
   sidebar,
+  usage,
   inspector,
   sidebarLabel = "打开记录",
   inspectorLabel = "打开校样档案",
   mobileSidebarOpen,
   onMobileSidebarOpenChange,
   hideMobileSidebarClose = false,
-  sidebarPadded = true,
+  sidebarPadded: _sidebarPadded = true,
   headerActions,
-  footer,
   contentMode = "scroll",
   contentClassName,
   resizable = false,
@@ -147,8 +123,7 @@ export default function HaiWorkspaceShell({
   const exitHai = useHaiExit();
   const workspaceLocation = useLocation();
   const isWorkChild = workspaceLocation.pathname.startsWith("/hai/work/") || (workspaceLocation.pathname === "/hai/work" && workspaceLocation.state?.imagePpt);
-  const presentation = modePresentation[mode];
-  const WorkspaceIcon = presentation.Icon;
+  const showInspectorColumn = Boolean(inspector) && mode !== "consultation";
 
   useEffect(() => {
     document.body.classList.add("hai-chat-active");
@@ -156,20 +131,17 @@ export default function HaiWorkspaceShell({
   }, []);
 
   return (
-    <div className="hai-page flex min-h-0 w-full max-w-full flex-col overflow-hidden bg-[var(--paper-deep)] md:min-h-screen print:h-auto print:overflow-visible print:bg-white">
-      <div className="hidden md:block print:hidden">
-        <Header />
-      </div>
-      <main className="flex min-h-0 flex-1 overflow-hidden md:px-5 md:pb-6 md:pt-20 print:block print:overflow-visible print:p-0">
-        <div className="mx-auto flex h-full min-h-0 w-full max-w-[1500px] flex-col overflow-hidden border-[var(--paper-rule)] bg-[var(--paper)] md:h-[calc(100dvh-7rem)] md:rounded-ds-xl md:border md:shadow-ds-xl print:h-auto print:max-w-none print:overflow-visible print:border-0 print:shadow-none">
-          <header className={cn("flex shrink-0 items-center justify-between gap-3 border-b border-[var(--paper-rule)] bg-[var(--paper)]/95 px-3 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))] backdrop-blur md:px-5 print:hidden", compactHeader ? "md:py-1.5" : "md:py-3")}>
+    <div className="hai-page flex min-h-0 w-full max-w-full flex-col overflow-hidden bg-[var(--paper)] md:h-dvh print:h-auto print:overflow-visible print:bg-white">
+      <main className="flex min-h-0 flex-1 overflow-hidden print:block print:overflow-visible print:p-0">
+        <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[var(--paper)] print:h-auto print:max-w-none print:overflow-visible print:border-0 print:shadow-none">
+          <header className={cn("flex shrink-0 items-center justify-between gap-3 border-b border-[var(--paper-rule)] bg-[var(--paper)]/95 px-3 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))] backdrop-blur md:px-5 print:hidden", compactHeader ? "md:py-1.5" : "md:py-2")}>
             <div className="flex min-w-0 items-center gap-2.5">
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-9 w-9 shrink-0"
                 onClick={exitHai}
-                aria-label={isWorkChild ? "返回帮你干活主页" : "返回网站"}
+                aria-label={isWorkChild ? "返回帮你干活主页" : "返回官网首页"}
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
@@ -191,31 +163,21 @@ export default function HaiWorkspaceShell({
                   <SheetContent
                     side="left"
                     className={cn(
-                      "w-[min(320px,88vw)] overflow-y-auto bg-[var(--paper-deep)]",
-                      sidebarPadded
-                        ? "p-4 pt-[calc(3rem+env(safe-area-inset-top))]"
-                        : "p-0 pt-[env(safe-area-inset-top)]",
+                      "flex w-[min(320px,88vw)] flex-col gap-0 overflow-hidden bg-[var(--paper-deep)] p-0 pt-[calc(2.5rem+env(safe-area-inset-top))]",
                     )}
                     hideCloseButton={hideMobileSidebarClose}
                   >
-                    {sidebar}
+                    <div className="min-h-0 flex-1 overflow-hidden">{sidebar}</div>
+                    <div className="shrink-0 border-t border-[var(--paper-rule)] px-3 pb-[env(safe-area-inset-bottom)]"><HaiUserMenu usage={usage} /></div>
                   </SheetContent>
                 </Sheet>
               )}
-              {!compactHeader && <div className={cn(
-                "flex h-9 w-9 shrink-0 items-center justify-center rounded-ds-md shadow-ds-sm",
-                presentation.iconClassName,
-              )}>
-                <WorkspaceIcon className="h-[18px] w-[18px]" />
-              </div>}
               <div className="min-w-0">
                 <div className="flex min-w-0 items-center gap-2">
                   <h1 className={cn("truncate font-serif font-black tracking-tight text-[var(--ink)]", compactHeader ? "text-sm" : "text-base md:text-lg")}>
                     {title}
                   </h1>
-                  {!compactHeader && <span className="editorial-stamp hidden shrink-0 sm:inline-flex">{presentation.label}</span>}
                 </div>
-                {!compactHeader && <p className="hidden truncate text-xs text-[var(--ink-muted)] sm:block">{subtitle}</p>}
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
@@ -227,7 +189,7 @@ export default function HaiWorkspaceShell({
                     <Button
                       size="icon-sm"
                       variant="outline"
-                      className="xl:hidden"
+                      className={showInspectorColumn ? "xl:hidden" : undefined}
                       aria-label={inspectorLabel}
                     >
                       <PanelRight className="h-4 w-4" />
@@ -248,10 +210,10 @@ export default function HaiWorkspaceShell({
             className={cn(
               "grid min-h-0 flex-1 print:block print:overflow-visible",
               resizable
-                ? cn("hai-work-resizable-grid", !inspector && "hai-work-resizable-grid--no-inspector")
-                : inspector
-                  ? "lg:grid-cols-[260px_minmax(0,1fr)] xl:grid-cols-[260px_minmax(0,1fr)_280px]"
-                  : "lg:grid-cols-[260px_minmax(0,1fr)]",
+                ? cn("hai-work-resizable-grid", !showInspectorColumn && "hai-work-resizable-grid--no-inspector")
+                : showInspectorColumn
+                  ? "lg:grid-cols-[232px_minmax(0,1fr)] xl:grid-cols-[232px_minmax(0,1fr)_280px]"
+                  : "lg:grid-cols-[232px_minmax(0,1fr)]",
             )}
             style={resizable ? ({
               "--hai-sidebar-w": `${layout.sidebar}px`,
@@ -259,10 +221,10 @@ export default function HaiWorkspaceShell({
             } as HaiLayoutCSSVars) : undefined}
           >
             <aside className={cn(
-              "hidden min-h-0 overflow-y-auto border-r border-[var(--paper-rule)] bg-[var(--paper-deep)] lg:block print:hidden",
-              sidebarPadded && "p-4",
+              "hidden min-h-0 flex-col overflow-hidden border-r border-[var(--paper-rule)] bg-[var(--paper-deep)] lg:flex print:hidden",
             )}>
-              {sidebar}
+              <div className="min-h-0 flex-1 overflow-hidden">{sidebar}</div>
+              <div className="shrink-0 border-t border-[var(--paper-rule)] px-3"><HaiUserMenu usage={usage} /></div>
             </aside>
             {resizable && (
               <div
@@ -280,14 +242,14 @@ export default function HaiWorkspaceShell({
             )}>
               {children}
             </section>
-            {resizable && inspector && (
+            {resizable && showInspectorColumn && (
               <div
                 aria-hidden
                 className="hidden w-1.5 shrink-0 cursor-col-resize bg-transparent transition-colors hover:bg-ac/25 active:bg-ac/40 xl:block print:hidden"
                 onPointerDown={(event) => startDrag("inspector", event)}
               />
             )}
-            {inspector && (
+            {showInspectorColumn && (
               <aside className="hidden min-h-0 overflow-y-auto border-l border-[var(--paper-rule)] bg-[var(--bg)] p-4 xl:block print:hidden">
                 {inspector}
               </aside>
@@ -295,7 +257,6 @@ export default function HaiWorkspaceShell({
           </div>
         </div>
       </main>
-      {footer && <div className="hidden md:block print:hidden">{footer}</div>}
     </div>
   );
 }

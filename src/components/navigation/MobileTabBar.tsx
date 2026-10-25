@@ -17,7 +17,7 @@ export default function MobileTabBar() {
 
   const tabs: TabItem[] = [
     { name: '首页', path: '/', icon: Home },
-    { name: '课程', path: '/courses', icon: BookOpen },
+    { name: '课程', path: '/course-library', icon: BookOpen },
     { name: 'HAI', path: '/hai', icon: Bot },
     { name: 'Live 互动', path: '/live', icon: Radio },
     { name: '我的学习', path: '/learning', icon: GraduationCap },
@@ -28,15 +28,15 @@ export default function MobileTabBar() {
     if (path === '/') {
       return location.pathname === '/';
     }
-    if (path === '/courses') {
-      return location.pathname === '/courses' || location.pathname.startsWith('/courses/plus') || location.pathname === '/teacher-ai-courses';
+    if (path === '/course-library') {
+      return location.pathname === '/course-library' || location.pathname === '/courses' || location.pathname.startsWith('/courses/plus') || location.pathname === '/teacher-ai-courses';
     }
     return location.pathname.startsWith(path);
   };
 
   // 课程详情页使用自己的目录 / 上一节 / 下一节控制栏。
   // 精确匹配避免误伤 /courses 列表页和 /courses/plus/:trackId 篇章页。
-  if (isCourseDetail) return null;
+  if (isCourseDetail || location.pathname === '/course-library') return null;
   if (isAdmin) return null;
   if (isHai) return <HaiModeNavigation />;
 

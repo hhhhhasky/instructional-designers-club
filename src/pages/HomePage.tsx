@@ -79,7 +79,7 @@ function HomePageContent() {
                   <span className="editorial-kicker">免费体验课程 · {extraCopy.free_kicker}</span>
                   <h2 id="free-courses-title" className="mt-3 text-2xl font-ds-black text-tx md:text-4xl" style={{ fontFamily: 'var(--fd)' }}>{extraCopy.free_title}</h2>
                 </div>
-                <Link to="/courses" className="inline-flex items-center gap-2 text-sm font-ds-semibold text-ac hover:underline">{extraCopy.free_cta} <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
+                <Link to="/course-library" className="inline-flex items-center gap-2 text-sm font-ds-semibold text-ac hover:underline">{extraCopy.free_cta} <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
               </div>
               <div className="mt-6 grid gap-4 md:grid-cols-2">
                 {freeCourses.map((course) => (

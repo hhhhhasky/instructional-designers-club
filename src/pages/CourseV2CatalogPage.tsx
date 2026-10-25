@@ -4,8 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import Footer from "@/components/common/Footer";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
 import PageMeta from "@/components/common/PageMeta";
-import CourseTypeTabs from "@/components/course/CourseTypeTabs";
-import Header from "@/components/layout/Header";
+import PageBackBar from "@/components/common/PageBackBar";
 import { useAuth } from "@/contexts/AuthContext";
 import { getPublishedV2Outlines, type V2Outline } from "@/db/v2-api";
 import { canAccessV2, V2_PREVIEW_ACCESS_MESSAGE } from "@/lib/v2-access";
@@ -48,9 +47,8 @@ export default function CourseV2CatalogPage() {
     <>
       <PageMeta title="教学通识课 V2" description="教学通识课第二版：按 Unit 和 Lesson 学习。" noIndex />
       <div className="min-h-screen bg-[#f4efe7]">
-        <Header />
-        <main className="pb-16 pt-20">
-          <CourseTypeTabs />
+        <PageBackBar to="/course-library" label="返回课程" />
+        <main className="pb-16 pt-4">
           {authLoading || loading ? (
             <LoadingOverlay message="正在加载 V2 课程目录..." />
           ) : denied ? (
