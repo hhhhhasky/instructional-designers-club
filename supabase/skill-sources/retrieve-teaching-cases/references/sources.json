@@ -1,0 +1,811 @@
+[
+  {
+    "id": "wenming",
+    "name": "中国文明网",
+    "category": "榜样人物",
+    "stages": [
+      "小学",
+      "初中"
+    ],
+    "url": "https://www.wenming.cn/",
+    "kind": "case",
+    "categories": [
+      "moral-exemplars"
+    ],
+    "entries": [
+      {
+        "topic_id": "moral-exemplars",
+        "url": "https://www.wenming.cn/",
+        "materials": "中国好人、全国道德模范、诚信之星、文明家庭、新时代好少年",
+        "priority": "P0"
+      }
+    ],
+    "priority": "P0",
+    "access": "public_web"
+  },
+  {
+    "id": "dangyuan",
+    "name": "共产党员网",
+    "category": "榜样人物",
+    "stages": [
+      "初中",
+      "高中"
+    ],
+    "url": "https://www.12371.cn/special/dzby/",
+    "kind": "case",
+    "categories": [
+      "moral-exemplars"
+    ],
+    "entries": [
+      {
+        "topic_id": "moral-exemplars",
+        "url": "https://www.12371.cn/special/dzby/",
+        "materials": "时代楷模、优秀共产党员、共和国勋章获得者、基层榜样",
+        "priority": "P0"
+      }
+    ],
+    "priority": "P0",
+    "access": "public_web"
+  },
+  {
+    "id": "cctv",
+    "name": "央视网",
+    "category": "道德榜样与先进人物",
+    "stages": [
+      "小学",
+      "初中",
+      "高中"
+    ],
+    "url": "https://www.cctv.com/",
+    "kind": "case",
+    "categories": [
+      "moral-exemplars",
+      "social-news"
+    ],
+    "entries": [
+      {
+        "topic_id": "moral-exemplars",
+        "url": "https://www.cctv.com/",
+        "materials": "《感动中国》人物专题、人物纪录片、真实采访和影像",
+        "priority": "P0"
+      },
+      {
+        "topic_id": "social-news",
+        "url": "https://www.cctv.com/",
+        "materials": "时政视频、新闻现场、调查报道、纪实素材",
+        "priority": "P1"
+      }
+    ],
+    "priority": "P0",
+    "access": "public_web"
+  },
+  {
+    "id": "gqt",
+    "name": "中国共青团",
+    "category": "道德榜样与先进人物",
+    "stages": [
+      "小学",
+      "初中",
+      "高中"
+    ],
+    "url": "https://www.gqt.org.cn/",
+    "kind": "case",
+    "categories": [
+      "moral-exemplars"
+    ],
+    "entries": [
+      {
+        "topic_id": "moral-exemplars",
+        "url": "https://www.gqt.org.cn/",
+        "materials": "青年志愿者、青年五四奖章获得者、青年先进典型",
+        "priority": "P1"
+      }
+    ],
+    "priority": "P1",
+    "access": "public_web"
+  },
+  {
+    "id": "moe",
+    "name": "教育部",
+    "category": "道德榜样与先进人物",
+    "stages": [
+      "小学",
+      "初中",
+      "高中"
+    ],
+    "url": "https://www.moe.gov.cn/jyb_xxgk/xxgk/neirong/fenlei/sxml_jsgz/jsgz_sdjs/",
+    "kind": "policy",
+    "categories": [
+      "moral-exemplars",
+      "policy-governance"
+    ],
+    "entries": [
+      {
+        "topic_id": "moral-exemplars",
+        "url": "https://www.moe.gov.cn/jyb_xxgk/xxgk/neirong/fenlei/sxml_jsgz/jsgz_sdjs/",
+        "materials": "优秀教师、教书育人楷模、乡村教师先进事迹",
+        "priority": "P1"
+      },
+      {
+        "topic_id": "policy-governance",
+        "url": "https://www.moe.gov.cn/",
+        "materials": "教育公平、教育改革、学生权益、教育政策及案例",
+        "priority": "P1"
+      }
+    ],
+    "priority": "P1",
+    "access": "public_web"
+  },
+  {
+    "id": "xinhua",
+    "name": "新华网",
+    "category": "社会时政",
+    "stages": [
+      "小学",
+      "初中",
+      "高中"
+    ],
+    "url": "https://www.news.cn/politics/index.htm",
+    "kind": "case",
+    "categories": [
+      "social-news"
+    ],
+    "entries": [
+      {
+        "topic_id": "social-news",
+        "url": "https://www.news.cn/politics/index.htm",
+        "materials": "国家重大事件、社会治理、政策实施、各地创新实践",
+        "priority": "P0"
+      }
+    ],
+    "priority": "P0",
+    "access": "public_web"
+  },
+  {
+    "id": "people",
+    "name": "人民网·社会与法治",
+    "category": "社会时政",
+    "stages": [
+      "小学",
+      "初中",
+      "高中"
+    ],
+    "url": "https://society.people.com.cn/",
+    "kind": "case",
+    "categories": [
+      "social-news"
+    ],
+    "entries": [
+      {
+        "topic_id": "social-news",
+        "url": "https://society.people.com.cn/",
+        "materials": "社会问题、公共纠纷、民生调查、基层社会故事",
+        "priority": "P0"
+      }
+    ],
+    "priority": "P0",
+    "access": "public_web"
+  },
+  {
+    "id": "gov",
+    "name": "中国政府网／国务院政策文件库",
+    "category": "政策治理",
+    "stages": [
+      "初中",
+      "高中"
+    ],
+    "url": "https://sousuo.www.gov.cn/zcwjk/policyDocumentLibrary",
+    "kind": "policy",
+    "categories": [
+      "social-news",
+      "policy-governance",
+      "democracy-participation"
+    ],
+    "entries": [
+      {
+        "topic_id": "social-news",
+        "url": "https://www.gov.cn/",
+        "materials": "国家重大时政、公共服务、民生政策、地方政务实践",
+        "priority": "P0"
+      },
+      {
+        "topic_id": "policy-governance",
+        "url": "https://sousuo.www.gov.cn/zcwjk/policyDocumentLibrary",
+        "materials": "国家重要政策原文、部门文件、配套政策解读",
+        "priority": "P0"
+      },
+      {
+        "topic_id": "democracy-participation",
+        "url": "https://www.gov.cn/",
+        "materials": "政府回应、便民服务、公共事务治理、政府决策实践",
+        "priority": "P1"
+      }
+    ],
+    "priority": "P0",
+    "access": "public_web"
+  },
+  {
+    "id": "youth",
+    "name": "中国青年网",
+    "category": "社会生活与时政事件",
+    "stages": [
+      "小学",
+      "初中",
+      "高中"
+    ],
+    "url": "https://www.youth.cn/",
+    "kind": "case",
+    "categories": [
+      "social-news"
+    ],
+    "entries": [
+      {
+        "topic_id": "social-news",
+        "url": "https://www.youth.cn/",
+        "materials": "青少年成长、校园生活、青年就业、志愿服务、社会参与",
+        "priority": "P1"
+      }
+    ],
+    "priority": "P1",
+    "access": "public_web"
+  },
+  {
+    "id": "chinanews",
+    "name": "中国新闻网",
+    "category": "社会生活与时政事件",
+    "stages": [
+      "小学",
+      "初中",
+      "高中"
+    ],
+    "url": "https://www.chinanews.com.cn/",
+    "kind": "case",
+    "categories": [
+      "social-news"
+    ],
+    "entries": [
+      {
+        "topic_id": "social-news",
+        "url": "https://www.chinanews.com.cn/",
+        "materials": "地方社会新闻、民生事件、人物故事、国际新闻",
+        "priority": "P1"
+      }
+    ],
+    "priority": "P1",
+    "access": "public_web"
+  },
+  {
+    "id": "court",
+    "name": "最高人民法院",
+    "category": "法律案例",
+    "stages": [
+      "初中",
+      "高中"
+    ],
+    "url": "https://www.court.gov.cn/zixun/gengduo/104_2.html",
+    "kind": "case",
+    "categories": [
+      "law-justice"
+    ],
+    "entries": [
+      {
+        "topic_id": "law-justice",
+        "url": "https://www.court.gov.cn/zixun/gengduo/104_2.html",
+        "materials": "社会纠纷、民事权利、司法公正、未成年人保护等典型案例",
+        "priority": "P0"
+      }
+    ],
+    "priority": "P0",
+    "access": "public_web",
+    "excluded_hosts": [
+      "rmfyalk.court.gov.cn"
+    ]
+  },
+  {
+    "id": "spp",
+    "name": "最高人民检察院",
+    "category": "法律与司法案例",
+    "stages": [
+      "小学",
+      "初中",
+      "高中"
+    ],
+    "url": "https://www.spp.gov.cn/",
+    "kind": "case",
+    "categories": [
+      "law-justice"
+    ],
+    "entries": [
+      {
+        "topic_id": "law-justice",
+        "url": "https://www.spp.gov.cn/",
+        "materials": "未成年人检察、公益诉讼、校园保护、网络犯罪",
+        "priority": "P0"
+      }
+    ],
+    "priority": "P0",
+    "access": "public_web"
+  },
+  {
+    "id": "moj",
+    "name": "司法部·智慧普法",
+    "category": "法律案例",
+    "stages": [
+      "小学",
+      "初中"
+    ],
+    "url": "https://legalinfo.moj.gov.cn/zxxfyasf/",
+    "kind": "case",
+    "categories": [
+      "law-justice"
+    ],
+    "entries": [
+      {
+        "topic_id": "law-justice",
+        "url": "https://legalinfo.moj.gov.cn/zxxfyasf/",
+        "materials": "生活法律纠纷、普法故事、法律解释",
+        "priority": "P0"
+      }
+    ],
+    "priority": "P0",
+    "access": "public_web"
+  },
+  {
+    "id": "law",
+    "name": "国家法律法规数据库",
+    "category": "法律案例",
+    "stages": [
+      "初中",
+      "高中"
+    ],
+    "url": "https://flk.npc.gov.cn/search",
+    "kind": "law",
+    "categories": [
+      "law-justice"
+    ],
+    "entries": [
+      {
+        "topic_id": "law-justice",
+        "url": "https://flk.npc.gov.cn/search",
+        "materials": "宪法、法律、行政法规、司法解释等权威文本",
+        "priority": "P0"
+      }
+    ],
+    "priority": "P0",
+    "access": "public_web"
+  },
+  {
+    "id": "court-library",
+    "name": "人民法院案例库",
+    "category": "法律与司法案例",
+    "stages": [
+      "小学",
+      "初中",
+      "高中"
+    ],
+    "url": "https://rmfyalk.court.gov.cn/",
+    "kind": "case",
+    "categories": [
+      "law-justice"
+    ],
+    "entries": [
+      {
+        "topic_id": "law-justice",
+        "url": "https://rmfyalk.court.gov.cn/",
+        "materials": "经审核的指导性案例、参考案例、未成年人权益保护案例",
+        "priority": "P1"
+      }
+    ],
+    "priority": "P1",
+    "access": "requires_login"
+  },
+  {
+    "id": "ndrc",
+    "name": "国家发展改革委",
+    "category": "政策治理",
+    "stages": [
+      "高中"
+    ],
+    "url": "https://www.ndrc.gov.cn/",
+    "kind": "policy",
+    "categories": [
+      "policy-governance",
+      "economy-technology",
+      "ecology-practice"
+    ],
+    "entries": [
+      {
+        "topic_id": "policy-governance",
+        "url": "https://www.ndrc.gov.cn/xxgk/",
+        "materials": "经济社会发展政策、重大规划、改革措施",
+        "priority": "P0"
+      },
+      {
+        "topic_id": "economy-technology",
+        "url": "https://www.ndrc.gov.cn/",
+        "materials": "重大建设项目、区域协调发展、经济改革成果",
+        "priority": "P0"
+      },
+      {
+        "topic_id": "ecology-practice",
+        "url": "https://www.ndrc.gov.cn/xwdt/ztzl/jljqstcpjzsxjz/jdal/",
+        "materials": "绿水青山转化实践、生态经济、可持续发展",
+        "priority": "P1"
+      }
+    ],
+    "priority": "P0",
+    "access": "public_web"
+  },
+  {
+    "id": "scio",
+    "name": "国务院新闻办公室",
+    "category": "政策与国家治理",
+    "stages": [
+      "初中",
+      "高中"
+    ],
+    "url": "https://www.scio.gov.cn/",
+    "kind": "case",
+    "categories": [
+      "policy-governance"
+    ],
+    "entries": [
+      {
+        "topic_id": "policy-governance",
+        "url": "https://www.scio.gov.cn/",
+        "materials": "重要政策新闻发布会、白皮书、专题解读、官方答问",
+        "priority": "P1"
+      }
+    ],
+    "priority": "P1",
+    "access": "public_web"
+  },
+  {
+    "id": "stats",
+    "name": "国家统计局",
+    "category": "经济科技",
+    "stages": [
+      "高中"
+    ],
+    "url": "https://www.stats.gov.cn/sj/",
+    "kind": "data",
+    "categories": [
+      "economy-technology"
+    ],
+    "entries": [
+      {
+        "topic_id": "economy-technology",
+        "url": "https://www.stats.gov.cn/sj/",
+        "materials": "GDP、收入、就业、产业结构、人口、城乡发展等数据",
+        "priority": "P0"
+      }
+    ],
+    "priority": "P0",
+    "access": "public_web"
+  },
+  {
+    "id": "miit",
+    "name": "工业和信息化部·制造业数字化转型平台",
+    "category": "经济发展与科技创新",
+    "stages": [
+      "初中",
+      "高中"
+    ],
+    "url": "https://szgx.miit.gov.cn/",
+    "kind": "case",
+    "categories": [
+      "economy-technology"
+    ],
+    "entries": [
+      {
+        "topic_id": "economy-technology",
+        "url": "https://szgx.miit.gov.cn/",
+        "materials": "数字经济、智能制造、新质生产力、产业创新实践",
+        "priority": "P0"
+      }
+    ],
+    "priority": "P0",
+    "access": "public_web"
+  },
+  {
+    "id": "cas",
+    "name": "中国科学院学部与院士",
+    "category": "经济发展与科技创新",
+    "stages": [
+      "初中",
+      "高中"
+    ],
+    "url": "https://ad.cas.cn/",
+    "kind": "case",
+    "categories": [
+      "economy-technology"
+    ],
+    "entries": [
+      {
+        "topic_id": "economy-technology",
+        "url": "https://ad.cas.cn/",
+        "materials": "科学家故事、重大科学成果、科研创新、科技伦理",
+        "priority": "P1"
+      }
+    ],
+    "priority": "P1",
+    "access": "public_web"
+  },
+  {
+    "id": "cnsa",
+    "name": "国家航天局",
+    "category": "经济发展与科技创新",
+    "stages": [
+      "初中",
+      "高中"
+    ],
+    "url": "https://www.cnsa.gov.cn/",
+    "kind": "case",
+    "categories": [
+      "economy-technology"
+    ],
+    "entries": [
+      {
+        "topic_id": "economy-technology",
+        "url": "https://www.cnsa.gov.cn/",
+        "materials": "航天科技、探月工程、重大航天任务、科研突破",
+        "priority": "P1"
+      }
+    ],
+    "priority": "P1",
+    "access": "public_web"
+  },
+  {
+    "id": "npc",
+    "name": "中国人大网",
+    "category": "民主实践",
+    "stages": [
+      "初中",
+      "高中"
+    ],
+    "url": "https://v.npc.gov.cn/",
+    "kind": "case",
+    "categories": [
+      "democracy-participation"
+    ],
+    "entries": [
+      {
+        "topic_id": "democracy-participation",
+        "url": "https://v.npc.gov.cn/",
+        "materials": "人大代表履职、代表建议、立法活动、民主实践",
+        "priority": "P0"
+      }
+    ],
+    "priority": "P0",
+    "access": "public_web"
+  },
+  {
+    "id": "cppcc",
+    "name": "中国政协网",
+    "category": "民主实践",
+    "stages": [
+      "高中"
+    ],
+    "url": "https://www.cppcc.gov.cn/",
+    "kind": "case",
+    "categories": [
+      "democracy-participation"
+    ],
+    "entries": [
+      {
+        "topic_id": "democracy-participation",
+        "url": "https://www.cppcc.gov.cn/",
+        "materials": "政协提案、委员履职、协商民主、调查研究",
+        "priority": "P0"
+      }
+    ],
+    "priority": "P0",
+    "access": "public_web"
+  },
+  {
+    "id": "moa",
+    "name": "农业农村部",
+    "category": "基层实践",
+    "stages": [
+      "初中",
+      "高中"
+    ],
+    "url": "https://shsys.moa.gov.cn/",
+    "kind": "case",
+    "categories": [
+      "democracy-participation",
+      "ecology-practice"
+    ],
+    "entries": [
+      {
+        "topic_id": "democracy-participation",
+        "url": "https://shsys.moa.gov.cn/",
+        "materials": "村民自治、乡村公共事务、基层公共服务、乡村治理",
+        "priority": "P0"
+      },
+      {
+        "topic_id": "ecology-practice",
+        "url": "https://shsys.moa.gov.cn/ncggfw/",
+        "materials": "乡村公共服务、养老、医疗、公共文化、乡村振兴",
+        "priority": "P0"
+      }
+    ],
+    "priority": "P0",
+    "access": "public_web"
+  },
+  {
+    "id": "history",
+    "name": "中央党史和文献研究院",
+    "category": "历史文化",
+    "stages": [
+      "小学",
+      "初中",
+      "高中"
+    ],
+    "url": "https://www.dswxyjy.org.cn/",
+    "kind": "case",
+    "categories": [
+      "history-culture"
+    ],
+    "entries": [
+      {
+        "topic_id": "history-culture",
+        "url": "https://www.dswxyjy.org.cn/",
+        "materials": "党史国史、历史人物、历史文献、重大历史事件",
+        "priority": "P0"
+      }
+    ],
+    "priority": "P0",
+    "access": "public_web"
+  },
+  {
+    "id": "museum",
+    "name": "中国国家博物馆·数字展厅",
+    "category": "历史文化与国家认同",
+    "stages": [
+      "小学",
+      "初中",
+      "高中"
+    ],
+    "url": "https://www.chnmuseum.cn/portals/0/web/vr/",
+    "kind": "case",
+    "categories": [
+      "history-culture"
+    ],
+    "entries": [
+      {
+        "topic_id": "history-culture",
+        "url": "https://www.chnmuseum.cn/portals/0/web/vr/",
+        "materials": "革命文物、历史展览、中华文明、国家发展历程",
+        "priority": "P0"
+      }
+    ],
+    "priority": "P0",
+    "access": "public_web"
+  },
+  {
+    "id": "ncha",
+    "name": "国家文物局",
+    "category": "历史文化与国家认同",
+    "stages": [
+      "小学",
+      "初中",
+      "高中"
+    ],
+    "url": "https://www.ncha.gov.cn/",
+    "kind": "case",
+    "categories": [
+      "history-culture"
+    ],
+    "entries": [
+      {
+        "topic_id": "history-culture",
+        "url": "https://www.ncha.gov.cn/",
+        "materials": "革命文物、文物保护、文化遗产、历史遗址",
+        "priority": "P1"
+      }
+    ],
+    "priority": "P1",
+    "access": "public_web"
+  },
+  {
+    "id": "ich",
+    "name": "中国非物质文化遗产网·国家级名录",
+    "category": "历史文化与国家认同",
+    "stages": [
+      "小学",
+      "初中",
+      "高中"
+    ],
+    "url": "https://www.ihchina.cn/project",
+    "kind": "case",
+    "categories": [
+      "history-culture"
+    ],
+    "entries": [
+      {
+        "topic_id": "history-culture",
+        "url": "https://www.ihchina.cn/project",
+        "materials": "传统技艺、非遗项目、传统节日、文化传承",
+        "priority": "P1"
+      }
+    ],
+    "priority": "P1",
+    "access": "public_web"
+  },
+  {
+    "id": "mfa",
+    "name": "外交部",
+    "category": "历史文化与国家认同",
+    "stages": [
+      "小学",
+      "初中",
+      "高中"
+    ],
+    "url": "https://www.mfa.gov.cn/",
+    "kind": "case",
+    "categories": [
+      "history-culture"
+    ],
+    "entries": [
+      {
+        "topic_id": "history-culture",
+        "url": "https://www.mfa.gov.cn/",
+        "materials": "国家外交实践、国际合作、国家主权、国际关系",
+        "priority": "P1"
+      }
+    ],
+    "priority": "P1",
+    "access": "public_web"
+  },
+  {
+    "id": "mee",
+    "name": "生态环境部",
+    "category": "生态实践",
+    "stages": [
+      "小学",
+      "初中",
+      "高中"
+    ],
+    "url": "https://www.mee.gov.cn/home/ztbd/2022/sthjpf/sthjshpcdxal/index.shtml",
+    "kind": "case",
+    "categories": [
+      "ecology-practice"
+    ],
+    "entries": [
+      {
+        "topic_id": "ecology-practice",
+        "url": "https://www.mee.gov.cn/home/ztbd/2022/sthjpf/sthjshpcdxal/index.shtml",
+        "materials": "环境治理、生态修复、生物多样性保护、生态损害赔偿",
+        "priority": "P0"
+      }
+    ],
+    "priority": "P0",
+    "access": "public_web"
+  },
+  {
+    "id": "smartedu",
+    "name": "国家中小学智慧教育平台·德育",
+    "category": "生态文明与社会实践",
+    "stages": [
+      "小学",
+      "初中",
+      "高中"
+    ],
+    "url": "https://basic.smartedu.cn/sedu",
+    "kind": "teaching-resource",
+    "categories": [
+      "ecology-practice"
+    ],
+    "entries": [
+      {
+        "topic_id": "ecology-practice",
+        "url": "https://basic.smartedu.cn/sedu",
+        "materials": "德育专题视频、教育资源、社会实践及教学参考",
+        "priority": "P1"
+      }
+    ],
+    "priority": "P1",
+    "access": "public_web"
+  }
+]

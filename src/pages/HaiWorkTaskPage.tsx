@@ -495,6 +495,11 @@ function formatDateTime(value: string) {
 }
 
 function workPhaseLabel(run?: HaiWorkRun, tool?: string) {
+  if (run?.execution_phase === "case_plan") return "正在围绕已确认的教学重点查找案例";
+  if (run?.execution_phase === "case_search") return "正在优质信源中搜索相关案例";
+  if (run?.execution_phase === "case_read") return "正在读取案例原文，核对事实来源";
+  if (run?.execution_phase === "case_review") return "正在检查案例是否回应重点、适配学情、信息完整";
+  if (run?.execution_phase === "case_done") return "案例资料已准备好，正在生成教案";
   if (tool === "subject-lesson-design" && run?.workflow_state?.stage === "focus") return "正在结合课标、教材与学情，整理本课的教学重点";
   if (run?.workflow_state?.stage === "mode" && tool === "subject-lesson-design") return "正在围绕教学重点比较合适的教学模式";
   if (run?.workflow_state?.stage === "mode") return "正在根据教材与目标整理候选方案";

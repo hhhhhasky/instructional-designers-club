@@ -1,4 +1,6 @@
 import type { UnitReferences } from "../_shared/hai_unit_skill.ts";
+import { CASE_RETRIEVAL_SKILL } from "../_shared/hai_case_retrieval.ts";
+import { loadCaseSkill } from "../_shared/hai_case_skill.ts";
 import { PUBLIC_LESSON_SKILL, publicLessonReferences } from "../_shared/hai_public_lesson.ts";
 import { initialWorkflow } from "../_shared/hai_workflow.ts";
 import { loadUnitTextbookContext, loadUnitCurriculumContext } from "../_shared/hai_unit_context.ts";
@@ -146,6 +148,8 @@ Deno.serve(async (request) => {
     const module = await loadModule(auth.admin, toolSlug);
     const materials = await loadMaterials(auth.admin, auth.user.id, materialIds);
     const fourStageLesson = toolSlug === "subject-lesson-design" && body.workflowVersion === 2;
+    const caseRetrieval = fourStageLesson && ["道德与法治", "思想政治"].includes(String(input.subject)) && !body.parentArtifactId
+      ? await loadCaseSkill(auth.admin) : null;
     let skill = await loadSelectedSkill(auth.admin, toolSlug, input, fourStageLesson);
     const unitReferences: UnitReferences | undefined = toolSlug === "unit-learning-design" && body.workflowVersion === 1 && !body.parentArtifactId && skill.version.input_contract.mode_templates === true
       ? skill.version.references ?? [] : undefined;
@@ -313,6 +317,7 @@ Deno.serve(async (request) => {
         p_payload: {
           prompt, module: { slug: module.slug, model_provider_id: module.model_provider_id },
           completionOptions, estimatedInputTokens, ...(workflow ? { workflow } : {}), ...(lessonReferences ? { lessonReferences } : {}), ...(unitReferences ? { unitReferences } : {}),
+          ...(caseRetrieval ? { caseRetrieval, caseInput: { stage: input.stage, grade: input.grade, learner_context: input.learner_context, student_profile: input.student_profile, learning_situation: input.learning_situation } } : {}),
           title: buildWorkArtifactTitle(toolSlug, module.name, input),
           artifactKind: toolSlug === "unit-learning-design" ? "unit_learning_package" : generationMode === "lesson-plan-optimization" ? "lesson_plan_optimization" : "diagnosis_report",
         },
@@ -348,7 +353,7 @@ async function loadSelectedSkill(admin: any, moduleSlug: string, input: Record<s
     "id, slug, name, description, match_criteria, priority, is_fallback",
   ).eq("module_slug", moduleSlug).eq("is_enabled", true);
   if (error) throw new HttpError(500, error.message);
-  const applicableSkills = (skills ?? []).filter((item: any) => fourStageLesson ? item.slug === PUBLIC_LESSON_SKILL : item.slug !== PUBLIC_LESSON_SKILL);
+  const applicableSkills = (skills ?? []).filter((item: any) => item.slug !== CASE_RETRIEVAL_SKILL && (fourStageLesson ? item.slug === PUBLIC_LESSON_SKILL : item.slug !== PUBLIC_LESSON_SKILL));
   const skillIds = applicableSkills.map((item: any) => item.id);
   const { data: versions, error: versionError } = skillIds.length > 0
     ? await admin.from("hai_work_skill_versions").select(

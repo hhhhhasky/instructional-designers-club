@@ -1,4 +1,5 @@
 import { unitLessonBaseUser } from "../_shared/hai_unit_prompt.ts";
+import { caseNeed, initialCaseState, stepCaseRetrieval, DeepSeekCaseWeb, caseEvidenceContext, caseSourceAppendix, type CaseConfig, type CaseState } from "../_shared/hai_case_retrieval.ts";
 import { appendUnitReferences, type UnitReferences } from "../_shared/hai_unit_skill.ts";
 import { appendLessonReferences, type LessonReferences } from "../_shared/hai_public_lesson.ts";
 import { workflowPrompt, parseWorkflowOutput, type WorkWorkflow } from "../_shared/hai_workflow.ts";
@@ -44,6 +45,9 @@ type Job = {
     workflow?: WorkWorkflow;
     lessonReferences?: LessonReferences;
     unitReferences?: UnitReferences;
+    caseRetrieval?: CaseConfig;
+    caseInput?: Record<string, unknown>;
+    caseState?: CaseState;
   };
 };
 
@@ -53,6 +57,7 @@ type Dependencies = {
   generate: typeof collectWorkModelOutput;
   recordCall: typeof recordHaiModelCall;
   heartbeatMs?: number;
+  caseWeb?: Pick<DeepSeekCaseWeb, "search" | "read">;
 };
 
 async function rpc<T>(
@@ -118,6 +123,66 @@ export async function handleWorkWorker(
       // One bounded model call per invocation; an empty-output repair is another
       // durable phase and receives its own worker invocation and time budget.
       const flow = job.payload.workflow;
+      const caseConfig = job.payload.caseRetrieval;
+      let caseState = caseConfig && flow?.version === 2 && flow.stage === "result"
+        ? initialCaseState(caseNeed(job.payload.caseInput ?? {}, flow), job.payload.caseState) : undefined;
+      if (caseConfig && caseState && caseState.phase !== "done") {
+        if (caseConfig.billing_version === 1) {
+          try { await rpc(admin, "hai_prepare_web_tool_billing", ownership); }
+          catch (error) {
+            await rpc(admin, "hai_checkpoint_case_retrieval", { ...ownership, p_state: caseState,
+              p_error: error instanceof Error ? error.message : "检索积分预留失败。" });
+            await admin.rpc("hai_dispatch_work_jobs");
+            return jsonResponse({ accepted: true, runId: job.run_id });
+          }
+        }
+        const reserved = structuredClone(caseState);
+        // Persist request counts before calling the provider, so an interrupted
+        // invocation cannot restore the budget when the teacher retries.
+        if (reserved.phase === "search" && reserved.queries.length && reserved.searches < caseConfig.searches && reserved.reads < caseConfig.pages) reserved.searches++;
+        if (reserved.phase === "read" && reserved.reads < caseConfig.pages && reserved.candidates.some(c => !reserved.tried_urls.includes(c.url))) reserved.reads++;
+        await rpc(admin, "hai_checkpoint_case_retrieval", { ...ownership, p_state: reserved, p_release: false });
+        let modelAttempt: Record<string, unknown> | null = null;
+        try {
+          const providerWeb = dependencies?.caseWeb ?? new DeepSeekCaseWeb(Deno.env.get("HAI_CASE_SEARCH_API_KEY") || Deno.env.get("DEEPSEEK_API_KEY") || "");
+          const meteredWeb = {
+            search: async (...args: Parameters<DeepSeekCaseWeb["search"]>) => {
+              const results = await providerWeb.search(...args);
+              if (caseConfig.billing_version === 1 && (results.billable ?? results.length > 0)) {
+                await rpc(admin, "hai_record_web_tool_success", { ...ownership, p_tool_kind: "search", p_request_number: reserved.searches });
+              }
+              return results;
+            },
+            read: async (...args: Parameters<DeepSeekCaseWeb["read"]>) => {
+              const page = await providerWeb.read(...args);
+              if (caseConfig.billing_version === 1 && page.content.trim()) {
+                await rpc(admin, "hai_record_web_tool_success", { ...ownership, p_tool_kind: "fetch", p_request_number: reserved.reads });
+              }
+              return page;
+            },
+          };
+          caseState = await stepCaseRetrieval(caseState, caseConfig, meteredWeb,
+            async prompt => {
+              const value = await (dependencies?.generate ?? collectWorkModelOutput)({ ...prompt,
+                module: job.payload.module, completionOptions: { ...job.payload.completionOptions, thinkingEnabled: false, maxTokens: 2400, responseFormat: "json_object" },
+                userId: job.user_id, admin });
+              modelAttempt = { ...value, purpose: `case_${caseState!.phase}`, attempt: (flow?.attempts?.length ?? 0) + 1,
+                call_input_tokens: estimateTokens(prompt.system) + estimateTokens(prompt.user),
+                call_output_tokens: estimateTokens(value.output), estimated_input_tokens: estimateTokens(prompt.system) + estimateTokens(prompt.user),
+                estimated_output_tokens: estimateTokens(value.output) };
+              if (value.error) throw new Error(value.error);
+              return value.output;
+            });
+          if (leaseLost) throw new Error("后台执行权已失效。");
+          await rpc(admin, "hai_checkpoint_case_retrieval", { ...ownership, p_state: caseState, p_attempt: modelAttempt,
+            p_error: caseState.phase === "failed" ? caseState.gaps.join("；") || "预算内未找到可用案例。" : null });
+        } catch (error) {
+          await rpc(admin, "hai_checkpoint_case_retrieval", { ...ownership, p_state: reserved, p_attempt: modelAttempt,
+            p_error: error instanceof Error ? error.message : "案例检索未完成。" });
+        }
+        await admin.rpc("hai_dispatch_work_jobs");
+        return jsonResponse({ accepted: true, runId: job.run_id });
+      }
       const preview = flow && flow.stage !== "result";
       const unitMode = job.payload.module.slug === "unit-learning-design" && !preview;
       const stagePrompt = flow?.version === 2 && flow.stage !== "focus" && job.payload.module.slug === "subject-lesson-design"
@@ -130,13 +195,14 @@ export async function handleWorkWorker(
       const basePrompt = flow ? workflowPrompt(unitPrompt, flow, job.payload.module.slug, Boolean(unitRefs)) : unitPrompt;
       const plan = job.attempts[0]?.unit_plan;
       const nextLesson = plan?.lessons[job.attempts.length - 1];
-      const prompt = unitMode && plan && nextLesson ? {
+      let prompt = unitMode && plan && nextLesson ? {
         system: unitRefs ? basePrompt.system : `${basePrompt.system}\n\n本阶段只生成一份独立课时教案。输出完整 Markdown，不要 JSON。严格使用本阶段加载的对应模式单课模板八部分结构。目标数量与活动安排依据本课实际内容，不预设固定数量。不要重新生成整体设计。`,
         user: `${basePrompt.user}\n\n## 已确定的单元整体设计\n${plan.markdown}\n\n## 本次课时（第 ${job.attempts.length} 课，共 ${plan.lessons.length} 课）\n${JSON.stringify(nextLesson)}${unitRefs ? "" : `\n\n## 前一课教案（用于承接；不可用同上代替本课正文）\n${job.attempts.length > 1 ? job.attempts[job.attempts.length - 1].file?.markdown ?? "" : "这是第一课，安排起点诊断。"}`}`,
       } : unitMode ? {
         system: basePrompt.system,
         user: `${basePrompt.user}\n\n## 本阶段接口输出要求\n只返回一个 JSON 对象，必须同时有 lessons 和 markdown 两个顶层字段。先写 lessons：按实际课时逐项列出 title、lesson_type、objectives、subtask、subquestion、connection、source_paths；不得只在正文表格中规划课时。再写 markdown：完整单元整体设计正文（含基本信息及七项栏目）。两个字段缺一会导致本次任务失败。只生成整体设计与课时清单，完整课时教案由后续阶段逐份生成。`,
       } : basePrompt;
+      if (caseState?.phase === "done") prompt = { ...prompt, user: prompt.user + caseEvidenceContext(caseState) };
       const result = await (dependencies?.generate ?? collectWorkModelOutput)({
         ...prompt,
         module: job.payload.module,
@@ -150,7 +216,7 @@ export async function handleWorkWorker(
       if (leaseLost) throw new Error("后台执行权已失效，未保存迟到结果。");
       const attempt: Attempt = {
         ...result,
-        markdown: normalizeWorkMarkdown(result.output),
+        markdown: normalizeWorkMarkdown(result.output) + (!result.error && result.output.trim() && caseState?.phase === "done" ? caseSourceAppendix(caseState) : ""),
         raw_output: result.output,
         output_chars: result.output.length,
         purpose: preview ? `workflow_${flow.stage}` : unitMode ? plan ? "unit_lesson" : "unit_overall" : job.phase === "initial" ? "initial" : "empty_output_repair",

@@ -1,4 +1,5 @@
 import HaiImagePromptManagement from "@/components/admin/HaiImagePromptManagement";
+import WebToolBillingSettings from "@/components/admin/hai/WebToolBillingSettings";
 import { HaiConfigWorkspace, HaiConfigPage } from "@/components/admin/hai/HaiConfigWorkspace";
 import { BookOpen, Bot, ChevronDown, Coins, Cpu, KeyRound, Loader2, Pencil, Plus, RefreshCw, Save, SlidersHorizontal, Trash2, X } from "lucide-react";
 import type { ReactNode } from "react";
@@ -196,7 +197,7 @@ export default function HaiManagementSection() {
   const [pointPackageDraft, setPointPackageDraft] = useState<HaiPointPackageRow>(() => createEmptyPointPackage());
   const [editingPointPackageId, setEditingPointPackageId] = useState<string | null>(null);
   const [pointPackageStatus, setPointPackageStatus] = useState("");
-  const [cnyPerPointDraft, setCnyPerPointDraft] = useState("0.10");
+  const [cnyPerPointDraft, setCnyPerPointDraft] = useState("0.01");
   const [knowledgeDraft, setKnowledgeDraft] = useState({ title: "", topic: "教学设计理论", content: "" });
   const [knowledgeEdit, setKnowledgeEdit] = useState<{ id: string; title: string; topic: string; content: string } | null>(null);
   const [loadingKnowledgeId, setLoadingKnowledgeId] = useState("");
@@ -238,7 +239,7 @@ export default function HaiManagementSection() {
     ))
   ), [pointMultiplierDrafts, pointMultiplierSettings, tokensPerPoint, tokensPerPointDraft]);
   const cnyPerPoint = useMemo(() => Number(
-    runtimeSettings.find((setting) => setting.key === "points.cny_per_point")?.value ?? 0.1,
+    runtimeSettings.find((setting) => setting.key === "points.cny_per_point")?.value ?? 0.01,
   ), [runtimeSettings]);
   const cnyPerPointSetting = useMemo(
     () => runtimeSettings.find((setting) => setting.key === "points.cny_per_point") ?? null,
@@ -248,6 +249,8 @@ export default function HaiManagementSection() {
     const dedicatedKeys = new Set([
       "points.tokens_per_point",
       "points.cny_per_point",
+      "points.web_search_cny_per_1000",
+      "points.web_fetch_cny_per_1000",
       "points.wecom_qr_url",
       "points.newcomer_grant_points",
       "points.newcomer_plus_points",
@@ -617,7 +620,7 @@ export default function HaiManagementSection() {
     if (!cnyPerPointSetting || saving) return;
     const next = Number(cnyPerPointDraft);
     if (!Number.isFinite(next) || next < 0.01) {
-      setPointPackageStatus("每积分售价必须大于或等于 0.01 元。");
+      setPointPackageStatus("每积分基础金额必须大于或等于 0.01 元。");
       return;
     }
     setSaving(true);
@@ -626,7 +629,7 @@ export default function HaiManagementSection() {
       const saved = await updateRuntimeSetting(cnyPerPointSetting, next, true);
       if (!saved) return;
       setCnyPerPointDraft(String(next));
-      setPointPackageStatus(`金额-积分对应关系已保存：每 1 积分售价 ¥${next.toFixed(2)}。`);
+      setPointPackageStatus(`金额-积分对应关系已保存：每 1 积分基础金额 ¥${next.toFixed(2)}。`);
     } finally {
       setSaving(false);
     }
@@ -1458,7 +1461,7 @@ export default function HaiManagementSection() {
 
       <HaiConfigPage section="points"
         title="积分与套餐设置"
-        description="积分消耗规则与购买页套餐均保存到数据库，保存后立即同步前端。"
+        description="模型消耗、联网检索与网页抓取的积分规则，以及购买套餐均由这里管理。"
         icon={<Coins className="h-5 w-5" />}
         summary={`${pointPackages.filter((row) => row.is_enabled).length} 个启用套餐`}
         defaultOpen
@@ -1536,6 +1539,8 @@ export default function HaiManagementSection() {
           </p>
         </div>
 
+        <WebToolBillingSettings settings={runtimeSettings} cnyPerPoint={cnyPerPoint} onSaved={(search, fetch) => setRuntimeSettings(current => current.map(setting => setting.key === "points.web_search_cny_per_1000" ? { ...setting, value: search, enabled: true } : setting.key === "points.web_fetch_cny_per_1000" ? { ...setting, value: fetch, enabled: true } : setting))} />
+
         <div className="mt-5 flex items-end justify-between gap-3">
           <div>
             <h3 className="text-ds-base font-ds-bold text-tx">购买页套餐管理</h3>
@@ -1549,7 +1554,7 @@ export default function HaiManagementSection() {
 
         <div className="mt-3 flex flex-col gap-2 rounded-ds-md border border-bd bg-white p-3 sm:flex-row sm:items-end">
           <label className="min-w-0 flex-1">
-            <span className="mb-1 block text-ds-xs font-ds-semibold text-txs">每 1 积分售价</span>
+            <span className="mb-1 block text-ds-xs font-ds-semibold text-txs">每 1 积分基础金额</span>
             <div className="flex items-center gap-2">
               <span className="text-ds-sm text-txs">¥</span>
               <input
@@ -1559,7 +1564,7 @@ export default function HaiManagementSection() {
                 value={cnyPerPointDraft}
                 onChange={(event) => setCnyPerPointDraft(event.target.value)}
                 className="h-9 min-w-0 flex-1 rounded-ds-sm border border-bd bg-bg px-2 text-ds-sm"
-                aria-label="每 1 积分售价"
+                aria-label="每 1 积分基础金额"
               />
             </div>
           </label>
