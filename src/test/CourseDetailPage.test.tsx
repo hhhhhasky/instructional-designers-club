@@ -245,13 +245,13 @@ describe('CourseDetailPage — 课程导航功能', () => {
   });
 
   // ============================
-  // 测试点 1：面包屑导航显示
+  // 测试点 1：精简学习区顶部信息
   // ============================
-  it('面包屑显示「教师AI课 > 分类名 > 课程标题」', async () => {
+  it('移除课程位置文字，保留目录与课程内容', async () => {
     await renderAndWait('c1');
 
-    expect(screen.getByText('教师AI课')).toBeInTheDocument();
-    // "教学设计" 出现在多个位置（面包屑、Badge、目录标题），用 getAllByText
+    expect(screen.queryByLabelText('课程位置')).not.toBeInTheDocument();
+    // 分类仍可在课程标签与目录中识别。
     expect(screen.getAllByText('教学设计').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('第一节：导入').length).toBeGreaterThanOrEqual(1);
   });
@@ -360,7 +360,7 @@ describe('CourseDetailPage — 课程导航功能', () => {
     await renderAndWait('c1');
 
     expect(screen.getByTestId('course-reading-desk')).toBeInTheDocument();
-    expect(screen.getByText('READING DESK · 课程阅读桌')).toBeInTheDocument();
+    expect(screen.queryByText('READING DESK · 课程阅读桌')).not.toBeInTheDocument();
     expect(screen.getByRole('progressbar', { name: '当前课程完成度' })).toHaveAttribute(
       'aria-valuenow',
       '0',
@@ -395,16 +395,15 @@ describe('CourseDetailPage — 课程导航功能', () => {
   });
 
   // ============================
-  // 测试点 2：面包屑点击返回教师AI课
+  // 测试点 2：保留唯一的顶部课程返回入口
   // ============================
-  it('点击面包屑中的「教师AI课」导航到 /teacher-ai-courses', async () => {
-    const user = userEvent.setup();
+  it('顶部返回对应课程目录，课程位置不再提供重复返回按钮', async () => {
     await renderAndWait('c1');
 
     expect(screen.getByRole('link', { name: '返回课程目录' })).toHaveAttribute('href', '/teacher-ai-courses');
     expect(screen.queryByTestId('header')).not.toBeInTheDocument();
-    await user.click(screen.getByText('教师AI课'));
-    expect(mockNavigate).toHaveBeenCalledWith('/teacher-ai-courses');
+    expect(screen.getAllByRole('link', { name: '返回课程目录' })).toHaveLength(1);
+    expect(screen.queryByLabelText('课程位置')).not.toBeInTheDocument();
   });
 
   // ============================
@@ -585,8 +584,7 @@ describe('CourseDetailPage — 课程导航功能', () => {
     expect(screen.getAllByText('第三节：实践').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('Plus 课程按分类系列加载目录并返回篇章锚点', async () => {
-    const user = userEvent.setup();
+  it('Plus 课程按分类系列加载目录，顶部返回保留篇章锚点', async () => {
     const plusCourses = [
       makeCourse({
         id: 'p1',
@@ -623,8 +621,7 @@ describe('CourseDetailPage — 课程导航功能', () => {
     expect(screen.getAllByText('说课篇').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('说课篇02：教材分析').length).toBeGreaterThanOrEqual(1);
 
-    await user.click(screen.getByText('场景篇'));
-    expect(mockNavigate).toHaveBeenCalledWith('/courses#scenarios-%E8%AF%B4%E8%AF%BE%E7%AF%87');
+    expect(screen.getByRole('link', { name: '返回课程目录' })).toHaveAttribute('href', '/courses#scenarios-%E8%AF%B4%E8%AF%BE%E7%AF%87');
   });
 
   // ============================
@@ -837,8 +834,7 @@ describe('正常课程详情按课程产品展示道法视频与正文', () => {
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByRole('link', { name: /5\s*三元对齐画布/ })).toHaveAttribute('href', '/courses/daofa/alignment-canvas');
     await userEvent.keyboard('{Escape}');
-    await userEvent.click(screen.getByRole('button', { name: '道法教材解读课' }));
-    expect(mockNavigate).toHaveBeenLastCalledWith('/courses/daofa');
+    expect(screen.getByRole('link', { name: '返回课程目录' })).toHaveAttribute('href', '/courses/daofa');
   });
 
   it('只有body没有视频时仍正常显示正文，不出现独立讲义iframe', async () => {

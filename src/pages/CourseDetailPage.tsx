@@ -1,6 +1,5 @@
 import {
   AlertCircle,
-  ArrowLeft,
   Award,
   BookOpen,
   CheckCircle2,
@@ -834,28 +833,6 @@ export default function CourseDetailPage() {
         data-testid="course-reading-desk"
         className="flex-1 pt-0 pb-ds-11 lg:min-h-0 lg:flex lg:flex-col lg:overflow-hidden lg:pb-4"
       >
-        {/* Breadcrumb — 不用动画，避免叠层上下文问题 */}
-        <div className="max-w-7xl mx-auto w-full px-4 pt-5 pb-2 lg:flex-none">
-          <span className="editorial-kicker">READING DESK · 课程阅读桌</span>
-          <div className="mt-2 flex items-center gap-1.5 text-sm text-tx/60" aria-label="课程位置">
-            <button
-              onClick={handleBack}
-              className="inline-flex items-center gap-1 hover:text-ac transition-colors group"
-            >
-              <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
-              {getCourseListName(course.membership_type)}
-            </button>
-            {courseCollectionLabel && (
-              <>
-                <ChevronRight className="w-3.5 h-3.5 text-tx/30" />
-                <span className="text-tx/80 font-medium">{courseCollectionLabel}</span>
-              </>
-            )}
-            <ChevronRight className="w-3.5 h-3.5 text-tx/30" />
-            <span className="truncate max-w-[200px] text-tx/60">{course.title}</span>
-          </div>
-        </div>
-
         {/* 管理员预览横幅 */}
         {profile?.role === 'admin' && course.status !== 'published' && (
           <div className="max-w-7xl mx-auto w-full px-4 pt-3 lg:flex-none">
