@@ -7,9 +7,9 @@ import { canAccessCourse } from '@/lib/access-control';
 import { COURSE_PURCHASE_PRODUCTS } from '@/lib/course-purchase';
 
 const COURSE_DETAILS = [
-  { topic: '教学设计与课堂实践', headline: '把一堂课，想清楚。', color: 'var(--sage)', background: 'var(--sage-soft)', words: ['理解学习', '设计教学', '改进课堂'], content: '从学习与教学的底层规律，到教材、学情、目标、活动和评价，建立一套能用在日常课、说课与公开课中的设计方法。', audience: '想系统理顺备课思路的老师' },
-  { topic: 'AI 工具与教学协作', headline: '让 AI，接住具体工作。', color: 'var(--brown)', background: 'var(--brown-soft)', words: ['认识工具', '人机协作', '工作流程'], content: '理解 AI 工具的用法，把教学分析、教学设计与课程开发中的具体工作交给 AI 辅助完成，同时保留教师自己的判断。', audience: '想把 AI 用进教学工作的老师' },
-  { topic: '课标、教材与单课解读', headline: '读懂教材，才好教。', color: 'var(--slate)', background: 'var(--slate-soft)', words: ['课程标准', '单元结构', '单课教学'], content: '从总论到一至九年级分册，贯通道德与法治课标、教材单元与单课内容，理解教材为什么这样编、课堂可以怎样教。', audience: '需要深入研读道法教材的老师' },
+  { topic: '教学设计与课堂实践', headline: '把一堂课，想清楚。', color: 'var(--sage)', background: 'var(--sage-soft)', words: ['理解学习', '设计教学', '改进课堂'], content: '从学习与教学的底层规律，到教材、学情、目标、活动和评价，建立一套能用在日常课、说课与公开课中的设计方法。', audience: '想系统理顺备课思路的老师', haiSupported: true },
+  { topic: 'AI 工具与教学协作', headline: '让 AI，接住具体工作。', color: 'var(--brown)', background: 'var(--brown-soft)', words: ['认识工具', '人机协作', '工作流程'], content: '理解 AI 工具的用法，把教学分析、教学设计与课程开发中的具体工作交给 AI 辅助完成，同时保留教师自己的判断。', audience: '想把 AI 用进教学工作的老师', haiSupported: true },
+  { topic: '课标、教材与单课解读', headline: '读懂教材，才好教。', color: 'var(--slate)', background: 'var(--slate-soft)', words: ['课程标准', '单元结构', '单课教学'], content: '从总论到一至九年级分册，贯通道德与法治课标、教材单元与单课内容，理解教材为什么这样编、课堂可以怎样教。', audience: '需要深入研读道法教材的老师', haiSupported: false },
 ];
 
 export default function CourseLibraryPage() {
@@ -37,14 +37,17 @@ export default function CourseLibraryPage() {
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {visible.map((product) => (
             <article key={product.code} className="group relative flex flex-col overflow-hidden rounded-xl border border-bd bg-white transition-shadow hover:shadow-lg focus-within:ring-2 focus-within:ring-ac">
-              <div className="relative px-6 py-7 md:px-7" style={{ backgroundColor: product.background, color: product.color }}>
+              <div className="px-6 py-7 md:px-7" style={{ backgroundColor: product.background, color: product.color }}>
                 <p className="text-xs font-medium tracking-widest">{product.topic}</p>
-                <p className="mb-7 mt-5 font-serif text-2xl font-bold leading-snug md:text-[28px]">{product.headline}</p>
+                <div className="mb-6 mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <h2 className="font-serif text-2xl font-bold leading-snug md:text-[28px]"><Link to={product.cataloguePath} className="after:absolute after:inset-0 focus:outline-none">{product.name}</Link></h2>
+                  <span className={`inline-flex shrink-0 items-center rounded-ds-pill border px-2 py-0.5 text-xs font-ds-semibold leading-5 ${product.haiSupported ? 'border-current bg-white/80 text-current' : 'border-bd bg-white/40'}`}>{product.haiSupported ? '包含 HAI 使用权限' : '不含 HAI'}</span>
+                </div>
                 <div className="flex flex-wrap gap-2">{product.words.map((word) => <span key={word} className="border border-current/20 px-2 py-1 text-xs">{word}</span>)}</div>
               </div>
               <div className="flex flex-1 flex-col p-6 md:p-7">
                 <p className={`mb-3 flex items-center gap-1.5 text-xs ${product.hasAccess ? 'text-sage' : 'text-txs'}`} role="status">{loading ? '正在确认观看权限…' : product.hasAccess ? <><Check className="h-3.5 w-3.5" />已开通 · 可观看</> : <><LockKeyhole className="h-3.5 w-3.5" />{user ? '未开通' : '登录后确认观看权限'}</>}</p>
-                <h2 className="text-xl font-bold"><Link to={product.cataloguePath} className="after:absolute after:inset-0 focus:outline-none">{product.name}</Link></h2>
+                <p className="font-serif text-lg leading-relaxed text-muted-foreground">{product.headline}</p>
                 <p className="mt-3 text-sm leading-7 text-txs">{product.content}</p>
                 <p className="mb-6 mt-4 text-xs leading-6 text-txs">适合：{product.audience}</p>
                 <div className="mt-auto flex items-center justify-between gap-3 border-t border-bd pt-5">

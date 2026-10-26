@@ -25,6 +25,16 @@ describe('课程选课首页', () => {
     expect(screen.getByRole('link', { name: '返回官网首页' })).toHaveAttribute('href', '/');
   });
 
+  it('通识课与 AI 课卡片标注包含 HAI 使用权限，道法教材解读课标注不含 HAI', () => {
+    open();
+    const general = screen.getByRole('link', { name: '教学通识课' }).closest('article')!;
+    const ai = screen.getByRole('link', { name: '教师 AI 课' }).closest('article')!;
+    const daofa = screen.getByRole('link', { name: '道法教材解读课' }).closest('article')!;
+    expect(within(general).getByText('包含 HAI 使用权限')).toBeInTheDocument();
+    expect(within(ai).getByText('包含 HAI 使用权限')).toBeInTheDocument();
+    expect(within(daofa).getByText('不含 HAI')).toBeInTheDocument();
+  });
+
   it('仅给已开通课程显示可观看，筛选只保留有权限的一门', async () => {
     auth.user = { id: 'teacher' }; auth.courseAccessCodes = ['teacher-ai'];
     open();
