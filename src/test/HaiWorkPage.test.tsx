@@ -76,11 +76,16 @@ function renderAt(path: string) {
   );
 }
 
+async function attachText(user: ReturnType<typeof userEvent.setup>, text: string) {
+  await user.upload(screen.getByLabelText("上传补充材料"), new File([text], "备课材料.txt", { type: "text/plain" }));
+}
+
 describe("HAI Work workbench", () => {
   afterEach(() => vi.unstubAllEnvs());
   beforeEach(() => {
     cleanup();
     vi.clearAllMocks();
+    vi.mocked(uploadHaiMaterial).mockResolvedValue({ id: "material-1" } as Awaited<ReturnType<typeof uploadHaiMaterial>>);
     vi.mocked(getHaiAccessStatus).mockResolvedValue({
       access: { authenticated: true, allowed: true, quota_mode: "points", membership_level: "plus" },
       usage: {
@@ -135,6 +140,12 @@ describe("HAI Work workbench", () => {
     expect(screen.getAllByRole("button", { name: /公开课设计/ }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: /研发教学方案/ })).not.toBeInTheDocument();
     expect(screen.getByLabelText("描述你的教学需求")).toBeInTheDocument();
+    const choices = screen.getByRole("group", { name: "选择工作功能" });
+    expect(screen.getByRole("group", { name: "任务工具栏" })).toContainElement(choices);
+    expect(screen.getByRole("group", { name: "任务输入与设置" })).toContainElement(choices);
+    expect(within(choices).getAllByRole("button")[0]).toHaveAccessibleName("公开课设计");
+    expect(within(choices).getByRole("button", { name: "公开课设计" })).toHaveAccessibleDescription("从教学内容到完整公开课教案");
+    expect(screen.getAllByRole("link", { name: /先聊聊问题/ }).every(link => link.getAttribute("href") === "/hai/chat")).toBe(true);
   });
 
   it("removes a tool entry when the backend module is disabled", async () => {
@@ -158,6 +169,7 @@ describe("HAI Work workbench", () => {
   it("opens unit design with four steps and submits the selected textbook", async () => {
     vi.mocked(getHaiWorkTools).mockResolvedValueOnce([...tools, { slug: "unit-learning-design", name: "大单元教学", is_enabled: true, surface_mode: "work" } as HaiFeatureModule]);
     renderAt("/hai/work/unit-learning-design");
+    await userEvent.click(await screen.findByText("了解大单元教学流程"));
     const progress = await screen.findByRole("list", { name: "大单元教学四步流程" });
     expect(within(progress).getAllByRole("listitem").map(item => item.querySelector("p")?.textContent)).toEqual(["输入备课信息", "确定教学模式", "生成单元整体设计", "完成整套课时教案"]);
     expect(within(progress).getAllByRole("listitem")[0]).toHaveAttribute("aria-current", "step");
@@ -199,13 +211,19 @@ describe("HAI Work workbench", () => {
     expect(screen.queryByRole("form", { name: "教案诊断设置" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "教案诊断" }));
     expect(await screen.findByRole("form", { name: "教案诊断设置" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "教案诊断任务设置" })).toContainElement(screen.getByLabelText("年级"));
+    expect(screen.getByRole("heading", { name: "教案诊断 · 备课信息" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "教案诊断" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "公开课设计" })).toHaveAttribute("aria-expanded", "false");
     const composer = screen.getByRole("group", { name: "任务输入与设置" });
     expect(composer.querySelectorAll('input[type="file"]')).toHaveLength(1);
     expect(composer.querySelectorAll('button[type="submit"]')).toHaveLength(1);
-    expect(within(composer).getByText("更多要求（选填）").closest("details")).not.toHaveAttribute("open");
+    expect(within(composer).queryByText("更多要求（选填）")).not.toBeInTheDocument();
+    expect(within(composer).queryByText(/粘贴正文|教材目录与版本说明/)).not.toBeInTheDocument();
     await user.type(screen.getByLabelText("描述你的教学需求"), "请重点检查学生的学习证据");
     await user.click(screen.getByRole("button", { name: "公开课设计" }));
     expect(await screen.findByRole("form", { name: "公开课设计设置" })).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "公开课设计四阶段" })).toBeVisible();
     expect(screen.getByLabelText("描述你的教学需求")).toHaveValue("请重点检查学生的学习证据");
     expect(screen.getAllByRole("textbox", { name: "描述你的教学需求" })).toHaveLength(1);
     await user.click(screen.getByRole("link", { name: "新建任务" }));
@@ -254,6 +272,9 @@ describe("HAI Work workbench", () => {
     expect(screen.getByRole("combobox", { name: "风格" })).toBeInTheDocument();
     expect(screen.queryByLabelText("图片提示词")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "添加参考图片" })).toBeInTheDocument();
+    const coursewareEntry = screen.getByRole("link", { name: /从已有教案制作课件/ });
+    expect(coursewareEntry).toHaveClass("bg-[var(--annotation-soft)]", "border-[var(--annotation)]", "h-8");
+    expect(coursewareEntry).not.toHaveClass("w-full", "order-first");
     await user.type(screen.getByLabelText("描述你的教学需求"), "画出水循环");
     await user.click(screen.getByRole("button", { name: "教案诊断" }));
     expect(await screen.findByRole("form", { name: "教案诊断设置" })).toBeInTheDocument();
@@ -269,10 +290,12 @@ describe("HAI Work workbench", () => {
     expect(within(progress).getAllByRole("listitem")).toHaveLength(4);
     expect(within(progress).getAllByRole("listitem")[0]).toHaveAttribute("aria-current", "step");
     expect(screen.getByText(/两个关键决定都由你确认/)).toBeVisible();
-    expect(screen.getByLabelText("学段")).toHaveTextContent("初中");
+    expect(screen.queryByLabelText("学段")).not.toBeInTheDocument();
     expect(screen.getByLabelText("学科")).toHaveTextContent("道德与法治");
-    expect(screen.getByRole("option", { name: "小学" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "高中" })).toBeInTheDocument();
+    expect(within(screen.getByLabelText("年级")).getAllByRole("option").map(option => option.textContent)).toEqual([
+      "请选择", "一年级", "二年级", "三年级", "四年级", "五年级", "六年级", "七年级", "八年级", "九年级", "高一", "高二", "高三", "其他（中职/高职/高校等）",
+    ]);
+    expect(screen.getByRole("form", { name: "公开课设计设置" }).querySelectorAll("select")).toHaveLength(6);
     expect(screen.getByRole("option", { name: "其他（中职/高职/高校等）" })).toBeInTheDocument();
     const subjectSelect = screen.getByRole("combobox", { name: "学科" }) as HTMLSelectElement;
     expect(Array.from(subjectSelect.options).map((option) => option.textContent)).toEqual([
@@ -350,6 +373,36 @@ describe("HAI Work workbench", () => {
     expect(vi.mocked(submitHaiWork).mock.calls[0]?.[0].input).not.toHaveProperty("lesson_type");
   });
 
+  it("clears previous textbook selections when switching grades and derives the new stage", async () => {
+    const user = userEvent.setup();
+    renderAt("/hai/work/subject-lesson-design");
+    await user.selectOptions(await screen.findByLabelText("年级"), "7年级");
+    await user.selectOptions(screen.getByLabelText("册次 / 教材"), "上册");
+    await user.selectOptions(screen.getByLabelText("单元"), "第一单元 少年有梦");
+    await user.selectOptions(screen.getByLabelText("课题"), "第一课 开启初中生活");
+    await user.selectOptions(screen.getByLabelText("年级"), "10年级");
+    expect(getHaiTextbookCatalog).toHaveBeenLastCalledWith("高中", "思想政治");
+    expect(screen.getByLabelText("学科")).toHaveValue("思想政治");
+    expect(screen.getByLabelText("册次 / 教材")).toHaveValue("");
+    expect(screen.getByLabelText("单元")).toHaveValue("");
+    expect(screen.getByLabelText("课题")).toHaveValue("");
+  });
+
+  it("keeps shared senior mathematics books selectable in every senior year", async () => {
+    const user = userEvent.setup();
+    vi.mocked(getHaiTextbookCatalog).mockImplementation(async (stage, subject) => [{
+      ...(await defaultGetHaiTextbookCatalog(stage, subject))[0],
+      stage: "高中", subject: "高中数学 A版", grade_level: 10, grade_label: "高中", volume: "必修第一册",
+    }]);
+    renderAt("/hai/work/subject-lesson-design");
+    await user.selectOptions(await screen.findByLabelText("年级"), "10年级");
+    await user.selectOptions(screen.getByLabelText("学科"), "高中数学 A版");
+    await screen.findByRole("option", { name: "高一必修第一册" });
+    await user.selectOptions(screen.getByLabelText("年级"), "12年级");
+    expect(await screen.findByRole("option", { name: "高三必修第一册" })).toHaveValue("必修第一册");
+    expect(screen.getByLabelText("学科")).toHaveValue("高中数学 A版");
+  });
+
   it("starts politics with teaching focus rather than the old fixed mode choices", async () => {
     renderAt("/hai/work/subject-lesson-design");
     await screen.findByRole("form", { name: "公开课设计设置" });
@@ -389,24 +442,23 @@ describe("HAI Work workbench", () => {
 
     await screen.findByRole("form", { name: "公开课设计设置" });
     await user.selectOptions(screen.getByRole("combobox", { name: "学科" }), "英语");
-    const gradeField = await screen.findByRole("textbox", { name: "年级" });
-    expect(screen.getByText(/当前学段与学科暂未收录内置教材/)).toBeInTheDocument();
-    await user.type(gradeField, "八年级");
+    await user.selectOptions(screen.getByLabelText("年级"), "8年级");
+    expect(await screen.findByText(/当前年级与学科暂未收录内置教材/)).toBeInTheDocument();
     await user.type(screen.getByRole("textbox", { name: "册次 / 教材" }), "上册");
     await user.type(screen.getByRole("textbox", { name: "单元" }), "Unit 1");
     await user.type(screen.getByRole("textbox", { name: /课题/ }), "My school");
-    await user.type(screen.getByRole("textbox", { name: /教材内容/ }), "本课教材内容");
+    await attachText(user, "本课教材内容");
     await user.click(screen.getByRole("button", { name: "提交公开课设计任务" }));
 
     expect(submitHaiWork).toHaveBeenCalledWith(
       expect.objectContaining({
         toolSlug: "subject-lesson-design",
-        input: expect.objectContaining({ subject: "英语", grade: "八年级", topic: "My school", teaching_mode: "" }),
+        input: expect.objectContaining({ subject: "英语", grade: "8年级", topic: "My school", teaching_mode: "" }),
       }),
     );
   });
 
-  it("submits a pasted lesson plan and opens the durable task", async () => {
+  it("submits an uploaded lesson plan and opens the durable task", async () => {
     const user = userEvent.setup();
     vi.mocked(submitHaiWork).mockResolvedValue({ taskId: "task-1", runId: "run-3", status: "queued", artifactId: null, error: null, replayed: false });
     renderAt("/hai/work/lesson-diagnosis");
@@ -417,15 +469,14 @@ describe("HAI Work workbench", () => {
     await user.selectOptions(screen.getByRole("combobox", { name: "册次 / 教材" }), "上册");
     await user.selectOptions(screen.getByRole("combobox", { name: "单元" }), "第一单元 少年有梦");
     await user.selectOptions(screen.getByRole("combobox", { name: "课题" }), "第一课 开启初中生活");
-    await user.click(screen.getByText(/粘贴正文（也可用上方/));
-    await user.type(screen.getByRole("textbox", { name: /教案正文/ }), "教学目标：理解父爱。教学环节：教师讲解。教学评价：课堂提问。");
+    await attachText(user, "教学目标：理解父爱。教学环节：教师讲解。教学评价：课堂提问。");
     await user.click(screen.getByRole("button", { name: "提交教案诊断任务" }));
 
     expect(await screen.findByTestId("task-page")).toBeInTheDocument();
     expect(submitHaiWork).toHaveBeenCalledWith(
       expect.objectContaining({
         toolSlug: "lesson-diagnosis",
-        materialIds: [],
+        materialIds: ["material-1"],
         input: expect.objectContaining({
           grade: "7年级",
           volume: "上册",
@@ -444,7 +495,7 @@ describe("HAI Work workbench", () => {
     renderAt("/hai/work/lesson-diagnosis");
 
     await screen.findByRole("form", { name: "教案诊断设置" });
-    await user.selectOptions(screen.getByRole("combobox", { name: /学段/ }), "小学");
+    await user.selectOptions(screen.getByRole("combobox", { name: "年级" }), "4年级");
     const subjectSelect = screen.getByRole("combobox", { name: /学科/ }) as HTMLSelectElement;
     expect(Array.from(subjectSelect.options).map((option) => option.textContent)).toEqual([
       "请选择",
@@ -462,7 +513,7 @@ describe("HAI Work workbench", () => {
     ]);
     expect(screen.getByRole("option", { name: "英语" })).toBeInTheDocument();
 
-    await user.selectOptions(screen.getByRole("combobox", { name: /学段/ }), "高中");
+    await user.selectOptions(screen.getByRole("combobox", { name: "年级" }), "10年级");
     expect(Array.from(subjectSelect.options).map((option) => option.textContent)).toEqual([
       "请选择",
       "语文",
@@ -491,22 +542,19 @@ describe("HAI Work workbench", () => {
     renderAt("/hai/work/lesson-diagnosis");
 
     await screen.findByRole("form", { name: "教案诊断设置" });
-    await user.selectOptions(screen.getByRole("combobox", { name: /学段/ }), "小学");
+    await user.selectOptions(screen.getByRole("combobox", { name: "年级" }), "4年级");
     await user.selectOptions(screen.getByRole("combobox", { name: /学科/ }), "英语");
-    expect(await screen.findByText(/当前学段与学科暂未收录内置教材/)).toBeInTheDocument();
-    await user.type(screen.getByRole("textbox", { name: "年级" }), "四年级");
+    expect(await screen.findByText(/当前年级与学科暂未收录内置教材/)).toBeInTheDocument();
     await user.type(screen.getByRole("textbox", { name: "册次 / 教材" }), "上册");
     await user.type(screen.getByRole("textbox", { name: "单元" }), "Unit 1");
     await user.type(screen.getByRole("textbox", { name: /课题/ }), "My school");
-    await user.type(screen.getByRole("textbox", { name: /教材内容/ }), "本课教材内容");
-    await user.click(screen.getByText(/粘贴正文（也可用上方/));
-    await user.type(screen.getByRole("textbox", { name: /教案正文/ }), "教学目标：理解并运用本课词汇。");
+    await attachText(user, "本课教材内容");
     await user.click(screen.getByRole("button", { name: "提交教案诊断任务" }));
 
     expect(submitHaiWork).toHaveBeenCalledWith(
       expect.objectContaining({
         toolSlug: "lesson-diagnosis",
-        input: expect.objectContaining({ subject: "英语", grade: "四年级", textbook_content: "本课教材内容" }),
+        input: expect.objectContaining({ subject: "英语", grade: "4年级" }),
       }),
     );
   });
@@ -522,17 +570,18 @@ describe("HAI Work workbench", () => {
     await user.selectOptions(screen.getByRole("combobox", { name: "单元" }), "第一单元 少年有梦");
     await user.selectOptions(screen.getByRole("combobox", { name: "课题" }), "第一课 开启初中生活");
     await user.selectOptions(screen.getByRole("combobox", { name: /要优化的环节/ }), "课程导入");
-    await user.click(screen.getByText(/粘贴正文（也可用上方/));
-    await user.type(screen.getByRole("textbox", { name: /希望优化后达成什么效果/ }), "暴露前概念");
+    await user.type(screen.getByLabelText("描述你的教学需求"), "暴露前概念");
     await user.click(screen.getByRole("button", { name: /提交环节优化任务/ }));
 
-    expect(await screen.findByText("请粘贴当前环节设计，或上传环节设计文件。")).toBeInTheDocument();
+    expect(await screen.findByText("请通过输入框“+”上传环节设计文件。")).toBeInTheDocument();
   });
 
   it("only exposes the four currently supported segment types", async () => {
     renderAt("/hai/work/segment-optimization");
 
     const segmentSelect = await screen.findByRole("combobox", { name: /要优化的环节/ });
+    expect(screen.getByRole("form", { name: "环节优化设置" }).querySelector("select")).toBe(segmentSelect);
+    expect(segmentSelect).toHaveClass("border-[var(--annotation)]");
     expect(Array.from(segmentSelect.querySelectorAll("option")).map((option) => option.textContent).filter((label) => label !== "请选择")).toEqual([
       "课程导入",
       "问题链",

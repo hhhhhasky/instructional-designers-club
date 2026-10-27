@@ -3,8 +3,10 @@ import { haiTaskTitle } from "@/lib/hai-task-title";
 import HaiImagePptPage from "@/pages/HaiImagePptPage";
 import {
   ArrowUp,
+  ArrowUpRight,
   Plus,
   MessageSquare,
+  MessageCircleMore,
   BookOpenCheck,
   ChevronDown,
   ClipboardCheck,
@@ -48,7 +50,6 @@ import {
 } from "@/db/hai-api";
 import { getHaiImageGenerationTasks, HAI_MAX_REFERENCE_IMAGES, HAI_MAX_REFERENCE_IMAGE_BYTES, type HaiImageGenerationTask } from "@/db/hai-image-generation";
 import {
-  HAI_PUBLIC_LESSON_STAGES,
   workSubjectsForStage,
 } from "@/lib/hai-subject-options";
 import { formatHaiTextbookGrade, formatHaiTextbookName, getHaiTextbookHierarchy, type HaiTextbookHierarchy } from "@/lib/hai-textbook-hierarchy";
@@ -114,12 +115,29 @@ export const HAI_WORK_TOOL_CONFIG: Record<HaiWorkToolSlug, HaiWorkToolVisualConf
   },
 };
 
-// 当前前端只开放教师暂时最常用的四类环节；数据库中的其他 Skill 和匹配条件暂不删除。
-const segmentTypes = ["课程导入", "问题链", "任务活动", "评价反馈"];
-function isEnglishSubject(subject: string) {
-  return subject === "英语";
+const workToolSummaries: Record<HaiWorkToolSlug, string> = {
+  "subject-lesson-design": "从教学内容到完整公开课教案",
+  "unit-learning-design": "单元整体设计与每一课时的教案",
+  "lesson-diagnosis": "找到教案中最值得先改的地方",
+  "segment-optimization": "改进导入、问题链、活动与评价",
+  "image-generation": "生成课堂配图、概念图等教学图片",
+  "teaching-design": "从目标、评价到完整的单元规划",
+};
+
+const workGrades = Array.from({ length: 12 }, (_, index) => {
+  const number = index + 1;
+  return { value: `${number}年级`, label: number <= 9 ? formatHaiTextbookGrade(`${number}年级`) : ["高一", "高二", "高三"][number - 10], stage: number <= 6 ? "小学" : number <= 9 ? "初中" : "高中" };
+});
+workGrades.push({ value: "其他", label: "其他（中职/高职/高校等）", stage: "其他（中职/高职/高校等）" });
+
+function matchesWorkGrade(row: HaiTextbookCatalogEntry, grade: string) {
+  if (row.grade_label === "高中") return ["10年级", "11年级", "12年级"].includes(grade);
+  const selection = workGrades.find(item => item.value === grade);
+  return formatHaiTextbookGrade(row.grade_label) === formatHaiTextbookGrade(grade) || row.grade_label === selection?.label;
 }
 
+// 当前前端只开放教师暂时最常用的四类环节；数据库中的其他 Skill 和匹配条件暂不删除。
+const segmentTypes = ["课程导入", "问题链", "任务活动", "评价反馈"];
 function subjectsForWorkForm(stage: string) {
   // Work 工具共用教材目录和“无目录时手填/上传”的分流。
   return workSubjectsForStage(stage);
@@ -246,11 +264,22 @@ function WorkLanding({ tools, pointsBlocked, initialTool = null }: { tools: HaiF
   const [fileError, setFileError] = useState("");
   const [busy, setBusy] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+  const settingsPanel = useRef<HTMLDivElement>(null);
   const active = visibleTools.find((tool) => tool.slug === selected);
   const isImage = selected === "image-generation";
   const files = isImage ? imageFiles : documentFiles;
   const setFiles = isImage ? setImageFiles : setDocumentFiles;
   const uploadBlocked = busy || pointsBlocked || Boolean(active?.previewOnly);
+
+  useEffect(() => {
+    if (!selected) return;
+    const firstField = settingsPanel.current?.querySelector("select, input:not([type=file]), textarea");
+    const target = firstField?.closest("label") ?? firstField;
+    target?.scrollIntoView?.({
+      block: "nearest",
+      behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ? "instant" : "smooth",
+    });
+  }, [selected]);
 
   function addFiles(fileList: FileList | null) {
     const next = [...files, ...Array.from(fileList ?? [])];
@@ -265,40 +294,50 @@ function WorkLanding({ tools, pointsBlocked, initialTool = null }: { tools: HaiF
   }
 
   return (
-    <div className="relative isolate flex min-h-full flex-col px-4 pb-24 pt-8 md:px-10 md:pt-12">
+    <div className={cn("relative isolate flex min-h-full flex-col px-4 pb-10 md:px-10 md:pb-16", active ? "pt-5 md:pt-6" : "pt-10 md:pt-[clamp(2rem,9vh,5rem)]")}>
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-80 bg-[radial-gradient(ellipse_at_50%_0%,var(--proof-soft),transparent_75%)]" />
       <section className="mx-auto w-full max-w-4xl" aria-label="创建教研任务">
-        <div className="mb-7 flex items-center justify-center gap-3">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--annotation)] text-[var(--paper)] shadow-ds-sm"><Sparkles className="h-6 w-6" /></span>
+        <div className="mb-5 flex items-center justify-center gap-3 md:mb-6">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--annotation)] text-[var(--paper)]"><Sparkles aria-hidden className="h-5 w-5" /></span>
           <div>
-            <p className="mb-1 text-xs font-bold tracking-[0.2em] text-[var(--annotation)]">HAI · 你的教研搭档</p>
-            <h2 className="font-serif text-2xl font-black tracking-tight text-tx md:text-3xl">今天，想一起完成什么？</h2>
+            <p className="mb-1.5 text-xs font-bold tracking-widest text-[var(--annotation)]">HAI · 帮你干活</p>
+            <h2 className="font-serif text-[23px] font-black leading-snug tracking-tight text-[var(--ink)] md:text-3xl">今天，想一起完成什么？</h2>
           </div>
-        </div>
-        <div className="mb-5 flex flex-wrap justify-center gap-2" role="group" aria-label="选择工作功能">
-          {visibleTools.map(({ slug, config, previewOnly }) => {
-            const Icon = config.icon;
-            return <button key={slug} type="button" disabled={busy} aria-pressed={selected === slug} onClick={() => { setSelected(slug); setFileError(""); }} className={cn("inline-flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition disabled:opacity-50 md:text-sm", selected === slug ? "border-[var(--annotation)] bg-[var(--annotation-soft)] text-[var(--annotation)]" : "border-[var(--paper-rule)] bg-[var(--paper)] text-txs hover:border-[var(--annotation)]/40 hover:bg-[var(--paper-deep)]")}>
-              <Icon className="h-4 w-4 shrink-0" />{config.name}{previewOnly && <span className="text-[9px] font-normal">本地预览</span>}
-            </button>;
-          })}
         </div>
         <div role="group" aria-label="任务输入与设置" className="rounded-[28px] border border-[var(--paper-rule)] bg-[var(--paper)] p-3 shadow-[0_12px_48px_-20px_rgba(60,48,35,0.18)] transition-shadow focus-within:shadow-[0_12px_48px_-20px_rgba(60,48,35,0.28)] md:p-5">
           <label htmlFor="work-request" className="sr-only">描述你的教学需求</label>
-          <textarea id="work-request" disabled={busy} value={draft} onChange={(event) => setDraft(event.target.value)} rows={4} placeholder={isImage ? "例如：为‘水循环’设计一张课堂概念图，突出蒸发、凝结和降水的关系…" : selected === "unit-learning-design" ? "例如：围绕‘多边形的面积’设计6课时，让学生从记公式走向理解底、高与面积的关系…" : "说说你的想法：这次想完成什么？有什么需要特别关注的地方？"} className="min-h-36 w-full resize-y border-0 bg-transparent px-3 py-3 text-base leading-8 text-tx outline-none placeholder:text-txt md:text-lg" />
+          <textarea id="work-request" disabled={busy} value={draft} onChange={(event) => setDraft(event.target.value)} rows={3} placeholder={isImage ? "例如：为‘水循环’设计一张课堂概念图，突出蒸发、凝结和降水的关系…" : selected === "unit-learning-design" ? "例如：围绕‘多边形的面积’设计6课时，让学生从记公式走向理解底、高与面积的关系…" : selected === "subject-lesson-design" ? "例如：设计一节《落花生》公开课，让学生理解课文如何借事物表达做人的道理…" : selected === "lesson-diagnosis" ? "上传或粘贴教案，说说你最想检查的地方，例如：课堂活动能否真正帮助学生达成目标…" : selected === "segment-optimization" ? "例如：帮我改进这节课的导入，让学生已有的认识和疑问显现出来…" : "说说你的想法，再从下方选择要做的工作…"} className="min-h-28 w-full resize-y border-0 bg-transparent px-3 py-3 text-base leading-8 text-tx outline-none placeholder:text-txt md:text-lg" />
           {files.length > 0 && <div className="mb-3 flex flex-wrap gap-2 px-2">{files.map((file, index) => <span key={`${file.name}-${index}`} className="inline-flex max-w-full items-center gap-2 rounded-xl border border-[var(--paper-rule)] bg-[var(--paper-deep)] px-3 py-2 text-xs text-txs"><Paperclip className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{file.name}</span><button type="button" disabled={busy} aria-label={`移除${file.name}`} onClick={() => setFiles(files.filter((_, i) => i !== index))} className="rounded-full p-1 hover:bg-[var(--paper)]"><X className="h-3 w-3" /></button></span>)}</div>}
-          <div className="flex items-center gap-3 border-t border-[var(--paper-rule)]/60 pt-3">
-            <button type="button" disabled={uploadBlocked} onClick={() => fileInput.current?.click()} aria-label={isImage ? "添加参考图片" : "上传教案或教材"} title={isImage ? "上传教材截图或参考图" : "上传教案或教材"} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--paper-rule)] text-txs transition hover:bg-[var(--paper-deep)] disabled:cursor-not-allowed disabled:opacity-40"><Plus className="h-5 w-5" /></button>
+          <div role="group" aria-label="任务工具栏" className="flex items-start gap-2 border-t border-[var(--paper-rule)] pt-2.5">
+            <button type="button" disabled={uploadBlocked} onClick={() => fileInput.current?.click()} aria-label={isImage ? "添加参考图片" : "上传教案或教材"} title={isImage ? "上传教材截图或参考图" : "上传教案或教材 · TXT、MD、DOCX"} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--paper-rule)] text-[var(--txs)] transition hover:bg-[var(--paper-deep)] disabled:cursor-not-allowed disabled:opacity-40"><Plus aria-hidden className="h-4 w-4" /></button>
             <input ref={fileInput} type="file" multiple aria-label={isImage ? "上传参考图片" : "上传补充材料"} accept={isImage ? "image/png,image/jpeg,image/webp,image/gif" : acceptedFileTypes} className="sr-only" disabled={uploadBlocked} onChange={(event) => { addFiles(event.target.files); event.currentTarget.value = ""; }} />
-            {isImage ? <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2"><HaiImageGenerationPage inline={{ prompt: draft, setPrompt: setDraft, referenceFiles: imageFiles, setReferenceFiles: setImageFiles, onBusyChange: setBusy }} /></div> : <span className="min-w-0 flex-1 text-xs leading-5 text-txt">教案 / 教材 · TXT、MD、DOCX</span>}
-            <button type="submit" form={isImage ? "hai-image-settings" : "hai-work-settings"} disabled={!active || uploadBlocked} aria-label={active ? `提交${active.config.name}任务` : "请先选择工作功能"} title="提交任务" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--annotation)] text-[var(--paper)] transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-30">{busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <ArrowUp className="h-5 w-5" />}</button>
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1" role="group" aria-label="选择工作功能">
+              {visibleTools.map(({ slug, config, previewOnly }) => {
+                const Icon = config.icon;
+                return <button key={slug} type="button" disabled={busy} aria-label={config.name} title={workToolSummaries[slug]} aria-describedby={`work-tool-${slug}-summary`} aria-pressed={selected === slug} aria-expanded={selected === slug} aria-controls={active ? "hai-selected-settings" : undefined} onClick={() => { setSelected(slug); setFileError(""); }} className={cn("inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-lg border px-1.5 text-xs font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--annotation)] disabled:opacity-50 sm:px-2", selected === slug ? "border-[var(--annotation)] bg-[var(--annotation-soft)] text-[var(--annotation)]" : "border-transparent text-[var(--txs)] hover:bg-[var(--paper-deep)] hover:text-[var(--ink)]")}>
+                  <Icon aria-hidden className="hidden h-3.5 w-3.5 shrink-0 sm:block" />{config.name}
+                  <span id={`work-tool-${slug}-summary`} className="sr-only">{workToolSummaries[slug]}</span>
+                  {previewOnly && <span className="text-[10px] font-normal">本地预览</span>}
+                </button>;
+              })}
+            </div>
+            <button type="submit" form={isImage ? "hai-image-settings" : "hai-work-settings"} disabled={!active || uploadBlocked} aria-label={active ? `提交${active.config.name}任务` : "请先选择工作功能"} title="提交任务" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--annotation)] text-[var(--paper)] transition hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-30">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUp className="h-4 w-4" />}</button>
           </div>
-        {active && !isImage && <WorkToolForm key={active.slug} toolSlug={active.slug} config={active.config} pointsBlocked={pointsBlocked} previewOnly={active.previewOnly} request={draft} attachedFiles={documentFiles} onBusyChange={setBusy} />}
+          {active && <div ref={settingsPanel} id="hai-selected-settings" role="region" aria-label={`${active.config.name}任务设置`} className="mt-3 rounded-2xl border border-[var(--paper-rule)] bg-[var(--paper-deep)] p-3 md:p-4">
+            <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <h3 className="text-sm font-bold text-[var(--annotation)]">{active.config.name} · {isImage ? "图片设置" : "备课信息"}</h3>
+              <p role="status" className="text-xs leading-5 text-[var(--txs)]">已选择{active.config.name}，请补充下方信息。</p>
+            </div>
+            {isImage ? <div className="flex flex-wrap items-center gap-2"><HaiImageGenerationPage inline={{ prompt: draft, setPrompt: setDraft, referenceFiles: imageFiles, setReferenceFiles: setImageFiles, onBusyChange: setBusy }} /></div> : <WorkToolForm key={active.slug} toolSlug={active.slug} config={active.config} pointsBlocked={pointsBlocked} previewOnly={active.previewOnly} request={draft} attachedFiles={documentFiles} onBusyChange={setBusy} />}
+          </div>}
         </div>
         {fileError && <p role="alert" className="mt-3 text-sm text-red-700">{fileError}</p>}
-        <p className="mt-3 text-center text-xs leading-6 text-txs" aria-live="polite">{active ? active.config.promise : "先选择一项任务，再写下想法、上传材料。相关设置会在下方展开。"}</p>
+        <p className="mt-3 text-center text-xs leading-6 text-[var(--txs)]">{active ? active.config.promise : "选择输入框内的工作功能，即可展开相关设置。"}</p>
         {visibleTools.length === 0 && <p className="mt-6 text-center text-sm text-txs">暂时没有已启用的工作功能，请稍后再来。</p>}
-
+        <div className="mt-7 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-[var(--txs)] lg:hidden">
+          <span>还没想清楚要做什么？</span>
+          <Link to="/hai/chat" className="inline-flex min-h-10 items-center gap-1.5 rounded-md px-1 underline decoration-[var(--paper-rule)] underline-offset-4 transition-colors hover:text-[var(--annotation)]"><MessageCircleMore aria-hidden className="h-3.5 w-3.5" />先聊聊问题<ArrowUpRight aria-hidden className="h-3 w-3" /></Link>
+        </div>
       </section>
     </div>
   );
@@ -329,7 +368,6 @@ function WorkToolForm({
   const files = attachedFiles;
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState("");
-  const materialDetails = useRef<HTMLDetailsElement>(null);
   const [error, setError] = useState("");
   const [catalog, setCatalog] = useState<HaiTextbookCatalogEntry[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(Boolean(form.stage && form.subject));
@@ -355,9 +393,8 @@ function WorkToolForm({
     return () => { cancelled = true; };
   }, [form.stage, form.subject]);
 
-  const gradeOptions = useMemo(() => unique(catalog.map((item) => item.grade_label)), [catalog]);
   const gradeCatalog = useMemo(
-    () => catalog.filter((item) => item.grade_label === form.grade),
+    () => catalog.filter((item) => matchesWorkGrade(item, form.grade)),
     [catalog, form.grade],
   );
   const volumeOptions = useMemo(() => unique(gradeCatalog.map((item) => item.volume)), [gradeCatalog]);
@@ -385,13 +422,11 @@ function WorkToolForm({
     () => unique(topicCatalog.map((item) => `${item.frame_label} ${item.frame_title}`.trim())),
     [topicCatalog],
   );
-  const selectedEdition = topicCatalog[0] ?? volumeCatalog[0];
-  const englishCatalog = isEnglishSubject(form.subject);
   const hierarchyLabels = useMemo(
     () => getHaiTextbookHierarchy(form.subject, catalog),
     [catalog, form.subject],
   );
-  const requiresTeacherTextbook = Boolean(form.stage && form.subject) && !catalogLoading && catalog.length === 0;
+  const requiresTeacherTextbook = Boolean(form.grade && form.subject) && !catalogLoading && gradeCatalog.length === 0;
 
   function update(key: string, value: string) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -464,11 +499,10 @@ function WorkToolForm({
       return;
     }
     const inputForm = { ...form, constraints: [request.trim(), form.constraints.trim()].filter(Boolean).join("\n\n"), desired_outcome: form.desired_outcome.trim() || request.trim(), desired_outcomes: form.desired_outcomes.trim() || request.trim() };
-    const validation = isUnitDesign
+    const validation = catalogLoading ? "请等待教材目录加载完成。" : isUnitDesign
       ? validateUnitSelection(form.reconstruction_scope, unitBooks) || (catalogLoading ? "请等待教材目录加载完成。" : "")
       : validateForm(toolSlug, inputForm, files.length, requiresTeacherTextbook, hierarchyLabels);
     if (validation) {
-      if (/教案正文|环节设计|教材内容/.test(validation) && materialDetails.current) materialDetails.current.open = true;
       setError(validation);
       return;
     }
@@ -508,16 +542,7 @@ function WorkToolForm({
   }
 
   return (
-    <form id="hai-work-settings" aria-label={`${config.name}设置`} onSubmit={(event) => { event.preventDefault(); void submit(); }} className="mt-4 border-t border-[var(--paper-rule)] pt-4">
-      {isUnitDesign && <section aria-label="大单元教学流程预览" className="mb-5 rounded-xl border border-[var(--paper-rule)] bg-[var(--paper-deep)] p-4 sm:p-5">
-        <UnitDesignProgress />
-        <p className="mt-4 text-xs leading-6 text-txs">先比较适合所选教材的教学模式，再审阅完整整体设计。两步均由你确认；之后连续生成全部课时详案，可分份下载或打包获取。</p>
-      </section>}
-      {toolSlug === "subject-lesson-design" && <section aria-label="公开课设计流程预览" className="mb-5 rounded-xl border border-[var(--paper-rule)] bg-[var(--paper-deep)] p-4 sm:p-5">
-        <p className="mb-4 text-xs font-bold tracking-wide text-txs">四阶段设计流程</p>
-        <PublicLessonProgress />
-        <p className="mt-4 border-t border-[var(--paper-rule)] pt-3 text-xs leading-5 text-txs">先明确本课最需要促成的学生转变，再选择合适的教学模式。两个关键决定都由你确认，最后生成完整教案。</p>
-      </section>}
+    <form id="hai-work-settings" aria-label={`${config.name}设置`} onSubmit={(event) => { event.preventDefault(); void submit(); }}>
       {error && <div role="alert" className="mb-5 rounded-[18px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
       {previewOnly && (
         <div role="status" className="mt-5 rounded-[18px] border border-[var(--paper-rule)] bg-[var(--proof-soft)] px-4 py-3 text-sm leading-6 text-tx">
@@ -533,37 +558,30 @@ function WorkToolForm({
 
       <div>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-          <SelectField label="学段" value={form.stage} options={HAI_PUBLIC_LESSON_STAGES} onChange={(value) => {
-            const nextSubjects = subjectsForWorkForm(value);
-            setForm((current) => ({
-              ...current,
-              stage: value,
-              subject: nextSubjects.includes(current.subject) ? current.subject : nextSubjects[0] || "",
-              collection_slug: "",
-              unit_route_number: "",
-              lesson_route_number: "",
-              frame_route_number: "",
-              grade: "",
-              volume: "",
-              unit: "",
-              topic: "",
-              frame: "",
-              textbook_content: "",
-            }));
+          {toolSlug === "segment-optimization" && <SelectField label="要优化的环节" value={form.segment_type} options={segmentTypes} onChange={(value) => update("segment_type", value)} emphasized />}
+          <SelectField label="年级" value={form.grade} options={workGrades.map(item => item.value)} optionLabel={value => workGrades.find(item => item.value === value)?.label ?? value} onChange={(value) => {
+            const stage = workGrades.find(item => item.value === value)?.stage ?? "初中";
+            const nextSubjects = subjectsForWorkForm(stage);
+            setForm(current => {
+              let subject = current.subject;
+              if (stage === "高中" && subject === "道德与法治") subject = "思想政治";
+              if (stage !== "高中" && subject === "思想政治" && nextSubjects.includes("道德与法治")) subject = "道德与法治";
+              if (stage === "高中" && subject === "数学") subject = "高中数学 A版";
+              if (stage !== "高中" && subject.startsWith("高中数学")) subject = "数学";
+              return { ...current, stage, grade: value, subject: nextSubjects.includes(subject) ? subject : nextSubjects[0] || "", collection_slug: "", unit_route_number: "", lesson_route_number: "", frame_route_number: "", volume: "", unit: "", topic: "", frame: "", textbook_content: "" };
+            });
             setUnitBooks([]);
             setError("");
           }} />
           <SelectField label="学科" value={form.subject} options={subjectsForWorkForm(form.stage)} onChange={(value) => {
             setUnitBooks([]);
-            update("subject", value);
-            update("teaching_mode", "");
-            updateTextbookField("grade", "");
+            setForm(current => ({ ...current, subject: value, teaching_mode: "", collection_slug: "", unit_route_number: "", lesson_route_number: "", frame_route_number: "", volume: "", unit: "", topic: "", frame: "", textbook_content: "" }));
+            setError("");
           }} />
           {isUnitDesign ? <>
             <UnitTextbookSelector catalog={catalog} scope={form.reconstruction_scope as UnitScope | ""} books={unitBooks} onChange={setUnitBooks} onScopeChange={(scope) => { update("reconstruction_scope", scope); setUnitBooks([]); }} />
           </> : requiresTeacherTextbook ? (
             <>
-              <TextField label="年级" value={form.grade} placeholder="填写年级" onChange={(value) => update("grade", value)} />
               <TextField label="册次 / 教材" value={form.volume} placeholder="填写教材名称或册次" onChange={(value) => update("volume", value)} />
               <TextField label={hierarchyLabels.top} value={form.unit} placeholder={`填写${hierarchyLabels.top}名称`} onChange={(value) => update("unit", value)} />
               <TextField label={hierarchyLabels.middle} value={form.topic} placeholder={`填写${hierarchyLabels.middle}`} onChange={(value) => update("topic", value)} />
@@ -573,8 +591,7 @@ function WorkToolForm({
             </>
           ) : (
             <>
-              <SelectField label="年级" value={form.grade} options={gradeOptions} optionLabel={formatHaiTextbookGrade} onChange={(value) => updateTextbookField("grade", value)} />
-              <SelectField label="册次 / 教材" value={form.volume} options={volumeOptions} optionLabel={(volume) => formatHaiTextbookName({ grade_label: form.grade, volume })} onChange={(value) => updateTextbookField("volume", value)} />
+              <SelectField label="册次 / 教材" value={form.volume} options={volumeOptions} optionLabel={(volume) => formatHaiTextbookName({ grade_label: workGrades.find(item => item.value === form.grade)?.label ?? form.grade, volume })} onChange={(value) => updateTextbookField("volume", value)} />
               <SelectField label={hierarchyLabels.top} value={form.unit} options={unitOptions} onChange={(value) => updateTextbookField("unit", value)} />
               <SelectField label={hierarchyLabels.middle} value={form.topic} options={topicOptions} onChange={(value) => updateTextbookField("topic", value)} />
               {hierarchyLabels.hasThirdLevel && (
@@ -587,35 +604,14 @@ function WorkToolForm({
               <DesignTypeField value={form.design_type} onChange={(value) => update("design_type", value)} />
               <TextField label="课时 / 范围" value={form.unit_duration} placeholder="例如：6 课时、一学期、1 课时（45 分钟）" onChange={(value) => update("unit_duration", value)} />
             </>
-          ) : (
-            <>
-              {toolSlug === "segment-optimization" && (
-                <SelectField label="要优化的环节" value={form.segment_type} options={segmentTypes} onChange={(value) => update("segment_type", value)} />
-              )}
-            </>
-          )}
+          ) : null}
         </div>
-        {!isUnitDesign && <details data-testid="textbook-hierarchy-guide" className="mt-3 text-xs leading-5 text-txs">
-          <summary className="cursor-pointer">教材目录与版本说明</summary>
-          <p className="mt-1">{hierarchyLabels.guide}</p>
-        </details>}
         {catalogLoading && !error && (
           <p className="mt-4 text-xs text-txs">正在读取教材目录…</p>
         )}
-        {selectedEdition && (
-          <div className={`mt-3 rounded-lg border px-3 py-2 text-xs leading-5 ${selectedEdition.requires_confirmation ? "border-amber-300 bg-amber-50 text-amber-900" : "border-sage/20 bg-sage-soft text-sage"}`}>
-            当前版本：{selectedEdition.edition_label}。内置内容为知识点梳理，不是教材逐字原文。
-            {selectedEdition.requires_confirmation ? " 该册标记为待纸质教材复核，生成结果会同步提醒核对。" : ""}
-          </div>
-        )}
-        {englishCatalog && !requiresTeacherTextbook && (
-          <div className="mt-4 rounded-[16px] border border-sky-200 bg-sky-50 px-4 py-3 text-xs leading-5 text-sky-900">
-            英语教材已按可授课的 Session 课时整理。请选择“听说课、阅读课、读写课或综合实践课”等课时；具体 Section、Part 和活动编号会作为本课教材证据一起读取，不再按单页或单个活动选择。
-          </div>
-        )}
         {requiresTeacherTextbook && !isUnitDesign && (
           <div className="mt-4 rounded-[16px] border border-amber-300 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
-            当前学段与学科暂未收录内置教材。请填写教材层级，通过输入框“+”上传教材，或展开下方“粘贴正文”补充内容，HAI 才会开始生成；其他学科资料不会被当作本课教材事实。
+            当前年级与学科暂未收录内置教材。请填写教材信息，并通过输入框“+”上传教材文件。
           </div>
         )}
       </div>
@@ -625,29 +621,18 @@ function WorkToolForm({
         确认操作不单独扣费，完整交付时按本轮实际用量统一结算；失败或停止不扣费。
       </p>}
 
-      <details ref={materialDetails} className="mt-3 border-t border-[var(--paper-rule)] pt-3">
-        <summary className="cursor-pointer text-xs font-bold text-txs">粘贴正文（也可用上方“+”上传）{files.length > 0 ? ` · 已添加 ${files.length} 份材料` : ""}</summary>
-        {toolSlug === "lesson-diagnosis" && (
-          <TextAreaField label="教案正文" value={form.lesson_plan} placeholder="粘贴完整教案；也可以只上传文件。" minRows={4} onChange={(value) => update("lesson_plan", value)} />
-        )}
-        {toolSlug === "segment-optimization" && (
-          <>
-            <TextAreaField label="当前环节设计" value={form.current_design} placeholder="尽量保留原始师生对话、任务、时间和评价方式；也可以只上传文件，二选一即可。" minRows={4} onChange={(value) => update("current_design", value)} />
-            <TextAreaField label="希望优化后达成什么效果" value={form.desired_outcome} placeholder="例如：让导入真正暴露学生前概念，并自然进入核心问题。" minRows={4} onChange={(value) => update("desired_outcome", value)} />
-          </>
-        )}
-        {isUnitDesign && <p className="mt-4 text-sm leading-6 text-txs">产出包含一份整体设计，以及全部课时的独立教案。课时和学情未填写时会明确设计假设；缺少课标不会阻止生成。</p>}
-        <TextAreaField label={!isUnitDesign && requiresTeacherTextbook ? "教材内容（必填其一）" : "补充教材内容（可选）"} value={form.textbook_content} placeholder={requiresTeacherTextbook ? "请粘贴本课教材正文、知识点梳理或清晰转写内容；也可以改为上传文件。" : "如教材版本与内置知识点不同，可粘贴本课原文；用户补充内容会与内置教材一起提供给 HAI。"} minRows={3} onChange={(value) => update("textbook_content", value)} />
-      </details>
-      <details className="mt-3 border-t border-[var(--paper-rule)] pt-3">
-        <summary className="cursor-pointer text-xs font-bold text-txs">更多要求（选填）</summary>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          {isUnitDesign && <><TextField label="单元主题（可选）" value={form.unit_theme} placeholder="留空则根据所选内容拟定" onChange={(value) => update("unit_theme", value)} /><TextField label="课时安排（可选）" value={form.unit_duration} placeholder="如：6课时，每课40分钟" onChange={(value) => update("unit_duration", value)} /></>}
-          {(isUnitDesign || toolSlug === "subject-lesson-design") && <TextAreaField label="学生起点与学习困难（可选）" value={form.learner_context} placeholder="如：学生知道结论，但说不清理由；希望材料更贴近本班生活" minRows={3} onChange={(value) => update("learner_context", value)} />}
-          <TextField label="课时与班级约束（可选）" value={form.constraints} placeholder="如：40分钟、48人、不能使用平板" onChange={(value) => update("constraints", value)} />
-          {toolSlug === "teaching-design" && <TextAreaField label="预期成果 / 任务说明" value={form.desired_outcomes} placeholder="默认使用上方想法；需要时在此补充学生应理解或能做什么" minRows={3} onChange={(value) => update("desired_outcomes", value)} />}
-        </div>
-      </details>
+      {isUnitDesign && <details className="mt-3 border-t border-[var(--paper-rule)] pt-3">
+        <summary className="cursor-pointer text-xs font-bold text-[var(--txs)]">了解大单元教学流程</summary>
+        <section aria-label="大单元教学流程预览" className="pt-4">
+          <UnitDesignProgress />
+          <p className="mt-3 text-xs leading-6 text-[var(--txs)]">先比较适合所选教材的教学模式，再审阅完整整体设计。两步均由你确认；之后连续生成全部课时详案，可分份下载或打包获取。</p>
+        </section>
+      </details>}
+      {toolSlug === "subject-lesson-design" && <section aria-label="公开课设计流程预览" className="mt-4 border-t border-[var(--paper-rule)] pt-4">
+          <h4 className="mb-3 text-xs font-bold text-[var(--annotation)]">公开课设计流程</h4>
+          <PublicLessonProgress />
+          <p className="mt-3 text-xs leading-5 text-[var(--txs)]">先明确本课最需要促成的学生转变，再选择合适的教学模式。两个关键决定都由你确认，最后生成完整教案。</p>
+      </section>}
       {busy && <p role="status" className="mt-3 text-xs text-txs">{progress || "正在执行任务…"}</p>}
 
     </form>
@@ -781,11 +766,11 @@ function TextField({ label, value, placeholder, onChange }: FieldProps) {
   );
 }
 
-function SelectField({ label, value, options, optionLabel, onChange }: { label: string; value: string; options: readonly string[]; optionLabel?: (value: string) => string; onChange: (value: string) => void }) {
+function SelectField({ label, value, options, optionLabel, onChange, emphasized = false }: { label: string; value: string; options: readonly string[]; optionLabel?: (value: string) => string; onChange: (value: string) => void; emphasized?: boolean }) {
   return (
-    <label className="block text-xs font-bold text-txs">
+    <label className={cn("block text-xs font-bold", emphasized ? "text-[var(--annotation)]" : "text-[var(--txs)]")}>
       {label}
-      <select aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} className="mt-1.5 h-10 min-w-0 w-full rounded-ds-md border border-bd bg-[var(--paper)] px-3 text-sm font-normal text-tx outline-none focus:border-ac">
+      <select aria-label={label} value={value} onChange={(event) => onChange(event.target.value)} className={cn("mt-1.5 h-10 min-w-0 w-full rounded-ds-md border bg-[var(--paper)] px-3 text-sm text-[var(--ink)] outline-none focus:border-[var(--annotation)]", emphasized ? "border-[var(--annotation)] font-bold" : "border-[var(--paper-rule)] font-normal")}>
         <option value="">请选择</option>
         {options.map((option) => <option key={option} value={option}>{optionLabel ? optionLabel(option) : option}</option>)}
       </select>
@@ -801,15 +786,6 @@ function DesignTypeField({ value, onChange }: { value: string; onChange: (value:
     </select>
     {value && <span className="mt-1 block text-xs font-normal leading-5">{HAI_DESIGN_TYPES.find((item) => item.value === value)?.description}</span>}
   </label>;
-}
-
-function TextAreaField({ label, value, placeholder, minRows, onChange }: FieldProps & { minRows: number }) {
-  return (
-    <label className="mt-5 block text-xs font-bold text-txs">
-      {label}
-      <textarea aria-label={label} value={value} rows={minRows} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="mt-2 w-full resize-y rounded-ds-lg border border-bd bg-[var(--paper)] p-4 text-sm font-normal leading-7 text-tx outline-none transition focus:border-ac focus:ring-2 focus:ring-ac/10" />
-    </label>
-  );
 }
 
 type FieldProps = { label: string; value: string; placeholder: string; onChange: (value: string) => void };
@@ -885,13 +861,13 @@ function validateForm(
     if (!form.desired_outcomes.trim()) return "请填写预期成果或任务说明。";
     if (!form.unit_duration.trim()) return "请填写课时或范围。";
   }
-  if (toolSlug === "lesson-diagnosis" && !form.lesson_plan.trim() && fileCount === 0) return "请粘贴教案正文或上传教案文件。";
+  if (toolSlug === "lesson-diagnosis" && !form.lesson_plan.trim() && fileCount === 0) return "请通过输入框“+”上传教案文件。";
   if (toolSlug === "segment-optimization") {
     if (!form.segment_type) return "请选择要优化的环节。";
-    if (!form.current_design.trim() && fileCount === 0) return "请粘贴当前环节设计，或上传环节设计文件。";
+    if (!form.current_design.trim() && fileCount === 0) return "请通过输入框“+”上传环节设计文件。";
     if (!form.desired_outcome.trim()) return "请说明希望优化后达成的效果。";
   }
-  if (requiresTeacherTextbook && !form.textbook_content.trim() && fileCount === 0) return "当前学科暂无内置教材，请粘贴教材内容或上传教材文件。";
+  if (requiresTeacherTextbook && !form.textbook_content.trim() && fileCount === 0) return "当前年级与学科暂无内置教材，请通过输入框“+”上传教材文件。";
   return "";
 }
 
@@ -930,7 +906,7 @@ function isHiddenWorkTool(slug: string) {
 
 function getSupportedWorkTools(tools: HaiFeatureModule[] = []) {
   const modules = new Map(tools.filter((module) => isWorkToolSlug(module.slug)).map((module) => [module.slug, module]));
-  const stableOrder: HaiWorkToolSlug[] = ["lesson-diagnosis", "segment-optimization", "subject-lesson-design", "unit-learning-design", "image-generation"];
+  const stableOrder: HaiWorkToolSlug[] = ["subject-lesson-design", "unit-learning-design", "lesson-diagnosis", "segment-optimization", "image-generation"];
   return stableOrder.flatMap((slug) => {
     const module = modules.get(slug);
     return module ? [{ slug, config: resolveWorkToolConfig(slug, module), previewOnly: false }] : [];

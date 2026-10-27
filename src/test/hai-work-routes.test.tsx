@@ -8,6 +8,14 @@ function WorkHome() {
 }
 afterEach(cleanup);
 describe("旧 Work 新建入口", () => {
+  it("HAI 默认入口直接进入工作台", async () => {
+    render(<MemoryRouter initialEntries={["/hai"]}><Routes>
+      <Route path="/hai" element={routes.find(route => route.path === "/hai")!.element} />
+      <Route path="/hai/work" element={<WorkHome />} />
+    </Routes></MemoryRouter>);
+    expect(await screen.findByText("统一工作台：/hai/work")).toBeInTheDocument();
+  });
+
   it.each([
     "/hai/work/image-generation",
     "/hai/work/image-generation/ppt",

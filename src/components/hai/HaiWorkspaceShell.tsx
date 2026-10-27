@@ -1,7 +1,9 @@
-import { useLocation } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
+  BriefcaseBusiness,
   Menu,
+  MessageCircleMore,
   PanelRight,
 } from "lucide-react";
 import { useEffect, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
@@ -12,6 +14,33 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useHaiExit } from "@/lib/hai-navigation";
 import { cn } from "@/lib/utils";
+
+function HaiSidebarContent({ children, usage }: { children: ReactNode; usage?: HaiUsageSummary | null }) {
+  return <>
+    <div className="shrink-0 p-3 pb-2">
+      <NavLink to="/hai/work" state={{ newTask: true }} className={({ isActive }) => cn(
+        "flex min-h-14 items-center gap-3 rounded-xl border px-3 py-3 transition-colors",
+        isActive
+          ? "border-[var(--annotation)] bg-[var(--annotation-soft)] text-[var(--annotation)]"
+          : "border-[var(--paper-rule)] text-[var(--ink)] hover:bg-[var(--paper)]",
+      )}>
+        <BriefcaseBusiness aria-hidden className="h-5 w-5 shrink-0" />
+        <span><strong className="block text-sm">帮你干活</strong><span className="mt-1 block text-xs font-normal text-[var(--txs)]">写教案 · 改设计 · 做图片</span></span>
+      </NavLink>
+    </div>
+    <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
+    <div className="shrink-0 border-t border-[var(--paper-rule)] px-3 pb-[env(safe-area-inset-bottom)] pt-3">
+      <NavLink to="/hai/chat" className={({ isActive }) => cn(
+        "flex items-center gap-2.5 rounded-lg px-2 py-2 text-xs transition-colors hover:bg-[var(--paper)]",
+        isActive ? "bg-[var(--paper)] text-[var(--annotation)]" : "text-[var(--txs)]",
+      )}>
+        <MessageCircleMore aria-hidden className="h-4 w-4 shrink-0" />
+        <span><span className="block text-[11px] text-[var(--txt)]">还没想清楚？</span><span className="mt-1 block">先聊聊问题</span></span>
+      </NavLink>
+      <HaiUserMenu usage={usage} />
+    </div>
+  </>;
+}
 
 // 可调宽布局:桌面三栏宽度本地持久化(仅 resizable 页面启用;移动端走 Sheet 不受影响)。
 const HAI_LAYOUT_STORAGE_KEY = "hai-work-layout";
@@ -167,8 +196,7 @@ export default function HaiWorkspaceShell({
                     )}
                     hideCloseButton={hideMobileSidebarClose}
                   >
-                    <div className="min-h-0 flex-1 overflow-hidden">{sidebar}</div>
-                    <div className="shrink-0 border-t border-[var(--paper-rule)] px-3 pb-[env(safe-area-inset-bottom)]"><HaiUserMenu usage={usage} /></div>
+                    <HaiSidebarContent usage={usage}>{sidebar}</HaiSidebarContent>
                   </SheetContent>
                 </Sheet>
               )}
@@ -223,8 +251,7 @@ export default function HaiWorkspaceShell({
             <aside className={cn(
               "hidden min-h-0 flex-col overflow-hidden border-r border-[var(--paper-rule)] bg-[var(--paper-deep)] lg:flex print:hidden",
             )}>
-              <div className="min-h-0 flex-1 overflow-hidden">{sidebar}</div>
-              <div className="shrink-0 border-t border-[var(--paper-rule)] px-3"><HaiUserMenu usage={usage} /></div>
+              <HaiSidebarContent usage={usage}>{sidebar}</HaiSidebarContent>
             </aside>
             {resizable && (
               <div

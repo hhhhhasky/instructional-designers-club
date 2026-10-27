@@ -438,7 +438,7 @@ function ImageComposer({ prompt, setPrompt, size, setSize, style, setStyle, subj
             </select>
           </label>
           <CompactSelect label="生成图类型" value={imageType} options={HAI_IMAGE_TYPES.map((item) => ({ value: item, label: item }))} onChange={(value) => setImageType(value as HaiImageType)} disabled={busy} />
-          {!conversation && <Link to="/hai/work" state={{ imagePpt: true, workDraft: prompt }} className="inline-flex h-8 items-center gap-1.5 rounded-ds-md border border-[var(--paper-rule)] bg-white px-2 text-xs text-txs transition hover:border-ac hover:text-tx"><ImagePlus className="h-3.5 w-3.5" />从已有教案制作课件</Link>}
+          {!conversation && <Link to="/hai/work" state={{ imagePpt: true, workDraft: prompt }} className="inline-flex h-8 items-center gap-1.5 rounded-ds-md border border-[var(--annotation)] bg-[var(--annotation-soft)] px-2 text-xs font-semibold text-[var(--annotation)] transition hover:bg-[var(--paper)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--annotation)]"><ImagePlus aria-hidden className="h-3.5 w-3.5" />从已有教案制作课件</Link>}
           <span className="text-xs text-txt">{HAI_IMAGE_GENERATION_POINTS} 积分/张</span>
           {!settingsOnly && <Button type="button" className="h-8 shrink-0 rounded-ds-md bg-tl px-3 text-xs text-white hover:bg-tl/90" disabled={!prompt.trim() || busy || pointsBlocked} onClick={onSubmit}>{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}{pointsBlocked ? "积分不足" : busy ? "生成中" : "生成图片"}</Button>}
         </div>

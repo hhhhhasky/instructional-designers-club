@@ -28,7 +28,6 @@ export default function UnitTextbookSelector({ catalog, scope, books, onChange, 
     {scope && <div className="mt-5 space-y-4">
       {visibleBooks.map((book, index) => {
         const rows = catalog.filter((row) => row.collection_slug === book.collection_slug);
-        const edition = rows[0];
         const units = [...new Map(rows.map((row) => [row.unit_route_number, row])).values()];
         return <section key={index} className="rounded-ds-lg border border-bd bg-[var(--paper-deep)] p-4">
           <div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-black text-tx">教材 {String(index + 1).padStart(2, "0")}</h3>{scope === "across-books" && visibleBooks.length > 1 && <button type="button" aria-label={`移除教材 ${index + 1}`} onClick={() => onChange(visibleBooks.filter((_, i) => i !== index))} className="rounded p-2 text-txs hover:text-red-700"><Trash2 className="h-4 w-4" /></button>}</div>
@@ -38,7 +37,6 @@ export default function UnitTextbookSelector({ catalog, scope, books, onChange, 
               {collections.map((row) => <option key={row.collection_slug} value={row.collection_slug} disabled={visibleBooks.some((other, i) => i !== index && other.collection_slug === row.collection_slug)}>{formatHaiTextbookName(row)}</option>)}
             </select>
           </label>
-          {edition && <p className="mt-2 text-xs leading-5 text-txs">{edition.edition_label} · 内置内容为教材知识点梳理{edition.requires_confirmation ? " · 待纸质教材复核" : ""}</p>}
           {catalog.length === 0 && <p className="mt-3 text-xs leading-5 text-txs">当前学段、学科尚无可选教材。请等待目录加载，或选择已有教材的学科。</p>}
           <div className="mt-4 space-y-3">
             {units.map((row) => {

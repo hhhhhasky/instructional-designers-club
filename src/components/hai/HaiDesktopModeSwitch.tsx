@@ -1,35 +1,21 @@
-import { BriefcaseBusiness, Coins, MessageCircleMore } from "lucide-react";
-import { NavLink } from "react-router-dom";
-import { cn } from "@/lib/utils";
+import { ArrowUpRight, BriefcaseBusiness, Coins } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 
 export default function HaiDesktopModeSwitch() {
+  const { pathname } = useLocation();
+  const isWork = pathname === "/hai/work" || pathname.startsWith("/hai/work/");
   return (
     <nav
-      className="hidden grid-cols-3 gap-1 md:grid"
-      aria-label="切换 HAI 模式"
+      className="hidden items-center gap-3 md:flex"
+      aria-label="HAI 工作与账户"
       data-testid="hai-desktop-mode-switch"
     >
-      <Mode to="/hai/chat" label="聊聊问题" icon={MessageCircleMore} />
-      <Mode to="/hai/work" label="帮你干活" icon={BriefcaseBusiness} />
-      <Mode to="/hai/points" label="购买积分" icon={Coins} />
+      {!isWork && <Link to="/hai/work" className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-[var(--annotation)] px-3 text-xs font-bold text-[var(--paper)] transition hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--annotation)]">
+        <BriefcaseBusiness aria-hidden className="h-4 w-4" />帮你干活<ArrowUpRight aria-hidden className="h-3.5 w-3.5" />
+      </Link>}
+      <Link to="/hai/points" className="inline-flex min-h-9 items-center gap-1.5 rounded-lg px-2 text-xs text-[var(--txs)] transition hover:bg-[var(--paper-deep)] hover:text-[var(--ink)]">
+        <Coins aria-hidden className="h-3.5 w-3.5" />购买积分
+      </Link>
     </nav>
-  );
-}
-
-function Mode({ to, label, icon: Icon }: {
-  to: string;
-  label: string;
-  icon: React.ElementType;
-}) {
-  return (
-    <NavLink to={to} className={({ isActive }) => cn(
-      "relative flex h-9 rounded-md items-center justify-center gap-1.5 px-3 text-ds-xs font-ds-bold transition-colors",
-      isActive
-        ? "bg-acl text-ac"
-        : "text-txs hover:bg-white/60 hover:text-tx",
-    )}>
-      <Icon className="h-3.5 w-3.5" />
-      {label}
-    </NavLink>
   );
 }

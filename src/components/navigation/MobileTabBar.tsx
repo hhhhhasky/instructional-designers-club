@@ -48,7 +48,7 @@ export default function MobileTabBar() {
           const active = isActive(tab.path);
           return <Link
             key={tab.path}
-            to={tab.path === '/hai' ? '/hai/chat' : tab.path}
+            to={tab.path === '/hai' ? '/hai/work' : tab.path}
             state={tab.path === '/hai' ? { fromSite: location.pathname } : undefined}
             aria-current={active ? 'page' : undefined}
             className={cn('flex min-w-0 flex-1 flex-col items-center justify-center gap-1 border-t-2 text-xs transition-colors', active ? 'border-ac text-ac' : 'border-transparent text-txs hover:text-ac')}

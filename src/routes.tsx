@@ -160,9 +160,9 @@ const routes: RouteConfig[] = [
   {
     name: 'HAI',
     path: '/hai',
-    element: <Navigate to="/hai/chat" replace />,
+    element: <Navigate to="/hai/work" replace />,
     visible: true,
-    preload: loadHaiPage
+    preload: loadHaiWorkPage
   },
   {
     name: 'HAI Chat',
