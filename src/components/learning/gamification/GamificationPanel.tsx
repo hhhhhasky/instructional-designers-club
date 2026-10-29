@@ -142,7 +142,7 @@ function GrowthProfile({ snapshot }: { snapshot: GamificationSnapshot }) {
             </span>
             <span className="text-ds-xs text-txs">{snapshot.totalCredits} 学分</span>
           </div>
-          <h2 className="text-2xl font-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>
+          <h2 className="text-ds-lg font-ds-black text-tx" style={{ fontFamily: 'var(--fd)' }}>
             成长档案
           </h2>
           <p className="text-ds-sm text-txs mt-1 leading-relaxed">{snapshot.statusLine}</p>
@@ -177,7 +177,7 @@ function AchievementGallery({ achievements }: { achievements: Achievement[] }) {
   return (
     <div className="bg-white rounded-ds-lg border border-bd shadow-ds-sm p-4 md:p-5">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold text-tx flex items-center gap-2">
+        <h2 className="text-ds-base font-ds-bold text-tx flex items-center gap-2">
           <span className="w-1 h-4 rounded-full bg-am inline-block" />
           学习徽章
         </h2>
@@ -279,7 +279,7 @@ function QuestList({ quests }: { quests: Quest[] }) {
 
   return (
     <div className="bg-white rounded-ds-lg border border-bd shadow-ds-sm p-4 md:p-5">
-      <h2 className="text-2xl font-bold text-tx mb-4 flex items-center gap-2">
+      <h2 className="text-ds-base font-ds-bold text-tx mb-4 flex items-center gap-2">
         <span className="w-1 h-4 rounded-full bg-ac inline-block" />
         近期任务
       </h2>

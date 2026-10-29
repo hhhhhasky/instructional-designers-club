@@ -49,7 +49,7 @@ export default function WorkWorkflowCard({ run, tool, disabled, onChanged }: {
     {legacyLesson && <p className="text-xs leading-5 text-txs">本任务沿用原有流程，未单独确认教学重点。</p>}
     <div className="border-t border-[var(--paper-rule)] pt-4">
       <div className="flex flex-wrap items-center gap-2">
-        <h3 className="text-lg font-semibold text-tx">{title}</h3>
+        <h3 className="font-bold text-tx">{title}</h3>
         {waiting && <span className="rounded-full bg-[var(--proof-soft)] px-2.5 py-1 text-xs font-bold text-[var(--proof)]">等你确认</span>}
         {active && <span role="status" className="text-xs text-txs">{run.status === "queued" ? "排队中" : "正在整理"}</span>}
         {run.status === "completed" && <span className="text-xs text-txs">已完成</span>}

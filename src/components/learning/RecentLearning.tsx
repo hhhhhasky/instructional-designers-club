@@ -19,7 +19,7 @@ export default function RecentLearning({ items }: Props) {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-tx mb-2 flex items-center gap-2">
+      <h2 className="text-ds-base font-ds-bold text-tx mb-2 flex items-center gap-2">
         <span className="w-1 h-4 rounded-full bg-tl inline-block"></span>
         最近学习
       </h2>

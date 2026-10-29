@@ -408,7 +408,7 @@ function QuestionSection({
         </span>
         <div>
           <p className="text-ds-xs font-ds-bold tracking-[0.12em] text-ac">{eyebrow}</p>
-          <h2 className="text-2xl font-bold mt-1 leading-tight text-tx">{title}</h2>
+          <h2 className="mt-1 text-lg font-ds-black leading-tight text-tx sm:text-ds-2xl">{title}</h2>
           <p className="mt-1.5 text-xs leading-relaxed text-txs sm:mt-2 sm:text-ds-sm">{description}</p>
         </div>
       </div>

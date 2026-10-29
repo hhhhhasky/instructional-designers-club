@@ -95,7 +95,7 @@ function UsagePanel({
       <div className="pt-1">
         <div className="mb-3 flex items-center gap-2">
           <Pin className="h-4 w-4 text-ac" />
-          <h2 className="text-2xl font-bold text-tx">用户记忆</h2>
+          <h2 className="text-ds-sm font-ds-bold text-tx">用户记忆</h2>
         </div>
         <div className="space-y-2">
           <select
