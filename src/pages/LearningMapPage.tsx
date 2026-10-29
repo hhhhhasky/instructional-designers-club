@@ -125,7 +125,7 @@ export default function LearningMapPage() {
                 <MapIcon className="w-5 h-5 text-ac" />
               </div>
               <div>
-                <h1 className="font-serif text-2xl font-ds-bold text-tx">教学设计学习地图</h1>
+                <h1 className="text-3xl font-bold text-tx">教学设计学习地图</h1>
                 <p className="text-ds-sm text-txs">六大要素 · 看清你在哪里、下一步学什么</p>
               </div>
             </div>

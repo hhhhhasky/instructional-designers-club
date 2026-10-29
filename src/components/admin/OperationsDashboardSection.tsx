@@ -106,7 +106,7 @@ export default function OperationsDashboardSection({ onOpenDetail }: OperationsD
               </span>
               <span className="text-ds-xs text-white/55">数据更新时间 {updatedAt ? formatTime(updatedAt) : "-"}</span>
             </div>
-            <h2 className="mt-4 max-w-3xl font-serif text-[1.8rem] font-ds-black leading-[1.3] tracking-tight md:text-[2.35rem]">
+            <h2 className="text-2xl font-bold mt-4 max-w-3xl leading-[1.3] tracking-tight">
               不只看数字，<span className="text-[var(--sand)]">看见运营下一步</span>
             </h2>
             <p className="mt-3 max-w-2xl text-ds-sm leading-7 text-white/65">
@@ -246,7 +246,7 @@ function HealthDial({ score }: { score: number }) {
     <div className="mx-auto flex w-full max-w-[220px] flex-col items-center rounded-[22px] border border-white/10 bg-black/10 p-5 backdrop-blur-sm">
       <div className="relative grid h-32 w-32 place-items-center rounded-full" style={{ background: `conic-gradient(#efb393 ${score * 3.6}deg, rgba(255,255,255,.12) 0deg)` }}>
         <div className="grid h-[108px] w-[108px] place-items-center rounded-full bg-[var(--sage)] text-center">
-          <div><p className="font-serif text-3xl font-ds-black">{score}</p><p className="text-xs tracking-[0.14em] text-white/45">HEALTH</p></div>
+          <div><p className="text-3xl font-ds-black">{score}</p><p className="text-xs tracking-[0.14em] text-white/45">HEALTH</p></div>
         </div>
       </div>
       <div className="mt-3 flex items-center gap-1.5 text-ds-xs"><span className="h-1.5 w-1.5 rounded-full bg-[var(--sand)]" />综合状态：{status}</div>
@@ -258,7 +258,7 @@ function HeroKpi({ icon: Icon, label, value, note }: { icon: typeof Users; label
   return (
     <div className="bg-[var(--sage)]/90 p-4 md:p-5">
       <div className="flex items-center gap-2 text-white/50"><Icon className="h-4 w-4" /><span className="text-xs">{label}</span></div>
-      <p className="mt-2 font-serif text-[1.55rem] font-ds-black tracking-tight text-white">{value}</p>
+      <p className="mt-2 text-[1.55rem] font-ds-black tracking-tight text-white">{value}</p>
       <p className="mt-1 text-xs text-white/45">{note}</p>
     </div>
   );
@@ -267,7 +267,7 @@ function HeroKpi({ icon: Icon, label, value, note }: { icon: typeof Users; label
 function SectionHeading({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: React.ReactNode }) {
   return (
     <div className="flex items-end justify-between gap-4">
-      <div><p className="text-xs font-ds-black tracking-[0.18em] text-ac">{eyebrow}</p><h3 className="mt-1 text-ds-lg font-ds-black text-tx">{title}</h3><p className="mt-1 text-xs text-txs">{description}</p></div>
+      <div><p className="text-xs font-ds-black tracking-[0.18em] text-ac">{eyebrow}</p><h3 className="text-lg font-semibold mt-1 text-tx">{title}</h3><p className="mt-1 text-xs text-txs">{description}</p></div>
       {action}
     </div>
   );

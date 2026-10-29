@@ -132,7 +132,7 @@ export default function ImagePptOutlineDocument({
           <div className="mt-7 border-t border-[var(--paper-rule)] pt-6">
             <label
               htmlFor="ppt-outline-feedback"
-              className="font-serif text-lg font-bold"
+              className="text-lg font-bold"
             >
               想怎样调整这份大纲？
             </label>

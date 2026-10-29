@@ -57,7 +57,7 @@ export function CourseEditorialHero({
               <span className="editorial-stamp">{badge}</span>
             </div>
             <h1
-              className="mt-5 text-3xl font-ds-black leading-tight tracking-tight text-tx md:text-4xl"
+              className="text-3xl font-bold mt-5 leading-tight tracking-tight text-tx"
               style={{ fontFamily: "var(--fd)" }}
             >
               {title}
@@ -118,7 +118,7 @@ export function CourseEditorialCatalogLayout({
         <div>
           <span className="editorial-kicker">从这里开始学习</span>
           <div className="mt-1.5 flex items-baseline gap-2.5">
-            <h2 className="font-ds-bold text-tx" style={{ fontFamily: "var(--fd)" }}>{label}</h2>
+            <h2 className="text-2xl font-bold text-tx" style={{ fontFamily: "var(--fd)" }}>{label}</h2>
             <span className="text-xs text-txt">{countLabel}</span>
           </div>
         </div>
@@ -184,7 +184,7 @@ export function CourseEditorialVolume({
         </div>
         <div className="min-w-0">
           <span className="editorial-kicker">第 {index + 1} 部分</span>
-          <h2 id={headingId} className="mt-1 text-xl font-ds-bold text-tx md:text-2xl" style={{ fontFamily: "var(--fd)" }}>
+          <h2 id={headingId} className="text-2xl font-bold mt-1 text-tx" style={{ fontFamily: "var(--fd)" }}>
             {title}
           </h2>
           {description && <p className="mt-1.5 text-sm leading-6 text-txs">{description}</p>}

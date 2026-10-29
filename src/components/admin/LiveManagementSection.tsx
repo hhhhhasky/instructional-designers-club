@@ -710,7 +710,7 @@ export default function LiveManagementSection() {
                       </Button>
                     </div>
                   ) : (
-                    <h3 className="mt-1 font-serif text-ds-xl font-ds-black text-tx">{selectedSession.title}</h3>
+                    <h3 className="text-lg font-semibold mt-1 text-tx">{selectedSession.title}</h3>
                   )}
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-ds-xs text-txs">
                     <span className={`rounded-ds-pill px-2.5 py-1 font-ds-bold ${statusClass(selectedSession.status)}`}>
@@ -896,7 +896,7 @@ export default function LiveManagementSection() {
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <span className={`h-2.5 w-2.5 rounded-full ${online ? "bg-sage" : "bg-bd"}`} />
-                              <h3 className="truncate text-ds-sm font-ds-bold text-tx">{participant.nickname}</h3>
+                              <h3 className="text-lg font-semibold truncate text-tx">{participant.nickname}</h3>
                               <span className="text-xs text-txt">{online ? "在线" : "已离线"}</span>
                             </div>
                             <p className="mt-1 font-mono text-xs text-txt">{participant.user_id.slice(0, 8)}</p>
@@ -1047,7 +1047,7 @@ export default function LiveManagementSection() {
                     <>
                       <div>
                         <p className="text-xs font-ds-black tracking-[.14em] text-[var(--sand)]">CURRENT SNAPSHOT</p>
-                        <p className="mt-2 font-serif text-ds-lg font-ds-black">Q{currentQuestion.position} · {currentQuestion.title}</p>
+                        <p className="mt-2 text-ds-lg font-ds-black">Q{currentQuestion.position} · {currentQuestion.title}</p>
                         <p className="mt-1 text-ds-xs text-[var(--sand)]">{formatLiveAudience(currentQuestion)}</p>
                         <p className="mt-2 text-ds-sm text-white/60">已答 <span className="font-ds-black text-white">{summary.answeredCount}</span> 人 · 正确率 <span className="font-ds-black text-white">{summary.correctRate}%</span></p>
                       </div>

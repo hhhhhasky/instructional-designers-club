@@ -156,7 +156,7 @@ function DetailBody({
           <div className="space-y-4">
             {expl.seriesGroups.map((group) => (
               <div key={group.categoryName}>
-                <h4 className="text-ds-sm font-ds-bold text-tx mb-2 flex items-center gap-2">
+                <h4 className="text-base font-semibold text-tx mb-2 flex items-center gap-2">
                   <span className="w-1 h-3 rounded-full bg-ac" />
                   {group.categoryName}
                   <span className="text-ds-xs text-txs font-ds-regular">
@@ -255,7 +255,7 @@ function ChipGroup({
 }) {
   return (
     <div>
-      <h4 className="text-ds-sm font-ds-bold text-tx mb-2 flex items-center gap-2">
+      <h4 className="text-base font-semibold text-tx mb-2 flex items-center gap-2">
         <span className="w-1 h-3 rounded-full bg-pp" />
         {label}
       </h4>

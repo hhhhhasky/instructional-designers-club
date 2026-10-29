@@ -42,7 +42,7 @@ function AppContent() {
         <header className="site-toolbar fixed right-0 top-0 z-40 flex h-14 shrink-0 items-center gap-1 border-b border-[var(--paper-rule)] bg-[var(--paper)] px-3 print:hidden md:px-4">
           <button type="button" onClick={back} disabled={location.pathname === '/'} aria-label="返回上一页" title="返回上一页" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-txs hover:bg-[var(--paper-deep)] hover:text-ac disabled:opacity-30"><ArrowLeft size={19} /></button>
           <button type="button" onClick={() => window.dispatchEvent(new Event('site-sidebar-toggle'))} aria-label={sidebarOpen ? '折叠工具栏' : '展开工具栏'} title={sidebarOpen ? '折叠工具栏' : '展开工具栏'} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-txs hover:bg-[var(--paper-deep)] hover:text-ac">{sidebarOpen ? <PanelLeftClose size={19} /> : <PanelLeftOpen size={19} />}</button>
-          <div ref={setToolbarContent} className="site-toolbar-content flex min-w-0 flex-1 items-center justify-between gap-2">{!isHaiWorkspace && !isAdmin && <span className="truncate pl-1 font-serif text-sm font-bold text-tx">{currentTitle}</span>}</div>
+          <div ref={setToolbarContent} className="site-toolbar-content flex min-w-0 flex-1 items-center justify-between gap-2">{!isHaiWorkspace && !isAdmin && <span className="truncate pl-1 text-base font-bold text-tx">{currentTitle}</span>}</div>
           <SiteNotifications />
         </header>
         <main className="min-w-0 flex-grow">

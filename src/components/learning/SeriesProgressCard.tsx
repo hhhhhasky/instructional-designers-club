@@ -31,7 +31,7 @@ export default function SeriesProgressCard({ series, accessLevel }: Props) {
           <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-bgs/50 transition-colors">
             <div className="flex-1 text-left">
               <div className="flex items-center justify-between mb-1.5">
-                <h3 className="text-ds-base font-ds-bold text-tx">{series.categoryName}</h3>
+                <h3 className="text-lg font-semibold text-tx">{series.categoryName}</h3>
                 <span className="text-ds-sm text-txs">
                   {series.completedCourses}/{series.totalCourses} 完成
                 </span>

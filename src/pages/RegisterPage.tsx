@@ -65,7 +65,7 @@ export default function RegisterPage() {
                 <GraduationCap className="w-6 h-6 text-ac" />
               </div>
               <h1
-                className="text-2xl font-ds-bold text-tx mb-2"
+                className="text-3xl font-bold text-tx mb-2"
                 style={{ fontFamily: 'var(--fd)' }}
               >
                 创建账号

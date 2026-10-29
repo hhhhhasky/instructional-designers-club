@@ -167,7 +167,7 @@ export default function CourseContentStack({
       {/* 音频讲解 */}
       {hasAudio && (
         <div>
-          <h2 className="text-xl font-bold text-tx font-serif mb-3 flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-tx mb-3 flex items-center gap-2">
             <Headphones className="w-4 h-4 text-ac" />
             <span className="flex-1">音频讲解</span>
             {onPlaybackRateChange && (
@@ -195,7 +195,7 @@ export default function CourseContentStack({
       {/* 正文（Markdown） */}
       {hasBody && (
         <div>
-          <h2 className="text-xl font-bold text-tx font-serif mb-3 flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-tx mb-3 flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-ac" />
             正文
           </h2>
@@ -208,7 +208,7 @@ export default function CourseContentStack({
       {/* 图片集 */}
       {hasImages && (
         <div>
-          <h2 className="text-xl font-bold text-tx font-serif mb-3 flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-tx mb-3 flex items-center gap-2">
             <ImagesIcon className="w-4 h-4 text-ac" />
             图片集
           </h2>

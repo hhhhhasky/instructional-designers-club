@@ -745,7 +745,7 @@ export function EmptyState({
           <Brain className="h-5 w-5 text-ac sm:h-7 sm:w-7" />
         </div>
         <div className="min-w-0">
-          <h2 className="text-ds-lg font-ds-black leading-tight text-tx sm:text-ds-2xl">{module?.name ?? "HAI"}</h2>
+          <h2 className="text-2xl font-bold leading-tight text-tx">{module?.name ?? "HAI"}</h2>
           <p className="mt-0.5 truncate text-ds-sm leading-relaxed text-txs sm:mt-2 sm:max-w-xl sm:whitespace-normal sm:text-ds-base">
             {module?.description ?? "把你的备课困惑告诉我，我们从最值得改的地方开始。"}
           </p>
@@ -790,7 +790,7 @@ function UnavailablePanel({ message }: { message: string }) {
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-ds-full bg-amber-50">
           <Bot className="h-6 w-6 text-amber-700" />
         </div>
-        <h2 className="text-ds-xl font-ds-black text-tx">HAI 暂时不可用</h2>
+        <h2 className="text-2xl font-bold text-tx">HAI 暂时不可用</h2>
         <p className="mt-2 text-ds-sm leading-relaxed text-txs">{message}</p>
       </div>
     </div>
@@ -804,7 +804,7 @@ function LockedPanel({ reason }: { reason?: string }) {
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-ds-full bg-acl">
           <LockKeyhole className="h-6 w-6 text-ac" />
         </div>
-        <h2 className="text-center text-ds-xl font-ds-black text-tx">HAI 暂时不可用</h2>
+        <h2 className="text-2xl font-bold text-center text-tx">HAI 暂时不可用</h2>
         <p className="mt-2 text-center text-ds-sm leading-relaxed text-txs">
           {reason || "请先登录；登录后只要账户有积分即可使用 HAI。"}
         </p>

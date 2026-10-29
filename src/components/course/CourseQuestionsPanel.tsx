@@ -173,7 +173,7 @@ export default function CourseQuestionsPanel({ course }: CourseQuestionsPanelPro
     <section ref={sectionRef} className="py-7 border-b border-bdl">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
         <div>
-          <h2 className="text-xl font-bold text-tx font-serif flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-tx flex items-center gap-2">
             <MessageCircle className="w-4 h-4 text-ac" />
             课程问答
           </h2>

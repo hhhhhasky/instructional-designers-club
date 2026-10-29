@@ -173,7 +173,7 @@ export default function V2LessonEditor({ bundle, unitId, onSaved }: V2LessonEdit
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-bdl pb-4">
         <div>
           <p className="text-xs font-ds-black tracking-[.16em] text-ac">LESSON EDITOR</p>
-          <h3 className="mt-2 font-serif text-2xl font-ds-black text-tx">{lesson.title}</h3>
+          <h3 className="text-lg font-semibold mt-2 text-tx">{lesson.title}</h3>
           <p className="mt-1 text-xs text-txs">基础信息、学习设计、正文资源和评估在同一 Lesson 下维护。</p>
           {saveNotice && <p className={`mt-2 text-xs font-ds-bold ${saveNotice === "保存失败" ? "text-red-600" : "text-ac"}`}>{saveNotice}</p>}
         </div>

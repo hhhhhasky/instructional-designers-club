@@ -159,7 +159,7 @@ export default function LearningPage() {
               <GraduationCap className="w-5 h-5 text-ac" />
             </div>
             <div>
-              <h1 className="font-serif text-2xl font-ds-bold text-tx">我的学习</h1>
+              <h1 className="text-3xl font-bold text-tx">我的学习</h1>
               <p className="text-ds-sm text-txs">{profile.nickname} 的学习主页</p>
             </div>
           </div>
@@ -215,7 +215,7 @@ export default function LearningPage() {
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* 左侧：系列进度 */}
                     <div className="lg:col-span-2 space-y-3">
-                      <h2 className="text-ds-base font-ds-bold text-tx mb-3 flex items-center gap-2">
+                      <h2 className="text-2xl font-bold text-tx mb-3 flex items-center gap-2">
                         <span className="w-1 h-4 rounded-full bg-ac inline-block"></span>
                         系列课进度
                       </h2>

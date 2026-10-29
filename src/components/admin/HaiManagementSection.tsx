@@ -1080,7 +1080,7 @@ export default function HaiManagementSection() {
   if (loadError) {
     return (
       <div className="rounded-ds-lg border border-red-200 bg-red-50 p-6">
-        <h2 className="mb-2 text-ds-lg font-ds-bold text-red-800">HAI 配置加载失败</h2>
+        <h2 className="text-2xl font-bold mb-2 text-red-800">HAI 配置加载失败</h2>
         <p className="mb-4 text-ds-sm leading-relaxed text-red-700">
           请确认已在 Supabase 数据库中执行 HAI 迁移 SQL（<code className="rounded bg-red-100 px-1.5 py-0.5 text-xs">supabase/migrations/20260703090000_hai_workspace.sql</code>）。
         </p>
@@ -1469,7 +1469,7 @@ export default function HaiManagementSection() {
         <div className="rounded-ds-md border border-ac/25 bg-acl/30 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h3 className="text-ds-base font-ds-bold text-tx">积分消耗规则（等价 Token）</h3>
+              <h3 className="text-lg font-semibold text-tx">积分消耗规则（等价 Token）</h3>
               <p className="mt-1 text-ds-xs leading-relaxed text-txs">
                 后台按模型、缓存状态和输入/输出分别计费；用户端只显示积分，不展示 Token 换算关系。
               </p>
@@ -1543,7 +1543,7 @@ export default function HaiManagementSection() {
 
         <div className="mt-5 flex items-end justify-between gap-3">
           <div>
-            <h3 className="text-ds-base font-ds-bold text-tx">购买页套餐管理</h3>
+            <h3 className="text-lg font-semibold text-tx">购买页套餐管理</h3>
             <p className="mt-1 text-ds-xs text-txs">支持最多 8 个套餐；价格、介绍和“可完成内容”都由这里配置。</p>
           </div>
           <Button size="sm" className="bg-ac text-white hover:bg-acd" onClick={startCreatePointPackage}>
@@ -1650,7 +1650,7 @@ export default function HaiManagementSection() {
           }}
         >
           <div className="flex items-center justify-between gap-3">
-            <h4 className="text-ds-sm font-ds-bold text-tx">
+            <h4 className="text-base font-semibold text-tx">
               {editingPointPackageId ? "编辑套餐" : "新增套餐"}
             </h4>
             {editingPointPackageId && (
@@ -1885,7 +1885,7 @@ export default function HaiManagementSection() {
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
                 <Pencil className="h-4 w-4 shrink-0 text-ac" />
-                <h3 className="truncate text-ds-base font-ds-bold text-tx">编辑知识条目</h3>
+                <h3 className="text-lg font-semibold truncate text-tx">编辑知识条目</h3>
               </div>
               <Button size="sm" variant="ghost" disabled={saving} onClick={() => setKnowledgeEdit(null)}>
                 <X className="h-4 w-4" />

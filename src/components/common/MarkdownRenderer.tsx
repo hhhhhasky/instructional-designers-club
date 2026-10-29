@@ -166,23 +166,23 @@ function MarkdownBlock({ content, onVideoSeek, onAudioSeek }: { content: string;
       rehypePlugins={[rehypeKatex]}
       components={{
         h1: ({ children }) => (
-          <h1 className="font-serif text-2xl md:text-3xl font-black text-tx mt-7 mb-3 leading-tight">
+          <h1 className="text-3xl font-bold text-tx mt-7 mb-3 leading-tight">
             {children}
           </h1>
         ),
         h2: ({ children }) => (
-          <h2 className="font-serif text-xl md:text-2xl font-bold text-tx mt-7 mb-3 flex items-center gap-2 leading-snug">
+          <h2 className="text-2xl font-bold text-tx mt-7 mb-3 flex items-center gap-2 leading-snug">
             <span className="inline-block w-1 h-5 bg-ac rounded-full" />
             {children}
           </h2>
         ),
         h3: ({ children }) => (
-          <h3 className="font-serif text-lg font-semibold text-tx mt-5 mb-2 leading-snug">
+          <h3 className="text-lg font-semibold text-tx mt-5 mb-2 leading-snug">
             {children}
           </h3>
         ),
         h4: ({ children }) => (
-          <h4 className="font-semibold text-tx mt-4 mb-2">{children}</h4>
+          <h4 className="text-base font-semibold text-tx mt-4 mb-2">{children}</h4>
         ),
         p: ({ children }) => <p className="my-3 leading-relaxed">{children}</p>,
         ul: ({ children }) => (

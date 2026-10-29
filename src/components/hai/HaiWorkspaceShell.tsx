@@ -105,7 +105,7 @@ export default function HaiWorkspaceShell({
   contentMode = "scroll",
   contentClassName,
   resizable = false,
-  compactHeader = false,
+  compactHeader: _compactHeader = false,
 }: HaiWorkspaceShellProps) {
   const [layout, setLayout] = useState<HaiLayout>(readHaiLayout);
   const toolbarTarget = useContext(SiteToolbarContext);
@@ -172,7 +172,7 @@ export default function HaiWorkspaceShell({
                   <SheetContent
                     side="left"
                     className={cn(
-                      "flex w-[min(320px,88vw)] flex-col gap-0 overflow-hidden bg-[var(--paper-deep)] p-0 pt-[calc(2.5rem+env(safe-area-inset-top))]",
+                      "flex w-[min(320px,88vw)] flex-col gap-0 overflow-hidden bg-[var(--toolbar-bg)] p-0 pt-[calc(2.5rem+env(safe-area-inset-top))]",
                     )}
                     hideCloseButton={hideMobileSidebarClose}
                   >
@@ -182,7 +182,7 @@ export default function HaiWorkspaceShell({
               )}
               <div className="min-w-0">
                 <div className="flex min-w-0 items-center gap-2">
-                  <h1 className={cn("truncate font-serif font-black tracking-tight text-[var(--ink)]", compactHeader ? "text-sm" : "text-base md:text-lg")}>
+                  <h1 className={"truncate text-base font-bold text-[var(--ink)]"}>
                     {title}
                   </h1>
                 </div>
@@ -231,7 +231,7 @@ export default function HaiWorkspaceShell({
                   <SheetContent
                     side="left"
                     className={cn(
-                      "flex w-[min(320px,88vw)] flex-col gap-0 overflow-hidden bg-[var(--paper-deep)] p-0 pt-[calc(2.5rem+env(safe-area-inset-top))]",
+                      "flex w-[min(320px,88vw)] flex-col gap-0 overflow-hidden bg-[var(--toolbar-bg)] p-0 pt-[calc(2.5rem+env(safe-area-inset-top))]",
                     )}
                     hideCloseButton={hideMobileSidebarClose}
                   >
@@ -241,7 +241,7 @@ export default function HaiWorkspaceShell({
               )}
               <div className="min-w-0">
                 <div className="flex min-w-0 items-center gap-2">
-                  <h1 className={cn("truncate font-serif font-black tracking-tight text-[var(--ink)]", compactHeader ? "text-sm" : "text-base md:text-lg")}>
+                  <h1 className={"truncate text-base font-bold text-[var(--ink)]"}>
                     {title}
                   </h1>
                 </div>
@@ -288,7 +288,7 @@ export default function HaiWorkspaceShell({
             } as HaiLayoutCSSVars) : undefined}
           >
             <aside className={cn(
-              "hidden min-h-0 flex-col overflow-hidden border-r border-[var(--paper-rule)] bg-[var(--paper-deep)] lg:flex print:hidden",
+              "hidden min-h-0 flex-col overflow-hidden border-r border-[var(--paper-rule)] bg-[var(--toolbar-bg)] lg:flex print:hidden",
             )}>
               <HaiSidebarContent>{sidebar}</HaiSidebarContent>
             </aside>

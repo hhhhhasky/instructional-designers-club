@@ -61,7 +61,7 @@ export default function LiveAudienceFields({
           <Users className="h-4 w-4" />
         </div>
         <div>
-          <h3 className="text-ds-sm font-ds-bold text-tx">发送对象</h3>
+          <h3 className="text-lg font-semibold text-tx">发送对象</h3>
           <p className="mt-1 text-ds-xs leading-5 text-txs">定向模式下，指定学员与标签按并集匹配；非目标学员不会看到题目。</p>
         </div>
       </div>

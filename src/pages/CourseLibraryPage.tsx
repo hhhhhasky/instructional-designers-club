@@ -23,7 +23,7 @@ export default function CourseLibraryPage() {
       <PageMeta title="课程" description="浏览教学通识课、教师 AI 课与道法教材解读课，选择适合自己的学习方向。" canonicalPath="/course-library" />
       <main className="mx-auto max-w-[1600px] px-5 pb-16 pt-9 md:px-10 md:pt-12">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-5">
-          <div><p className="mb-3 text-xs tracking-[0.18em] text-txs">哈老师 · 教师学习课程</p><h1 className="font-serif text-3xl font-bold tracking-tight md:text-4xl">从你的教学问题出发</h1><p className="mt-3 text-sm leading-7 text-txs">学设计、用 AI、读教材。选择一门课，把方法带回课堂。</p></div>
+          <div><p className="mb-3 text-xs tracking-[0.18em] text-txs">哈老师 · 教师学习课程</p><h1 className="text-3xl font-bold tracking-tight">从你的教学问题出发</h1><p className="mt-3 text-sm leading-7 text-txs">学设计、用 AI、读教材。选择一门课，把方法带回课堂。</p></div>
           <BookOpen className="hidden h-9 w-9 text-ac/60 md:block" aria-hidden="true" />
         </div>
         <div className="mb-6 flex items-center justify-between border-b border-bd" role="group" aria-label="筛选课程">
@@ -36,14 +36,14 @@ export default function CourseLibraryPage() {
               <div className="px-6 py-7 md:px-7" style={{ backgroundColor: product.background, color: product.color }}>
                 <p className="text-xs font-medium tracking-widest">{product.topic}</p>
                 <div className="mb-6 mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
-                  <h2 className="font-serif text-2xl font-bold leading-snug md:text-[28px]"><Link to={product.cataloguePath} className="after:absolute after:inset-0 focus:outline-none">{product.name}</Link></h2>
+                  <h2 className="text-2xl font-bold leading-snug"><Link to={product.cataloguePath} className="after:absolute after:inset-0 focus:outline-none">{product.name}</Link></h2>
                   <span className={`inline-flex shrink-0 items-center rounded-ds-pill border px-2 py-0.5 text-xs font-ds-semibold leading-5 ${product.haiSupported ? 'border-current bg-white/80 text-current' : 'border-bd bg-white/40'}`}>{product.haiSupported ? '包含 HAI 使用权限' : '不含 HAI'}</span>
                 </div>
                 <div className="flex flex-wrap gap-2">{product.words.map((word) => <span key={word} className="border border-current/20 px-2 py-1 text-xs">{word}</span>)}</div>
               </div>
               <div className="flex flex-1 flex-col p-6 md:p-7">
                 <p className={`mb-3 flex items-center gap-1.5 text-xs ${product.hasAccess ? 'text-sage' : 'text-txs'}`} role="status">{loading ? '正在确认观看权限…' : product.hasAccess ? <><Check className="h-3.5 w-3.5" />已开通 · 可观看</> : <><LockKeyhole className="h-3.5 w-3.5" />{user ? '未开通' : '登录后确认观看权限'}</>}</p>
-                <p className="font-serif text-lg leading-relaxed text-muted-foreground">{product.headline}</p>
+                <p className="text-lg leading-relaxed text-muted-foreground">{product.headline}</p>
                 <p className="mt-3 text-sm leading-7 text-txs">{product.content}</p>
                 <p className="mb-6 mt-4 text-xs leading-6 text-txs">适合：{product.audience}</p>
                 <div className="mt-auto flex items-center justify-between gap-3 border-t border-bd pt-5">

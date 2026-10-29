@@ -161,7 +161,7 @@ export default function ActivityDetailPage() {
         <main className="flex-1 flex items-center justify-center pt-20 px-4">
           <div className="text-center animate-fade-in max-w-md">
             <AlertCircle className="w-14 h-14 text-ac/60 mx-auto mb-5" />
-            <h1 className="text-ds-2xl font-ds-bold text-tx font-serif mb-5">
+            <h1 className="text-3xl font-bold text-tx mb-5">
               {error || '活动不存在或已下架'}
             </h1>
             <Button onClick={() => navigate('/')} className="btn-press">
@@ -242,7 +242,7 @@ export default function ActivityDetailPage() {
                 </div>
 
                 {/* 标题 */}
-                <h1 className="text-2xl md:text-3xl font-black text-tx font-serif leading-tight">
+                <h1 className="text-3xl font-bold text-tx leading-tight">
                   {activity.title}
                 </h1>
 
@@ -266,7 +266,7 @@ export default function ActivityDetailPage() {
 
                 {/* 描述 */}
                 <section className="pt-6">
-                  <h2 className="text-xl font-bold text-tx font-serif mb-3">活动详情</h2>
+                  <h2 className="text-2xl font-bold text-tx mb-3">活动详情</h2>
                   <div className="bg-bgs rounded-md p-5">
                     {activity.description ? (
                       <p className="text-base md:text-lg text-tx leading-relaxed whitespace-pre-wrap font-body">

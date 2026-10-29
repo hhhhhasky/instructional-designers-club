@@ -72,7 +72,7 @@ export function HaiConfigPage({
     <section hidden={active !== section} aria-label={title} className="min-w-0">
       {!["work", "chat", "courseware", "images"].includes(section) && (
         <header className="mb-4">
-          <h2 className="text-base font-bold text-tx">{title}</h2>
+          <h2 className="text-2xl font-bold text-tx">{title}</h2>
           <p className="mt-1 text-xs leading-relaxed text-txs">{description}</p>
         </header>
       )}

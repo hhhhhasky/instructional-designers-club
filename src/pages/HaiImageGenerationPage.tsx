@@ -356,7 +356,7 @@ export default function HaiImageGenerationPage({ inline }: { inline?: InlineImag
       <HaiWorkShell sidebar={sidebar} title={taskTitle} subtitle="把教学画面变成可以直接保存、下载和继续调整的图片" workspaceMode="production" compactHeader>
         {!access?.allowed ? (
           <div className="mx-auto max-w-xl px-5 py-20 text-center">
-            <h2 className="font-serif text-2xl font-black text-tx">HAI 暂时不可用</h2>
+            <h2 className="text-2xl font-bold text-tx">HAI 暂时不可用</h2>
             <p className="mt-3 text-sm leading-6 text-txs">{access?.reason || "正在检查 HAI 使用权限。"}</p>
             <Button asChild className="mt-6 rounded-ds-lg bg-tl text-white"><a href="/hai/chat">先去聊聊问题</a></Button>
           </div>
@@ -367,7 +367,7 @@ export default function HaiImageGenerationPage({ inline }: { inline?: InlineImag
                 <div className="w-full max-w-3xl">
                   <div className="mb-5 text-center">
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--annotation-soft)] text-[var(--annotation)]"><ImagePlus className="h-5 w-5" /></div>
-                    <h2 className="mt-4 font-serif text-2xl font-black tracking-tight text-tx">描述你想生成的教学画面</h2>
+                    <h2 className="text-2xl font-bold mt-4 tracking-tight text-tx">描述你想生成的教学画面</h2>
                     <p className="mt-2 text-sm text-txs">每张图片消耗 {HAI_IMAGE_GENERATION_POINTS} 积分；学科可不选，选择后会推荐适合的风格。</p>
                   </div>
                   <ImageComposer prompt={prompt} setPrompt={setPrompt} size={size} setSize={setSize} style={style} setStyle={setStyle} subject={subject} setSubject={selectSubject} imageType={imageType} setImageType={setImageType} referenceFiles={referenceFiles} setReferenceFiles={setReferenceFiles} referenceRun={null} onUsePrevious={() => undefined} onClearPrevious={() => undefined} busy={busy || Boolean(activeRunIds)} pointsBlocked={Boolean(pointsBlocked)} onSubmit={() => void submit()} conversation={false} />

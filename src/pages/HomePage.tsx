@@ -52,7 +52,7 @@ function HomePageContent() {
           <div className="relative mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_330px] lg:items-center">
             <div className="animate-fade-in-up">
               <p className="editorial-kicker">{hero.kicker}</p>
-              <h1 id="home-title" className="mt-6 max-w-4xl text-4xl font-ds-black leading-[1.22] tracking-tight text-tx md:text-6xl" style={{ fontFamily: 'var(--fd)' }}>{hero.title_line1}<br /><span className="text-ac">{hero.title_line2}</span></h1>
+              <h1 id="home-title" className="text-3xl font-bold mt-6 max-w-4xl leading-[1.22] tracking-tight text-tx" style={{ fontFamily: 'var(--fd)' }}>{hero.title_line1}<br /><span className="text-ac">{hero.title_line2}</span></h1>
               <p className="mt-7 max-w-2xl text-base leading-8 text-txs md:text-lg md:leading-9">{hero.description}</p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <a href="#real-situations" className="inline-flex min-h-12 items-center gap-2 rounded-ds-sm bg-ac px-6 font-ds-bold text-white transition-colors hover:bg-acd focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac focus-visible:ring-offset-2">{hero.primary_cta} <ArrowDown className="h-4 w-4" aria-hidden="true" /></a>
@@ -62,7 +62,7 @@ function HomePageContent() {
               {user && !loading && <Link to="/learning" className="mt-6 inline-flex items-center gap-2 text-sm font-ds-semibold text-ac hover:underline">{hero.learning_cta} <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>}
             </div>
             <aside className="editorial-paper animate-fade-in border-[var(--paper-rule)] p-6 shadow-ds-md md:p-7" aria-label="一节课的设计线索">
-              <div className="flex items-center justify-between border-b border-dashed border-[var(--paper-rule)] pb-4"><span className="editorial-stamp">{hero.aside_title}</span><span className="font-serif text-3xl text-ac/45" aria-hidden="true">01</span></div>
+              <div className="flex items-center justify-between border-b border-dashed border-[var(--paper-rule)] pb-4"><span className="editorial-stamp">{hero.aside_title}</span><span className="text-3xl text-ac/45" aria-hidden="true">01</span></div>
               <ol className="mt-5">{hero.aside_steps.map((item, index) => <li key={item} className="flex items-center gap-4 border-l-2 border-ac/25 py-3 pl-4 text-sm text-tx"><span className="font-mono text-xs text-ac">0{index + 1}</span><strong>{item}</strong></li>)}</ol>
               <p className="mt-5 border-t border-dashed border-[var(--paper-rule)] pt-4 text-sm leading-7 text-txs">{hero.aside_note}</p>
             </aside>
@@ -77,7 +77,7 @@ function HomePageContent() {
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
                   <span className="editorial-kicker">免费体验课程 · {extraCopy.free_kicker}</span>
-                  <h2 id="free-courses-title" className="mt-3 text-2xl font-ds-black text-tx md:text-4xl" style={{ fontFamily: 'var(--fd)' }}>{extraCopy.free_title}</h2>
+                  <h2 id="free-courses-title" className="text-2xl font-bold mt-3 text-tx" style={{ fontFamily: 'var(--fd)' }}>{extraCopy.free_title}</h2>
                 </div>
                 <Link to="/course-library" className="inline-flex items-center gap-2 text-sm font-ds-semibold text-ac hover:underline">{extraCopy.free_cta} <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
               </div>
@@ -88,7 +88,7 @@ function HomePageContent() {
                       <BookOpen className="h-6 w-6 text-ac" aria-hidden="true" />
                       <span className="editorial-stamp">免费体验</span>
                     </div>
-                    <h3 className="mt-5 text-xl font-ds-bold leading-snug text-tx group-hover:text-ac">{course.title}</h3>
+                    <h3 className="text-lg font-semibold mt-5 leading-snug text-tx group-hover:text-ac">{course.title}</h3>
                     <p className="mt-3 line-clamp-2 text-sm leading-7 text-txs">{course.description}</p>
                     <div className="mt-auto flex items-center justify-between gap-4 pt-6 text-sm">
                       <span className="text-txs">{(course.duration ?? 0) > 0 ? `${course.duration} 分钟` : '免费课程'}</span>
@@ -104,15 +104,15 @@ function HomePageContent() {
         <section id="real-situations" className="scroll-mt-24 bg-warm px-4 py-16 md:py-24" aria-labelledby="situations-title">
           <div className="mx-auto max-w-6xl">
             <span className="editorial-kicker">{situationCopy.kicker}</span>
-            <h2 id="situations-title" className="mt-4 max-w-3xl text-3xl font-ds-black leading-tight text-tx md:text-5xl" style={{ fontFamily: 'var(--fd)' }}>{situationCopy.title}</h2>
+            <h2 id="situations-title" className="text-2xl font-bold mt-4 max-w-3xl leading-tight text-tx" style={{ fontFamily: 'var(--fd)' }}>{situationCopy.title}</h2>
             <p className="mt-4 max-w-3xl text-base leading-8 text-txs">{situationCopy.description}</p>
-            <div className="mt-10 grid gap-4 md:grid-cols-2">{situationCopy.items.map((item, index) => <article key={item.label} className="editorial-paper flex min-h-52 flex-col border-[var(--paper-rule)] p-6 transition-colors hover:border-ac/50 md:p-8"><div className="flex items-center justify-between"><span className="editorial-stamp">{item.label}</span><span className="font-serif text-4xl text-ac/30" aria-hidden="true">0{index + 1}</span></div><h3 className="mt-5 text-xl font-ds-bold leading-snug text-tx" style={{ fontFamily: 'var(--fd)' }}>{item.title}</h3><p className="mt-3 text-sm leading-7 text-txs">{item.detail}</p></article>)}</div>
+            <div className="mt-10 grid gap-4 md:grid-cols-2">{situationCopy.items.map((item, index) => <article key={item.label} className="editorial-paper flex min-h-52 flex-col border-[var(--paper-rule)] p-6 transition-colors hover:border-ac/50 md:p-8"><div className="flex items-center justify-between"><span className="editorial-stamp">{item.label}</span><span className="text-4xl text-ac/30" aria-hidden="true">0{index + 1}</span></div><h3 className="text-lg font-semibold mt-5 leading-snug text-tx" style={{ fontFamily: 'var(--fd)' }}>{item.title}</h3><p className="mt-3 text-sm leading-7 text-txs">{item.detail}</p></article>)}</div>
           </div>
         </section>
 
         <section id="why-stuck" className="scroll-mt-24 bg-[var(--ink)] px-4 py-16 text-white md:py-24" aria-labelledby="why-stuck-title">
           <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,.8fr)_minmax(0,1.2fr)]">
-            <div><span className="text-xs font-ds-bold tracking-[.18em] text-[#e2a18b]">{problemCopy.kicker}</span><h2 id="why-stuck-title" className="mt-5 text-3xl font-ds-black leading-tight md:text-5xl" style={{ fontFamily: 'var(--fd)' }}>{problemCopy.title}</h2><p className="mt-6 max-w-md leading-8 text-[#d8cbc2]">{problemCopy.description}</p></div>
+            <div><span className="text-xs font-ds-bold tracking-[.18em] text-[#e2a18b]">{problemCopy.kicker}</span><h2 id="why-stuck-title" className="text-2xl font-bold mt-5 leading-tight" style={{ fontFamily: 'var(--fd)' }}>{problemCopy.title}</h2><p className="mt-6 max-w-md leading-8 text-[#d8cbc2]">{problemCopy.description}</p></div>
             <div className="divide-y divide-white/15 border-y border-white/15">{problemCopy.items.map((item) => <div key={item.title} className="grid gap-2 py-5 sm:grid-cols-[160px_1fr] sm:gap-6"><strong className="text-[#f0b29d]">{item.title}</strong><p className="leading-7 text-[#e6ddd5]">{item.detail}</p></div>)}<p className="py-6 text-xl font-ds-bold text-white" style={{ fontFamily: 'var(--fd)' }}>{problemCopy.conclusion}</p></div>
           </div>
         </section>
@@ -120,8 +120,8 @@ function HomePageContent() {
         <section id="teaching-method" className="scroll-mt-24 bg-[var(--paper)] px-4 py-16 md:py-24" aria-labelledby="method-title">
           <div className="mx-auto max-w-6xl">
             <span className="editorial-kicker">{methodCopy.kicker}</span>
-            <div className="mt-4 grid gap-5 lg:grid-cols-[1.2fr_.8fr] lg:items-end"><h2 id="method-title" className="text-3xl font-ds-black leading-tight text-tx md:text-5xl" style={{ fontFamily: 'var(--fd)' }}>{methodCopy.title_line1}<br /><span className="text-ac">{methodCopy.title_line2}</span></h2><p className="max-w-md text-base leading-8 text-txs">{methodCopy.description}</p></div>
-            <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{methodCopy.items.map((step, index) => <div key={step.title} className="border-t-2 border-ac bg-[var(--paper-deep)] p-5 md:p-6"><span className="font-serif text-3xl text-ac/60">0{index + 1}</span><h3 className="mt-5 text-xl font-ds-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>{step.title}</h3><p className="mt-2 text-sm leading-7 text-txs">{step.detail}</p></div>)}</div>
+            <div className="mt-4 grid gap-5 lg:grid-cols-[1.2fr_.8fr] lg:items-end"><h2 id="method-title" className="text-2xl font-bold leading-tight text-tx" style={{ fontFamily: 'var(--fd)' }}>{methodCopy.title_line1}<br /><span className="text-ac">{methodCopy.title_line2}</span></h2><p className="max-w-md text-base leading-8 text-txs">{methodCopy.description}</p></div>
+            <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{methodCopy.items.map((step, index) => <div key={step.title} className="border-t-2 border-ac bg-[var(--paper-deep)] p-5 md:p-6"><span className="text-3xl text-ac/60">0{index + 1}</span><h3 className="text-lg font-semibold mt-5 text-tx" style={{ fontFamily: 'var(--fd)' }}>{step.title}</h3><p className="mt-2 text-sm leading-7 text-txs">{step.detail}</p></div>)}</div>
             <div className="mt-8 grid overflow-hidden border border-[var(--paper-rule)] md:grid-cols-2"><div className="bg-white p-6 md:p-8"><span className="editorial-stamp">{methodCopy.before_label}</span><p className="mt-4 text-lg font-ds-semibold leading-8 text-tx">{methodCopy.before_text}</p></div><div className="bg-[var(--annotation-soft)] p-6 md:p-8"><span className="editorial-stamp">{methodCopy.after_label}</span><p className="mt-4 text-lg font-ds-semibold leading-8 text-tx">{methodCopy.after_text}</p></div></div>
             <p className="mt-3 text-xs text-txt">{methodCopy.footnote}</p>
           </div>
@@ -132,7 +132,7 @@ function HomePageContent() {
             <img className="aspect-square w-full border border-[var(--paper-rule)] bg-[var(--paper)] object-cover" src={founder.avatar_url} alt={founder.avatar_alt || founder.name} loading="lazy" />
             <div>
               <span className="editorial-kicker">{founderCopy.kicker}</span>
-              <h2 id="about-han-title" className="mt-4 text-3xl font-ds-black text-tx md:text-5xl" style={{ fontFamily: 'var(--fd)' }}>{founderCopy.title}</h2>
+              <h2 id="about-han-title" className="text-2xl font-bold mt-4 text-tx" style={{ fontFamily: 'var(--fd)' }}>{founderCopy.title}</h2>
               <p className="mt-3 text-xl font-ds-bold text-ac">{founderCopy.name}</p>
               <p className="mt-2 text-sm font-ds-semibold leading-7 text-txs">{founderCopy.roles}</p>
               <div className="mt-6 max-w-2xl space-y-4 text-base leading-8 text-tx">
@@ -145,14 +145,14 @@ function HomePageContent() {
           </div>
         </section>
 
-        <section id="learning-outcomes" className="scroll-mt-24 bg-warm px-4 py-16 md:py-24" aria-labelledby="outcomes-title"><div className="mx-auto max-w-6xl"><span className="editorial-kicker">{outcomeCopy.kicker}</span><h2 id="outcomes-title" className="mt-4 max-w-3xl text-3xl font-ds-black leading-tight text-tx md:text-5xl" style={{ fontFamily: 'var(--fd)' }}>{outcomeCopy.title}</h2><p className="mt-4 max-w-2xl leading-8 text-txs">{outcomeCopy.description}</p><div className="mt-9 grid gap-4 md:grid-cols-3">{outcomeCopy.items.map((item, index) => <article key={item.title} className="border border-bd bg-white p-6 md:p-7"><span className="font-mono text-xs text-ac">0{index + 1} / {outcomeCopy.item_kicker}</span><h3 className="mt-5 text-xl font-ds-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>{item.title}</h3><p className="mt-3 text-sm leading-7 text-txs">{item.detail}</p></article>)}</div></div></section>
+        <section id="learning-outcomes" className="scroll-mt-24 bg-warm px-4 py-16 md:py-24" aria-labelledby="outcomes-title"><div className="mx-auto max-w-6xl"><span className="editorial-kicker">{outcomeCopy.kicker}</span><h2 id="outcomes-title" className="text-2xl font-bold mt-4 max-w-3xl leading-tight text-tx" style={{ fontFamily: 'var(--fd)' }}>{outcomeCopy.title}</h2><p className="mt-4 max-w-2xl leading-8 text-txs">{outcomeCopy.description}</p><div className="mt-9 grid gap-4 md:grid-cols-3">{outcomeCopy.items.map((item, index) => <article key={item.title} className="border border-bd bg-white p-6 md:p-7"><span className="font-mono text-xs text-ac">0{index + 1} / {outcomeCopy.item_kicker}</span><h3 className="text-lg font-semibold mt-5 text-tx" style={{ fontFamily: 'var(--fd)' }}>{item.title}</h3><p className="mt-3 text-sm leading-7 text-txs">{item.detail}</p></article>)}</div></div></section>
 
         <CoursePurchaseSection accessCodes={courseAccessCodes ?? []} isLoading={loading} isAdmin={profile?.role === 'admin'} content={landing.home_courses} />
 
-        <section id="how-to-learn" className="scroll-mt-24 bg-[var(--paper)] px-4 py-16 md:py-24" aria-labelledby="how-to-title"><div className="mx-auto max-w-6xl"><span className="editorial-kicker">{learningCopy.kicker}</span><h2 id="how-to-title" className="mt-4 text-3xl font-ds-black text-tx md:text-5xl" style={{ fontFamily: 'var(--fd)' }}>{learningCopy.title}</h2><div className="mt-10 grid gap-4 md:grid-cols-4">{learningCopy.items.map(({ title, detail }, index) => { const number = String(index + 1).padStart(2, '0'); return <div key={number} className="border-l-2 border-ac/40 bg-[var(--paper-deep)] p-5"><span className="font-mono text-xs text-ac">STEP {number}</span><h3 className="mt-4 font-ds-bold text-tx">{title}</h3><p className="mt-2 text-sm leading-7 text-txs">{detail}</p></div>; })}</div><p className="mt-6 max-w-3xl text-sm leading-7 text-txs">{learningCopy.footnote}</p>{user && <Link to="/learning" className="mt-5 inline-flex items-center gap-2 font-ds-semibold text-ac hover:underline">{learningCopy.learning_cta} <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>}</div></section>
+        <section id="how-to-learn" className="scroll-mt-24 bg-[var(--paper)] px-4 py-16 md:py-24" aria-labelledby="how-to-title"><div className="mx-auto max-w-6xl"><span className="editorial-kicker">{learningCopy.kicker}</span><h2 id="how-to-title" className="text-2xl font-bold mt-4 text-tx" style={{ fontFamily: 'var(--fd)' }}>{learningCopy.title}</h2><div className="mt-10 grid gap-4 md:grid-cols-4">{learningCopy.items.map(({ title, detail }, index) => { const number = String(index + 1).padStart(2, '0'); return <div key={number} className="border-l-2 border-ac/40 bg-[var(--paper-deep)] p-5"><span className="font-mono text-xs text-ac">STEP {number}</span><h3 className="text-lg font-semibold mt-4 text-tx">{title}</h3><p className="mt-2 text-sm leading-7 text-txs">{detail}</p></div>; })}</div><p className="mt-6 max-w-3xl text-sm leading-7 text-txs">{learningCopy.footnote}</p>{user && <Link to="/learning" className="mt-5 inline-flex items-center gap-2 font-ds-semibold text-ac hover:underline">{learningCopy.learning_cta} <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>}</div></section>
 
         {!loading && !user && <AnnouncementFeed variant="section" />}
-        <section id="home-faq" className="bg-warm px-4 py-14 md:py-20" aria-labelledby="home-faq-title"><div className="mx-auto max-w-6xl"><span className="editorial-kicker">{extraCopy.faq_kicker}</span><h2 id="home-faq-title" className="mt-3 text-2xl font-ds-black text-tx md:text-4xl" style={{ fontFamily: 'var(--fd)' }}>{extraCopy.faq_title}</h2><div className="mt-7 grid gap-4 md:grid-cols-2">{extraCopy.faq_items.map((item, index) => <div key={`${index}-${item.title}`} className="border-t border-bd pt-5"><h3 className="font-ds-bold text-tx">{item.title}</h3><p className="mt-2 text-sm leading-7 text-txs">{item.detail}</p></div>)}</div><a href="#course-products" className="mt-8 inline-flex items-center gap-2 text-sm font-ds-semibold text-ac hover:underline">{extraCopy.faq_cta} <ArrowRight className="h-4 w-4" aria-hidden="true" /></a></div></section>
+        <section id="home-faq" className="bg-warm px-4 py-14 md:py-20" aria-labelledby="home-faq-title"><div className="mx-auto max-w-6xl"><span className="editorial-kicker">{extraCopy.faq_kicker}</span><h2 id="home-faq-title" className="text-2xl font-bold mt-3 text-tx" style={{ fontFamily: 'var(--fd)' }}>{extraCopy.faq_title}</h2><div className="mt-7 grid gap-4 md:grid-cols-2">{extraCopy.faq_items.map((item, index) => <div key={`${index}-${item.title}`} className="border-t border-bd pt-5"><h3 className="text-lg font-semibold text-tx">{item.title}</h3><p className="mt-2 text-sm leading-7 text-txs">{item.detail}</p></div>)}</div><a href="#course-products" className="mt-8 inline-flex items-center gap-2 text-sm font-ds-semibold text-ac hover:underline">{extraCopy.faq_cta} <ArrowRight className="h-4 w-4" aria-hidden="true" /></a></div></section>
       </main>
       <Footer />
     </div>

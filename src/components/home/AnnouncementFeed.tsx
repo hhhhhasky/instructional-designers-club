@@ -120,7 +120,7 @@ function SectionFeed({ items, heading, description }: { items: FeedItem[]; headi
           <div className="flex items-center justify-center gap-2 md:gap-3 mb-2 md:mb-3">
             <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-ac" />
             <h2
-              className="text-2xl md:text-4xl xl:text-5xl font-ds-black text-tx"
+              className="text-2xl font-bold text-tx"
               style={{ fontFamily: "var(--fd)" }}
             >
               {heading}
@@ -166,7 +166,7 @@ function FeedCard({ item }: { item: FeedItem }) {
           )}
         </div>
 
-        <h3 className="text-base md:text-lg font-ds-bold text-tx mb-1.5 group-hover:text-ac transition-colors line-clamp-2">
+        <h3 className="text-lg font-semibold text-tx mb-1.5 group-hover:text-ac transition-colors line-clamp-2">
           {item.title}
         </h3>
 
@@ -242,7 +242,7 @@ function SectionSkeleton({ heading, description }: { heading: string; descriptio
           <div className="flex items-center justify-center gap-2 md:gap-3 mb-2 md:mb-3">
             <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-ac" />
             <h2
-              className="text-2xl md:text-4xl xl:text-5xl font-ds-black text-tx"
+              className="text-2xl font-bold text-tx"
               style={{ fontFamily: "var(--fd)" }}
             >
               {heading}

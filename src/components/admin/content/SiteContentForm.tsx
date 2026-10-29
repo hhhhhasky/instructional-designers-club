@@ -83,7 +83,7 @@ export default function SiteContentForm({
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-ds-lg font-ds-bold text-tx">{sectionLabel}</h3>
+        <h3 className="text-lg font-semibold text-tx">{sectionLabel}</h3>
         {description && <p className="text-ds-sm text-txs mt-1">{description}</p>}
       </div>
 

@@ -32,7 +32,7 @@ export default function WebToolBillingSettings({ settings, cnyPerPoint, onSaved 
   }
   return <section aria-label="联网检索与网页抓取计费" className="mt-5 rounded-ds-md border border-bd bg-white p-4">
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <div><h3 className="text-ds-base font-ds-bold text-tx">联网检索与网页抓取计费</h3>
+      <div><h3 className="text-lg font-semibold text-tx">联网检索与网页抓取计费</h3>
         <p className="mt-1 text-ds-xs leading-relaxed text-txs">按成功请求次数计费。一次搜索返回多条结果仍算一次；一次抓取成功取得一页正文算一次。</p></div>
       <Button type="button" size="sm" disabled={busy || !ready || !valid || !changed} onClick={() => void save()}>保存检索与抓取单价</Button>
     </div>

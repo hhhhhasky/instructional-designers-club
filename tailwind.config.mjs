@@ -22,7 +22,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        serif: ['Noto Serif SC', 'Georgia', 'Songti SC', 'serif'],
+        /* 全站统一黑体：font-serif 历史上是宋体，现映射到正文字体，
+           保留类名只为兼容既有代码。 */
+        serif: ['var(--fb)'],
         sans: ['var(--fb)'],
         body: ['var(--fb)'],
         mono: ['SF Mono', 'Consolas', 'monospace'],

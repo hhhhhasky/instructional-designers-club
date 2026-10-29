@@ -202,7 +202,7 @@ export default function LiveDashboardSection() {
   if (sessions.length === 0) {
     return (
       <div className="grid min-h-[420px] place-items-center rounded-ds-xl border border-dashed border-bd bg-white/60 p-8 text-center">
-        <div><Radio className="mx-auto h-8 w-8 text-txt" /><h2 className="mt-3 font-serif text-ds-xl font-ds-black text-tx">还没有 Live 房间</h2><p className="mt-2 text-ds-sm text-txs">请先在数据管理中创建一场 Live 互动。</p></div>
+        <div><Radio className="mx-auto h-8 w-8 text-txt" /><h2 className="text-2xl font-bold mt-3 text-tx">还没有 Live 房间</h2><p className="mt-2 text-ds-sm text-txs">请先在数据管理中创建一场 Live 互动。</p></div>
       </div>
     );
   }
@@ -228,7 +228,7 @@ export default function LiveDashboardSection() {
               <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[.06] px-3 py-1 text-xs font-ds-bold tracking-[.16em]"><Activity className="h-3.5 w-3.5" /> LIVE PULSE</span>
               <span className="text-ds-xs text-white/55">更新于 {formatTime(updatedAt)}</span>
             </div>
-            <h2 className="mt-4 font-serif text-[1.8rem] font-ds-black leading-tight md:text-[2.4rem]">{dashboard.session.title}</h2>
+            <h2 className="text-2xl font-bold mt-4 leading-tight">{dashboard.session.title}</h2>
             <div className="mt-3 flex flex-wrap items-center gap-2 text-ds-xs text-white/60">
               <span className={`rounded-full px-2.5 py-1 font-ds-bold ${statusTone(dashboard.session.status)}`}>{LIVE_STATUS_LABELS[dashboard.session.status]}</span>
               <span className="rounded-full border border-white/15 px-2.5 py-1 font-mono">房间 {dashboard.session.room_code ?? "未开启"}</span>
@@ -289,7 +289,7 @@ export default function LiveDashboardSection() {
           {currentQuestion ? (
             <div className="mt-5">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <p className="font-serif text-ds-xl font-ds-black text-tx">Q{currentQuestion.question.position} · {currentQuestion.question.title}</p>
+                <p className="text-ds-xl font-ds-black text-tx">Q{currentQuestion.question.position} · {currentQuestion.question.title}</p>
                 <span className="text-ds-xs text-txs">{currentQuestion.answeredCount} / {currentQuestion.targetParticipantCount} 人已答 · {currentQuestion.responseRate}%</span>
               </div>
               <p className="mt-2 text-ds-xs font-ds-bold text-ac">{formatLiveAudience(currentQuestion.question)}</p>
@@ -307,8 +307,8 @@ export default function LiveDashboardSection() {
             {dashboard.questions.map((item) => (
               <article key={item.question.id} className="rounded-ds-xl border border-bd bg-bg/70 p-4">
                 <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0"><p className="text-xs font-ds-black tracking-[.14em] text-ac">Q{item.question.position} · {LIVE_QUESTION_TYPE_LABELS[item.question.type]}</p><h3 className="mt-1 line-clamp-2 font-serif text-ds-lg font-ds-black text-tx">{item.question.title}</h3><p className="mt-1 text-xs font-ds-bold text-ac">{formatLiveAudience(item.question)} · 目标 {item.targetParticipantCount} 人</p></div>
-                  <div className="shrink-0 text-right"><p className="font-serif text-ds-2xl font-ds-black text-tx">{item.answeredCount}</p><p className="text-xs text-txs">/{item.targetParticipantCount} 人 · {item.responseRate}%</p></div>
+                  <div className="min-w-0"><p className="text-xs font-ds-black tracking-[.14em] text-ac">Q{item.question.position} · {LIVE_QUESTION_TYPE_LABELS[item.question.type]}</p><h3 className="text-lg font-semibold mt-1 line-clamp-2 text-tx">{item.question.title}</h3><p className="mt-1 text-xs font-ds-bold text-ac">{formatLiveAudience(item.question)} · 目标 {item.targetParticipantCount} 人</p></div>
+                  <div className="shrink-0 text-right"><p className="text-ds-2xl font-ds-black text-tx">{item.answeredCount}</p><p className="text-xs text-txs">/{item.targetParticipantCount} 人 · {item.responseRate}%</p></div>
                 </div>
                 <OptionBars options={item.options} compact />
                 <div className="mt-3 flex items-center justify-between border-t border-bdl pt-3 text-xs text-txs"><span>正确率 {item.correctRate}%</span><span>正确答案 {formatLiveAnswer(item.question.correct_answer)}</span></div>
@@ -324,11 +324,11 @@ export default function LiveDashboardSection() {
 }
 
 function Kpi({ icon: Icon, label, value, note }: { icon: typeof Users; label: string; value: number; note: string }) {
-  return <div className="bg-[var(--sage)]/90 p-4"><div className="flex items-center gap-2 text-[var(--sand)]"><Icon className="h-4 w-4" /><span className="text-xs font-ds-black tracking-[.12em]">{label}</span></div><p className="mt-2 font-serif text-[2rem] font-ds-black leading-none">{value.toLocaleString("zh-CN")}</p><p className="mt-2 text-xs text-white/45">{note}</p></div>;
+  return <div className="bg-[var(--sage)]/90 p-4"><div className="flex items-center gap-2 text-[var(--sand)]"><Icon className="h-4 w-4" /><span className="text-xs font-ds-black tracking-[.12em]">{label}</span></div><p className="mt-2 text-[2rem] font-ds-black leading-none">{value.toLocaleString("zh-CN")}</p><p className="mt-2 text-xs text-white/45">{note}</p></div>;
 }
 
 function SectionHeading({ eyebrow, title, description }: { eyebrow: string; title: string; description: string }) {
-  return <div><p className="text-xs font-ds-black tracking-[.16em] text-ac">{eyebrow}</p><h3 className="mt-1 font-serif text-ds-xl font-ds-black text-tx">{title}</h3><p className="mt-1 text-ds-xs leading-5 text-txs">{description}</p></div>;
+  return <div><p className="text-xs font-ds-black tracking-[.16em] text-ac">{eyebrow}</p><h3 className="text-lg font-semibold mt-1 text-tx">{title}</h3><p className="mt-1 text-ds-xs leading-5 text-txs">{description}</p></div>;
 }
 
 function OptionBars({ options, compact = false }: { options: AdminLiveSessionDashboard["questions"][number]["options"]; compact?: boolean }) {

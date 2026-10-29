@@ -453,7 +453,7 @@ export default function HaiImagePptPage({ embedded = false }: { embedded?: boole
                         <p className="mb-2 text-xs font-bold tracking-widest text-[var(--annotation)]">
                           从已经想清楚的教学出发
                         </p>
-                        <h1 className="font-serif text-2xl font-bold text-tx">
+                        <h1 className="text-3xl font-bold text-tx">
                           这次，为哪一份教案做课件？
                         </h1>
                         <p className="mt-3 text-sm leading-7 text-txs">
@@ -536,7 +536,7 @@ export default function HaiImagePptPage({ embedded = false }: { embedded?: boole
                       {source
                         ? (
                           <>
-                            <h2 className="mb-3 font-serif text-lg font-bold">
+                            <h2 className="text-2xl font-bold mb-3">
                               {source.title}
                             </h2>
                             <pre className="max-h-[530px] overflow-auto whitespace-pre-wrap break-words font-sans text-sm leading-7 text-txs">{source.content_markdown}</pre>
@@ -553,7 +553,7 @@ export default function HaiImagePptPage({ embedded = false }: { embedded?: boole
                 {step === 2 && (
                   <section>
                     <div className="mb-6">
-                      <h1 className="font-serif text-2xl font-bold">
+                      <h1 className="text-3xl font-bold">
                         先把整套课件的思路读顺
                       </h1>
                       <p className="mt-2 text-sm leading-7 text-txs">
@@ -622,7 +622,7 @@ export default function HaiImagePptPage({ embedded = false }: { embedded?: boole
                 {step === 3 && (
                   <section>
                     <div className="mb-6">
-                      <h1 className="font-serif text-2xl font-bold">
+                      <h1 className="text-3xl font-bold">
                         给整套课件，选一种视觉表达
                       </h1>
                       <p className="mt-2 text-sm leading-7 text-txs">
@@ -717,7 +717,7 @@ export default function HaiImagePptPage({ embedded = false }: { embedded?: boole
                   <section>
                     <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
                       <div>
-                        <h1 className="font-serif text-2xl font-bold">
+                        <h1 className="text-3xl font-bold">
                           {deck.status === "styling"
                             ? "正在确定整套文字与配色"
                             : deck.status === "completed"
@@ -903,10 +903,10 @@ export default function HaiImagePptPage({ embedded = false }: { embedded?: boole
                                 )}
                             </div>
                             <div className="flex items-center gap-3 p-4">
-                              <span className="font-serif text-lg font-bold text-[var(--annotation)]">
+                              <span className="text-lg font-bold text-[var(--annotation)]">
                                 {String(index + 1).padStart(2, "0")}
                               </span>
-                              <h2 className="min-w-0 flex-1 truncate text-sm font-bold">
+                              <h2 className="text-2xl font-bold min-w-0 flex-1 truncate">
                                 {page.title}
                               </h2>
                               {run?.r2_key && (
@@ -945,7 +945,7 @@ export default function HaiImagePptPage({ embedded = false }: { embedded?: boole
                         aria-label="修改单页课件"
                       >
                         <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-[var(--paper)] p-6">
-                          <h2 className="mb-4 font-serif text-xl font-bold">
+                          <h2 className="text-2xl font-bold mb-4">
                             修改这一页
                           </h2>
                           <label className="text-sm">

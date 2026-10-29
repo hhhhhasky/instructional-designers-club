@@ -121,14 +121,14 @@ function MaintenancePulse({ snapshot, onOpen }: { snapshot: MaintenanceSnapshot 
       <div className="relative flex min-w-0 flex-col gap-4 xl:flex-row xl:items-center">
         <div className="min-w-0 xl:w-[245px] xl:shrink-0">
           <div className="flex items-center gap-2 text-[var(--sand)]"><RefreshCw className="h-4 w-4" /><span className="text-xs font-ds-black tracking-[.16em]">MAINTENANCE PULSE</span></div>
-          <h2 className="mt-2 font-serif text-ds-xl font-ds-black">七个真实写入工作区</h2>
+          <h2 className="text-2xl font-bold mt-2">七个真实写入工作区</h2>
           <p className="mt-1 text-xs leading-5 text-white/55">每项修改都会同步到 Supabase，并按权限与业务规则校验。</p>
         </div>
         <div className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-7">
           {items.map((item) => (
             <button key={item.tab} type="button" onClick={() => onOpen(item.tab)} className="group rounded-ds-lg border border-white/10 bg-white/[0.06] p-3 text-left transition hover:-translate-y-0.5 hover:bg-white/10">
               <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-ds-bold ${item.tone}`}>{item.label}</span>
-              <p className="mt-2 font-serif text-ds-2xl font-ds-black">{item.value ?? <span className="text-white/30">—</span>}</p>
+              <p className="mt-2 text-ds-2xl font-ds-black">{item.value ?? <span className="text-white/30">—</span>}</p>
               <p className="mt-0.5 truncate text-xs text-white/45">{item.note}</p>
             </button>
           ))}

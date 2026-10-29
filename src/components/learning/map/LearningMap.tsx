@@ -88,7 +88,7 @@ function MobileMap({ data, onSelect }: SectionProps) {
 
       {/* 理论基石 / AI 工具箱 */}
       <div>
-        <h3 className="text-ds-xs text-txs mb-2 px-1">理论 & 工具</h3>
+        <h3 className="text-lg font-semibold text-txs mb-2 px-1">理论 & 工具</h3>
         <div className="grid grid-cols-2 gap-2.5">
           {foundations.map((node) => (
             <MobileCard

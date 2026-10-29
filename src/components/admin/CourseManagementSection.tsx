@@ -934,7 +934,7 @@ export default function CourseManagementSection() {
           <div className="space-y-4 py-2">
             {/* 基本信息 */}
             <div className="space-y-3">
-              <h4 className="text-ds-sm font-ds-semibold text-tx">基本信息</h4>
+              <h4 className="text-base font-semibold text-tx">基本信息</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="md:col-span-2">
                   <label className="block text-ds-xs text-txs mb-1">课程名称 *</label>
@@ -1073,7 +1073,7 @@ export default function CourseManagementSection() {
 
             {/* 课程设置 */}
             <div className="space-y-3">
-              <h4 className="text-ds-sm font-ds-semibold text-tx">课程设置</h4>
+              <h4 className="text-base font-semibold text-tx">课程设置</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-ds-xs text-txs mb-1">时长（分钟）</label>
@@ -1153,7 +1153,7 @@ export default function CourseManagementSection() {
                     <KeyRound className="h-4 w-4" />
                   </div>
                   <div>
-                    <h4 className="text-ds-sm font-ds-semibold text-tx">单课密码试看</h4>
+                    <h4 className="text-base font-semibold text-tx">单课密码试看</h4>
                     <p className="mt-1 text-ds-xs leading-5 text-txs">
                       设置后，没有对应会员权限的人也能凭密码试看当前这一节课，不会获得其他课程权限。
                     </p>
@@ -1214,7 +1214,7 @@ export default function CourseManagementSection() {
             {form.access_product_code === "teaching-general-v1" && (
               <div className="space-y-3 border border-ac/20 bg-acl/20 rounded-ds-lg p-4">
                 <div>
-                  <h4 className="text-ds-sm font-ds-semibold text-tx">Plus篇章归属</h4>
+                  <h4 className="text-base font-semibold text-tx">Plus篇章归属</h4>
                   <p className="text-ds-xs text-txs mt-1">
                     Plus 结构由课程分类决定：篇章到分类/系列课，再到单课。这里维护当前分类所属篇章。
                   </p>
@@ -1277,7 +1277,7 @@ export default function CourseManagementSection() {
 
             {/* 链接信息 */}
             <div className="space-y-3">
-              <h4 className="text-ds-sm font-ds-semibold text-tx">链接信息</h4>
+              <h4 className="text-base font-semibold text-tx">链接信息</h4>
               <div className="grid grid-cols-1 gap-3">
                 <div>
                   <label className="block text-ds-xs text-txs mb-1">封面图 URL</label>
@@ -1384,7 +1384,7 @@ export default function CourseManagementSection() {
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h4 className="text-ds-sm font-ds-semibold text-tx">下载文件</h4>
+                  <h4 className="text-base font-semibold text-tx">下载文件</h4>
                   <p className="text-ds-xs text-txs mt-1">
                     支持 MP4、音频、Word、Markdown、PDF 和常见图片，文件会上传至 Cloudflare R2。
                   </p>
@@ -1474,7 +1474,7 @@ export default function CourseManagementSection() {
 
             {/* 正文（长文） */}
             <div className="space-y-3">
-              <h4 className="text-ds-sm font-ds-semibold text-tx">正文（长文）</h4>
+              <h4 className="text-base font-semibold text-tx">正文（长文）</h4>
               <p className="text-ds-xs text-txs -mt-1">
                 支持 Markdown。视频课可用时间点按钮插入单个时间戳，也可以直接导入下载的 TXT 时间轴文本，系统会自动转换并插入；将光标放到目标位置，点击上传按钮即可插入图片。
               </p>
@@ -1487,7 +1487,7 @@ export default function CourseManagementSection() {
 
             {/* 图片集 */}
             <div className="space-y-3">
-              <h4 className="text-ds-sm font-ds-semibold text-tx">图片集</h4>
+              <h4 className="text-base font-semibold text-tx">图片集</h4>
               <p className="text-ds-xs text-txs -mt-1">添加图片 URL（R2 上传后填入），可添加多张。</p>
               <div className="space-y-2">
                 {(form.images ?? []).map((url, idx) => (
@@ -1527,7 +1527,7 @@ export default function CourseManagementSection() {
 
             {/* 课程精华（选填） */}
             <div className="space-y-3">
-              <h4 className="text-ds-sm font-ds-semibold text-tx">课程精华（选填）</h4>
+              <h4 className="text-base font-semibold text-tx">课程精华（选填）</h4>
               <p className="text-ds-xs text-txs -mt-1">
                 思维导图等看课参考材料，留空则详情页不显示该板块。可插入图片说明。
               </p>

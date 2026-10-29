@@ -53,7 +53,7 @@ export default function LiveEntryPage() {
           <div className="mx-auto max-w-4xl">
             <section className="editorial-paper relative overflow-hidden p-5 md:p-8">
               <span className="editorial-stamp">NOW LIVE</span>
-              <h1 className="mt-4 font-serif text-ds-3xl font-ds-black text-tx">Live 实时互动</h1>
+              <h1 className="text-3xl font-bold mt-4 text-tx">Live 实时互动</h1>
               <p className="mt-2 max-w-xl text-ds-sm leading-7 text-txs">
                 这里只显示正在发生的课堂。输入 6 位房间号，或在下方选择当前开放的互动房间。
               </p>

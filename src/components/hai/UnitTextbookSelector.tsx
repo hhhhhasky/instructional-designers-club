@@ -30,7 +30,7 @@ export default function UnitTextbookSelector({ catalog, scope, books, onChange, 
         const rows = catalog.filter((row) => row.collection_slug === book.collection_slug);
         const units = [...new Map(rows.map((row) => [row.unit_route_number, row])).values()];
         return <section key={index} className="rounded-ds-lg border border-bd bg-[var(--paper-deep)] p-4">
-          <div className="mb-3 flex items-center justify-between"><h3 className="text-sm font-black text-tx">教材 {String(index + 1).padStart(2, "0")}</h3>{scope === "across-books" && visibleBooks.length > 1 && <button type="button" aria-label={`移除教材 ${index + 1}`} onClick={() => onChange(visibleBooks.filter((_, i) => i !== index))} className="rounded p-2 text-txs hover:text-red-700"><Trash2 className="h-4 w-4" /></button>}</div>
+          <div className="mb-3 flex items-center justify-between"><h3 className="text-lg font-semibold text-tx">教材 {String(index + 1).padStart(2, "0")}</h3>{scope === "across-books" && visibleBooks.length > 1 && <button type="button" aria-label={`移除教材 ${index + 1}`} onClick={() => onChange(visibleBooks.filter((_, i) => i !== index))} className="rounded p-2 text-txs hover:text-red-700"><Trash2 className="h-4 w-4" /></button>}</div>
           <label className="block text-xs font-bold text-txs">{`教材 ${index + 1} · 年级 / 册次`}
             <select aria-label={`教材 ${index + 1} · 年级 / 册次`} className="mt-2 h-11 w-full rounded-ds-md border border-bd bg-[var(--paper)] px-3 text-sm text-tx" value={book.collection_slug} onChange={(event) => changeBook(index, { collection_slug: event.target.value, units: [] })}>
               <option value="">请选择教材</option>

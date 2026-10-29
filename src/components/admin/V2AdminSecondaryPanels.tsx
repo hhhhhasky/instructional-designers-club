@@ -52,7 +52,7 @@ export function V2ReviewPanel() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-ds-black tracking-[.16em] text-ac">V2 REVIEW CENTER</p>
-          <h3 className="mt-2 font-serif text-2xl font-ds-black text-tx">批阅中心</h3>
+          <h3 className="text-lg font-semibold mt-2 text-tx">批阅中心</h3>
           <p className="mt-1 text-xs text-txs">标准题和开放任务的提交、反馈与二次修改记录都保留。</p>
         </div>
         <Button onClick={() => void load()} variant="outline" className="border-bdl bg-white text-tx">刷新</Button>

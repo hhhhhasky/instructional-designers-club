@@ -237,7 +237,7 @@ function PlusCourseCatalog({
               <div className="mb-4 flex items-start gap-3 border-b border-dashed border-bd pb-3">
                 <span className="course-editorial-mark h-9 w-9 shrink-0"><Icon className="h-4 w-4" aria-hidden="true" /></span>
                 <div className="min-w-0 flex-1">
-                  <h3 className="font-ds-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>{module.title}</h3>
+                  <h3 className="text-lg font-semibold text-tx" style={{ fontFamily: 'var(--fd)' }}>{module.title}</h3>
                 </div>
                 <span className="shrink-0 text-xs text-txt">{moduleCourses.length} 节</span>
               </div>
@@ -298,7 +298,7 @@ function PlusCourseCatalog({
                 </div>
               </AccordionTrigger>
               <AccordionContent className="px-3 pb-3 pt-1">
-                <div className="space-y-4">{track.modules.map((module) => <div key={module.id}><h3 className="mb-1 font-ds-bold text-tx">{module.title}</h3><CourseGrid courses={getCoursesForModule(courses, track.id, module.id, tracks)} onCourseOpen={onCourseOpen} /></div>)}</div>
+                <div className="space-y-4">{track.modules.map((module) => <div key={module.id}><h3 className="text-lg font-semibold mb-1 text-tx">{module.title}</h3><CourseGrid courses={getCoursesForModule(courses, track.id, module.id, tracks)} onCourseOpen={onCourseOpen} /></div>)}</div>
               </AccordionContent>
             </AccordionItem>
             );
@@ -313,5 +313,5 @@ function PlusCourseCatalog({
 
 function CourseGrid({ courses, onCourseOpen }: { courses: Course[]; onCourseOpen: (course: Course) => void }) {
   if (courses.length === 0) return <p className="rounded-lg border border-dashed border-bd bg-bgs/40 p-4 text-center text-sm text-txs">该系列课程正在准备中。</p>;
-  return <div className="grid grid-cols-1 gap-3 md:grid-cols-2">{courses.map((course, index) => <button key={course.id} type="button" onClick={() => onCourseOpen(course)} onMouseEnter={() => void getCourseDetailSnapshot(course.id)} onFocus={() => void getCourseDetailSnapshot(course.id)} onTouchStart={() => void getCourseDetailSnapshot(course.id)} aria-label={`打开课程：${course.title}`} className="course-editorial-entry group"><span className="course-editorial-index">{String(index + 1).padStart(2, '0')}</span><div className="min-w-0 flex-1 text-left"><h3 className="font-semibold leading-snug text-tx group-hover:text-ac">{course.title}</h3><span className="mt-2 block text-xs text-txs">{course.duration ? `${course.duration}分钟 · ` : ''}单课</span></div><ChevronRight className="h-5 w-5 shrink-0 text-txs transition-all group-hover:translate-x-1 group-hover:text-ac" aria-hidden="true" /></button>)}</div>;
+  return <div className="grid grid-cols-1 gap-3 md:grid-cols-2">{courses.map((course, index) => <button key={course.id} type="button" onClick={() => onCourseOpen(course)} onMouseEnter={() => void getCourseDetailSnapshot(course.id)} onFocus={() => void getCourseDetailSnapshot(course.id)} onTouchStart={() => void getCourseDetailSnapshot(course.id)} aria-label={`打开课程：${course.title}`} className="course-editorial-entry group"><span className="course-editorial-index">{String(index + 1).padStart(2, '0')}</span><div className="min-w-0 flex-1 text-left"><h3 className="text-lg font-semibold leading-snug text-tx group-hover:text-ac">{course.title}</h3><span className="mt-2 block text-xs text-txs">{course.duration ? `${course.duration}分钟 · ` : ''}单课</span></div><ChevronRight className="h-5 w-5 shrink-0 text-txs transition-all group-hover:translate-x-1 group-hover:text-ac" aria-hidden="true" /></button>)}</div>;
 }

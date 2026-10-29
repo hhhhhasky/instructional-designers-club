@@ -67,8 +67,8 @@ export default function DaofaCoursePage() {
             {!isLoading && !error && catalog.courses.length === 0 && <p className="py-8 text-txs">课程发布后会显示在这里。</p>}
             {chapters.map((chapter, index) => <section key={chapter.id} id={chapter.id} className="scroll-mt-28">
               <div className="mb-4 flex items-end gap-4 border-b border-bd pb-5">
-                <span className="font-serif text-4xl text-ac/60">{String(index + 1).padStart(2, '0')}</span>
-                <div><p className="editorial-kicker">{index === 0 ? '先了解解读方法' : '按年级选择教材'}</p><h2 className="mt-1 font-ds-black text-2xl text-tx" style={{ fontFamily: 'var(--fd)' }}>{chapter.title}</h2><p className="mt-2 text-sm leading-6 text-txs">选择下方课程，开始学习。</p></div>
+                <span className="text-4xl text-ac/60">{String(index + 1).padStart(2, '0')}</span>
+                <div><p className="editorial-kicker">{index === 0 ? '先了解解读方法' : '按年级选择教材'}</p><h2 className="text-2xl font-bold mt-1 text-tx" style={{ fontFamily: 'var(--fd)' }}>{chapter.title}</h2><p className="mt-2 text-sm leading-6 text-txs">选择下方课程，开始学习。</p></div>
               </div>
               <ol className="overflow-hidden rounded-ds-sm border border-bd bg-[var(--paper)]">
                 {chapter.lessons.map((lesson, lessonIndex) => <li key={lesson.id} className="border-b border-dashed border-bd last:border-b-0">

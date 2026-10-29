@@ -34,6 +34,8 @@
     --bg:    #f7f6f0;
     --bgs:   #f1ece4;
     --bc:    #ffffff;
+    /* 全局工具栏（左侧栏、HAI 左栏）专用底色：比 --bgs 浅，贴近内容区。 */
+    --toolbar-bg: #f6f1e9;
 
     /* === 教研编辑部语义表面 === */
     --paper:       #fffdf9;
@@ -62,9 +64,21 @@
     --ok-bg:    #f0faf6;
 
     /* === 字体 === */
-    --fd: 'Noto Serif SC', Georgia, 'Songti SC', serif;
+    /* 全站统一无衬线黑体（思源黑体）：展示字体 --fd 与正文 --fb 同族，
+       历史上 --fd 曾是宋体，保留变量名只为兼容既有引用。 */
+    --fd: var(--fb);
     --fb: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
     --fm: 'SF Mono', Consolas, monospace;
+
+    /* === 标题层级 ===
+       H1 页面主标题 30px/700，H2 区块标题 24px/700，
+       H3 小节/卡片标题 18px/600，H4 小标题 16px/600；
+       正文 16px/400（body 默认），辅助文字 14px（text-sm）。
+       首页 hero 与 HAI 工作台首屏大问句属 Display 层级，允许更大字号。 */
+    --type-h1: 1.875rem;
+    --type-h2: 1.5rem;
+    --type-h3: 1.125rem;
+    --type-h4: 1rem;
 
     /* === 圆角 === */
     --radius: 12px;
@@ -122,6 +136,12 @@
 
   button, input, select, textarea { font-family: var(--fb); }
   .lucide { stroke-width: 1.75; }
+
+  /* 标题层级默认值：页面若有显式工具类则按工具类。 */
+  h1 { font-size: var(--type-h1); font-weight: 700; line-height: 1.3; }
+  h2 { font-size: var(--type-h2); font-weight: 700; line-height: 1.4; }
+  h3 { font-size: var(--type-h3); font-weight: 600; line-height: 1.5; }
+  h4, h5, h6 { font-size: var(--type-h4); font-weight: 600; line-height: 1.6; }
 
   /* iOS Safari 会在聚焦小于 16px 的表单控件时自动放大页面。 */
   .hai-page input,

@@ -55,7 +55,7 @@ export function HomeLandingEditor({ sectionKey }: { sectionKey: HomeLandingKey }
         const items = (Array.isArray(value) ? value : fallback) as Record<string, string>[];
         if (sectionKey === 'home_courses') {
           return <div key={field} className="space-y-3">
-            <h4 className="text-sm font-ds-bold text-tx">{labelFor(sectionKey, field)}</h4>
+            <h4 className="text-base font-semibold text-tx">{labelFor(sectionKey, field)}</h4>
             {items.map((item, index) => <div key={item.code} className="rounded-ds-md border border-bd p-4 space-y-3">
               <p className="text-sm font-ds-bold text-ac">{item.code === 'teaching-general-v1' ? '教学通识课' : item.code === 'teacher-ai' ? '教师 AI 课' : '道法教材解读课'}</p>
               {(['audience', 'gain'] as const).map((name) => <TextAreaField key={name} label={labelFor(sectionKey, name)} rows={2} value={item[name] ?? ''} onChange={(next) => setField(field, items.map((current, at) => at === index ? { ...current, [name]: next } : current))} />)}

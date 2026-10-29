@@ -241,7 +241,7 @@ export default function AdminPageShell({
 function AdminTopNav({ activeSection }: { activeSection: AdminPageShellProps["activeSection"] }) {
   return (
     <nav className="flex h-14 min-w-0 flex-1 items-center gap-3" aria-label="平台管理后台导航">
-      <Link to="/admin" className="hidden shrink-0 items-center gap-2 font-semibold text-tx sm:flex"><ShieldCheck className="h-4 w-4 text-ac" /><span>平台管理后台</span></Link>
+      <Link to="/admin" className="hidden shrink-0 items-center gap-2 text-base font-bold text-tx sm:flex"><ShieldCheck className="h-4 w-4 text-ac" /><span>平台管理后台</span></Link>
       <div className="flex h-full min-w-0 items-center gap-1 overflow-x-auto">
         <AdminTopLink to="/admin/manage" label="数据管理" active={activeSection === "manage"} />
         <AdminTopLink to="/admin" label="数据看板" active={activeSection === "dashboard"} />

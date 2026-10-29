@@ -191,7 +191,7 @@ export default function LiveParticipantPage() {
               </div>
             ) : !user ? (
               <div className="editorial-paper mt-4 p-8">
-                <h1 className="font-serif text-ds-xl font-ds-black text-tx">请先登录</h1>
+                <h1 className="text-3xl font-bold text-tx">请先登录</h1>
                 <p className="mt-2 text-ds-sm text-txs">Live 答题需要绑定你的会员账号。</p>
                 <Button className="mt-5 bg-ac text-white hover:bg-acd hover:text-white" asChild>
                   <Link to="/login" state={{ from: `/live/${roomCode}` }}>前往登录</Link>
@@ -201,14 +201,14 @@ export default function LiveParticipantPage() {
               <div className="editorial-paper mt-4 grid min-h-72 place-items-center p-8 text-center">
                 <div>
                   <Radio className="mx-auto h-8 w-8 text-tl" />
-                  <h1 className="mt-3 font-serif text-ds-xl font-ds-black text-tx">本场互动已结束</h1>
+                  <h1 className="text-3xl font-bold mt-3 text-tx">本场互动已结束</h1>
                   <p className="mt-2 text-ds-sm text-txs">感谢参与，当前房间已关闭提交。</p>
                 </div>
               </div>
             ) : error ? (
               <div className="editorial-paper mt-4 grid min-h-72 place-items-center p-8 text-center">
                 <div>
-                  <h1 className="font-serif text-ds-xl font-ds-black text-tx">无法进入房间</h1>
+                  <h1 className="text-3xl font-bold text-tx">无法进入房间</h1>
                   <p className="mt-2 text-ds-sm text-txs">{error}</p>
                   <Button variant="outline" className="mt-5 bg-bg text-txs hover:text-ac" onClick={() => void refresh()}>
                     重新读取房间状态
@@ -218,21 +218,21 @@ export default function LiveParticipantPage() {
             ) : !snapshot ? (
               <div className="editorial-paper mt-4 grid min-h-72 place-items-center p-8 text-center">
                 <div>
-                  <h1 className="font-serif text-ds-xl font-ds-black text-tx">房间未开放</h1>
+                  <h1 className="text-3xl font-bold text-tx">房间未开放</h1>
                   <p className="mt-2 text-ds-sm text-txs">请确认 6 位房间号，或等待主持人开启房间。</p>
                 </div>
               </div>
             ) : !session ? (
               <div className="editorial-paper mt-4 grid min-h-72 place-items-center p-8 text-center">
                 <div>
-                  <h1 className="font-serif text-ds-xl font-ds-black text-tx">房间状态异常</h1>
+                  <h1 className="text-3xl font-bold text-tx">房间状态异常</h1>
                   <p className="mt-2 text-ds-sm text-txs">请重新进入房间。</p>
                 </div>
               </div>
             ) : session.status === "ended" ? (
               <div className="editorial-paper mt-4 grid min-h-72 place-items-center p-8 text-center">
                 <div>
-                  <h1 className="font-serif text-ds-xl font-ds-black text-tx">本场互动已结束</h1>
+                  <h1 className="text-3xl font-bold text-tx">本场互动已结束</h1>
                   <p className="mt-2 text-ds-sm text-txs">当前房间不再展示。</p>
                 </div>
               </div>
@@ -240,7 +240,7 @@ export default function LiveParticipantPage() {
               <div className="editorial-paper mt-4 grid min-h-72 place-items-center p-8 text-center">
                 <div>
                   <span className="editorial-kicker">{session.room_code}</span>
-                  <h1 className="mt-3 font-serif text-ds-xl font-ds-black text-tx">
+                  <h1 className="text-3xl font-bold mt-3 text-tx">
                     {session.current_question_id && !question ? "当前没有为你发布题目" : "已进入互动课堂"}
                   </h1>
                   <p className="mt-2 text-ds-sm text-txs">
@@ -263,7 +263,7 @@ export default function LiveParticipantPage() {
                   </span>
                 </div>
 
-                <h1 className="mt-4 font-serif text-ds-2xl font-ds-black leading-tight text-tx">{question.title}</h1>
+                <h1 className="text-3xl font-bold mt-4 leading-tight text-tx">{question.title}</h1>
                 <p className="mt-3 whitespace-pre-wrap text-ds-md leading-8 text-tx">{question.content}</p>
 
                 <div className="mt-6 grid gap-2">
@@ -345,7 +345,7 @@ export default function LiveParticipantPage() {
                 {snapshot.response && snapshot.results ? (
                   <div className="mt-5 rounded-ds-xl border border-bd bg-white/55 p-4" aria-live="polite">
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <h2 className="font-serif text-ds-lg font-ds-black text-tx">大家的选择</h2>
+                      <h2 className="text-2xl font-bold text-tx">大家的选择</h2>
                       <span className="text-ds-xs text-txs">已答 {snapshot.results.answeredCount} 人 · 匿名统计</span>
                     </div>
                     <div className="mt-3 grid gap-3">

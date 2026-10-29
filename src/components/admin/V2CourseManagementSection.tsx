@@ -153,7 +153,7 @@ function V2OutlinePanel() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs font-ds-black tracking-[.16em] text-ac">V2 OUTLINE</p>
-            <h3 className="mt-2 font-serif text-2xl font-ds-black text-tx">Unit → Lesson</h3>
+            <h3 className="text-lg font-semibold mt-2 text-tx">Unit → Lesson</h3>
             <p className="mt-1 text-xs text-txs">单元是一级目录，展开后管理其下的单课。</p>
           </div>
           <div className="flex flex-wrap gap-2">

@@ -103,7 +103,7 @@ export default function PlusTrackPage() {
         <main className="flex-1 pt-28 px-4">
           <div className="max-w-xl mx-auto text-center bg-bc border border-bd rounded-lg p-8">
             <AlertCircle className="w-12 h-12 text-ac mx-auto mb-4" />
-            <h1 className="text-2xl font-ds-bold text-tx mb-3" style={{ fontFamily: 'var(--fd)' }}>
+            <h1 className="text-3xl font-bold text-tx mb-3" style={{ fontFamily: 'var(--fd)' }}>
               Plus 篇章不存在
             </h1>
             <Button onClick={() => navigate('/courses')}>返回教学通识课</Button>
@@ -303,7 +303,7 @@ function CourseList({
         >
           <span className="course-editorial-index">{String(index + 1).padStart(2, '0')}</span>
           <div className="min-w-0 flex-1">
-            <h3 className="font-semibold text-tx leading-snug group-hover:text-ac">{course.title}</h3>
+            <h3 className="text-lg font-semibold text-tx leading-snug group-hover:text-ac">{course.title}</h3>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-txs">
               {course.duration && (
                 <span className="inline-flex items-center gap-1">

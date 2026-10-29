@@ -12,7 +12,7 @@ export default function CoursePurchaseSection({ accessCodes = [], isAdmin = fals
         <div className="mb-8 flex flex-col gap-3 border-b border-bd pb-6 md:flex-row md:items-end md:justify-between">
           <div>
             <span className="editorial-kicker">{content.kicker}</span>
-            <h2 id="course-products-title" className="mt-3 text-2xl font-ds-black text-tx md:text-4xl" style={{ fontFamily: 'var(--fd)' }}>{content.title}</h2>
+            <h2 id="course-products-title" className="text-2xl font-bold mt-3 text-tx" style={{ fontFamily: 'var(--fd)' }}>{content.title}</h2>
           </div>
           <p className="max-w-md text-sm leading-6 text-txs">{content.description}</p>
         </div>
@@ -24,10 +24,10 @@ export default function CoursePurchaseSection({ accessCodes = [], isAdmin = fals
             return (
             <article key={product.code} className={`editorial-paper flex h-full flex-col border-t-[3px] p-5 transition-colors hover:border-ac/50 md:p-6 ${!isLoading && hasAccess ? "border-t-tl" : "border-t-bd"}`}>
               <div className="flex items-start justify-between gap-3">
-                <span className="font-serif text-4xl text-ac/60" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+                <span className="text-4xl text-ac/60" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
                 {!isLoading && <CourseAccessBadge hasAccess={hasAccess} isAdmin={isAdmin} />}
               </div>
-              <h3 className="mt-6 text-xl font-ds-black text-tx" style={{ fontFamily: 'var(--fd)' }}>{product.name}</h3>
+              <h3 className="text-lg font-semibold mt-6 text-tx" style={{ fontFamily: 'var(--fd)' }}>{product.name}</h3>
               <p className="mt-3 text-xs font-ds-bold text-ac">{details.audience}</p>
               <p className="mt-3 flex-1 text-sm leading-7 text-txs">{details.gain}</p>
               <div className="mt-8 border-t border-dashed border-bd pt-5">

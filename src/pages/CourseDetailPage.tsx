@@ -669,7 +669,7 @@ export default function CourseDetailPage() {
         <main className="flex-1 flex items-center justify-center pt-0 px-4">
           <div className="text-center animate-fade-in max-w-md">
             <AlertCircle className="w-14 h-14 text-ac/60 mx-auto mb-5" />
-            <h1 className="text-ds-2xl font-ds-bold text-tx font-serif mb-5">{error}</h1>
+            <h1 className="text-3xl font-bold text-tx mb-5">{error}</h1>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button onClick={() => navigate('/courses')} className="btn-press">
                 返回教学通识课
@@ -716,7 +716,7 @@ export default function CourseDetailPage() {
         <main className="flex-1 flex items-center justify-center pt-0 px-4">
           <div className="text-center animate-fade-in max-w-md">
             <AlertCircle className="w-14 h-14 text-ac/60 mx-auto mb-5" />
-            <h1 className="text-ds-2xl font-ds-bold text-tx font-serif mb-5">
+            <h1 className="text-3xl font-bold text-tx mb-5">
               尚未开通{purchaseProduct?.name ?? '当前课程'}
             </h1>
             <p className="mb-3 text-sm font-ds-semibold text-tx">{course?.title}</p>
@@ -753,7 +753,7 @@ export default function CourseDetailPage() {
         <main className="flex-1 flex items-center justify-center pt-0 px-4">
           <div className="text-center animate-fade-in max-w-md">
             <AlertCircle className="w-14 h-14 text-ac/60 mx-auto mb-5" />
-            <h1 className="text-ds-2xl font-ds-bold text-tx font-serif mb-5">
+            <h1 className="text-3xl font-bold text-tx mb-5">
               课程不存在或已下架
             </h1>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -863,7 +863,7 @@ export default function CourseDetailPage() {
                     <div className="flex items-center justify-between px-3 py-3 border-b border-dashed border-bd bg-[var(--paper-deep)]">
                       <div>
                         <span className="editorial-kicker">CONTENTS</span>
-                        <h3 className="font-bold text-tx text-sm">{getCourseListName(course.membership_type)}目录</h3>
+                        <h3 className="text-lg font-semibold text-tx">{getCourseListName(course.membership_type)}目录</h3>
                       </div>
                       <button
                         type="button"
@@ -909,7 +909,7 @@ export default function CourseDetailPage() {
                     <div className="flex items-center justify-between px-3 py-3 border-b border-dashed border-bd bg-[var(--paper-deep)]">
                       <div>
                         <span className="editorial-kicker">CONTENTS</span>
-                        <h3 className="font-bold text-tx text-sm">教学通识课目录</h3>
+                        <h3 className="text-lg font-semibold text-tx">教学通识课目录</h3>
                       </div>
                       <button
                         type="button"
@@ -1060,7 +1060,7 @@ export default function CourseDetailPage() {
                 {!hasSeriesCatalog && !isPlusCourse && siblingCourses.length > 1 && (
                   <div className="hidden md:block lg:hidden border-b border-bdl">
                     <div className="px-4 py-2.5 bg-warm/30 flex items-center justify-between">
-                      <h3 className="font-bold text-tx text-sm flex items-center gap-2">
+                      <h3 className="text-lg font-semibold text-tx flex items-center gap-2">
                         <List className="w-4 h-4 text-ac" />
                         {courseCollectionLabel}
                       </h3>
@@ -1124,7 +1124,7 @@ export default function CourseDetailPage() {
                   <span className="editorial-kicker">
                     LESSON {String(currentPosition).padStart(2, '0')} · {courseCollectionLabel}
                   </span>
-                  <h1 className="mt-2 text-2xl md:text-3xl font-black text-tx font-serif leading-tight">
+                  <h1 className="text-3xl font-bold mt-2 text-tx leading-tight">
                     {course.title}
                   </h1>
 
@@ -1157,7 +1157,7 @@ export default function CourseDetailPage() {
 
                   {/* Description */}
                   <section className="pt-7 pb-6 border-b border-bdl">
-                    <h2 className="text-xl font-bold text-tx font-serif mb-3 flex items-center gap-2">
+                    <h2 className="text-2xl font-bold text-tx mb-3 flex items-center gap-2">
                       <BookOpen className="w-4 h-4 text-ac" />
                       课程简介
                     </h2>
@@ -1184,7 +1184,7 @@ export default function CourseDetailPage() {
 
                   {attachments.length > 0 && (
                     <section className="py-7 border-b border-bdl">
-                      <h2 className="text-xl font-bold text-tx font-serif mb-3 flex items-center gap-2">
+                      <h2 className="text-2xl font-bold text-tx mb-3 flex items-center gap-2">
                         <Download className="w-4 h-4 text-ac" />
                         下载文件
                       </h2>
@@ -1218,7 +1218,7 @@ export default function CourseDetailPage() {
                   {/* 课程精华（可选）：思维导图等看课参考材料，有内容才显示 */}
                   {course.essence?.trim() && (
                     <section className="py-7 border-b border-bdl">
-                      <h2 className="text-xl font-bold text-tx font-serif mb-3 flex items-center gap-2">
+                      <h2 className="text-2xl font-bold text-tx mb-3 flex items-center gap-2">
                         <Sparkles className="w-4 h-4 text-ac" />
                         课程精华
                       </h2>
@@ -1280,7 +1280,7 @@ export default function CourseDetailPage() {
                   {/* Sidebar Header */}
                   <div className="px-4 py-3 border-b border-dashed border-bd bg-[var(--paper-deep)]">
                     <span className="editorial-kicker">CONTENTS</span>
-                    <h3 className="font-bold text-tx text-sm flex items-center gap-2">
+                    <h3 className="text-lg font-semibold text-tx flex items-center gap-2">
                       <List className="w-4 h-4 text-ac" />
                       {courseCollectionLabel}
                     </h3>

@@ -161,7 +161,7 @@ export default function SettingsPage() {
                 </label>
               </div>
               <div>
-                <h2 className="text-lg font-ds-bold text-tx">{profile.nickname}</h2>
+                <h2 className="text-2xl font-bold text-tx">{profile.nickname}</h2>
                 <p className="text-ds-sm text-txs mt-0.5">{profile.phone}</p>
               </div>
             </div>
@@ -169,7 +169,7 @@ export default function SettingsPage() {
 
           {/* 修改昵称 */}
           <div className="bg-white rounded-ds-lg shadow-ds-md border border-bd p-6 mb-6 hover-lift">
-            <h3 className="text-ds-base font-ds-bold text-tx mb-4 flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-tx mb-4 flex items-center gap-2">
               <span className="w-1 h-4 rounded-full bg-ac inline-block"></span>
               <User className="w-4 h-4 text-ac" />
               修改昵称
@@ -199,7 +199,7 @@ export default function SettingsPage() {
 
           {/* 修改密码 */}
           <div className="bg-white rounded-ds-lg shadow-ds-md border border-bd p-6 hover-lift">
-            <h3 className="text-ds-base font-ds-bold text-tx mb-4 flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-tx mb-4 flex items-center gap-2">
               <span className="w-1 h-4 rounded-full bg-tl inline-block"></span>
               <Lock className="w-4 h-4 text-tl" />
               修改密码

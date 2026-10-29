@@ -95,7 +95,7 @@ export default function HaiPointsPage() {
                 <Coins className="h-5 w-5" />
               </span>
               <div>
-                <h1 className="text-[26px] font-ds-black leading-tight sm:text-2xl md:text-3xl">购买 HAI 积分</h1>
+                <h1 className="text-3xl font-bold leading-tight">购买 HAI 积分</h1>
                 <p className="mt-1 text-ds-sm leading-relaxed text-txs">所有已登录用户均可购买，积分到账后可用于 HAI Chat 与 HAI Work</p>
               </div>
             </div>
@@ -162,7 +162,7 @@ export default function HaiPointsPage() {
                   )}
                 </section>
 
-                <h2 className="mb-3 text-ds-base font-ds-bold">积分套餐</h2>
+                <h2 className="text-2xl font-bold mb-3">积分套餐</h2>
                 {pointPackages.length > 0 ? (
                   <>
                     <div className="space-y-3 md:hidden">
@@ -171,7 +171,7 @@ export default function HaiPointsPage() {
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
-                                <h3 className="text-ds-base font-ds-bold text-tx">{pointPackage.name || "HAI 积分包"}</h3>
+                                <h3 className="text-lg font-semibold text-tx">{pointPackage.name || "HAI 积分包"}</h3>
                                 {pointPackage.is_recommended && (
                                   <span className="rounded-ds-full bg-ac/10 px-2 py-1 text-ds-xs font-ds-semibold text-ac">推荐</span>
                                 )}
@@ -252,7 +252,7 @@ export default function HaiPointsPage() {
 
               <aside className="rounded-ds-xl border border-bd bg-bg p-4 text-center sm:p-5">
                 <MessageCircleMore className="mx-auto h-6 w-6 text-ac" />
-                <h2 className="mt-2 text-ds-base font-ds-bold">扫码联系购买</h2>
+                <h2 className="text-2xl font-bold mt-2">扫码联系购买</h2>
                 <p className="mt-1 text-ds-xs text-txs">添加企业微信，发送账号手机号与所需套餐</p>
                 <div className="mx-auto mt-5 aspect-square w-full max-w-[220px] overflow-hidden rounded-ds-lg border border-bd bg-white p-2">
                   <img

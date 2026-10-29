@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 export default function HaiHistorySidebar({ title, action, children }: { title: string; action: ReactNode; children: ReactNode }) {
   return <div className="flex h-full min-h-0 flex-col" data-testid="hai-history-sidebar">
     <div className="flex h-12 shrink-0 items-center justify-between gap-2 px-4">
-      <h2 className="text-xs font-semibold tracking-wide text-txs">{title}</h2>
+      <h2 className="text-2xl font-bold tracking-wide text-txs">{title}</h2>
       {action}
     </div>
     <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-3">{children}</div>

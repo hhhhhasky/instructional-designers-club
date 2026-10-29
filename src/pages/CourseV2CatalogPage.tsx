@@ -55,7 +55,7 @@ export default function CourseV2CatalogPage() {
             <div className="mx-auto mt-12 max-w-lg px-4 text-center">
               <div className="rounded-3xl border border-[var(--sage)]/10 bg-white/75 p-8">
                 <LockKeyhole className="mx-auto h-10 w-10 text-ac" />
-                <h1 className="mt-4 font-serif text-2xl font-ds-black text-tx">尚未开通 V2 课程</h1>
+                <h1 className="text-3xl font-bold mt-4 text-tx">尚未开通 V2 课程</h1>
                 <p className="mt-3 text-sm leading-6 text-txs">{V2_PREVIEW_ACCESS_MESSAGE}</p>
               </div>
             </div>
@@ -63,7 +63,7 @@ export default function CourseV2CatalogPage() {
             <div className="mx-auto max-w-7xl px-4 pt-8">
               <section className="rounded-[30px] bg-[var(--sage)] px-6 py-9 text-white shadow-ds-lg sm:px-10">
                 <p className="text-xs font-ds-black tracking-[.18em] text-[var(--sand)]">V2 LEARNING PATH</p>
-                <h1 className="mt-3 font-serif text-3xl font-ds-black sm:text-5xl">教学通识课 V2</h1>
+                <h1 className="text-3xl font-bold mt-3">教学通识课 V2</h1>
                 <p className="mt-4 max-w-3xl text-sm leading-7 text-white/65">从挑战、学习目标和达标标准出发，在每节课中完成内容学习、知识卡收藏、前后测和真实任务。
                 </p>
               </section>
@@ -73,14 +73,14 @@ export default function CourseV2CatalogPage() {
                   <section key={unit.id} className="rounded-3xl border border-[var(--sage)]/10 bg-white/75 p-5 shadow-ds-sm sm:p-7">
                     <div className="flex items-center gap-3">
                       <span className="grid h-9 w-9 place-items-center rounded-full bg-acl text-xs font-ds-black text-ac">{unitIndex + 1}</span>
-                      <div><p className="text-xs font-ds-black tracking-[.14em] text-ac">UNIT {unitIndex + 1}</p><h2 className="font-serif text-2xl font-ds-black text-tx">{unit.title}</h2></div>
+                      <div><p className="text-xs font-ds-black tracking-[.14em] text-ac">UNIT {unitIndex + 1}</p><h2 className="text-2xl font-bold text-tx">{unit.title}</h2></div>
                     </div>
                     {unit.description_markdown && <p className="mt-3 max-w-3xl text-sm leading-6 text-txs">{unit.description_markdown}</p>}
                     <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                             {lessons.map((lesson, lessonIndex) => (
                               <Link key={lesson.id} to={`/course-v2/lesson/${lesson.id}`} className="group flex min-h-[140px] flex-col rounded-2xl border border-bdl bg-white p-4 transition hover:-translate-y-0.5 hover:border-ac hover:shadow-ds-sm">
                                 <div className="flex items-center gap-2 text-xs text-txs"><BookOpen className="h-3.5 w-3.5 text-ac" />LESSON {lessonIndex + 1}{lesson.duration_minutes != null && <span className="ml-auto inline-flex items-center gap-1"><Clock3 className="h-3 w-3" />{lesson.duration_minutes} 分钟</span>}</div>
-                                <p className="mt-3 font-serif text-lg font-ds-black leading-6 text-tx">{lesson.title}</p>
+                                <p className="mt-3 text-lg font-ds-black leading-6 text-tx">{lesson.title}</p>
                                 {lesson.subtitle && <p className="mt-1 line-clamp-2 text-xs leading-5 text-txs">{lesson.subtitle}</p>}
                                 <span className="mt-auto inline-flex items-center gap-1 pt-4 text-xs font-ds-bold text-ac">进入学习 <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-1" />
                                 </span>

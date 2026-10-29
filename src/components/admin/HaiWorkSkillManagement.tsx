@@ -409,7 +409,7 @@ export default function HaiWorkSkillManagement() {
         <div className="flex items-start gap-3">
           <BriefcaseBusiness className="mt-1 h-5 w-5 text-ac" />
           <div>
-            <h2 className="text-lg font-bold text-tx">Work 工具</h2>
+            <h2 className="text-2xl font-bold text-tx">Work 工具</h2>
             <p className="mt-1 text-xs leading-relaxed text-txs">
               选择工具与 Skill，集中编辑提示词、参考文档和版本。模型与生成参数在「模型与运行」统一管理。
             </p>
@@ -541,7 +541,7 @@ export default function HaiWorkSkillManagement() {
               <div className="min-w-0 space-y-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-base font-bold text-tx">{selectedSkill.name}</h3>
+                    <h3 className="text-lg font-semibold text-tx">{selectedSkill.name}</h3>
                     <p className="mt-1 text-xs text-txs">{selectedSkill.description}</p>
                   </div>
                   <Button
@@ -854,7 +854,7 @@ function WorkReferenceEditor({
         <div className="flex items-start gap-2">
           <FileText className="mt-0.5 h-4 w-4 text-ac" />
           <div>
-            <h4 className="text-ds-xs font-ds-bold text-tx">Reference 文档</h4>
+            <h4 className="text-base font-semibold text-tx">Reference 文档</h4>
             <p className="mt-1 text-xs leading-relaxed text-txs">
               共 {references.length} 个文件。always 每次加载；case、issue、task
               根据用户选择三选一；evaluation_only 不进入正式生成。

@@ -279,7 +279,7 @@ export default function CollectionEditor<T extends { id: string; is_active: bool
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h3 className="text-ds-lg font-ds-bold text-tx">{title}</h3>
+          <h3 className="text-lg font-semibold text-tx">{title}</h3>
           {description && <p className="text-ds-sm text-txs mt-1">{description}</p>}
         </div>
         <div className="flex items-center gap-3">

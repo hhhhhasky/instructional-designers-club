@@ -301,7 +301,7 @@ function WorkLanding({ tools, pointsBlocked, initialTool = null }: { tools: HaiF
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--annotation)] text-[var(--paper)]"><Sparkles aria-hidden className="h-5 w-5" /></span>
           <div>
             <p className="mb-1.5 text-xs font-bold tracking-widest text-[var(--annotation)]">HAI · 帮你干活</p>
-            <h2 className="font-serif text-[23px] font-black leading-snug tracking-tight text-[var(--ink)] md:text-3xl">今天，想一起完成什么？</h2>
+            <h2 className="text-3xl font-bold leading-snug tracking-tight text-[var(--ink)] md:text-4xl">今天，想一起完成什么？</h2>
           </div>
         </div>
         <div role="group" aria-label="任务输入与设置" className="rounded-[28px] border border-[var(--paper-rule)] bg-[var(--paper)] p-3 shadow-[0_12px_48px_-20px_rgba(60,48,35,0.18)] transition-shadow focus-within:shadow-[0_12px_48px_-20px_rgba(60,48,35,0.28)] md:p-5">
@@ -325,7 +325,7 @@ function WorkLanding({ tools, pointsBlocked, initialTool = null }: { tools: HaiF
           </div>
           {active && <div ref={settingsPanel} id="hai-selected-settings" role="region" aria-label={`${active.config.name}任务设置`} className="mt-3 rounded-2xl border border-[var(--paper-rule)] bg-[var(--paper-deep)] p-3 md:p-4">
             <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <h3 className="text-sm font-bold text-[var(--annotation)]">{active.config.name} · {isImage ? "图片设置" : "备课信息"}</h3>
+              <h3 className="text-lg font-semibold text-[var(--annotation)]">{active.config.name} · {isImage ? "图片设置" : "备课信息"}</h3>
               <p role="status" className="text-xs leading-5 text-[var(--txs)]">已选择{active.config.name}，请补充下方信息。</p>
             </div>
             {isImage ? <div className="flex flex-wrap items-center gap-2"><HaiImageGenerationPage inline={{ prompt: draft, setPrompt: setDraft, referenceFiles: imageFiles, setReferenceFiles: setImageFiles, onBusyChange: setBusy }} /></div> : <WorkToolForm key={active.slug} toolSlug={active.slug} config={active.config} pointsBlocked={pointsBlocked} previewOnly={active.previewOnly} request={draft} attachedFiles={documentFiles} onBusyChange={setBusy} />}
@@ -629,7 +629,7 @@ function WorkToolForm({
         </section>
       </details>}
       {toolSlug === "subject-lesson-design" && <section aria-label="公开课设计流程预览" className="mt-4 border-t border-[var(--paper-rule)] pt-4">
-          <h4 className="mb-3 text-xs font-bold text-[var(--annotation)]">公开课设计流程</h4>
+          <h4 className="text-base font-semibold mb-3 text-[var(--annotation)]">公开课设计流程</h4>
           <PublicLessonProgress />
           <p className="mt-3 text-xs leading-5 text-[var(--txs)]">先明确本课最需要促成的学生转变，再选择合适的教学模式。两个关键决定都由你确认，最后生成完整教案。</p>
       </section>}
@@ -795,14 +795,14 @@ function WorkLoading() {
 }
 
 function WorkError({ message }: { message: string }) {
-  return <div className="mx-auto max-w-xl px-5 py-20 text-center"><h2 className="font-serif text-xl font-black text-tx">工作台暂时没有打开</h2><p className="mt-3 text-sm leading-6 text-txs">{message}</p></div>;
+  return <div className="mx-auto max-w-xl px-5 py-20 text-center"><h2 className="text-2xl font-bold text-tx">工作台暂时没有打开</h2><p className="mt-3 text-sm leading-6 text-txs">{message}</p></div>;
 }
 
 function WorkLocked({ reason }: { reason?: string }) {
   return (
     <div className="mx-auto max-w-xl px-5 py-20 text-center">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-ds-xl bg-[var(--proof-soft)] text-[var(--proof)]"><ClipboardCheck className="h-6 w-6" /></div>
-      <h2 className="mt-5 font-serif text-2xl font-black text-tx">HAI 暂时不可用</h2>
+      <h2 className="text-2xl font-bold mt-5 text-tx">HAI 暂时不可用</h2>
       <p className="mt-3 text-sm leading-6 text-txs">{reason || "请先登录，并确保账户状态正常。"}</p>
       <Button asChild className="mt-6 rounded-ds-lg bg-tl text-white hover:bg-tl/90"><Link to="/hai/chat">先去聊聊问题</Link></Button>
     </div>

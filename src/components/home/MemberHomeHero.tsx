@@ -122,7 +122,7 @@ export default function MemberHomeHero() {
           <div>
             <span className="editorial-kicker">{copy.kicker}</span>
             <h2
-              className="mt-3 text-ds-lg font-ds-black text-tx md:text-ds-xl"
+              className="text-2xl font-bold mt-3 text-tx"
               style={{ fontFamily: "var(--fd)" }}
             >
               {copy.greeting_prefix}{nickname}{copy.greeting_suffix}

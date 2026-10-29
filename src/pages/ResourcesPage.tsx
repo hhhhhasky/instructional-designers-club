@@ -77,7 +77,7 @@ export default function ResourcesPage() {
 
         <div className="max-w-6xl mx-auto space-y-3">
 
-          <h1 className="text-3xl md:text-4xl font-ds-bold text-tx tracking-tight" style={{ fontFamily: 'var(--fd)' }}>
+          <h1 className="text-3xl font-bold text-tx tracking-tight" style={{ fontFamily: 'var(--fd)' }}>
             资源中心
           </h1>
           <p className="max-w-3xl text-base leading-7 text-txs">
@@ -90,7 +90,7 @@ export default function ResourcesPage() {
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center gap-3 mb-8 animate-fade-in">
             <BookOpen className="w-5 h-5 text-ac" />
-            <h2 className="text-xl md:text-2xl font-ds-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>全部文章</h2>
+            <h2 className="text-2xl font-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>全部文章</h2>
             <span className="text-sm text-txs">{loading ? "正在加载…" : failed ? "暂时无法加载" : `共 ${articles.length} 篇`}</span>
           </div>
 

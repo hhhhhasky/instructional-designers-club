@@ -165,7 +165,7 @@ export default function V2DictionaryPanel() {
     <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
       <section className="rounded-3xl border border-bdl bg-white/65 p-5">
         <p className="text-xs font-ds-black tracking-[.16em] text-ac">FIELD CATALOG</p>
-        <h3 className="mt-2 font-serif text-2xl font-ds-black text-tx">选择要配置的字段</h3>
+        <h3 className="text-lg font-semibold mt-2 text-tx">选择要配置的字段</h3>
         <p className="mt-2 text-xs leading-5 text-txs">
           无需记忆数据库 Key。选择字段后，系统会自动带出对应类型组和推荐选项。
         </p>
@@ -201,7 +201,7 @@ export default function V2DictionaryPanel() {
         <p className="text-xs font-ds-black tracking-[.16em] text-ac">TYPE SETTINGS</p>
         <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h3 className="font-serif text-2xl font-ds-black text-tx">{field.name}</h3>
+            <h3 className="text-lg font-semibold text-tx">{field.name}</h3>
             <p className="mt-1 max-w-2xl text-xs leading-5 text-txs">{field.description}</p>
           </div>
           <code className="rounded-lg bg-bgs px-2 py-1 text-xs text-ac">{field.key}</code>

@@ -391,7 +391,7 @@ export default function HaiWorkTaskPage() {
         {loading ? (
           <div className="flex min-h-[60vh] items-center justify-center text-sm text-txs"><Loader2 className="mr-2 h-4 w-4 animate-spin" />正在读取任务档案</div>
         ) : error && !detail ? (
-          <div className="mx-auto max-w-lg px-5 py-20 text-center"><h2 className="font-serif text-xl font-black">任务无法打开</h2><p className="mt-3 text-sm text-txs">{error}</p><Button asChild className="mt-6"><Link to="/hai/work">返回工作台</Link></Button></div>
+          <div className="mx-auto max-w-lg px-5 py-20 text-center"><h2 className="text-2xl font-bold">任务无法打开</h2><p className="mt-3 text-sm text-txs">{error}</p><Button asChild className="mt-6"><Link to="/hai/work">返回工作台</Link></Button></div>
         ) : detail ? (
           <>
             <div className="flex shrink-0 border-b border-[var(--paper-rule)] md:hidden print:hidden" role="tablist" aria-label="任务视图">
@@ -448,7 +448,7 @@ export default function HaiWorkTaskPage() {
               }} className="hidden w-2 touch-none cursor-col-resize items-center justify-center border-x border-[var(--paper-rule)] bg-[var(--paper-deep)] transition-colors hover:bg-[var(--annotation-soft)] focus:bg-[var(--annotation-soft)] focus:outline-none md:flex print:hidden"><span className="h-10 w-0.5 rounded-full bg-[var(--paper-rule)]" /></div>}
               {previewOpen && <section id="work-preview" aria-label="作品预览" className={cn("min-h-0 min-w-0 flex-col border-[var(--paper-rule)] bg-[var(--paper-deep)] md:flex md:border-l print:block print:border-0 print:bg-white", mobilePane === "preview" ? "flex" : "hidden")}>
                 <header className="shrink-0 border-b border-[var(--paper-rule)] bg-[var(--paper)] px-4 py-3 print:hidden">
-                  <div className="flex min-w-0 items-center justify-between gap-2"><div className="min-w-0"><p className="editorial-kicker">作品预览</p><h2 className="mt-1 truncate text-sm font-bold text-tx">{displayedTitle || "等待生成文档"}</h2></div>
+                  <div className="flex min-w-0 items-center justify-between gap-2"><div className="min-w-0"><p className="editorial-kicker">作品预览</p><h2 className="text-2xl font-bold mt-1 truncate text-tx">{displayedTitle || "等待生成文档"}</h2></div>
                     {detail.artifacts.length > 0 && <select aria-label="作品版本" value={selectedArtifact?.id ?? ""} onChange={(event) => openPreview(event.target.value)} className="max-w-28 rounded-lg border border-[var(--paper-rule)] bg-[var(--paper-deep)] px-2 py-1.5 text-xs text-txs">{detail.artifacts.map((artifact) => <option key={artifact.id} value={artifact.id}>版本 v{artifact.version_number}</option>)}</select>}
                     <Button type="button" size="icon-sm" variant="ghost" aria-label="收起作品预览" title="收起作品预览" onClick={closePreview}><PanelRightClose className="h-4 w-4" /></Button>
                   </div>
@@ -463,7 +463,7 @@ export default function HaiWorkTaskPage() {
                   {selectedArtifact ? <article className="hai-work-artifact min-h-full rounded-xl border border-[var(--paper-rule)] bg-[var(--paper)] px-5 py-6 shadow-ds-xs print:rounded-none print:border-0 print:p-0 print:shadow-none">
                     <div className="mb-5 flex flex-wrap items-center gap-2 border-b border-[var(--paper-rule)] pb-4 print:hidden"><Badge className="bg-tl text-white">版本 v{selectedArtifact.version_number}</Badge>{isLessonPlanOptimizationArtifact && <Badge className="bg-[var(--annotation)] text-white">优化教案</Badge>}<span className="text-xs text-txs">{selectedRun?.skill_snapshot.name || "工作技能"} · {selectedRun?.skill_snapshot.version || "v1"}</span>{selectedRun?.skill_snapshot.fallback && <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800">通用 Skill 模式</Badge>}</div>
                     <MarkdownRenderer content={displayedMarkdown} />
-                  </article> : <div className="flex min-h-64 flex-col items-center justify-center px-5 py-12 text-center"><FileText className="h-9 w-9 text-txt" /><h2 className="mt-4 font-serif text-lg font-black text-tx">作品会显示在这里</h2><p className="mt-2 text-sm leading-6 text-txs">生成完成后，点击对话里的文档链接即可阅读。</p></div>}
+                  </article> : <div className="flex min-h-64 flex-col items-center justify-center px-5 py-12 text-center"><FileText className="h-9 w-9 text-txt" /><h2 className="text-2xl font-bold mt-4 text-tx">作品会显示在这里</h2><p className="mt-2 text-sm leading-6 text-txs">生成完成后，点击对话里的文档链接即可阅读。</p></div>}
                 </div>
               </section>}
             </div>

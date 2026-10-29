@@ -273,7 +273,7 @@ function CourseSeriesList({
                     </div>
                     <div className="flex-1 text-left min-w-0">
                       <span className="editorial-kicker">VOL. {String(index + 1).padStart(2, '0')}</span>
-                      <h3 className="text-base font-ds-bold text-tx truncate" style={{ fontFamily: 'var(--fd)' }}>
+                      <h3 className="text-lg font-semibold text-tx truncate" style={{ fontFamily: 'var(--fd)' }}>
                         {category}
                       </h3>
                       <p className="text-xs text-txs">{categoryCourses.length} 节课程</p>
@@ -399,7 +399,7 @@ function CourseCard({
     >
       <span className="course-editorial-index">{String(index + 1).padStart(2, '0')}</span>
       <div className="flex-1 min-w-0">
-        <h4 className="font-semibold text-tx mb-1 truncate group-hover:text-ac transition-colors">
+        <h4 className="text-base font-semibold text-tx mb-1 truncate group-hover:text-ac transition-colors">
           {course.title}
         </h4>
         <div className="flex flex-wrap items-center gap-2 text-xs text-txs">

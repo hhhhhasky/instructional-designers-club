@@ -179,7 +179,7 @@ export default function HaiImagePromptManagement() {
       <header className="mb-5 flex items-start gap-3">
         <Image className="mt-1 h-5 w-5 text-ac" />
         <div>
-          <h2 className="text-lg font-bold text-tx">生图提示词</h2>
+          <h2 className="text-2xl font-bold text-tx">生图提示词</h2>
           <p className="mt-1 text-xs leading-relaxed text-txs">
             统一管理 {IMAGE_PROMPT_CATALOG.length}{" "}
             项模板与风格。保存后用于新生成；已提交图片和历史结果保留原有内容。
@@ -250,7 +250,7 @@ export default function HaiImagePromptManagement() {
           <div className="min-w-0 space-y-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h3 className="font-bold text-tx">{definition.label}</h3>
+                <h3 className="text-lg font-semibold text-tx">{definition.label}</h3>
                 <p className="mt-1 max-w-2xl text-xs leading-relaxed text-txs">{definition.description}</p>
                 <p className="mt-2 text-xs text-txs">
                   {row?.updated_at

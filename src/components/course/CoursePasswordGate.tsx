@@ -46,7 +46,7 @@ export default function CoursePasswordGate({
             </div>
             <div className="min-w-0">
               <p className="text-ds-xs font-ds-bold uppercase tracking-[0.18em] text-ac">受邀试看</p>
-              <h1 className="mt-1 font-serif text-2xl font-black leading-tight text-tx sm:text-3xl">
+              <h1 className="text-3xl font-bold mt-1 leading-tight text-tx">
                 输入单课访问密码
               </h1>
             </div>

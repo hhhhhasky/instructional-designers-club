@@ -73,7 +73,7 @@ export default function MemberOverviewSection() {
       {/* 图表区域 */}
       <div className="grid grid-cols-1 gap-6">
         <div className="bg-white rounded-ds-lg border border-bd p-4 md:p-6 shadow-ds-xs hover-lift">
-          <h3 className="text-ds-md font-ds-bold text-tx mb-4 flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-tx mb-4 flex items-center gap-2">
             <span className="w-1 h-4 rounded-full bg-tl inline-block"></span>
             月度注册增长（近 12 月）
           </h3>

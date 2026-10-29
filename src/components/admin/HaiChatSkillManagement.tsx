@@ -502,7 +502,7 @@ export default function HaiChatSkillManagement() {
         <div className="flex items-start gap-2">
           <Bot className="mt-0.5 h-5 w-5 text-ac" />
           <div>
-            <h2 className="text-ds-lg font-ds-bold text-tx">对话 Skill</h2>
+            <h2 className="text-2xl font-bold text-tx">对话 Skill</h2>
             <p className="mt-1 text-ds-xs leading-relaxed text-txs">
               管理对话主提示词、参考文档和发布版本。只有已发布、启用并绑定到模块的 Skill 才会用于新对话。
             </p>
@@ -641,7 +641,7 @@ export default function HaiChatSkillManagement() {
           <div className="mt-5 min-w-0 space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h3 className="text-ds-base font-ds-bold text-tx">
+                <h3 className="text-lg font-semibold text-tx">
                   {selectedSkill.name}
                 </h3>
                 <p className="mt-1 text-xs text-txs">
@@ -708,7 +708,7 @@ export default function HaiChatSkillManagement() {
 
             <div className="border-t border-bd pt-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="text-ds-sm font-ds-bold text-tx">发布版本</h3>
+                <h3 className="text-lg font-semibold text-tx">发布版本</h3>
                 <Button
                   size="sm"
                   variant="outline"
@@ -841,7 +841,7 @@ export default function HaiChatSkillManagement() {
                 <div className="space-y-3 border-t border-bd pt-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <h4 className="text-ds-xs font-ds-bold text-tx">
+                      <h4 className="text-base font-semibold text-tx">
                         参考文档
                       </h4>
                       <p className="mt-1 text-xs text-txs">

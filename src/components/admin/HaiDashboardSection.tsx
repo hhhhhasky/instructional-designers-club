@@ -145,7 +145,7 @@ export default function HaiDashboardSection() {
               <Bot className="h-5 w-5" />
               <span className="text-ds-xs font-ds-bold tracking-[0.18em]">HAI OPERATIONS</span>
             </div>
-            <h2 className="font-serif text-ds-2xl font-ds-black md:text-ds-3xl">每一次调用，都能看见</h2>
+            <h2 className="text-2xl font-bold">每一次调用，都能看见</h2>
             <p className="mt-2 max-w-2xl text-ds-sm leading-relaxed text-white/70">
               汇总真实使用、Token 成本、用户活跃与编排质检，让 HAI 的增长和质量在同一张看板上被判断。
             </p>
@@ -192,7 +192,7 @@ export default function HaiDashboardSection() {
           <div>
             <div className="flex items-center gap-2">
               <Coins className="h-5 w-5 text-ac" />
-              <h3 className="text-ds-lg font-ds-black text-tx">积分钱包列表</h3>
+              <h3 className="text-lg font-semibold text-tx">积分钱包列表</h3>
             </div>
             <p className="mt-1 text-ds-xs leading-relaxed text-txs">
               只读展示所有已创建钱包的用户、当前积分与累计消耗；积分发放和入账仍在数据管理的 HAI 配置中操作。
@@ -241,7 +241,7 @@ export default function HaiDashboardSection() {
           <div>
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-ac" />
-              <h3 className="text-ds-lg font-ds-black text-tx">每日复盘与 Skill 草稿</h3>
+              <h3 className="text-lg font-semibold text-tx">每日复盘与 Skill 草稿</h3>
             </div>
             <p className="mt-1 text-ds-xs leading-relaxed text-txs">
               每天 00:05 复盘前一日 HAI 回答，点踩与低分样本优先；有明确改进时生成待审核 Skill 草稿，已发布版本不会被自动改写。
@@ -616,7 +616,7 @@ function WalletMetric({ label, value, note }: { label: string; value: string; no
   return (
     <div className="rounded-ds-md border border-bd bg-bg p-3">
       <p className="text-ds-xs text-txs">{label}</p>
-      <p className="mt-1 font-serif text-ds-xl font-ds-black text-tx">{value}</p>
+      <p className="mt-1 text-ds-xl font-ds-black text-tx">{value}</p>
       <p className="mt-1 text-xs text-txs">{note}</p>
     </div>
   );
@@ -696,7 +696,7 @@ function HeroMetric({ icon: Icon, label, value, suffix }: { icon: typeof Activit
   return (
     <div className="bg-[var(--sage-dark)]/90 px-4 py-4 md:px-5">
       <div className="flex items-center gap-2 text-white/55"><Icon className="h-4 w-4" /><span className="text-ds-xs">{label}</span></div>
-      <p className="mt-2 font-serif text-ds-2xl font-ds-black tracking-tight text-white">{value}<span className="ml-1 text-ds-xs font-ds-regular text-white/55">{suffix}</span></p>
+      <p className="mt-2 text-ds-2xl font-ds-black tracking-tight text-white">{value}<span className="ml-1 text-ds-xs font-ds-regular text-white/55">{suffix}</span></p>
     </div>
   );
 }
@@ -714,7 +714,7 @@ function SignalCard({ icon: Icon, label, value, note, tone }: { icon: typeof Act
 }
 
 function SectionTitle({ title, description }: { title: string; description: string }) {
-  return <div><h3 className="text-ds-lg font-ds-black text-tx">{title}</h3><p className="mt-1 text-ds-xs text-txs">{description}</p></div>;
+  return <div><h3 className="text-lg font-semibold text-tx">{title}</h3><p className="mt-1 text-ds-xs text-txs">{description}</p></div>;
 }
 
 function TraceDetail({ title, children }: { title: string; children: React.ReactNode }) {
