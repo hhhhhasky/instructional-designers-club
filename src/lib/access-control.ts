@@ -1,3 +1,4 @@
+import { canonicalSupabaseStorageUrl } from "@/lib/supabase-url";
 import type { Session, User } from '@supabase/supabase-js';
 import { clearLearningDataCache } from '@/db/api';
 import { supabase } from '@/db/supabase';
@@ -299,7 +300,7 @@ export async function updateAvatar(userId: string, file: File): Promise<string |
 
   await supabase
     .from('profiles')
-    .update({ avatar_url: `${avatarUrl}?t=${Date.now()}` })
+    .update({ avatar_url: `${canonicalSupabaseStorageUrl(avatarUrl)}?t=${Date.now()}` })
     .eq('id', userId);
 
   clearProfileCache(userId);

@@ -1,3 +1,4 @@
+import { proxiedSupabaseUrl } from "@/lib/supabase-url";
 import { ArrowDown, ArrowRight, BookOpen, Play } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Header from '@/components/layout/Header';
@@ -129,7 +130,7 @@ function HomePageContent() {
 
         <section id="about-han" className="scroll-mt-24 bg-[var(--paper-deep)] px-4 py-16 md:py-24" aria-labelledby="about-han-title">
           <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[280px_1fr] lg:items-start">
-            <img className="aspect-square w-full border border-[var(--paper-rule)] bg-[var(--paper)] object-cover" src={founder.avatar_url} alt={founder.avatar_alt || founder.name} loading="lazy" />
+            <img className="aspect-square w-full border border-[var(--paper-rule)] bg-[var(--paper)] object-cover" src={proxiedSupabaseUrl(founder.avatar_url)} alt={founder.avatar_alt || founder.name} loading="lazy" />
             <div>
               <span className="editorial-kicker">{founderCopy.kicker}</span>
               <h2 id="about-han-title" className="mt-4 text-3xl font-ds-black text-tx md:text-5xl" style={{ fontFamily: 'var(--fd)' }}>{founderCopy.title}</h2>

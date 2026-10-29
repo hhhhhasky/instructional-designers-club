@@ -1,3 +1,4 @@
+import { getSupabaseBaseUrl } from "@/lib/supabase-url";
 import { supabase } from "@/db/supabase";
 
 export const HAI_IMAGE_GENERATION_POINTS = 20;
@@ -129,7 +130,7 @@ export async function generateHaiImage(params: {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error("请先登录。");
-  const baseUrl = String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
+  const baseUrl = String(getSupabaseBaseUrl() || "").replace(/\/$/, "");
   if (!baseUrl) throw new Error("缺少 VITE_SUPABASE_URL。");
   const clientRequestId = params.clientRequestId || crypto.randomUUID();
   const body = new FormData();
@@ -174,7 +175,7 @@ export interface HaiImageGenerationResponse {
 async function imageAction(action: string, runId: string, deadlineAt?: number, stage?: string): Promise<HaiImageGenerationResponse> {
   const { data } = await supabase.auth.getSession();
   if (!data.session?.access_token) throw new Error("请先登录。");
-  const baseUrl = String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
+  const baseUrl = String(getSupabaseBaseUrl() || "").replace(/\/$/, "");
   const response = await fetch(imageFunctionUrl(baseUrl), {
     method: "POST",
     headers: { authorization: `Bearer ${data.session.access_token}`, "content-type": "application/json" },
@@ -193,7 +194,7 @@ export async function downloadHaiImage(runId: string, deadlineAt?: number) {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error("请先登录。");
-  const baseUrl = String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
+  const baseUrl = String(getSupabaseBaseUrl() || "").replace(/\/$/, "");
   const response = await fetch(imageFunctionUrl(baseUrl), {
     method: "POST",
     headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
@@ -212,7 +213,7 @@ export async function getHaiImageAccessUrls(runIds: string[], variant: "original
   if (!runIds.length) return {};
   const { data } = await supabase.auth.getSession();
   if (!data.session?.access_token) throw new Error("请先登录。");
-  const baseUrl = String(import.meta.env.VITE_SUPABASE_URL || "").replace(/\/$/, "");
+  const baseUrl = String(getSupabaseBaseUrl() || "").replace(/\/$/, "");
   const response = await fetch(imageFunctionUrl(baseUrl), {
     method: "POST",
     headers: { authorization: `Bearer ${data.session.access_token}`, "content-type": "application/json" },

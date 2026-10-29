@@ -1,3 +1,4 @@
+import { proxiedSupabaseUrl } from "@/lib/supabase-url";
 import { useEffect, useRef, useState } from 'react';
 import { Headphones, CheckCircle2, Images as ImagesIcon, Video, FileText, Sparkles, type LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -181,7 +182,7 @@ export default function CourseContentStack({
           <div className="bg-bgs rounded-ds-md p-4">
             <audio
               ref={handleAudioRef}
-              src={course.audio_url ?? undefined}
+              src={course.audio_url ? proxiedSupabaseUrl(course.audio_url) : undefined}
               controls
               preload="metadata"
               className="w-full"
@@ -221,7 +222,7 @@ export default function CourseContentStack({
                 className="block overflow-hidden rounded-ds-md border border-bdl bg-bgs aspect-square hover:opacity-90 transition-opacity"
               >
                 <img
-                  src={url}
+                  src={proxiedSupabaseUrl(url)}
                   alt={`图片 ${idx + 1}`}
                   loading="lazy"
                   className="w-full h-full object-cover"
@@ -256,7 +257,7 @@ export default function CourseContentStack({
             查看当前课程图片的大图预览。
           </DialogDescription>
           {lightbox && (
-            <img src={lightbox} alt="图片预览" className="w-full h-auto block" />
+            <img src={proxiedSupabaseUrl(lightbox)} alt="图片预览" className="w-full h-auto block" />
           )}
         </DialogContent>
       </Dialog>

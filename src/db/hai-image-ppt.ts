@@ -1,3 +1,4 @@
+import { supabaseBaseUrl } from "@/lib/supabase-url";
 import { supabase } from "@/db/supabase";
 import type {
   PptCourse,
@@ -58,7 +59,7 @@ export async function imagePptRequest(
   if (!data.session?.access_token) throw Error("请先登录。");
   const response = await fetch(
     `${
-      String(import.meta.env.VITE_SUPABASE_URL).replace(/\/$/, "")
+      String(supabaseBaseUrl).replace(/\/$/, "")
     }/functions/v1/hai-image-ppt`,
     {
       method: "POST",

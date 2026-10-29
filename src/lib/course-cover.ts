@@ -1,6 +1,6 @@
 import type { Course } from "@/types/types";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+import { proxiedSupabaseUrl, supabaseBaseUrl } from "@/lib/supabase-url";
 
 function isR2PublicUrl(value: string) {
   try {
@@ -11,8 +11,8 @@ function isR2PublicUrl(value: string) {
 }
 
 export function getCourseCoverUrl(courseId: string, imageUrl: string | null | undefined) {
-  if (!imageUrl || !isR2PublicUrl(imageUrl)) return imageUrl ?? null;
-  const endpoint = new URL("/functions/v1/course-cover", supabaseUrl);
+  if (!imageUrl || !isR2PublicUrl(imageUrl)) return imageUrl ? proxiedSupabaseUrl(imageUrl) : null;
+  const endpoint = new URL(`${supabaseBaseUrl}/functions/v1/course-cover`);
   endpoint.searchParams.set("courseId", courseId);
   return endpoint.toString();
 }

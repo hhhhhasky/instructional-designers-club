@@ -1,3 +1,4 @@
+import { proxiedSupabaseUrl } from "@/lib/supabase-url";
 import { useCallback, useEffect, useState } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -74,7 +75,7 @@ export function TestimonialCarousel({ images, autoplayDelay = 5000 }: Testimonia
               <Card className="border-bd shadow-ds-md overflow-hidden">
                 <CardContent className="p-0">
                   <img
-                    src={image.url}
+                    src={proxiedSupabaseUrl(image.url)}
                     alt={image.alt}
                     className="w-full h-auto object-contain max-h-[600px] md:max-h-[700px]"
                     loading="lazy"

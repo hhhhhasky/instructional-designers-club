@@ -1,3 +1,4 @@
+import { proxiedSupabaseUrl } from "@/lib/supabase-url";
 import 'katex/dist/katex.min.css';
 import ReactMarkdown from 'react-markdown';
 import rehypeKatex from 'rehype-katex';
@@ -261,7 +262,7 @@ function MarkdownBlock({ content, onVideoSeek, onAudioSeek }: { content: string;
         ),
         img: ({ src, alt }) => (
           <img
-            src={typeof src === 'string' ? src : undefined}
+            src={typeof src === 'string' ? proxiedSupabaseUrl(src) : undefined}
             alt={alt ?? ''}
             loading="lazy"
             className="rounded-ds-lg my-4 max-w-full h-auto border border-bdl"

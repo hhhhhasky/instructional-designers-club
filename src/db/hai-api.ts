@@ -1,3 +1,4 @@
+import { supabaseBaseUrl } from "@/lib/supabase-url";
 import { supabase, typedSupabase } from "@/db/supabase";
 import { consumeSseResponse } from "@/lib/sse";
 import type { Database } from "@/types/database.generated";
@@ -985,7 +986,7 @@ export async function getHaiStarterQuestions(): Promise<HaiStarterQuestionsResul
 }
 
 function getFunctionsBaseUrl(): string {
-  const url = import.meta.env.VITE_SUPABASE_URL;
+  const url = supabaseBaseUrl;
   if (!url) throw new Error("缺少 VITE_SUPABASE_URL。");
   return `${String(url).replace(/\/$/, "")}/functions/v1`;
 }

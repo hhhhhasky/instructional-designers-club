@@ -1,3 +1,4 @@
+import { proxiedSupabaseUrl } from "@/lib/supabase-url";
 import {
   AlertCircle,
   Award,
@@ -795,7 +796,7 @@ export default function CourseDetailPage() {
   const heroContent = course.video_url ? (
     <video
       ref={videoRef}
-      src={course.video_url}
+      src={proxiedSupabaseUrl(course.video_url)}
       controls
       playsInline
       preload="auto"
@@ -806,7 +807,7 @@ export default function CourseDetailPage() {
     />
   ) : (
     <img
-      src={course.image_url || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80'}
+      src={(course.image_url && proxiedSupabaseUrl(course.image_url)) || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80'}
       alt={course.title}
       loading="lazy"
       decoding="async"
@@ -1192,7 +1193,7 @@ export default function CourseDetailPage() {
                         {attachments.map((attachment) => (
                           <a
                             key={attachment.id}
-                            href={attachment.file_url}
+                            href={proxiedSupabaseUrl(attachment.file_url)}
                             target="_blank"
                             rel="noopener noreferrer"
                             download={attachment.file_name}

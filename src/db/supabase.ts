@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { supabaseBaseUrl } from "@/lib/supabase-url";
 import type { Database } from "@/types/database.generated";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -9,8 +10,9 @@ if (!supabaseUrl || !supabasePublishableKey) {
   throw new Error("缺少Supabase配置信息");
 }
 
-export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
+export const supabase = createClient(supabaseBaseUrl, supabasePublishableKey, {
   auth: {
+    storageKey: `sb-${new URL(supabaseUrl).hostname.split(".")[0]}-auth-token`,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,

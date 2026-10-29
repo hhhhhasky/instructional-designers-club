@@ -1,3 +1,4 @@
+import { supabaseBaseUrl } from "@/lib/supabase-url";
 import { Check, Copy, RefreshCw, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -67,7 +68,7 @@ export default function PasswordResetSection() {
     try {
       setProcessingId(requestId);
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-reset-password`,
+        `${supabaseBaseUrl}/functions/v1/admin-reset-password`,
         {
           method: "POST",
           headers: {

@@ -1,3 +1,4 @@
+import { proxiedSupabaseUrl } from "@/lib/supabase-url";
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Camera, GraduationCap, Home, Lock, LogOut, User } from 'lucide-react';
 import { useState } from 'react';
@@ -144,7 +145,7 @@ export default function SettingsPage() {
               <div className="relative">
                 <div className="w-16 h-16 rounded-ds-full bg-acl flex items-center justify-center overflow-hidden ring-2 ring-acl/40">
                   {profile.avatar_url ? (
-                    <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+                    <img src={proxiedSupabaseUrl(profile.avatar_url)} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-2xl font-ds-bold text-ac">{profile.nickname[0]}</span>
                   )}
