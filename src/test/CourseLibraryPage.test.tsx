@@ -22,7 +22,6 @@ describe('课程选课首页', () => {
     expect(screen.getByRole('link', { name: '道法教材解读课' })).toHaveAttribute('href', '/courses/daofa');
     const links = screen.getAllByRole('link', { name: /购买.*小红书/ });
     expect(links.map((a) => a.getAttribute('href'))).toEqual(['https://xhslink.com/m/5JAHDTqPSdk', 'https://xhslink.com/m/4neOp7EhPHm', 'https://xhslink.com/m/277IB24mn8I']);
-    expect(screen.getByRole('link', { name: '返回官网首页' })).toHaveAttribute('href', '/');
   });
 
   it('通识课与 AI 课卡片标注包含 HAI 使用权限，道法教材解读课标注不含 HAI', () => {

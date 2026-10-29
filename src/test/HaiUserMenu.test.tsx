@@ -17,14 +17,14 @@ beforeEach(() => {
   vi.mocked(archiveHaiMemory).mockResolvedValue(undefined as never);
 });
 
-describe('HAI 左下角用户设置', () => {
-  it('展示用户名与积分，只在点击后读取记忆，支持保存与归档', async () => {
+describe('HAI 顶部积分与记忆设置', () => {
+  it('展示积分与购买入口，只在点击后读取记忆，支持保存与归档', async () => {
     const user = userEvent.setup();
     render(<MemoryRouter><HaiUserMenu usage={usage} /></MemoryRouter>);
-    expect(screen.getByText('林老师')).toBeInTheDocument();
-    expect(screen.getByText('150 积分')).toBeInTheDocument();
+    expect(screen.getByTitle('当前积分')).toHaveTextContent('150 积分');
+    expect(screen.getByRole('link', { name: '购买积分' })).toHaveAttribute('href', '/hai/points');
     expect(getHaiMemories).not.toHaveBeenCalled();
-    await user.click(screen.getByRole('button', { name: '用户与记忆设置' }));
+    await user.click(screen.getByRole('button', { name: '记忆设置' }));
     const dialog = within(screen.getByRole('dialog'));
     await dialog.findByText('暂无记忆');
     vi.mocked(getHaiMemories).mockResolvedValue([{ id: 'memory-1', category: 'constraint', content: '每课40分钟' }] as never);
@@ -36,14 +36,13 @@ describe('HAI 左下角用户设置', () => {
     await user.click(dialog.getByRole('button', { name: '归档记忆' }));
     expect(archiveHaiMemory).toHaveBeenCalledWith('memory-1');
     await dialog.findByText('暂无记忆');
-    expect(dialog.getByRole('link', { name: '购买积分' })).toHaveAttribute('href', '/hai/points');
   });
 
   it('保存失败时保留输入，给出明确反馈', async () => {
     vi.mocked(createHaiMemory).mockRejectedValue(new Error('offline'));
     const user = userEvent.setup();
     render(<MemoryRouter><HaiUserMenu usage={usage} /></MemoryRouter>);
-    await user.click(screen.getByRole('button', { name: '用户与记忆设置' }));
+    await user.click(screen.getByRole('button', { name: '记忆设置' }));
     await screen.findByText('暂无记忆');
     await user.type(screen.getByLabelText('用户记忆内容'), '需要小组合作');
     await user.click(screen.getByRole('button', { name: '保存记忆' }));
@@ -51,25 +50,20 @@ describe('HAI 左下角用户设置', () => {
     expect(screen.getByLabelText('用户记忆内容')).toHaveValue('需要小组合作');
   });
 
-  it('Work 左栏也有同一用户入口，不需要右上角设置', async () => {
+  it('Work 顶部提供记忆入口', async () => {
     const user = userEvent.setup();
     render(<MemoryRouter initialEntries={['/hai/work']}><HaiWorkShell usage={usage} sidebar={<p>历史任务</p>}>开始工作</HaiWorkShell></MemoryRouter>);
     expect(screen.queryByRole('button', { name: '打开历史版本' })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: '用户与记忆设置' }));
+    await user.click(screen.getByRole('button', { name: '记忆设置' }));
     expect(await screen.findByRole('dialog')).toHaveTextContent('林老师');
     expect(await screen.findByText('用户记忆')).toBeInTheDocument();
   });
-  it('移动端从左侧记录抽屉打开用户设置，关闭设置后仍能返回记录', async () => {
+  it('记忆入口位于顶部，记录抽屉中不重复显示', async () => {
     const user = userEvent.setup();
     render(<MemoryRouter initialEntries={['/hai/work']}><HaiWorkShell usage={usage} sidebar={<p>历史任务</p>}>开始工作</HaiWorkShell></MemoryRouter>);
+    expect(screen.getByRole('button', { name: '记忆设置' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '打开任务记录' }));
-    const records = screen.getByRole('dialog');
-    await user.click(within(records).getByRole('button', { name: '用户与记忆设置' }));
-    expect(await screen.findByRole('heading', { name: '用户设置' })).toBeInTheDocument();
-    await screen.findByText('暂无记忆');
-    await user.keyboard('{Escape}');
-    expect(screen.queryByRole('heading', { name: '用户设置' })).not.toBeInTheDocument();
-    expect(screen.getByRole('dialog')).toHaveTextContent('历史任务');
+    expect(within(screen.getByRole('dialog')).queryByRole('button', { name: '记忆设置' })).not.toBeInTheDocument();
   });
 
 });

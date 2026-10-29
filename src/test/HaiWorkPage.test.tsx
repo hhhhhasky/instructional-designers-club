@@ -145,7 +145,7 @@ describe("HAI Work workbench", () => {
     expect(screen.getByRole("group", { name: "任务输入与设置" })).toContainElement(choices);
     expect(within(choices).getAllByRole("button")[0]).toHaveAccessibleName("公开课设计");
     expect(within(choices).getByRole("button", { name: "公开课设计" })).toHaveAccessibleDescription("从教学内容到完整公开课教案");
-    expect(screen.getAllByRole("link", { name: /先聊聊问题/ }).every(link => link.getAttribute("href") === "/hai/chat")).toBe(true);
+    expect(screen.getAllByRole("link", { name: "聊聊问题" }).every(link => link.getAttribute("href") === "/hai/chat")).toBe(true);
   });
 
   it("removes a tool entry when the backend module is disabled", async () => {

@@ -54,7 +54,7 @@ export default function AdminPage() {
 
 function DashboardSidebar() {
   return (
-    <TabsList className="h-auto w-full flex-col items-stretch border-b border-bd bg-transparent pb-4 md:sticky md:top-4 md:border-b-0 md:border-r md:pr-5" aria-label="数据看板导航">
+    <TabsList className="h-auto w-full flex-col items-stretch border-b border-bd bg-transparent pb-4 md:sticky md:top-20 md:border-b-0 md:border-r md:pr-5" aria-label="数据看板导航">
       <div className="px-3 pb-2 pt-2 text-xs font-ds-black tracking-[0.16em] text-txs">看板模块</div>
       <div className="grid grid-cols-2 gap-1 md:flex md:flex-col">
         <DashboardTab value="overview" icon={BarChart3} label="运营总览" />

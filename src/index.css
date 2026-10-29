@@ -897,3 +897,20 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* 侧栏可收至贴边，图标模式提供名称提示。 */
+.site-toolbar { left: var(--site-sidebar-width); }
+.site-reopen { display: none; }
+.site-reopen-desktop { display: flex; }
+.site-hidden { visibility: hidden; }
+.site-mobile-toggle { display: none; }
+.site-icon-only .site-label { visibility: hidden; }
+@media (max-width: 767px) {
+  .site-reopen-desktop { display: none; }
+  .site-reopen-mobile { display: flex; }
+  .site-mobile-hidden { visibility: hidden; }
+  .site-mobile-open { visibility: visible; }
+  .site-mobile-open .site-label { visibility: visible; }
+  .site-desktop-toggle { display: none; }
+  .site-mobile-toggle { display: block; }
+}

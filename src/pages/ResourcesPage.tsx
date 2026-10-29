@@ -13,12 +13,6 @@ interface Article {
   links: { label: string; url: string }[];
 }
 
-// 兜底数据：后台未配置 / 查询失败时使用，保证页面永不空白。
-const FALLBACK_ARTICLES: Article[] = [
-  { title: "教师主导的教学与以学生为中心的学习是对立的？", type: "translation", links: [{ label: "译文链接", url: "http://xhslink.com/a/aL5Cg6BXMF7cb" }, { label: "原文链接", url: "https://teacherhead.com/2019/12/08/myth-teacher-led-instruction-and-student-centred-learning-are-opposites/?share=jetpack-whatsapp&nb=1" }] },
-  { title: "哈佛大学大脑认知科学：为什么学过的记不住", type: "article", links: [{ label: "阅读全文", url: "https://www.xiaohongshu.com/discovery/item/685d07c80000000012022d14?source=webshare&xhsshare=pc_web&xsec_token=ABsZgc9w6jQ0yuv0zZ8PoeOkDl3Bz3EDL8SNQ4OUKS8mU=&xsec_source=pc_share" }] },
-];
-
 function toArticle(r: Resource): Article {
   return {
     title: r.title,
@@ -34,24 +28,36 @@ const TYPE_STYLES: Record<string, { label: string; color: string }> = {
 };
 
 export default function ResourcesPage() {
-  const [articles, setArticles] = useState<Article[]>(FALLBACK_ARTICLES);
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      setLoading(true);
+      setFailed(false);
       try {
-        const data = await getResources();
+        const data = await getResources({ fresh: true });
         if (cancelled) return;
-        // 出错才走兜底；成功但为空（运营清空）则显示空，尊重运营操作。
-        setArticles(data.map(toArticle));
+        const seen = new Set<string>();
+        setArticles(data.map(toArticle).filter((article) => {
+          const key = JSON.stringify([article.title, article.type, article.links]);
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        }));
       } catch {
-        if (!cancelled) setArticles(FALLBACK_ARTICLES);
+        if (!cancelled) setFailed(true);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [attempt]);
 
   const getTypeInfo = (type: string) =>
     TYPE_STYLES[type] ?? { label: "文章", color: TYPE_STYLES.article.color };
@@ -85,9 +91,11 @@ export default function ResourcesPage() {
           <div className="flex items-center gap-3 mb-8 animate-fade-in">
             <BookOpen className="w-5 h-5 text-ac" />
             <h2 className="text-xl md:text-2xl font-ds-bold text-tx" style={{ fontFamily: 'var(--fd)' }}>全部文章</h2>
-            <span className="text-sm text-txs">共 {articles.length} 篇</span>
+            <span className="text-sm text-txs">{loading ? "正在加载…" : failed ? "暂时无法加载" : `共 ${articles.length} 篇`}</span>
           </div>
 
+          {failed && <div role="alert" className="mb-6 rounded-lg border border-bd bg-white p-5 text-sm text-txs">文章暂时加载失败，请检查网络后重试。 <button type="button" onClick={() => setAttempt(value => value + 1)} className="font-semibold text-ac hover:underline">重新加载</button></div>}
+          {!loading && !failed && articles.length === 0 && <p className="py-8 text-sm text-txs">暂无文章。</p>}
           <div className="grid grid-cols-1 gap-4">
             {articles.map((article, index) => {
               const typeInfo = getTypeInfo(article.type);

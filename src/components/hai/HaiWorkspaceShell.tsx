@@ -1,44 +1,36 @@
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import {
-  ArrowLeft,
   BriefcaseBusiness,
   Menu,
   MessageCircleMore,
   PanelRight,
 } from "lucide-react";
-import { useEffect, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { useContext, useEffect, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { SiteToolbarContext } from "@/components/layout/SiteToolbarContext";
 import HaiUserMenu from "@/components/hai/HaiUserMenu";
 import type { HaiUsageSummary } from "@/db/hai-api";
-import HaiDesktopModeSwitch from "@/components/hai/HaiDesktopModeSwitch";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useHaiExit } from "@/lib/hai-navigation";
 import { cn } from "@/lib/utils";
 
-function HaiSidebarContent({ children, usage }: { children: ReactNode; usage?: HaiUsageSummary | null }) {
+function HaiSidebarContent({ children }: { children: ReactNode }) {
   return <>
-    <div className="shrink-0 p-3 pb-2">
+    <nav aria-label="HAI 功能" className="shrink-0 space-y-2 p-3 pb-2">
       <NavLink to="/hai/work" state={{ newTask: true }} className={({ isActive }) => cn(
-        "flex min-h-14 items-center gap-3 rounded-xl border px-3 py-3 transition-colors",
-        isActive
-          ? "border-[var(--annotation)] bg-[var(--annotation-soft)] text-[var(--annotation)]"
-          : "border-[var(--paper-rule)] text-[var(--ink)] hover:bg-[var(--paper)]",
+        "flex min-h-12 items-center gap-3 rounded-xl border px-3 text-sm font-semibold transition-colors",
+        isActive ? "border-[var(--annotation)] bg-[var(--annotation-soft)] text-[var(--annotation)]" : "border-[var(--paper-rule)] text-[var(--ink)] hover:bg-[var(--paper)]",
       )}>
-        <BriefcaseBusiness aria-hidden className="h-5 w-5 shrink-0" />
-        <span><strong className="block text-sm">帮你干活</strong><span className="mt-1 block text-xs font-normal text-[var(--txs)]">写教案 · 改设计 · 做图片</span></span>
+        <BriefcaseBusiness aria-hidden className="h-5 w-5 shrink-0" />帮你干活
       </NavLink>
-    </div>
-    <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
-    <div className="shrink-0 border-t border-[var(--paper-rule)] px-3 pb-[env(safe-area-inset-bottom)] pt-3">
       <NavLink to="/hai/chat" className={({ isActive }) => cn(
-        "flex items-center gap-2.5 rounded-lg px-2 py-2 text-xs transition-colors hover:bg-[var(--paper)]",
-        isActive ? "bg-[var(--paper)] text-[var(--annotation)]" : "text-[var(--txs)]",
+        "flex min-h-12 items-center gap-3 rounded-xl border px-3 text-sm font-semibold transition-colors",
+        isActive ? "border-[var(--annotation)] bg-[var(--annotation-soft)] text-[var(--annotation)]" : "border-[var(--paper-rule)] text-[var(--ink)] hover:bg-[var(--paper)]",
       )}>
-        <MessageCircleMore aria-hidden className="h-4 w-4 shrink-0" />
-        <span><span className="block text-[11px] text-[var(--txt)]">还没想清楚？</span><span className="mt-1 block">先聊聊问题</span></span>
+        <MessageCircleMore aria-hidden className="h-5 w-5 shrink-0" />聊聊问题
       </NavLink>
-      <HaiUserMenu usage={usage} />
-    </div>
+    </nav>
+    <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
   </>;
 }
 
@@ -116,6 +108,7 @@ export default function HaiWorkspaceShell({
   compactHeader = false,
 }: HaiWorkspaceShellProps) {
   const [layout, setLayout] = useState<HaiLayout>(readHaiLayout);
+  const toolbarTarget = useContext(SiteToolbarContext);
 
   useEffect(() => {
     if (!resizable) return;
@@ -149,9 +142,6 @@ export default function HaiWorkspaceShell({
     window.addEventListener("pointerup", handleUp);
   }
 
-  const exitHai = useHaiExit();
-  const workspaceLocation = useLocation();
-  const isWorkChild = workspaceLocation.pathname.startsWith("/hai/work/") || (workspaceLocation.pathname === "/hai/work" && workspaceLocation.state?.imagePpt);
   const showInspectorColumn = Boolean(inspector) && mode !== "consultation";
 
   useEffect(() => {
@@ -160,20 +150,10 @@ export default function HaiWorkspaceShell({
   }, []);
 
   return (
-    <div className="hai-page flex min-h-0 w-full max-w-full flex-col overflow-hidden bg-[var(--paper)] md:h-dvh print:h-auto print:overflow-visible print:bg-white">
+    <div className="hai-page flex min-h-0 w-full max-w-full flex-col overflow-hidden bg-[var(--paper)] md:h-[calc(100dvh-3.5rem)] print:h-auto print:overflow-visible print:bg-white">
       <main className="flex min-h-0 flex-1 overflow-hidden print:block print:overflow-visible print:p-0">
         <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[var(--paper)] print:h-auto print:max-w-none print:overflow-visible print:border-0 print:shadow-none">
-          <header className={cn("flex shrink-0 items-center justify-between gap-3 border-b border-[var(--paper-rule)] bg-[var(--paper)]/95 px-3 pb-2.5 pt-[calc(0.625rem+env(safe-area-inset-top))] backdrop-blur md:px-5 print:hidden", compactHeader ? "md:py-1.5" : "md:py-2")}>
-            <div className="flex min-w-0 items-center gap-2.5">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 shrink-0"
-                onClick={exitHai}
-                aria-label={isWorkChild ? "返回帮你干活主页" : "返回官网首页"}
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
+          {toolbarTarget ? createPortal(<>            <div className="flex min-w-0 items-center gap-2.5">
               {sidebar && (
                 <Sheet
                   open={mobileSidebarOpen}
@@ -196,7 +176,7 @@ export default function HaiWorkspaceShell({
                     )}
                     hideCloseButton={hideMobileSidebarClose}
                   >
-                    <HaiSidebarContent usage={usage}>{sidebar}</HaiSidebarContent>
+                    <HaiSidebarContent>{sidebar}</HaiSidebarContent>
                   </SheetContent>
                 </Sheet>
               )}
@@ -210,7 +190,7 @@ export default function HaiWorkspaceShell({
             </div>
             <div className="flex shrink-0 items-center gap-2">
               {headerActions}
-              <HaiDesktopModeSwitch />
+              <HaiUserMenu usage={usage} />
               {inspector && (
                 <Sheet>
                   <SheetTrigger asChild>
@@ -232,7 +212,66 @@ export default function HaiWorkspaceShell({
                 </Sheet>
               )}
             </div>
-          </header>
+          </>, toolbarTarget) : <header className="flex shrink-0 items-center justify-between gap-3 border-b border-[var(--paper-rule)] bg-[var(--paper)] px-3 py-2 print:hidden">            <div className="flex min-w-0 items-center gap-2.5">
+              {sidebar && (
+                <Sheet
+                  open={mobileSidebarOpen}
+                  onOpenChange={onMobileSidebarOpenChange}
+                >
+                  <SheetTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 shrink-0 lg:hidden"
+                      aria-label={sidebarLabel}
+                    >
+                      <Menu className="h-5 w-5" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent
+                    side="left"
+                    className={cn(
+                      "flex w-[min(320px,88vw)] flex-col gap-0 overflow-hidden bg-[var(--paper-deep)] p-0 pt-[calc(2.5rem+env(safe-area-inset-top))]",
+                    )}
+                    hideCloseButton={hideMobileSidebarClose}
+                  >
+                    <HaiSidebarContent>{sidebar}</HaiSidebarContent>
+                  </SheetContent>
+                </Sheet>
+              )}
+              <div className="min-w-0">
+                <div className="flex min-w-0 items-center gap-2">
+                  <h1 className={cn("truncate font-serif font-black tracking-tight text-[var(--ink)]", compactHeader ? "text-sm" : "text-base md:text-lg")}>
+                    {title}
+                  </h1>
+                </div>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              {headerActions}
+              <HaiUserMenu usage={usage} />
+              {inspector && (
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button
+                      size="icon-sm"
+                      variant="outline"
+                      className={showInspectorColumn ? "xl:hidden" : undefined}
+                      aria-label={inspectorLabel}
+                    >
+                      <PanelRight className="h-4 w-4" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent
+                    side="right"
+                    className="w-[min(340px,92vw)] overflow-y-auto bg-[var(--bg)] p-4 pt-[calc(3rem+env(safe-area-inset-top))]"
+                  >
+                    {inspector}
+                  </SheetContent>
+                </Sheet>
+              )}
+            </div>
+          </header>}
 
           <div
             className={cn(
@@ -251,7 +290,7 @@ export default function HaiWorkspaceShell({
             <aside className={cn(
               "hidden min-h-0 flex-col overflow-hidden border-r border-[var(--paper-rule)] bg-[var(--paper-deep)] lg:flex print:hidden",
             )}>
-              <HaiSidebarContent usage={usage}>{sidebar}</HaiSidebarContent>
+              <HaiSidebarContent>{sidebar}</HaiSidebarContent>
             </aside>
             {resizable && (
               <div

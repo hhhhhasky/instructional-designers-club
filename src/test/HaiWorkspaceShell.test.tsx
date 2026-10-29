@@ -29,13 +29,13 @@ describe("HAI editorial workspace shell", () => {
     );
 
     expect(screen.queryByTestId("workspace-global-header")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "返回官网首页" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "帮你干活" })).toHaveAttribute("href", "/hai/work");
+    expect(screen.getByRole("link", { name: "聊聊问题" })).toHaveAttribute("href", "/hai/chat");
     expect(screen.getByRole("button", { name: "打开对话记录" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "打开咨询上下文" })).toBeInTheDocument();
     expect(screen.getByText("咨询正文").parentElement).toHaveClass("overflow-hidden");
     expect(container.firstElementChild).toHaveClass("print:overflow-visible", "print:bg-white");
     expect(container.querySelector("header")).toHaveClass(
-      "pt-[calc(0.625rem+env(safe-area-inset-top))]",
       "print:hidden",
     );
     expect(document.body).toHaveClass("hai-chat-active");

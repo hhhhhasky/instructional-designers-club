@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -266,13 +266,9 @@ describe("HAI mobile chat shell", () => {
       </MemoryRouter>,
     );
 
-    await userEvent.setup().click(await screen.findByRole("button", { name: "用户与记忆设置" }));
-    expect(await screen.findByText("积分额度")).toBeInTheDocument();
-    expect(within(screen.getByRole("dialog")).getByText("1,050 积分")).toBeInTheDocument();
-    expect(screen.getByText("积分")).toBeInTheDocument();
+    expect(await screen.findByTitle("当前积分")).toHaveTextContent("1,050 积分");
+    expect(screen.getByRole("link", { name: "购买积分" })).toHaveAttribute("href", "/hai/points");
     expect(screen.queryByText("Pro")).not.toBeInTheDocument();
-    expect(screen.getByText("累计已消耗 450 积分")).toBeInTheDocument();
-    expect(screen.queryByText(/本周已用.*%/)).not.toBeInTheDocument();
   });
 
   it("shows the point balance and consumed points for Plus and Pro users", async () => {
@@ -296,12 +292,9 @@ describe("HAI mobile chat shell", () => {
       </MemoryRouter>,
     );
 
-    await userEvent.setup().click(await screen.findByRole("button", { name: "用户与记忆设置" }));
-    expect(await within(screen.getByRole("dialog")).findByText("15 积分")).toBeInTheDocument();
-    expect(screen.getByText("积分额度")).toBeInTheDocument();
-    expect(screen.getByText("累计已消耗 3.5 积分")).toBeInTheDocument();
+    expect(await screen.findByTitle("当前积分")).toHaveTextContent("15 积分");
+    expect(screen.getByRole("button", { name: "记忆设置" })).toBeInTheDocument();
     expect(screen.queryByText(/Token/i)).not.toBeInTheDocument();
-    expect(screen.queryByText("周额度")).not.toBeInTheDocument();
   });
 
   it("disables chat entry points when the weekly quota has been reached", async () => {

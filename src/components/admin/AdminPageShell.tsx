@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
-import { useEffect, useRef } from "react";
+import { useContext, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
+import { SiteToolbarContext } from "@/components/layout/SiteToolbarContext";
 import { ShieldCheck } from "lucide-react";
 import PageBackBar from "@/components/common/PageBackBar";
 import Footer from "@/components/common/Footer";
@@ -25,6 +27,7 @@ export default function AdminPageShell({
   children,
 }: AdminPageShellProps) {
   const navigate = useNavigate();
+  const toolbarTarget = useContext(SiteToolbarContext);
   const { user, profile, loading, session } = useAuth();
   const initialCheckDone = useRef(false);
 
@@ -224,7 +227,7 @@ export default function AdminPageShell({
       <div className="min-h-screen bg-[var(--paper)] flex flex-col">
         <PageBackBar />
         <main className="min-w-0 flex-1 pb-10">
-          <AdminTopNav activeSection={activeSection} />
+          {toolbarTarget ? createPortal(<AdminTopNav activeSection={activeSection} />, toolbarTarget) : <AdminTopNav activeSection={activeSection} />}
           <div className="min-w-0 px-3 py-5 sm:px-4 md:px-6">
             {children}
           </div>
@@ -237,37 +240,16 @@ export default function AdminPageShell({
 
 function AdminTopNav({ activeSection }: { activeSection: AdminPageShellProps["activeSection"] }) {
   return (
-    <nav className="border-b border-bd bg-white/80" aria-label="平台管理后台导航">
-      <div className="flex min-h-16 min-w-0 flex-col sm:flex-row sm:items-stretch">
-        <Link to="/admin" className="flex items-center gap-3 border-b border-bdl px-5 py-3 sm:w-[245px] sm:shrink-0 sm:border-b-0 sm:border-r">
-          <span className="grid h-9 w-9 place-items-center rounded-ds-md bg-[var(--sage)] text-[var(--sand)]"><ShieldCheck className="h-4 w-4" /></span>
-          <span>
-            <span className="block text-ds-sm font-ds-black tracking-tight text-tx">平台管理后台</span>
-            <span className="mt-0.5 block text-xs tracking-[0.12em] text-txs">ADMIN STUDIO</span>
-          </span>
-        </Link>
-        <div className="flex min-w-0 flex-1 items-stretch overflow-x-auto">
-          <AdminTopLink to="/admin/manage" label="数据管理" description="课程、会员与内容维护" active={activeSection === "manage"} />
-          <AdminTopLink to="/admin" label="数据看板" description="运营趋势与学习数据" active={activeSection === "dashboard"} />
-        </div>
+    <nav className="flex h-14 min-w-0 flex-1 items-center gap-3" aria-label="平台管理后台导航">
+      <Link to="/admin" className="hidden shrink-0 items-center gap-2 font-semibold text-tx sm:flex"><ShieldCheck className="h-4 w-4 text-ac" /><span>平台管理后台</span></Link>
+      <div className="flex h-full min-w-0 items-center gap-1 overflow-x-auto">
+        <AdminTopLink to="/admin/manage" label="数据管理" active={activeSection === "manage"} />
+        <AdminTopLink to="/admin" label="数据看板" active={activeSection === "dashboard"} />
       </div>
     </nav>
   );
 }
 
-function AdminTopLink({ to, label, description, active }: { to: string; label: string; description: string; active: boolean }) {
-  return (
-    <Link
-      to={to}
-      aria-current={active ? "page" : undefined}
-      className={`relative flex min-w-[142px] flex-1 items-center gap-3 border-r border-bdl px-4 py-3 transition-colors last:border-r-0 sm:min-w-[180px] sm:px-7 ${active ? "bg-bgs text-[var(--sage)]" : "text-tx hover:bg-bgs"}`}
-    >
-      <span className={`h-2 w-2 rounded-full ${active ? "bg-ac" : "bg-bdl"}`} />
-      <span>
-        <span className="block text-ds-sm font-ds-bold">{label}</span>
-        <span className="mt-0.5 block text-xs text-txs">{description}</span>
-      </span>
-      {active && <span className="absolute inset-x-0 bottom-0 h-1 bg-ac" />}
-    </Link>
-  );
+function AdminTopLink({ to, label, active }: { to: string; label: string; active: boolean }) {
+  return <Link to={to} aria-current={active ? "page" : undefined} className={`inline-flex min-h-9 shrink-0 items-center rounded-lg px-3 text-sm font-semibold transition-colors ${active ? "bg-[var(--annotation-soft)] text-ac" : "text-txs hover:bg-[var(--paper-deep)] hover:text-tx"}`}>{label}</Link>;
 }

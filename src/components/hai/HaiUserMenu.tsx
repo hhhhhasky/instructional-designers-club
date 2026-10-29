@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronsUpDown, Pin, UserRound, X } from "lucide-react";
+import { Brain, Coins, Pin, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getHaiAccessStatus, getHaiMemories, createHaiMemory, archiveHaiMemory, type HaiUsageSummary, type HaiUserMemory } from "@/db/hai-api";
 import { Button } from "@/components/ui/button";
@@ -56,23 +56,22 @@ export default function HaiUserMenu({ usage: suppliedUsage }: { usage?: HaiUsage
   }
 
   return <>
-    <button type="button" onClick={() => setOpen(true)} aria-label="用户与记忆设置" aria-haspopup="dialog" className="flex min-h-16 w-full items-center gap-3 rounded-md px-2 py-3 text-left transition hover:bg-[var(--paper)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-acl text-ac">{profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : <UserRound className="h-4 w-4" />}</span>
-      <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-tx">{name}</span><span className="mt-1 block text-xs text-txs">{balance ? `${formatPoints(balance.current_points)} 积分` : "积分待更新"}</span></span>
-      <ChevronsUpDown className="h-4 w-4 shrink-0 text-txt" />
-    </button>
+    <div className="flex items-center gap-1 sm:gap-2" aria-label="HAI 积分与记忆">
+      <span className="inline-flex min-h-9 items-center gap-1 rounded-lg bg-[var(--paper-deep)] px-2 text-xs font-semibold text-tx" title="当前积分"><Coins className="h-4 w-4 shrink-0 text-ac" aria-hidden="true" />{balance ? <>{formatPoints(balance.current_points)}<span className="hidden sm:inline"> 积分</span></> : <><span className="sm:hidden">--</span><span className="hidden sm:inline">积分待更新</span></>}</span>
+      <button type="button" onClick={() => setOpen(true)} aria-label="记忆设置" title="记忆设置" aria-haspopup="dialog" className="inline-flex min-h-9 items-center gap-1 rounded-lg px-2 text-xs text-txs hover:bg-[var(--paper-deep)] hover:text-tx focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac"><Brain className="h-4 w-4 shrink-0" aria-hidden="true" /><span className="hidden sm:inline">记忆设置</span></button>
+      <Link to="/hai/points" title="购买积分" aria-label="购买积分" className="inline-flex min-h-9 items-center rounded-lg px-2 text-xs font-semibold text-ac hover:bg-[var(--paper-deep)]">购买<span className="hidden sm:inline">积分</span></Link>
+    </div>
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="max-h-[85dvh] overflow-y-auto bg-[var(--paper)] sm:max-w-lg">
-        <DialogHeader><DialogTitle>用户设置</DialogTitle><DialogDescription>{name} · 管理积分与 HAI 的用户记忆</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>记忆设置</DialogTitle><DialogDescription>{name} · 管理 HAI 需要记住的信息</DialogDescription></DialogHeader>
         {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
-        {loading ? <p role="status" className="py-6 text-sm text-txs">正在读取记忆…</p> : <UsagePanel usage={balance} memories={memories} memoryDraft={draft} memoryCategory={category} busy={busy} onMemoryDraftChange={setDraft} onMemoryCategoryChange={setCategory} onCreateMemory={save} onArchiveMemory={archive} />}
+        {loading ? <p role="status" className="py-6 text-sm text-txs">正在读取记忆…</p> : <UsagePanel memories={memories} memoryDraft={draft} memoryCategory={category} busy={busy} onMemoryDraftChange={setDraft} onMemoryCategoryChange={setCategory} onCreateMemory={save} onArchiveMemory={archive} />}
       </DialogContent>
     </Dialog>
   </>;
 }
 
 function UsagePanel({
-  usage,
   memories,
   memoryDraft,
   memoryCategory,
@@ -82,7 +81,6 @@ function UsagePanel({
   onCreateMemory,
   onArchiveMemory,
 }: {
-  usage: HaiUsageSummary | null;
   memories: HaiUserMemory[];
   memoryDraft: string;
   memoryCategory: string;
@@ -94,21 +92,6 @@ function UsagePanel({
 }) {
   return (
     <div className="space-y-4">
-      <div className="border-b border-bd pb-5">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-ds-sm font-ds-bold text-tx">积分额度</h2>
-          <Badge variant="outline" className="border-ac/30 text-ac">
-            积分
-          </Badge>
-        </div>
-        <p className="text-2xl font-ds-black text-tx">{usage ? `${formatPoints(usage.current_points)} 积分` : "积分待更新"}</p>
-        <p className="mt-1 text-ds-xs text-txs">
-          累计已消耗 {formatPoints(usage?.consumed_points)} 积分
-        </p>
-        <Button asChild size="sm" className="mt-3 w-full bg-ac text-white hover:bg-acd">
-          <Link to="/hai/points">购买积分</Link>
-        </Button>
-      </div>
       <div className="pt-1">
         <div className="mb-3 flex items-center gap-2">
           <Pin className="h-4 w-4 text-ac" />

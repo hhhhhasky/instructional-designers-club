@@ -1,7 +1,6 @@
 import { ArrowDownLeft, ArrowUpRight, CheckCircle2, ChevronDown, Coins, Loader2, MessageCircleMore, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import PageBackBar from "@/components/common/PageBackBar";
 import Footer from "@/components/common/Footer";
 import PageMeta from "@/components/common/PageMeta";
 import { useAuth } from "@/contexts/AuthContext";
@@ -86,7 +85,6 @@ export default function HaiPointsPage() {
   return (
     <div className="min-h-screen bg-bg pb-16 text-tx md:pb-0">
       <PageMeta title="购买 HAI 积分" description="查看 HAI 积分套餐并联系企业微信购买" noIndex />
-      <PageBackBar to="/hai/work" label="返回 HAI" />
       <main className="mx-auto w-full max-w-5xl px-3 py-6 md:px-4 md:py-12">
 
 

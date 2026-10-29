@@ -35,7 +35,7 @@ export default function DaofaLessonPage() {
 
   if (isCanvas) return <>
     <PageMeta title="三元对齐画布｜道法教材解读课" description="课标素养、内容要求与教材单元对齐画布" noIndex />
-    <main className="relative h-screen w-full overflow-hidden bg-[var(--sage-dark)]" style={{ height: '100dvh' }}>
+    <main className="relative h-screen w-full overflow-hidden bg-[var(--sage-dark)]" style={{ height: 'calc(100dvh - 3.5rem)' }}>
       {loading ? <div className="flex h-full items-center justify-center text-sm text-white">正在确认课程权限…</div>
         : !hasAccess ? <div className="flex h-full flex-col items-center justify-center px-6 text-center text-white">
           <LockKeyhole className="h-9 w-9 text-[#d0a453]" />

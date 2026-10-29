@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Camera, GraduationCap, Lock, User } from 'lucide-react';
+import { Camera, GraduationCap, Home, Lock, LogOut, User } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -32,7 +32,7 @@ type PasswordForm = z.infer<typeof passwordSchema>;
 
 export default function SettingsPage() {
   const navigate = useNavigate();
-  const { user, profile, loading, refreshProfile } = useAuth();
+  const { user, profile, loading, refreshProfile, signOut } = useAuth();
   const [nicknameError, setNicknameError] = useState('');
   const [nicknameSuccess, setNicknameSuccess] = useState(false);
   const [passwordError, setPasswordError] = useState('');
@@ -234,6 +234,11 @@ export default function SettingsPage() {
                 修改密码
               </Button>
             </form>
+          </div>
+
+          <div className="mt-6 flex flex-col gap-2 rounded-ds-lg border border-bd bg-white p-3">
+            <button type="button" onClick={() => navigate('/')} className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-left text-sm text-txs hover:bg-[var(--paper)] hover:text-ac"><Home className="h-4 w-4" />返回主页</button>
+            <button type="button" onClick={async () => { await signOut(); navigate('/'); }} className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-left text-sm text-red-600 hover:bg-red-50"><LogOut className="h-4 w-4" />退出登录</button>
           </div>
 
           {/* 底部 */}

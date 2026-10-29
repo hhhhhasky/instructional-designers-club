@@ -826,7 +826,7 @@ export default function CourseDetailPage() {
           keywords={course.category || undefined}
         />
       )}
-    <div className="course-reading-desk min-h-screen flex flex-col lg:h-dvh lg:min-h-0 lg:overflow-hidden">
+    <div className="course-reading-desk min-h-screen flex flex-col lg:h-[calc(100dvh-3.5rem)] lg:min-h-0 lg:overflow-hidden">
       <PageBackBar to={courseBackPath} label="返回课程目录" />
 
       <main
