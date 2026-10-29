@@ -13,13 +13,14 @@ describe('Supabase same-origin proxy', () => {
   it('forwards signup with the Cloudflare client IP and never forwards a forged IP', async () => {
     const fetchMock = vi.fn(async (_request: Request) => new Response('{"ok":true}', { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
-    const req = incoming('/auth/v1/signup', { method: 'POST', headers: { 'cf-connecting-ip': '203.0.113.1', 'sb-forwarded-for': '198.51.100.1', authorization: 'Bearer user-token', apikey: 'public-key' }, body: '{"email":"example"}' });
+    const req = incoming('/auth/v1/signup', { method: 'POST', headers: { 'cf-connecting-ip': '203.0.113.1', 'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile', 'sb-forwarded-for': '198.51.100.1', authorization: 'Bearer user-token', apikey: 'public-key' }, body: '{"email":"example"}' });
     const response = await onRequest({ request: req, env });
     expect(response.status).toBe(200);
     const forwarded = fetchMock.mock.calls[0][0] as Request;
     expect(forwarded.url).toBe('https://isjflmyhbvdlmcsaewbq.supabase.co/auth/v1/signup');
     expect(forwarded.headers.get('sb-forwarded-for')).toBe('203.0.113.1');
     expect(forwarded.headers.get('apikey')).toBe(env.SUPABASE_AUTH_PROXY_SECRET);
+    expect(forwarded.headers.get('user-agent')).toBe('idclub-auth-proxy/1.0');
     expect(forwarded.headers.get('authorization')).toBe('Bearer user-token');
     expect(await forwarded.text()).toBe('{"email":"example"}');
     expect(response.headers.get('cache-control')).toBe('no-store');

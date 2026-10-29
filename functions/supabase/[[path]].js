@@ -20,6 +20,8 @@ export async function onRequest({ request, env }) {
     const ip = request.headers.get('cf-connecting-ip');
     if (!env.SUPABASE_AUTH_PROXY_SECRET?.startsWith('sb_secret_') || !ip) return new Response('认证服务暂不可用', { status: 503 });
     if (!/^Bearer\s+\S+$/i.test(headers.get('authorization') || '')) return new Response('Unauthorized', { status: 401 });
+    // The secret is used by this server, not by the originating browser.
+    headers.set('user-agent', 'idclub-auth-proxy/1.0');
     headers.set('apikey', env.SUPABASE_AUTH_PROXY_SECRET);
     headers.set('sb-forwarded-for', ip);
   }
