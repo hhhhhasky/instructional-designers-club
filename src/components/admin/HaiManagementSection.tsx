@@ -1,3 +1,4 @@
+import HaiBatchPoints from "@/components/admin/hai/HaiBatchPoints";
 import HaiImagePromptManagement from "@/components/admin/HaiImagePromptManagement";
 import WebToolBillingSettings from "@/components/admin/hai/WebToolBillingSettings";
 import { HaiConfigWorkspace, HaiConfigPage } from "@/components/admin/hai/HaiConfigWorkspace";
@@ -1748,6 +1749,10 @@ export default function HaiManagementSection() {
           </div>
         </form>
         <p className="mt-3 text-ds-xs text-txs">{pointPackageStatus || "购买页会以表格展示名称、积分、价格和可完成内容。"}</p>
+      </HaiConfigPage>
+
+      <HaiConfigPage section="points" title="批量管理积分" description="按课程权限选择用户，集中调整积分。">
+        <HaiBatchPoints />
       </HaiConfigPage>
 
       <section className="grid gap-6 xl:grid-cols-2">

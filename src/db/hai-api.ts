@@ -44,7 +44,7 @@ export interface HaiUsageSummary {
 
 export interface HaiPointLedgerEntry {
   id: string;
-  transaction_type: "newcomer_gift" | "admin_add" | "purchase" | "usage" | "refund";
+  transaction_type: "newcomer_gift" | "admin_add" | "admin_deduct" | "purchase" | "usage" | "refund";
   points_delta: number;
   purpose: string;
   result: "success" | "failed";
@@ -353,6 +353,7 @@ export async function getHaiPointLedger(limit = 100, offset = 0): Promise<HaiPoi
     if (
       transactionType !== "newcomer_gift" &&
       transactionType !== "admin_add" &&
+      transactionType !== "admin_deduct" &&
       transactionType !== "purchase" &&
       transactionType !== "usage" &&
       transactionType !== "refund"
