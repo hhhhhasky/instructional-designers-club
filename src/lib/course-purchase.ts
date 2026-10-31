@@ -6,6 +6,7 @@ export interface CoursePurchaseProduct {
   description: string;
   cataloguePath: string;
   purchaseUrl: string;
+  wechatQrImage: string;
 }
 
 export const COURSE_PURCHASE_PRODUCTS: readonly CoursePurchaseProduct[] = [
@@ -15,6 +16,7 @@ export const COURSE_PURCHASE_PRODUCTS: readonly CoursePurchaseProduct[] = [
     description: '从学习科学出发，系统学习教学设计与课堂实践。',
     cataloguePath: '/courses',
     purchaseUrl: 'https://xhslink.com/m/5JAHDTqPSdk',
+    wechatQrImage: '/images/course-purchase/general-wechat.png',
   },
   {
     code: 'teacher-ai',
@@ -22,6 +24,7 @@ export const COURSE_PURCHASE_PRODUCTS: readonly CoursePurchaseProduct[] = [
     description: '理解 AI 工具，把教学判断延伸为可复用的工作流。',
     cataloguePath: '/teacher-ai-courses',
     purchaseUrl: 'https://xhslink.com/m/4neOp7EhPHm',
+    wechatQrImage: '/images/course-purchase/general-wechat.png',
   },
   {
     code: 'daofa-textbook',
@@ -29,6 +32,7 @@ export const COURSE_PURCHASE_PRODUCTS: readonly CoursePurchaseProduct[] = [
     description: '贯通课标、教材单元与单课，建立一至九年级教材地图。',
     cataloguePath: '/courses/daofa',
     purchaseUrl: 'https://xhslink.com/m/277IB24mn8I',
+    wechatQrImage: '/images/course-purchase/daofa-wechat.png',
   },
 ];
 

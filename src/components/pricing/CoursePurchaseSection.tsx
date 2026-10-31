@@ -1,5 +1,6 @@
 import CourseAccessBadge from '@/components/course/CourseAccessBadge';
-import { ArrowRight, ArrowUpRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import CoursePurchaseButton from '@/components/course/CoursePurchaseButton';
 import { Link } from 'react-router-dom';
 import { COURSE_PURCHASE_PRODUCTS } from '@/lib/course-purchase';
 import type { CourseAccessCode } from '@/lib/course-entitlements';
@@ -39,9 +40,7 @@ export default function CoursePurchaseSection({ accessCodes = [], isAdmin = fals
                     {content.access_cta}{product.name} <ArrowRight className="h-4 w-4" aria-hidden="true" />
                   </Link>
                 ) : (
-                  <a href={product.purchaseUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-ds-sm border border-bd bg-white px-5 text-sm font-ds-bold text-tx transition-colors hover:border-ac hover:text-ac focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac focus-visible:ring-offset-2">
-                    {content.purchase_cta}{product.name} <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
-                  </a>
+                  <CoursePurchaseButton productCode={product.code} label={`${content.purchase_cta}${product.name}`} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-ds-sm border border-bd bg-white px-5 text-sm font-ds-bold text-tx hover:border-ac hover:text-ac" />
                 )}
               </div>
             </article>

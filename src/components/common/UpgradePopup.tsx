@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import CoursePurchaseButton from '@/components/course/CoursePurchaseButton';
 import {
   Dialog,
   DialogContent,
@@ -33,15 +34,9 @@ function UpgradeBody({ requiredLevel, productCode, onClose }: Omit<UpgradePopupP
           <BookOpen className="w-7 h-7 text-ac" />
         </div>
         <h3 className="text-lg font-semibold text-tx mb-1">尚未开通{courseName}</h3>
-        <p className="text-ds-sm text-txs">在小红书下单后，请通过订单页联系商家，为你的官网账号开通课程。</p>
+        <p className="text-ds-sm text-txs">下单后，请联系商家，为你的官网账号开通课程。</p>
       </div>
-      {product && <Button
-        size="lg"
-        className="w-full btn-super-cta !text-white font-ds-bold rounded-ds-lg"
-        asChild
-      >
-        <a href={product.purchaseUrl} target="_blank" rel="noopener noreferrer">购买{courseName}</a>
-      </Button>}
+      {product && <CoursePurchaseButton productCode={product.code} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-ds-lg bg-ac px-5 text-sm font-ds-bold text-white hover:bg-acd" />}
       <Button variant="outline" className="w-full rounded-ds-lg" onClick={onClose}>
         返回
       </Button>

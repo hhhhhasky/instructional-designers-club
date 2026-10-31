@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, BookOpen, Check, ExternalLink, LockKeyhole } from 'lucide-react';
+import { ArrowRight, BookOpen, Check, LockKeyhole } from 'lucide-react';
+import CoursePurchaseButton from '@/components/course/CoursePurchaseButton';
 import PageMeta from '@/components/common/PageMeta';
 import { useAuth } from '@/contexts/AuthContext';
 import { canAccessCourse } from '@/lib/access-control';
@@ -48,14 +49,14 @@ export default function CourseLibraryPage() {
                 <p className="mb-6 mt-4 text-xs leading-6 text-txs">适合：{product.audience}</p>
                 <div className="mt-auto flex items-center justify-between gap-3 border-t border-bd pt-5">
                   <span className="inline-flex items-center gap-2 text-sm font-semibold text-ac">{!loading && product.hasAccess ? '进入学习' : '查看课程'}<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></span>
-                  {!loading && !product.hasAccess && <a href={product.purchaseUrl} target="_blank" rel="noopener noreferrer" aria-label={`购买${product.name}（在新标签页打开小红书）`} className="relative z-10 inline-flex min-h-10 items-center gap-2 rounded-md bg-ac px-4 text-sm font-semibold text-white hover:bg-acd">购买课程<ExternalLink className="h-3.5 w-3.5" /></a>}
+                  {!loading && !product.hasAccess && <CoursePurchaseButton productCode={product.code} label="购买课程" className="relative z-10 inline-flex min-h-10 items-center gap-2 rounded-md bg-ac px-4 text-sm font-semibold text-white hover:bg-acd" />}
                 </div>
               </div>
             </article>
           ))}
         </div>
         {visible.length === 0 && <div className="py-16 text-center text-sm leading-7 text-txs" role="status">{loading ? '正在确认已开通课程…' : user ? '你还没有开通课程，可以先在「全部课程」中查看目录。' : <span>登录后，即可查看你已开通的课程。<Link to="/login" state={{ from: '/course-library' }} className="ml-2 font-semibold text-ac hover:underline">登录</Link></span>}</div>}
-        <p className="mt-7 text-xs leading-6 text-txs">购买将在小红书打开对应商品，官网不收款。课程按人工流程开通；已购买但仍显示未开通，请联系运营核对订单与官网账号。</p>
+        <p className="mt-7 text-xs leading-6 text-txs">可选择小红书或微信小店下单，官网不收款。课程按人工流程开通；已购买但仍显示未开通，请联系运营核对订单与官网账号。</p>
       </main>
     </div>
   );
