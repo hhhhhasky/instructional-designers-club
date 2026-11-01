@@ -246,7 +246,8 @@ export async function reserveUsage(params: {
 }
 
 export async function finalizeUsage(params: {
-  userClient: SupabaseClient;
+  adminClient: SupabaseClient;
+  userId: string;
   requestId: string;
   status: "completed" | "failed" | "cached";
   route: string;
@@ -257,7 +258,8 @@ export async function finalizeUsage(params: {
   durationMs?: number | null;
   metadata?: Record<string, unknown>;
 }) {
-  const { error } = await params.userClient.rpc("hai_finalize_usage", {
+  const { error } = await params.adminClient.rpc("hai_finalize_usage_service", {
+    p_user_id: params.userId,
     p_request_id: params.requestId,
     p_status: params.status,
     p_input_tokens: params.inputTokens,

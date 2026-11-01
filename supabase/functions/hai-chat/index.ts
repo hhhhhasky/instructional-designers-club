@@ -476,7 +476,8 @@ Deno.serve(async (request) => {
             .eq("user_id", auth.user.id);
 
           await finalizeUsage({
-            userClient: auth.userClient,
+            adminClient: auth.admin,
+            userId: auth.user.id,
             requestId: clientRequestId,
             status: "completed",
             route: "hai-chat",
@@ -565,7 +566,8 @@ Deno.serve(async (request) => {
             });
           }
           await finalizeUsage({
-            userClient: auth.userClient,
+            adminClient: auth.admin,
+            userId: auth.user.id,
             requestId: clientRequestId,
             status: "failed",
             route: "hai-chat",

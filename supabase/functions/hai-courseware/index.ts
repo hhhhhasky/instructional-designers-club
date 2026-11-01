@@ -352,7 +352,8 @@ Deno.serve(async (request) => {
               },
             });
             await finalizeUsage({
-              userClient: auth.userClient,
+              adminClient: auth.admin,
+              userId: auth.user.id,
               requestId: stageRequestId,
               status: "completed",
               route: "hai-courseware",
@@ -380,7 +381,8 @@ Deno.serve(async (request) => {
           if (usageReserved) {
             try {
               await finalizeUsage({
-                userClient: auth.userClient,
+                adminClient: auth.admin,
+                userId: auth.user.id,
                 requestId: stageRequestId,
                 status: "failed",
                 route: "hai-courseware",
@@ -745,7 +747,8 @@ async function continuePureImageWorkflow(
           },
         });
         await finalizeUsage({
-          userClient: auth.userClient,
+          adminClient: auth.admin,
+          userId: auth.user.id,
           requestId: stageRequestId,
           status: "completed",
           route: "hai-courseware",
@@ -772,7 +775,8 @@ async function continuePureImageWorkflow(
     } catch (error) {
       if (usageReserved) {
         await finalizeUsage({
-          userClient: auth.userClient,
+          adminClient: auth.admin,
+          userId: auth.user.id,
           requestId: stageRequestId,
           status: "failed",
           route: "hai-courseware",

@@ -247,7 +247,8 @@ Deno.serve(async (request) => {
             .eq("user_id", auth.user.id);
 
           await finalizeUsage({
-            userClient: auth.userClient,
+            adminClient: auth.admin,
+            userId: auth.user.id,
             requestId: clientRequestId,
             status: "completed",
             route: "hai-roundtable-chat",
@@ -301,7 +302,8 @@ Deno.serve(async (request) => {
             ? error.message
             : "HAI 圆桌响应失败。";
           await finalizeUsage({
-            userClient: auth.userClient,
+            adminClient: auth.admin,
+            userId: auth.user.id,
             requestId: clientRequestId,
             status: "failed",
             route: "hai-roundtable-chat",
