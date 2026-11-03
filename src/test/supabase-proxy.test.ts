@@ -49,6 +49,34 @@ describe('Supabase same-origin proxy', () => {
     expect((await seen[3].json()).email).toBe('private@example.com');
   });
 
+  it('rejects signup with an already-registered phone before reaching Auth', async () => {
+    // 手机号重复时数据库触发器会以 5xx 失败并被误报为网络错误；
+    // 代理必须先用 GoTrue 原生的"邮箱已注册"形状拦下，前端才能给出正确提示。
+    const fetchMock = vi.fn(async (input: Request | URL | string) => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url.includes('/rest/v1/profiles')) return Response.json([{ id: '11111111-1111-4111-8111-111111111111' }]);
+      throw new Error('Auth must not be called for a duplicate-phone signup');
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const response = await onRequest({ request: incoming('/auth/v1/signup', { method: 'POST', headers: { 'cf-connecting-ip': '203.0.113.1', authorization: 'Bearer public-key', 'content-type': 'application/json' }, body: JSON.stringify({ email: 'new@example.com', password: 'test', data: { phone: '13900000000', nickname: '老师' } }) }), env });
+    expect(response.status).toBe(422);
+    const payload = await response.json();
+    expect(payload.msg).toBe('User already registered');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('forwards signup without phone metadata or when the lookup fails', async () => {
+    const fetchMock = vi.fn(async (input: Request | URL | string) => {
+      const url = input instanceof Request ? input.url : String(input);
+      return url.includes('/rest/v1/profiles') ? new Response('failure', { status: 503 }) : Response.json({ user: { id: 'u' } }, { status: 200 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const noPhone = await onRequest({ request: incoming('/auth/v1/signup', { method: 'POST', headers: { 'cf-connecting-ip': '203.0.113.1', authorization: 'Bearer public-key', 'content-type': 'application/json' }, body: JSON.stringify({ email: 'new@example.com', password: 'test' }) }), env });
+    expect(noPhone.status).toBe(200);
+    const lookupFails = await onRequest({ request: incoming('/auth/v1/signup', { method: 'POST', headers: { 'cf-connecting-ip': '203.0.113.1', authorization: 'Bearer public-key', 'content-type': 'application/json' }, body: JSON.stringify({ email: 'new2@example.com', password: 'test', data: { phone: '13900000000' } }) }), env });
+    expect(lookupFails.status).toBe(200);
+  });
+
   it('keeps existing phone-only logins and checks the authenticated user belongs to that phone', async () => {
     const userId = '11111111-1111-4111-8111-111111111111';
     const fetchMock = vi.fn(async (input: Request | URL | string) => {

@@ -41,6 +41,26 @@ async function resolvePhoneLogin(body, secret, needsEmail = true) {
   return { body: user.email === body.email ? body : { ...body, email: user.email }, id: profiles[0].id };
 }
 
+async function rejectDuplicatePhoneSignup(body, secret) {
+  // 手机号不再是认证邮箱，GoTrue 不会对它查重；撞上 profiles.phone 唯一约束
+  // 会让注册以 5xx 收场并被前端误报为网络失败。在这里先查重，返回与 GoTrue
+  // 原生邮箱重复一致的 422 形状，前端因此显示"手机号或邮箱已被使用"。
+  const phone = typeof body?.data?.phone === 'string' ? body.data.phone.trim() : '';
+  if (!/^1[3-9]\d{9}$/.test(phone)) return null;
+  const headers = { apikey: secret, authorization: `Bearer ${secret}`, 'user-agent': 'idclub-auth-proxy/1.0' };
+  const query = new URL('/rest/v1/profiles', UPSTREAM);
+  query.searchParams.set('select', 'id');
+  query.searchParams.set('phone', `eq.${phone}`);
+  const profileResponse = await fetch(query, { headers });
+  // 查重失败不阻塞注册：触发器唯一约束仍是兜底。
+  if (!profileResponse.ok) return null;
+  const profiles = await profileResponse.json();
+  if (Array.isArray(profiles) && profiles.length > 0) {
+    return Response.json({ code: 422, error_code: 'user_already_exists', msg: 'User already registered' }, { status: 422, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
+  }
+  return null;
+}
+
 export async function onRequest({ request, env }) {
   const incoming = new URL(request.url);
   const path = incoming.pathname.slice(PREFIX.length);
@@ -69,6 +89,13 @@ export async function onRequest({ request, env }) {
   }
   try {
     let upstream;
+    if (path === '/auth/v1/signup' && request.method === 'POST') {
+      const body = await parseLoginBody(request);
+      if (body && typeof body === 'object' && !Array.isArray(body)) {
+        const duplicate = await rejectDuplicatePhoneSignup(body, env.SUPABASE_AUTH_PROXY_SECRET);
+        if (duplicate) return duplicate;
+      }
+    }
     if (path === '/auth/v1/token' && incoming.searchParams.get('grant_type') === 'password' && request.method === 'POST') {
       const body = await parseLoginBody(request);
       if (body && typeof body === 'object' && !Array.isArray(body) && typeof body.email === 'string' && /^(1[3-9]\d{9})@phone\.local$/i.test(body.email)) {
