@@ -30,6 +30,25 @@ describe('Supabase same-origin proxy', () => {
     expect((await seen[3].json()).email).toBe('private@example.com');
   });
 
+  it('also resolves phone logins when Auth returns the new error shape sent to supabase-js clients', async () => {
+    // 浏览器里的 supabase-js 发送 x-supabase-api-version 头，GoTrue 因此返回
+    // { code: 'invalid_credentials', message } 而不是 { error_code, msg }。
+    const userId = '11111111-1111-4111-8111-111111111111';
+    const seen: Request[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (input: Request | URL | string, init?: RequestInit) => {
+      const req = input instanceof Request ? input : new Request(input, init);
+      seen.push(req);
+      if (req.url.includes('/rest/v1/profiles')) return Response.json([{ id: userId }]);
+      if (req.url.includes('/auth/v1/admin/users/')) return Response.json({ id: userId, email: 'private@example.com' });
+      if (req.url.includes('/auth/v1/token') && seen.length === 1) return Response.json({ code: 'invalid_credentials', message: 'Invalid login credentials' }, { status: 400 });
+      return Response.json({ access_token: 'token' });
+    }));
+    const response = await onRequest({ request: incoming('/auth/v1/token?grant_type=password', { method: 'POST', headers: { 'cf-connecting-ip': '203.0.113.1', authorization: 'Bearer public-key', 'content-type': 'application/json' }, body: JSON.stringify({ email: '13900000000@phone.local', password: 'test' }) }), env });
+    expect(response.status).toBe(200);
+    expect(seen).toHaveLength(4);
+    expect((await seen[3].json()).email).toBe('private@example.com');
+  });
+
   it('keeps existing phone-only logins and checks the authenticated user belongs to that phone', async () => {
     const userId = '11111111-1111-4111-8111-111111111111';
     const fetchMock = vi.fn(async (input: Request | URL | string) => {

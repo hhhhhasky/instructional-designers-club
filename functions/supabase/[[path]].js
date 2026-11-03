@@ -75,7 +75,10 @@ export async function onRequest({ request, env }) {
         // Auth runs first, so its per-IP rate limit also protects the lookup.
         upstream = await fetch(new Request(new Request(target.toString(), request.clone()), { headers, redirect: 'manual' }));
         const result = await upstream.clone().json().catch(() => null);
-        if (upstream.ok || (upstream.status === 400 && result?.error_code === 'invalid_credentials')) {
+        // GoTrue 的新错误格式（x-supabase-api-version 请求头触发）把 code 设为字符串且没有 error_code 字段；
+        // 浏览器里的 supabase-js 会带上该请求头，两种形状都必须识别，否则手机号登录重写不会发生。
+        const invalidCredentials = result?.error_code === 'invalid_credentials' || result?.code === 'invalid_credentials';
+        if (upstream.ok || (upstream.status === 400 && invalidCredentials)) {
           const resolved = await resolvePhoneLogin(body, env.SUPABASE_AUTH_PROXY_SECRET, !upstream.ok);
           if (upstream.ok && result?.user?.id !== resolved.id) return new Response('认证服务暂不可用', { status: 503, headers: { 'cache-control': 'no-store' } });
           if (!upstream.ok && resolved.body !== body) {
