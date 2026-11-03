@@ -923,9 +923,33 @@
 .site-reopen { display: none; }
 .site-reopen-desktop { display: flex; }
 .site-hidden { visibility: hidden; }
+.site-sidebar { transition: none !important; animation: none !important; }
+.site-sidebar-preview {
+  top: 64px;
+  bottom: 12px;
+  left: 12px;
+  border: 1px solid var(--paper-rule);
+  border-radius: 18px;
+  box-shadow: 0 14px 36px rgba(44, 36, 32, .11), 0 2px 8px rgba(44, 36, 32, .05);
+  transition: none !important;
+  animation: none !important;
+}
+.site-sidebar-preview::before {
+  content: "";
+  position: absolute;
+  top: -18px;
+  left: 0;
+  width: 100%;
+  height: 18px;
+}
+.site-sidebar-preview * { transition: none !important; animation: none !important; }
 .site-mobile-toggle { display: none; }
 .site-icon-only .site-label { visibility: hidden; }
+@media (min-width: 768px) {
+  .site-hidden { display: none; }
+}
 @media (max-width: 767px) {
+  .site-sidebar-preview { top: 0; bottom: 0; left: 0; border-radius: 0; }
   .site-reopen-desktop { display: none; }
   .site-reopen-mobile { display: flex; }
   .site-mobile-hidden { visibility: hidden; }
