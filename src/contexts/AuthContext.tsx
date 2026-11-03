@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import { supabase } from '@/db/supabase';
-import { getProfile, getUserCourseAccessCodes, signInWithPhone, signUpWithPhone, signOut as doSignOut } from '@/lib/access-control';
+import { getProfile, getUserCourseAccessCodes, signInWithIdentifier, signUpWithEmailAndPhone, signOut as doSignOut } from '@/lib/access-control';
 import { clearAllLearningDataCaches } from '@/db/api';
 import type { CourseAccessCode, Profile, MembershipType } from '@/types/types';
 import type { User, Session } from '@supabase/supabase-js';
@@ -12,8 +12,8 @@ interface AuthContextType {
   loading: boolean;
   accessLevel: MembershipType;
   courseAccessCodes: CourseAccessCode[];
-  signUp: (phone: string, password: string, nickname: string) => Promise<{ error: string | null }>;
-  signIn: (phone: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (phone: string, password: string, nickname: string, email: string) => Promise<{ error: string | null; requiresConfirmation?: boolean }>;
+  signIn: (phone: string, password: string) => Promise<{ error: string | null; needsEmail?: boolean }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -27,6 +27,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [courseAccessCodes, setCourseAccessCodes] = useState<CourseAccessCode[]>([]);
   const profileLoadId = useRef(0);
+  // 最新账号身份，供认证事件判断是否只是同一用户的令牌刷新。
+  const currentUserRef = useRef<string | null>(null);
 
   const accessLevel: MembershipType = profile?.access_level ?? 'free';
 
@@ -71,9 +73,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    const applySession = async (s: Session | null) => {
+    const applySession = async (s: Session | null, options: { silent?: boolean } = {}) => {
       const requestId = ++profileLoadId.current;
-      setLoading(true);
+      // 同一用户的静默刷新不点亮加载门：只有 loading 已被某次请求点亮时，
+      // 完成时才允许熄灭，避免半途打断正在进行的登录/启动加载。
+      const { silent } = options;
+      currentUserRef.current = s?.user?.id ?? null;
+      if (!silent) setLoading(true);
       setSession(s);
       setUser(s?.user ?? null);
 
@@ -124,7 +130,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
       }
       setTimeout(() => {
-        void applySession(s);
+        // 切回标签页触发令牌刷新（SIGNED_IN）、定时续期（TOKEN_REFRESHED）与
+        // 改资料（USER_UPDATED）都不改变账号身份：静默更新会话并后台复检资料，
+        // 不点亮加载门，避免路由页面被卸载、表单状态丢失。
+        const silent = Boolean(s?.user && currentUserRef.current === s.user.id);
+        void applySession(s, { silent });
       }, 0);
     });
 
@@ -134,10 +144,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [loadProfile]);
 
-  const signUp = async (phone: string, password: string, nickname: string) => {
+  const signUp = async (phone: string, password: string, nickname: string, email: string) => {
     setLoading(true);
     try {
-      const result = await signUpWithPhone(phone, password, nickname);
+      const result = await signUpWithEmailAndPhone(email, phone, password, nickname);
       if (!result.error && result.session?.user) {
         const requestId = ++profileLoadId.current;
         setSession(result.session);
@@ -158,7 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setCourseAccessCodes(p ? await getUserCourseAccessCodes(p) : []);
         }
       }
-      return { error: result.error };
+      return { error: result.error, requiresConfirmation: !result.error && !result.session };
     } finally {
       setLoading(false);
     }
@@ -167,7 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (phone: string, password: string) => {
     setLoading(true);
     try {
-      const result = await signInWithPhone(phone, password);
+      const result = await signInWithIdentifier(phone, password);
       if (!result.error && result.session?.user) {
         const requestId = ++profileLoadId.current;
         setSession(result.session);
@@ -178,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setCourseAccessCodes(p ? await getUserCourseAccessCodes(p) : []);
         }
       }
-      return { error: result.error };
+      return { error: result.error, needsEmail: !!result.user?.email?.endsWith('@phone.local') };
     } finally {
       setLoading(false);
     }

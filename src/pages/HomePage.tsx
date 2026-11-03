@@ -48,6 +48,7 @@ function HomePageContent() {
     <div className="min-h-screen bg-cream">
       <Header />
       <main>
+        {user?.email?.endsWith('@phone.local') && <div className="border-b border-bd bg-acl px-4 py-3 text-center text-sm text-tx">绑定邮箱后，忘记密码时可以自己找回。{' '}<Link to="/settings" className="font-semibold text-ac underline">去绑定邮箱</Link></div>}
         <section id="teaching-problems" aria-labelledby="home-title" className="relative overflow-hidden border-b border-[var(--paper-rule)] bg-[var(--paper)] px-4 pb-14 pt-16 md:pb-20 md:pt-20">
           <div className="pointer-events-none absolute -right-24 top-0 h-96 w-96 rounded-full bg-ac/5 blur-3xl" aria-hidden="true" />
           <div className="relative mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_330px] lg:items-center">

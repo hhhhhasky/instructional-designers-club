@@ -20,6 +20,14 @@ enable_signup = true
 double_confirm_changes = true
 enable_confirmations = true
 
+[auth.email.template.confirmation]
+subject = "验证你的账号邮箱"
+content_path = "./supabase/templates/signup-confirmation.html"
+
+[auth.email.template.recovery]
+subject = "重置你的账号密码"
+content_path = "./supabase/templates/password-recovery.html"
+
 [functions.course-content]
 verify_jwt = false
 
@@ -31,6 +39,9 @@ verify_jwt = false
 
 [functions.admin-reset-password]
 verify_jwt = false
+
+[functions.legacy-email-binding]
+verify_jwt = true
 
 [functions.hai-access-status]
 verify_jwt = false

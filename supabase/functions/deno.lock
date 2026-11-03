@@ -6,7 +6,9 @@
     "npm:@aws-sdk/client-s3@3.1048.0": "3.1048.0",
     "npm:@aws-sdk/s3-request-presigner@3.1048.0": "3.1048.0",
     "npm:@supabase/supabase-js@2": "2.110.0",
+    "npm:@supabase/supabase-js@2.110.0": "2.110.0",
     "npm:mammoth@1.8.0": "1.8.0",
+    "npm:nodemailer@10.3.1": "10.3.1",
     "npm:pdfjs-dist@4.9.124": "4.9.124"
   },
   "jsr": {
@@ -660,6 +662,10 @@
       ],
       "bin": true,
       "tarball": "https://registry.npmmirror.com/mammoth/-/mammoth-1.8.0.tgz"
+    },
+    "nodemailer@10.3.1": {
+      "integrity": "sha512-uF0AFsJC07Y1vdW7p580DKAnh7rAO+4UPSSB3mDCPNDufoiaOebV6JmrzpxB14OjEEEiBsNdYoM2Y+fN8M7BBA==",
+      "tarball": "https://registry.npmmirror.com/nodemailer/-/nodemailer-10.3.1.tgz"
     },
     "option@0.2.4": {
       "integrity": "sha512-pkEqbDyl8ou5cpq+VsnQbe/WlEy5qS7xPzMS1U55OCG9KPvwFD46zDbxQIj3egJSFc3D+XhYOPUzz49zQAVy7A==",

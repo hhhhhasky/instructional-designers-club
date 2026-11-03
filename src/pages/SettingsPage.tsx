@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import Footer from '@/components/common/Footer';
+import EmailBindingCard from '@/components/common/EmailBindingCard';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
 import PageMeta from '@/components/common/PageMeta';
 import PageBackBar from '@/components/common/PageBackBar';
@@ -167,6 +168,8 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
+
+          <EmailBindingCard currentEmail={user.email} />
 
           {/* 修改昵称 */}
           <div className="bg-white rounded-ds-lg shadow-ds-md border border-bd p-6 mb-6 hover-lift">

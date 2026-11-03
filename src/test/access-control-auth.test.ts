@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { signInWithPhone, signUpWithPhone, updateLearningProgress } from '@/lib/access-control';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { signInWithIdentifier, signInWithPhone, signUpWithEmailAndPhone, signUpWithPhone, updateLearningProgress } from '@/lib/access-control';
 import { supabase } from '@/db/supabase';
 
 vi.mock('@/db/api', () => ({
@@ -9,10 +9,12 @@ vi.mock('@/db/api', () => ({
 vi.mock('@/db/supabase', () => ({
   supabase: {
     from: vi.fn(),
+    functions: { invoke: vi.fn() },
     auth: {
       signUp: vi.fn(),
       signInWithPassword: vi.fn(),
       signOut: vi.fn(),
+      setSession: vi.fn(),
     },
   },
 }));
@@ -81,6 +83,33 @@ describe('phone auth error handling', () => {
 
     expect(result).toEqual({ error: '该账号已停用，请联系管理员', session: null, user: null });
     expect(supabase.auth.signOut).toHaveBeenCalledOnce();
+  });
+});
+
+describe('email and phone account flows', () => {
+  beforeEach(() => vi.clearAllMocks());
+  afterEach(() => vi.unstubAllGlobals());
+  it('registers with a real email and sends the phone as profile information', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ mailer_autoconfirm: false }) }));
+    vi.mocked(supabase.auth.signUp).mockResolvedValue({ data: { user: { id: 'one' }, session: null }, error: null } as never);
+    const result = await signUpWithEmailAndPhone('Teacher@Example.com', '13900000000', 'password1', '老师');
+    expect(result.error).toBeNull();
+    expect(result.session).toBeNull();
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/auth/v1/settings'), expect.objectContaining({ headers: expect.objectContaining({ Authorization: expect.stringMatching(/^Bearer /) }) }));
+    expect(supabase.auth.signUp).toHaveBeenCalledWith(expect.objectContaining({ email: 'teacher@example.com', options: expect.objectContaining({ data: { phone: '13900000000', nickname: '老师' } }) }));
+  });
+  it('does not create a signup when the project would automatically confirm an unverified email', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ mailer_autoconfirm: true }) }));
+    const result = await signUpWithEmailAndPhone('teacher@example.com', '13900000000', 'password1', '老师');
+    expect(result.error).toBe('邮箱注册暂未开放，请稍后再试');
+    expect(supabase.auth.signUp).not.toHaveBeenCalled();
+  });
+  it('uses the phone alias through the auth proxy and checks the resulting profile', async () => {
+    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({ data: { user: { id: 'one' }, session: { access_token: 'a' } }, error: null } as never);
+    vi.mocked(supabase.from).mockReturnValue({ select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: { status: 'active' }, error: null }) }) }) } as never);
+    const result = await signInWithIdentifier('13900000000', 'password1');
+    expect(result.user?.id).toBe('one');
+    expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({ email: '13900000000@phone.local', password: 'password1' });
   });
 });
 

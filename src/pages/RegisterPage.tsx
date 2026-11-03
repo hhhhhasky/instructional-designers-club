@@ -11,6 +11,7 @@ import PageMeta from '@/components/common/PageMeta';
 const registerSchema = z
   .object({
     phone: z.string().regex(/^1[3-9]\d{9}$/, '请输入正确的11位手机号'),
+    email: z.string().trim().email('请输入有效的邮箱地址'),
     password: z.string().min(6, '密码至少6位'),
     confirmPassword: z.string().min(6, '请确认密码'),
     nickname: z
@@ -30,6 +31,7 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState('');
+  const [confirmationSent, setConfirmationSent] = useState(false);
 
   const {
     register,
@@ -40,12 +42,13 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterForm) => {
     setServerError('');
     try {
-      const result = await signUp(data.phone, data.password, data.nickname);
+      const result = await signUp(data.phone, data.password, data.nickname, data.email);
       if (result.error) {
         setServerError(result.error);
         return;
       }
-      navigate('/', { replace: true });
+      if (result.requiresConfirmation) setConfirmationSent(true);
+      else navigate('/', { replace: true });
     } catch (error) {
       console.error('register submit error:', error);
       setServerError('注册失败：网络请求失败，请检查网络连接后重试');
@@ -74,7 +77,9 @@ export default function RegisterPage() {
             </div>
 
             {/* 表单 */}
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {confirmationSent ? (
+              <p className="text-ds-sm text-txs leading-relaxed">请查收邮箱中的验证邮件，完成验证后登录。如果没有收到，请检查垃圾邮件；如果邮箱已注册，请直接登录。</p>
+            ) : <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
                 <input
                   type="tel"
@@ -88,6 +93,11 @@ export default function RegisterPage() {
                 {errors.phone && (
                   <p className="text-sm text-red-500 mt-1">{errors.phone.message}</p>
                 )}
+              </div>
+
+              <div>
+                <input type="email" aria-label="邮箱" placeholder="邮箱（用于找回密码）" autoComplete="email" {...register('email')} className="w-full h-12 px-4 text-base border border-bd rounded-ds-lg bg-bg text-tx placeholder:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all" />
+                {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>}
               </div>
 
               <div>
@@ -149,7 +159,7 @@ export default function RegisterPage() {
               >
                 {isSubmitting ? '注册中...' : '注册'}
               </Button>
-            </form>
+            </form>}
 
             {/* 底部链接 */}
             <div className="mt-6 pt-4 border-t border-bdl text-center">

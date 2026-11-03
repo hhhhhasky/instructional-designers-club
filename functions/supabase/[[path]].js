@@ -3,6 +3,44 @@ const PREFIX = '/supabase';
 const AUTH_PATHS = new Set(['/auth/v1/signup', '/auth/v1/token', '/auth/v1/user', '/auth/v1/logout', '/auth/v1/recover', '/auth/v1/verify', '/auth/v1/resend', '/auth/v1/settings']);
 const PUBLIC_PREFIXES = ['/rest/v1/', '/storage/v1/', '/functions/v1/', '/realtime/v1/'];
 
+async function parseLoginBody(request) {
+  const reader = request.clone().body?.getReader();
+  if (!reader) return null;
+  const chunks = [];
+  let size = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > 8192) { void reader.cancel().catch(() => {}); throw new Error('Login request too large'); }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  try { return JSON.parse(new TextDecoder().decode(bytes)); } catch { return null; }
+}
+
+async function resolvePhoneLogin(body, secret, needsEmail = true) {
+  const match = typeof body?.email === 'string' && /^(1[3-9]\d{9})@phone\.local$/i.exec(body.email);
+  if (!match) return body;
+  const headers = { apikey: secret, authorization: `Bearer ${secret}`, 'user-agent': 'idclub-auth-proxy/1.0' };
+  const query = new URL('/rest/v1/profiles', UPSTREAM);
+  query.searchParams.set('select', 'id');
+  query.searchParams.set('phone', `eq.${match[1]}`);
+  const profileResponse = await fetch(query, { headers });
+  if (!profileResponse.ok) throw new Error('Account lookup failed');
+  const profiles = await profileResponse.json();
+  if (!Array.isArray(profiles) || profiles.length === 0) return { body, id: null };
+  if (profiles.length !== 1 || typeof profiles[0].id !== 'string' || !/^[0-9a-f-]{36}$/i.test(profiles[0].id)) throw new Error('Invalid account lookup');
+  if (!needsEmail) return { body, id: profiles[0].id };
+  const userResponse = await fetch(`${UPSTREAM}/auth/v1/admin/users/${profiles[0].id}`, { headers });
+  if (!userResponse.ok) throw new Error('Account lookup failed');
+  const user = await userResponse.json();
+  if (typeof user.email !== 'string' || !user.email) throw new Error('Account has no email');
+  return { body: user.email === body.email ? body : { ...body, email: user.email }, id: profiles[0].id };
+}
+
 export async function onRequest({ request, env }) {
   const incoming = new URL(request.url);
   const path = incoming.pathname.slice(PREFIX.length);
@@ -13,20 +51,41 @@ export async function onRequest({ request, env }) {
   const target = new URL(path + incoming.search, UPSTREAM);
   if (target.origin !== UPSTREAM || target.pathname !== path) return new Response('Not found', { status: 404 });
   const headers = new Headers(request.headers);
-  for (const key of ['sb-forwarded-for', 'x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-real-ip', 'forwarded', 'cookie', 'host']) headers.delete(key);
+  for (const key of ['sb-forwarded-for', 'x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-real-ip', 'cf-connecting-ip', 'forwarded', 'cookie', 'host']) headers.delete(key);
   if (auth) {
     // Only Auth endpoints receive this key. Never allow callers to choose the
     // forwarded IP or pass the key to REST, Storage, Functions, or the response.
     const ip = request.headers.get('cf-connecting-ip');
     if (!env.SUPABASE_AUTH_PROXY_SECRET?.startsWith('sb_secret_') || !ip) return new Response('认证服务暂不可用', { status: 503 });
-    if (!/^Bearer\s+\S+$/i.test(headers.get('authorization') || '')) return new Response('Unauthorized', { status: 401 });
+    // Email links are opened by the browser without an Authorization header;
+    // Supabase verifies their one-time token. All other Auth requests keep the
+    // existing header requirement.
+    const emailLink = path === '/auth/v1/verify' && request.method === 'GET';
+    if (!emailLink && !/^Bearer\s+\S+$/i.test(headers.get('authorization') || '')) return new Response('Unauthorized', { status: 401 });
     // The secret is used by this server, not by the originating browser.
     headers.set('user-agent', 'idclub-auth-proxy/1.0');
     headers.set('apikey', env.SUPABASE_AUTH_PROXY_SECRET);
     headers.set('sb-forwarded-for', ip);
   }
   try {
-    const upstream = await fetch(new Request(new Request(target.toString(), request), { headers, redirect: 'manual' }));
+    let upstream;
+    if (path === '/auth/v1/token' && incoming.searchParams.get('grant_type') === 'password' && request.method === 'POST') {
+      const body = await parseLoginBody(request);
+      if (body && typeof body === 'object' && !Array.isArray(body) && typeof body.email === 'string' && /^(1[3-9]\d{9})@phone\.local$/i.test(body.email)) {
+        // Auth runs first, so its per-IP rate limit also protects the lookup.
+        upstream = await fetch(new Request(new Request(target.toString(), request.clone()), { headers, redirect: 'manual' }));
+        const result = await upstream.clone().json().catch(() => null);
+        if (upstream.ok || (upstream.status === 400 && result?.error_code === 'invalid_credentials')) {
+          const resolved = await resolvePhoneLogin(body, env.SUPABASE_AUTH_PROXY_SECRET, !upstream.ok);
+          if (upstream.ok && result?.user?.id !== resolved.id) return new Response('认证服务暂不可用', { status: 503, headers: { 'cache-control': 'no-store' } });
+          if (!upstream.ok && resolved.body !== body) {
+          headers.delete('content-length');
+            upstream = await fetch(new Request(target.toString(), { method: request.method, headers, body: JSON.stringify(resolved.body), redirect: 'manual' }));
+          }
+        }
+      }
+    }
+    if (!upstream) upstream = await fetch(new Request(new Request(target.toString(), request), { headers, redirect: 'manual' }));
     if (upstream.status === 101) return upstream;
     const responseHeaders = new Headers(upstream.headers);
     responseHeaders.set('cache-control', 'no-store');

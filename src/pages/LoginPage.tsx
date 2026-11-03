@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button';
 import { GraduationCap, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import PageMeta from '@/components/common/PageMeta';
+import { toast } from 'sonner';
 
 const loginSchema = z.object({
-  phone: z.string().regex(/^1[3-9]\d{9}$/, '请输入正确的11位手机号'),
+  phone: z.string().trim().refine((value) => /^1[3-9]\d{9}$/.test(value) || z.string().email().safeParse(value).success, '请输入正确的手机号或邮箱'),
   password: z.string().min(6, '密码至少6位'),
 });
 
@@ -36,6 +37,9 @@ export default function LoginPage() {
     if (result.error) {
       setServerError(result.error);
       return;
+    }
+    if (result.needsEmail) {
+      toast('绑定邮箱后可自助找回密码', { action: { label: '去绑定', onClick: () => navigate('/settings') }, duration: 12000 });
     }
     navigate(from, { replace: true });
   };
@@ -65,10 +69,10 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
                 <input
-                  type="tel"
-                  aria-label="手机号"
-                  placeholder="手机号"
-                  maxLength={11}
+                  type="text"
+                  aria-label="手机号或邮箱"
+                  placeholder="手机号或邮箱"
+                  autoComplete="username"
                   {...register('phone')}
                   className="w-full h-12 px-4 text-base border border-bd rounded-ds-lg bg-bg text-tx placeholder:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
                   autoFocus

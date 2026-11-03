@@ -14,6 +14,8 @@ const loadDaofaLessonPage = () => import('./pages/DaofaLessonPage');
 const loadActivityDetailPage = () => import('./pages/ActivityDetailPage');
 const loadLoginPage = () => import('./pages/LoginPage');
 const loadForgotPasswordPage = () => import('./pages/ForgotPasswordPage');
+const loadResetPasswordPage = () => import('./pages/ResetPasswordPage');
+const loadConfirmEmailPage = () => import('./pages/ConfirmEmailPage');
 const loadRegisterPage = () => import('./pages/RegisterPage');
 const loadSettingsPage = () => import('./pages/SettingsPage');
 const loadLearningPage = () => import('./pages/LearningPage');
@@ -43,6 +45,8 @@ const DaofaLessonPage = lazy(loadDaofaLessonPage);
 const ActivityDetailPage = lazy(loadActivityDetailPage);
 const LoginPage = lazy(loadLoginPage);
 const ForgotPasswordPage = lazy(loadForgotPasswordPage);
+const ResetPasswordPage = lazy(loadResetPasswordPage);
+const ConfirmEmailPage = lazy(loadConfirmEmailPage);
 const RegisterPage = lazy(loadRegisterPage);
 const SettingsPage = lazy(loadSettingsPage);
 const LearningPage = lazy(loadLearningPage);
@@ -247,6 +251,12 @@ const routes: RouteConfig[] = [
     element: <RegisterPage />,
     visible: false,
     preload: loadRegisterPage
+  },
+  {
+    name: '重置密码', path: '/reset-password', element: <ResetPasswordPage />, visible: false, preload: loadResetPasswordPage
+  },
+  {
+    name: '邮箱验证', path: '/auth/confirm', element: <ConfirmEmailPage />, visible: false, preload: loadConfirmEmailPage
   },
   {
     name: '账号设置',
