@@ -154,6 +154,7 @@ export default function CourseDetailPage() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -358,6 +359,7 @@ export default function CourseDetailPage() {
         setError(null);
         setCourse(null);
         setShowUpgrade(false);
+        setSessionExpired(false);
         setPasswordUnlockedCourseId(null);
         setPasswordGateError(null);
         setPasswordChecking(false);
@@ -470,7 +472,9 @@ export default function CourseDetailPage() {
       .catch((err) => {
         if (cancelled) return;
         console.error('服务端课程授权失败:', err);
-        if (err instanceof CourseContentAccessError && err.status === 403) {
+        if (err instanceof CourseContentAccessError && err.code === 'SESSION_EXPIRED') {
+          setSessionExpired(true);
+        } else if (err instanceof CourseContentAccessError && err.status === 403) {
           setShowUpgrade(true);
         } else {
           setError('课程权限验证失败，请刷新页面重试');
@@ -679,6 +683,23 @@ export default function CourseDetailPage() {
                 刷新页面
               </Button>
             </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (sessionExpired) {
+    return (
+      <div className="min-h-screen bg-cream flex flex-col">
+        <PageBackBar to={courseBackPath} label="返回课程目录" />
+        <main className="flex-1 flex items-center justify-center px-4">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-tx mb-5">登录已失效，请重新登录</h1>
+            <Button onClick={() => navigate('/login', { state: { from: `/courses/${course?.id ?? id}` } })}>
+              重新登录
+            </Button>
           </div>
         </main>
         <Footer />

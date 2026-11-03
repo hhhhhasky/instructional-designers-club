@@ -2,6 +2,7 @@ import { createAsyncCache } from "@/lib/async-cache";
 import { getCourseCoverUrl, withProtectedCourseCover } from "@/lib/course-cover";
 import { HOME_LANDING_KEYS } from "@/lib/home-landing-content";
 import { getModuleIcon, normalizePlusCourseStructure, type PlusTrackConfig } from "@/lib/plusCourseStructure";
+import { supabaseBaseUrl } from "@/lib/supabase-url";
 import type {
   Activity,
   Announcement,
@@ -293,6 +294,30 @@ export async function getCourseProtectedContent(
       if (payload?.error) message = payload.error;
       if (payload?.code) code = payload.code;
       if (typeof payload?.retry_after_seconds === 'number') retryAfterSeconds = payload.retry_after_seconds;
+    }
+    // Older course-content deployments report a revoked login session as a 403.
+    // Check Auth directly without clearing the browser's session before the page can explain it.
+    if (status === 403 && code === 'COURSE_ACCESS_REQUIRED' && !password?.trim()) {
+      try {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        const token = sessionData.session?.access_token;
+        if (!token) throw new CourseContentAccessError('登录已失效，请重新登录', 'SESSION_EXPIRED', 401);
+        const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const authResponse = await fetch(`${supabaseBaseUrl}/auth/v1/user`, {
+          headers: { apikey: key, Authorization: `Bearer ${token}` },
+        });
+        if (!authResponse.ok) {
+          const authPayload = await authResponse.json().catch(() => null) as { code?: string; error_code?: string } | null;
+          if (authResponse.status === 401 || authPayload?.code === 'session_not_found' || authPayload?.error_code === 'session_not_found') {
+            throw new CourseContentAccessError('登录已失效，请重新登录', 'SESSION_EXPIRED', 401);
+          }
+          throw new Error('认证服务暂不可用');
+        }
+      } catch (authError) {
+        if (authError instanceof CourseContentAccessError) throw authError;
+        throw new CourseContentAccessError('课程权限验证失败，请稍后重试', 'AUTH_CHECK_FAILED', 503);
+      }
     }
     throw new CourseContentAccessError(message, code, status, retryAfterSeconds);
   }

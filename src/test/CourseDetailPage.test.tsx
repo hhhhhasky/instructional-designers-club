@@ -732,6 +732,25 @@ describe('CourseDetailPage — 未开通课程购买入口', () => {
   });
 });
 
+describe('CourseDetailPage — 登录会话失效', () => {
+  it('服务端确认会话失效时引导重新登录，而不是提示购买', async () => {
+    mockCurrentUser = mockUser;
+    vi.mocked(canAccessCourse).mockReturnValue(true);
+    vi.mocked(getCourseDetailSnapshot).mockResolvedValue(
+      makeDetailSnapshot(makeCourse(), siblingCourses, makeCatalog(siblingCourses)),
+    );
+    vi.mocked(getCourseProtectedContent).mockRejectedValue(
+      new CourseContentAccessError('登录已失效，请重新登录', 'SESSION_EXPIRED', 401),
+    );
+
+    renderCourseDetail('c1');
+    expect(await screen.findByRole('heading', { name: '登录已失效，请重新登录' })).toBeInTheDocument();
+    expect(screen.queryByText(/尚未开通/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: '重新登录' }));
+    expect(mockNavigate).toHaveBeenCalledWith('/login', { state: { from: '/courses/c1' } });
+  });
+});
+
 describe('CourseDetailPage — 单课密码试看', () => {
   beforeEach(() => {
     vi.clearAllMocks();
