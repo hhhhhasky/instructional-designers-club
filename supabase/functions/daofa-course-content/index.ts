@@ -1,13 +1,9 @@
+import { corsHeaders } from "../_shared/hai.ts";
 import { GetObjectCommand, S3Client } from "npm:@aws-sdk/client-s3";
 import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner";
 import { createClient } from "npm:@supabase/supabase-js@2.103.1";
 import { getSupabasePublishableKey } from "../_shared/supabase-keys.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 const signedUrlTtlSeconds = 2 * 60 * 60;
 
 function jsonResponse(body: Record<string, unknown>, status: number) {

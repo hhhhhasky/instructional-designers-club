@@ -1,11 +1,8 @@
+import { corsHeaders } from "../_shared/hai.ts";
 import { PutObjectCommand, S3Client } from "npm:@aws-sdk/client-s3";
 import { createClient } from "npm:@supabase/supabase-js@2.103.1";
 import { getSupabasePublishableKey, getSupabaseSecretKey } from "../_shared/supabase-keys.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 const maxFileSize = 2 * 1024 * 1024 * 1024;
 const supportedExtensions = new Set(["mp4", "mov", "mp3", "m4a", "wav", "pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx", "jpg", "jpeg", "png", "webp", "gif"]);
 

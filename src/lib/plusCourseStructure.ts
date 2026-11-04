@@ -233,54 +233,6 @@ export const PLUS_TRACKS: PlusTrackConfig[] = [
   },
 ];
 
-export const PLUS_PROBLEM_ENTRIES: PlusProblemEntry[] = [
-  { label: '我想系统提升教学设计能力', description: '从学情、目标、活动到评价建立完整方法。', trackId: 'design-principles' },
-  { label: '我想理解教学背后的科学依据', description: '从学习科学、认知负荷和有效教学原理入手。', trackId: 'theory' },
-  { label: '我明天就要备一节课', description: '进入日常课篇，用最小闭环快速备课。', trackId: 'scenarios', moduleId: 'daily-lesson' },
-  { label: '我最近要参加说课', description: '完整学习说课结构、稿件和表达逻辑。', trackId: 'scenarios', moduleId: 'shuoke' },
-  { label: '我要打磨一节公开课', description: '从选题、任务情境、主问题到磨课推进。', trackId: 'scenarios', moduleId: 'open-class' },
-  { label: '我想提升课堂讲授效果', description: '结合讲授法与认知负荷优化表达。', trackId: 'design-principles', moduleId: 'lecture-method' },
-  { label: '我想设计真实任务', description: '进入任务情境系列，学习 KMR 和任务脚本。', trackId: 'design-principles', moduleId: 'task-context' },
-  { label: '我想写好教学目标', description: '用分类学工具把目标写具体、可评估。', trackId: 'design-principles', moduleId: 'goals' },
-  { label: '我想让课堂评价更有效', description: '用逆向设计、提问互动和评价量规形成证据。', trackId: 'design-principles', moduleId: 'assessment' },
-  { label: '我想教会学生真正理解概念', description: '学习概念教学的归纳和演绎策略。', trackId: 'design-principles', moduleId: 'concept-teaching' },
-];
-
-export const PLUS_RECOMMENDED_PATHS: PlusRecommendedPath[] = [
-  {
-    title: '新老师入门路径',
-    description: '先把普通课设计闭环跑通。',
-    steps: ['学情分析', '教学目标', '讲授法', '教学评价', '日常课篇'],
-    trackId: 'design-principles',
-  },
-  {
-    title: '公开课备赛路径',
-    description: '从核心立意到课堂呈现逐步打磨。',
-    steps: ['教材深挖', '任务情境导入', '主问题与任务链', '评价量规', '公开课案例拆解'],
-    trackId: 'scenarios',
-    moduleId: 'open-class',
-  },
-  {
-    title: '说课备赛路径',
-    description: '完整保留说课 01-08 的任务结构。',
-    steps: ['整体结构', '教材分析', '学情分析', '教学目标', '教学过程', '板书总结'],
-    trackId: 'scenarios',
-    moduleId: 'shuoke',
-  },
-  {
-    title: '教学理论进阶路径',
-    description: '把底层理论变成专业判断力。',
-    steps: ['学习科学', '建构主义', '认知负荷', '罗森海因', '教学幻象'],
-    trackId: 'theory',
-  },
-];
-
-export const TRACK_FLOW = [
-  { title: '理论基石', icon: Brain, text: '学习如何发生' },
-  { title: '设计原理', icon: Layers, text: '一节课如何设计' },
-  { title: '场景应用', icon: Presentation, text: '真实任务如何落地' },
-];
-
 const MODULE_ICONS: Record<string, LucideIcon> = {
   'award': Award,
   'book-open': BookOpen,

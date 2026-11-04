@@ -737,7 +737,7 @@ function parseNumber(value: unknown, fallback: number) {
   return Number.isFinite(candidate) ? candidate : fallback;
 }
 
-function parseBoolean(value: unknown, fallback: boolean) {
+export function parseBoolean(value: unknown, fallback: boolean) {
   if (typeof value === "boolean") return value;
   if (typeof value === "string") {
     if (value.toLowerCase() === "true") return true;

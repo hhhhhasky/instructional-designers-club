@@ -82,7 +82,9 @@ function publicRun(run: Row) {
 // access stays 401 and the signature expires on its own.
 const IMAGE_ACCESS_URL_TTL_SECONDS = 600;
 async function withAccessUrl(run: Row) {
-  if (!run.r2_key || run.status === "failed") return run;
+  // 原图签名仅发给已结算（交付确认完成）的运行；待交付状态只允许走
+  // variant=preview 的缩略图路径，防止客户端跳过 acknowledge 白拿原图。
+  if (!run.r2_key || run.status !== "completed") return run;
   try {
     return {
       ...run,
@@ -512,6 +514,19 @@ export async function handleImageGeneration(
       if (action === "download") {
         if (run.status === "failed" || !run.r2_key) {
           throw new HttpError(409, IMAGE_FAILURE_MESSAGE);
+        }
+        // 下载原图即视为交付确认：由同一幂等 RPC 完成结算或按超时关闭，
+        // 客户端不能绕过 acknowledge 拿到原图字节。
+        if (run.status !== "completed") {
+          const r = await auth.userClient.rpc(
+            "hai_acknowledge_image_delivery",
+            { p_run_id: run.id },
+          );
+          if (r.error) throw new Error(r.error.message);
+          run = await load(auth, run.id);
+          if (run.status !== "completed" || !run.r2_key) {
+            throw new HttpError(409, IMAGE_FAILURE_MESSAGE);
+          }
         }
         const file = await readStoredImage(
           run.r2_key,

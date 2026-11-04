@@ -377,6 +377,7 @@ async function loadModule(
       "id, slug, name, default_model, default_temperature, default_max_output_tokens, thinking_enabled, default_top_p, reasoning_effort, response_format, stop_sequences, history_message_limit, memory_limit, material_match_count, knowledge_match_count, model_provider_id",
     )
     .eq("slug", slug)
+    .eq("surface_mode", "chat")
     .eq("is_enabled", true)
     .maybeSingle();
   if (error) throw new HttpError(500, error.message);
@@ -414,6 +415,21 @@ async function loadChatSkillPrompt(
   if (bindingError) throw new HttpError(500, bindingError.message);
   if (!binding?.skill_id) {
     throw new HttpError(503, "该模块没有可用 Chat Skill。");
+  }
+
+  // 与 hai-chat 对齐：绑定指向的 Skill 被管理员停用后不得继续参与圆桌回答。
+  const { data: skill, error: skillError } = await admin
+    .from("hai_chat_skills")
+    .select("id")
+    .eq("id", binding.skill_id)
+    .eq("is_enabled", true)
+    .maybeSingle();
+  if (skillError) throw new HttpError(500, skillError.message);
+  if (!skill) {
+    throw new HttpError(
+      503,
+      "该模块的 Chat Skill 已停用，请管理员先启用并绑定。",
+    );
   }
 
   const { data: version, error: versionError } = await admin

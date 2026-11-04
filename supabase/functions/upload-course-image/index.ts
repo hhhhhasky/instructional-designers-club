@@ -1,11 +1,7 @@
+import { corsHeaders } from "../_shared/hai.ts";
 import { PutObjectCommand, S3Client } from "npm:@aws-sdk/client-s3@3.1048.0";
 import { createClient } from "npm:@supabase/supabase-js@2.103.1";
 import { getSupabasePublishableKey } from "../_shared/supabase-keys.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const allowedTypes: Record<string, string> = {
   "image/jpeg": "jpg",

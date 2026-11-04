@@ -55,7 +55,8 @@ const MEMBERSHIP_PRODUCT_MAP: Record<MembershipType, readonly CourseAccessCode[]
 };
 
 export function getMembershipCourseAccessCodes(level: MembershipType): CourseAccessCode[] {
-  return [...MEMBERSHIP_PRODUCT_MAP[level]];
+  // 数据库出现未知 access_level 时回退为无课程权限，避免登录链路抛错。
+  return [...(MEMBERSHIP_PRODUCT_MAP[level] ?? [])];
 }
 
 export function getCourseAccessCode(

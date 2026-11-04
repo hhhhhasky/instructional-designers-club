@@ -1,4 +1,3 @@
-// Generated from the live Supabase public schema on 2026-08-14.
 export type Json =
   | string
   | number
@@ -12,31 +11,6 @@ export type Database = {
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
-  }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
   }
   public: {
     Tables: {
@@ -129,6 +103,39 @@ export type Database = {
           summary?: string | null
           title?: string
           type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      course_access_products: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          is_grantable: boolean
+          name: string
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          is_grantable?: boolean
+          name: string
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          is_grantable?: boolean
+          name?: string
+          sort_order?: number
+          status?: string
           updated_at?: string
         }
         Relationships: []
@@ -233,6 +240,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "course_categories_access_product_code_fkey"
+            columns: ["access_product_code"]
+            isOneToOne: false
+            referencedRelation: "course_access_products"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "course_categories_plus_track_id_fkey"
             columns: ["plus_track_id"]
@@ -404,39 +418,6 @@ export type Database = {
           },
         ]
       }
-      course_access_products: {
-        Row: {
-          code: string
-          created_at: string
-          description: string | null
-          is_grantable: boolean
-          name: string
-          sort_order: number
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          code: string
-          created_at?: string
-          description?: string | null
-          is_grantable?: boolean
-          name: string
-          sort_order?: number
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          code?: string
-          created_at?: string
-          description?: string | null
-          is_grantable?: boolean
-          name?: string
-          sort_order?: number
-          status?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       courses: {
         Row: {
           access_product_code: string | null
@@ -598,6 +579,27 @@ export type Database = {
           },
         ]
       }
+      daofa_lesson_media: {
+        Row: {
+          is_active: boolean
+          lesson_id: string
+          media_type: string
+          storage_key: string
+        }
+        Insert: {
+          is_active?: boolean
+          lesson_id: string
+          media_type: string
+          storage_key: string
+        }
+        Update: {
+          is_active?: boolean
+          lesson_id?: string
+          media_type?: string
+          storage_key?: string
+        }
+        Relationships: []
+      }
       faqs: {
         Row: {
           answer: string
@@ -627,6 +629,53 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      hai_case_library: {
+        Row: {
+          case_records: Json
+          content_text: string
+          created_at: string
+          id: string
+          run_id: string | null
+          source_pages: Json
+          status: string
+          title: string
+          updated_at: string
+          workflow_revision: number
+        }
+        Insert: {
+          case_records?: Json
+          content_text: string
+          created_at?: string
+          id?: string
+          run_id?: string | null
+          source_pages?: Json
+          status: string
+          title: string
+          updated_at?: string
+          workflow_revision: number
+        }
+        Update: {
+          case_records?: Json
+          content_text?: string
+          created_at?: string
+          id?: string
+          run_id?: string | null
+          source_pages?: Json
+          status?: string
+          title?: string
+          updated_at?: string
+          workflow_revision?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hai_case_library_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "hai_work_runs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hai_chat_skill_bindings: {
         Row: {
@@ -912,6 +961,270 @@ export type Database = {
           },
         ]
       }
+      hai_courseware_decks: {
+        Row: {
+          ai_output: Json | null
+          ai_output_text: string | null
+          client_request_id: string
+          created_at: string
+          deck_spec: Json
+          error_message: string | null
+          id: string
+          lesson_genre: string | null
+          skill_snapshot: Json
+          skill_version_id: string | null
+          source_artifact_id: string
+          source_artifact_version: number
+          source_task_id: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+          visual_mode: string
+        }
+        Insert: {
+          ai_output?: Json | null
+          ai_output_text?: string | null
+          client_request_id: string
+          created_at?: string
+          deck_spec?: Json
+          error_message?: string | null
+          id?: string
+          lesson_genre?: string | null
+          skill_snapshot?: Json
+          skill_version_id?: string | null
+          source_artifact_id: string
+          source_artifact_version: number
+          source_task_id: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+          visual_mode?: string
+        }
+        Update: {
+          ai_output?: Json | null
+          ai_output_text?: string | null
+          client_request_id?: string
+          created_at?: string
+          deck_spec?: Json
+          error_message?: string | null
+          id?: string
+          lesson_genre?: string | null
+          skill_snapshot?: Json
+          skill_version_id?: string | null
+          source_artifact_id?: string
+          source_artifact_version?: number
+          source_task_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          visual_mode?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hai_courseware_decks_skill_version_id_fkey"
+            columns: ["skill_version_id"]
+            isOneToOne: false
+            referencedRelation: "hai_courseware_skill_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hai_courseware_decks_source_artifact_id_fkey"
+            columns: ["source_artifact_id"]
+            isOneToOne: false
+            referencedRelation: "hai_work_artifacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hai_courseware_decks_source_task_id_fkey"
+            columns: ["source_task_id"]
+            isOneToOne: false
+            referencedRelation: "hai_work_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hai_courseware_decks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hai_courseware_skill_references: {
+        Row: {
+          content: string
+          created_at: string
+          description: string
+          id: string
+          load_mode: string
+          match_criteria: Json
+          max_chars: number
+          media_type: string
+          metadata: Json
+          name: string
+          path: string
+          skill_version_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          description?: string
+          id?: string
+          load_mode?: string
+          match_criteria?: Json
+          max_chars?: number
+          media_type?: string
+          metadata?: Json
+          name: string
+          path: string
+          skill_version_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          description?: string
+          id?: string
+          load_mode?: string
+          match_criteria?: Json
+          max_chars?: number
+          media_type?: string
+          metadata?: Json
+          name?: string
+          path?: string
+          skill_version_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hai_courseware_skill_references_skill_version_id_fkey"
+            columns: ["skill_version_id"]
+            isOneToOne: false
+            referencedRelation: "hai_courseware_skill_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hai_courseware_skill_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          default_instructions: string
+          id: string
+          input_contract: Json
+          instructions: string
+          output_contract: Json
+          published_at: string | null
+          skill_id: string
+          source_metadata: Json
+          status: string
+          updated_at: string
+          version_label: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          default_instructions?: string
+          id?: string
+          input_contract?: Json
+          instructions: string
+          output_contract?: Json
+          published_at?: string | null
+          skill_id: string
+          source_metadata?: Json
+          status?: string
+          updated_at?: string
+          version_label: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          default_instructions?: string
+          id?: string
+          input_contract?: Json
+          instructions?: string
+          output_contract?: Json
+          published_at?: string | null
+          skill_id?: string
+          source_metadata?: Json
+          status?: string
+          updated_at?: string
+          version_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hai_courseware_skill_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hai_courseware_skill_versions_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "hai_courseware_skills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hai_courseware_skills: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          is_enabled: boolean
+          is_fallback: boolean
+          match_criteria: Json
+          name: string
+          priority: number
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          is_enabled?: boolean
+          is_fallback?: boolean
+          match_criteria?: Json
+          name: string
+          priority?: number
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          is_enabled?: boolean
+          is_fallback?: boolean
+          match_criteria?: Json
+          name?: string
+          priority?: number
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hai_courseware_skills_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hai_daily_review_scheduler_config: {
         Row: {
           auth_secret: string
@@ -1027,6 +1340,380 @@ export type Database = {
             columns: ["model_provider_id"]
             isOneToOne: false
             referencedRelation: "hai_model_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hai_image_generation_runs: {
+        Row: {
+          art_style: string
+          client_request_id: string
+          completed_at: string | null
+          composed_prompt: string
+          created_at: string
+          delivered_at: string | null
+          delivery_deadline_at: string | null
+          duration_ms: number | null
+          error_message: string | null
+          failure_code: string | null
+          failure_detail: Json
+          failure_stage: string | null
+          id: string
+          image_size: string
+          image_type: string
+          image_url: string | null
+          metadata: Json
+          model: string | null
+          optimized_prompt: string | null
+          parent_run_id: string | null
+          prompt: string
+          prompt_optimizer_duration_ms: number | null
+          prompt_optimizer_error: string | null
+          prompt_optimizer_model: string | null
+          prompt_optimizer_provider: string | null
+          prompt_optimizer_usage: Json
+          provider: string | null
+          provider_response: Json
+          provider_task_id: string | null
+          r2_key: string | null
+          reference_images: Json
+          source_url: string | null
+          started_at: string | null
+          status: string
+          task_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          art_style: string
+          client_request_id: string
+          completed_at?: string | null
+          composed_prompt: string
+          created_at?: string
+          delivered_at?: string | null
+          delivery_deadline_at?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          failure_code?: string | null
+          failure_detail?: Json
+          failure_stage?: string | null
+          id?: string
+          image_size: string
+          image_type: string
+          image_url?: string | null
+          metadata?: Json
+          model?: string | null
+          optimized_prompt?: string | null
+          parent_run_id?: string | null
+          prompt: string
+          prompt_optimizer_duration_ms?: number | null
+          prompt_optimizer_error?: string | null
+          prompt_optimizer_model?: string | null
+          prompt_optimizer_provider?: string | null
+          prompt_optimizer_usage?: Json
+          provider?: string | null
+          provider_response?: Json
+          provider_task_id?: string | null
+          r2_key?: string | null
+          reference_images?: Json
+          source_url?: string | null
+          started_at?: string | null
+          status?: string
+          task_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          art_style?: string
+          client_request_id?: string
+          completed_at?: string | null
+          composed_prompt?: string
+          created_at?: string
+          delivered_at?: string | null
+          delivery_deadline_at?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          failure_code?: string | null
+          failure_detail?: Json
+          failure_stage?: string | null
+          id?: string
+          image_size?: string
+          image_type?: string
+          image_url?: string | null
+          metadata?: Json
+          model?: string | null
+          optimized_prompt?: string | null
+          parent_run_id?: string | null
+          prompt?: string
+          prompt_optimizer_duration_ms?: number | null
+          prompt_optimizer_error?: string | null
+          prompt_optimizer_model?: string | null
+          prompt_optimizer_provider?: string | null
+          prompt_optimizer_usage?: Json
+          provider?: string | null
+          provider_response?: Json
+          provider_task_id?: string | null
+          r2_key?: string | null
+          reference_images?: Json
+          source_url?: string | null
+          started_at?: string | null
+          status?: string
+          task_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hai_image_generation_runs_parent_run_id_fkey"
+            columns: ["parent_run_id"]
+            isOneToOne: false
+            referencedRelation: "hai_image_generation_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hai_image_generation_runs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "hai_image_generation_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hai_image_generation_runs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hai_image_generation_tasks: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          id: string
+          ppt_deck_id: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          id?: string
+          ppt_deck_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          id?: string
+          ppt_deck_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hai_image_generation_tasks_ppt_deck_id_fkey"
+            columns: ["ppt_deck_id"]
+            isOneToOne: false
+            referencedRelation: "hai_image_ppt_decks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hai_image_generation_tasks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hai_image_ppt_decks: {
+        Row: {
+          art_style: string | null
+          client_request_id: string
+          course: Json
+          created_at: string
+          error_message: string | null
+          id: string
+          image_task_id: string
+          outline: Json
+          outline_feedback: string
+          outline_markdown: string
+          preview_approved: boolean
+          preview_page_id: string | null
+          requirements: string
+          revision: number
+          settings: Json
+          skill_instructions: string
+          skill_version_id: string | null
+          source_artifact_id: string | null
+          source_snapshot: Json
+          source_version: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          art_style?: string | null
+          client_request_id: string
+          course?: Json
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          image_task_id: string
+          outline?: Json
+          outline_feedback?: string
+          outline_markdown?: string
+          preview_approved?: boolean
+          preview_page_id?: string | null
+          requirements?: string
+          revision?: number
+          settings?: Json
+          skill_instructions: string
+          skill_version_id?: string | null
+          source_artifact_id?: string | null
+          source_snapshot: Json
+          source_version: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          art_style?: string | null
+          client_request_id?: string
+          course?: Json
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          image_task_id?: string
+          outline?: Json
+          outline_feedback?: string
+          outline_markdown?: string
+          preview_approved?: boolean
+          preview_page_id?: string | null
+          requirements?: string
+          revision?: number
+          settings?: Json
+          skill_instructions?: string
+          skill_version_id?: string | null
+          source_artifact_id?: string | null
+          source_snapshot?: Json
+          source_version?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hai_image_ppt_decks_image_task_id_fkey"
+            columns: ["image_task_id"]
+            isOneToOne: true
+            referencedRelation: "hai_image_generation_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hai_image_ppt_decks_skill_version_id_fkey"
+            columns: ["skill_version_id"]
+            isOneToOne: false
+            referencedRelation: "hai_work_skill_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hai_image_ppt_decks_source_artifact_id_fkey"
+            columns: ["source_artifact_id"]
+            isOneToOne: false
+            referencedRelation: "hai_work_artifacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hai_image_ppt_decks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hai_image_ppt_jobs: {
+        Row: {
+          deck_id: string
+          lease_token: string | null
+          lease_until: string | null
+          model_started: boolean
+          next_dispatch_at: string
+          phase: string
+          request_id: string
+        }
+        Insert: {
+          deck_id: string
+          lease_token?: string | null
+          lease_until?: string | null
+          model_started?: boolean
+          next_dispatch_at?: string
+          phase: string
+          request_id: string
+        }
+        Update: {
+          deck_id?: string
+          lease_token?: string | null
+          lease_until?: string | null
+          model_started?: boolean
+          next_dispatch_at?: string
+          phase?: string
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hai_image_ppt_jobs_deck_id_fkey"
+            columns: ["deck_id"]
+            isOneToOne: true
+            referencedRelation: "hai_image_ppt_decks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hai_image_ppt_pages: {
+        Row: {
+          attempt: number
+          current_run_id: string | null
+          deck_id: string
+          page_id: string
+          page_index: number
+        }
+        Insert: {
+          attempt?: number
+          current_run_id?: string | null
+          deck_id: string
+          page_id: string
+          page_index: number
+        }
+        Update: {
+          attempt?: number
+          current_run_id?: string | null
+          deck_id?: string
+          page_id?: string
+          page_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hai_image_ppt_pages_current_run_id_fkey"
+            columns: ["current_run_id"]
+            isOneToOne: false
+            referencedRelation: "hai_image_generation_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hai_image_ppt_pages_deck_id_fkey"
+            columns: ["deck_id"]
+            isOneToOne: false
+            referencedRelation: "hai_image_ppt_decks"
             referencedColumns: ["id"]
           },
         ]
@@ -1292,6 +1979,51 @@ export type Database = {
           },
         ]
       }
+      hai_membership_point_grants: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          granted_points: number
+          granted_tokens: number
+          notified_at: string | null
+          tokens_per_point: number
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          granted_points?: number
+          granted_tokens?: number
+          notified_at?: string | null
+          tokens_per_point?: number
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          granted_points?: number
+          granted_tokens?: number
+          notified_at?: string | null
+          tokens_per_point?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hai_membership_point_grants_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hai_membership_point_grants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hai_message_feedback: {
         Row: {
           created_at: string
@@ -1477,41 +2209,211 @@ export type Database = {
           },
         ]
       }
-      hai_model_providers: {
+      hai_model_calls: {
         Row: {
-          id: string
-          label: string
-          provider_code: string
-          model_name: string
-          api_key: string
-          base_url: string
-          is_enabled: boolean
-          sort_order: number
+          cache_hit_cost: number | null
+          cache_hit_tokens: number | null
+          cache_miss_cost: number | null
+          cache_miss_tokens: number | null
+          call_index: number
+          completed_at: string | null
+          completion_tokens: number | null
           created_at: string
+          currency: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          metadata: Json
+          model: string
+          output_cost: number | null
+          price_band: string
+          price_snapshot: Json
+          prompt_tokens: number | null
+          provider: string
+          provider_request_id: string | null
+          reasoning_tokens: number | null
+          request_id: string
+          route: string
+          stage: string
+          started_at: string
+          status: string
+          total_cost: number | null
+          total_tokens: number | null
+          usage_status: string
+          user_id: string | null
+          visible_output_tokens: number | null
+        }
+        Insert: {
+          cache_hit_cost?: number | null
+          cache_hit_tokens?: number | null
+          cache_miss_cost?: number | null
+          cache_miss_tokens?: number | null
+          call_index: number
+          completed_at?: string | null
+          completion_tokens?: number | null
+          created_at?: string
+          currency?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json
+          model: string
+          output_cost?: number | null
+          price_band?: string
+          price_snapshot?: Json
+          prompt_tokens?: number | null
+          provider: string
+          provider_request_id?: string | null
+          reasoning_tokens?: number | null
+          request_id: string
+          route: string
+          stage: string
+          started_at?: string
+          status?: string
+          total_cost?: number | null
+          total_tokens?: number | null
+          usage_status?: string
+          user_id?: string | null
+          visible_output_tokens?: number | null
+        }
+        Update: {
+          cache_hit_cost?: number | null
+          cache_hit_tokens?: number | null
+          cache_miss_cost?: number | null
+          cache_miss_tokens?: number | null
+          call_index?: number
+          completed_at?: string | null
+          completion_tokens?: number | null
+          created_at?: string
+          currency?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          metadata?: Json
+          model?: string
+          output_cost?: number | null
+          price_band?: string
+          price_snapshot?: Json
+          prompt_tokens?: number | null
+          provider?: string
+          provider_request_id?: string | null
+          reasoning_tokens?: number | null
+          request_id?: string
+          route?: string
+          stage?: string
+          started_at?: string
+          status?: string
+          total_cost?: number | null
+          total_tokens?: number | null
+          usage_status?: string
+          user_id?: string | null
+          visible_output_tokens?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hai_model_calls_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hai_model_pricing: {
+        Row: {
+          created_at: string
+          currency: string
+          effective_from: string
+          effective_to: string | null
+          enabled: boolean
+          id: string
+          metadata: Json
+          model_name: string
+          off_peak_cache_hit_input_per_million: number
+          off_peak_cache_miss_input_per_million: number
+          off_peak_output_per_million: number
+          peak_cache_hit_input_per_million: number
+          peak_cache_miss_input_per_million: number
+          peak_output_per_million: number
+          provider: string
+          timezone: string
           updated_at: string
         }
         Insert: {
-          id?: string
-          label: string
-          provider_code?: string
-          model_name: string
-          api_key: string
-          base_url: string
-          is_enabled?: boolean
-          sort_order?: number
           created_at?: string
+          currency?: string
+          effective_from: string
+          effective_to?: string | null
+          enabled?: boolean
+          id?: string
+          metadata?: Json
+          model_name: string
+          off_peak_cache_hit_input_per_million: number
+          off_peak_cache_miss_input_per_million: number
+          off_peak_output_per_million: number
+          peak_cache_hit_input_per_million: number
+          peak_cache_miss_input_per_million: number
+          peak_output_per_million: number
+          provider: string
+          timezone?: string
           updated_at?: string
         }
         Update: {
+          created_at?: string
+          currency?: string
+          effective_from?: string
+          effective_to?: string | null
+          enabled?: boolean
           id?: string
-          label?: string
-          provider_code?: string
+          metadata?: Json
           model_name?: string
+          off_peak_cache_hit_input_per_million?: number
+          off_peak_cache_miss_input_per_million?: number
+          off_peak_output_per_million?: number
+          peak_cache_hit_input_per_million?: number
+          peak_cache_miss_input_per_million?: number
+          peak_output_per_million?: number
+          provider?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      hai_model_providers: {
+        Row: {
+          api_key: string
+          base_url: string
+          created_at: string
+          id: string
+          is_enabled: boolean
+          label: string
+          model_name: string
+          provider_code: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          api_key: string
+          base_url: string
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          label: string
+          model_name: string
+          provider_code?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
           api_key?: string
           base_url?: string
-          is_enabled?: boolean
-          sort_order?: number
           created_at?: string
+          id?: string
+          is_enabled?: boolean
+          label?: string
+          model_name?: string
+          provider_code?: string
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []
@@ -1620,6 +2522,146 @@ export type Database = {
             columns: ["candidate_skill_version_id"]
             isOneToOne: false
             referencedRelation: "hai_chat_skill_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hai_point_packages: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          is_enabled: boolean
+          is_recommended: boolean
+          name: string
+          points: number
+          price_cny: number
+          sort_order: number
+          updated_at: string
+          value_metrics: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          is_enabled?: boolean
+          is_recommended?: boolean
+          name?: string
+          points: number
+          price_cny: number
+          sort_order?: number
+          updated_at?: string
+          value_metrics?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          is_enabled?: boolean
+          is_recommended?: boolean
+          name?: string
+          points?: number
+          price_cny?: number
+          sort_order?: number
+          updated_at?: string
+          value_metrics?: string
+        }
+        Relationships: []
+      }
+      hai_point_transactions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          metadata: Json
+          points_delta: number
+          reason: string
+          request_id: string | null
+          token_delta: number
+          tokens_per_point: number
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metadata?: Json
+          points_delta: number
+          reason?: string
+          request_id?: string | null
+          token_delta: number
+          tokens_per_point: number
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metadata?: Json
+          points_delta?: number
+          reason?: string
+          request_id?: string | null
+          token_delta?: number
+          tokens_per_point?: number
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hai_point_transactions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hai_point_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hai_point_wallets: {
+        Row: {
+          balance_tokens: number
+          created_at: string
+          newcomer_grant_tokens: number
+          newcomer_granted_at: string | null
+          total_consumed_tokens: number
+          total_credited_tokens: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance_tokens?: number
+          created_at?: string
+          newcomer_grant_tokens?: number
+          newcomer_granted_at?: string | null
+          total_consumed_tokens?: number
+          total_credited_tokens?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance_tokens?: number
+          created_at?: string
+          newcomer_grant_tokens?: number
+          newcomer_granted_at?: string | null
+          total_consumed_tokens?: number
+          total_credited_tokens?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hai_point_wallets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1968,12 +3010,15 @@ export type Database = {
           created_at: string
           edition_family: string
           edition_label: string
+          edition_year: number | null
           effective_from: string | null
           effective_to: string | null
           grade_label: string
           grade_level: number
           id: string
           is_active: boolean
+          is_default: boolean
+          lifecycle_status: string
           metadata: Json
           publication_status: string
           publisher: string
@@ -1984,7 +3029,9 @@ export type Database = {
           source_note: string
           source_type: string
           stage: string
+          structure_profile: string
           subject: string
+          text_fidelity: string
           title: string
           updated_at: string
           verification_status: string
@@ -1995,12 +3042,15 @@ export type Database = {
           created_at?: string
           edition_family?: string
           edition_label: string
+          edition_year?: number | null
           effective_from?: string | null
           effective_to?: string | null
           grade_label: string
           grade_level: number
           id?: string
           is_active?: boolean
+          is_default?: boolean
+          lifecycle_status?: string
           metadata?: Json
           publication_status?: string
           publisher?: string
@@ -2011,7 +3061,9 @@ export type Database = {
           source_note?: string
           source_type?: string
           stage: string
+          structure_profile?: string
           subject: string
+          text_fidelity?: string
           title: string
           updated_at?: string
           verification_status?: string
@@ -2022,12 +3074,15 @@ export type Database = {
           created_at?: string
           edition_family?: string
           edition_label?: string
+          edition_year?: number | null
           effective_from?: string | null
           effective_to?: string | null
           grade_label?: string
           grade_level?: number
           id?: string
           is_active?: boolean
+          is_default?: boolean
+          lifecycle_status?: string
           metadata?: Json
           publication_status?: string
           publisher?: string
@@ -2038,7 +3093,9 @@ export type Database = {
           source_note?: string
           source_type?: string
           stage?: string
+          structure_profile?: string
           subject?: string
+          text_fidelity?: string
           title?: string
           updated_at?: string
           verification_status?: string
@@ -2096,6 +3153,7 @@ export type Database = {
           created_at: string
           frame_label: string
           frame_number: number
+          frame_policy: string
           frame_title: string
           id: string
           is_active: boolean
@@ -2104,6 +3162,8 @@ export type Database = {
           lesson_number: number
           lesson_title: string
           metadata: Json
+          native_label: string
+          native_node_type: string
           section_key: string
           section_level: string
           section_path: string
@@ -2124,6 +3184,7 @@ export type Database = {
           created_at?: string
           frame_label: string
           frame_number: number
+          frame_policy?: string
           frame_title: string
           id?: string
           is_active?: boolean
@@ -2132,6 +3193,8 @@ export type Database = {
           lesson_number: number
           lesson_title: string
           metadata?: Json
+          native_label?: string
+          native_node_type?: string
           section_key: string
           section_level?: string
           section_path: string
@@ -2152,6 +3215,7 @@ export type Database = {
           created_at?: string
           frame_label?: string
           frame_number?: number
+          frame_policy?: string
           frame_title?: string
           id?: string
           is_active?: boolean
@@ -2160,6 +3224,8 @@ export type Database = {
           lesson_number?: number
           lesson_title?: string
           metadata?: Json
+          native_label?: string
+          native_node_type?: string
           section_key?: string
           section_level?: string
           section_path?: string
@@ -2245,6 +3311,16 @@ export type Database = {
       }
       hai_usage_events: {
         Row: {
+          actual_cache_hit_tokens: number | null
+          actual_cache_miss_tokens: number | null
+          actual_completion_tokens: number | null
+          actual_cost: number | null
+          actual_currency: string | null
+          actual_prompt_tokens: number | null
+          actual_reasoning_tokens: number | null
+          actual_total_tokens: number | null
+          actual_usage_status: string
+          actual_visible_output_tokens: number | null
           created_at: string
           duration_ms: number | null
           entity_id: string | null
@@ -2261,6 +3337,16 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          actual_cache_hit_tokens?: number | null
+          actual_cache_miss_tokens?: number | null
+          actual_completion_tokens?: number | null
+          actual_cost?: number | null
+          actual_currency?: string | null
+          actual_prompt_tokens?: number | null
+          actual_reasoning_tokens?: number | null
+          actual_total_tokens?: number | null
+          actual_usage_status?: string
+          actual_visible_output_tokens?: number | null
           created_at?: string
           duration_ms?: number | null
           entity_id?: string | null
@@ -2277,6 +3363,16 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          actual_cache_hit_tokens?: number | null
+          actual_cache_miss_tokens?: number | null
+          actual_completion_tokens?: number | null
+          actual_cost?: number | null
+          actual_currency?: string | null
+          actual_prompt_tokens?: number | null
+          actual_reasoning_tokens?: number | null
+          actual_total_tokens?: number | null
+          actual_usage_status?: string
+          actual_visible_output_tokens?: number | null
           created_at?: string
           duration_ms?: number | null
           entity_id?: string | null
@@ -2410,6 +3506,54 @@ export type Database = {
           },
         ]
       }
+      hai_web_tool_calls: {
+        Row: {
+          created_at: string
+          points: number
+          request_id: string
+          request_number: number
+          run_id: string
+          tool_kind: string
+          unit_cost_cny: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          points: number
+          request_id: string
+          request_number: number
+          run_id: string
+          tool_kind: string
+          unit_cost_cny: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          points?: number
+          request_id?: string
+          request_number?: number
+          run_id?: string
+          tool_kind?: string
+          unit_cost_cny?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hai_web_tool_calls_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "hai_work_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hai_web_tool_calls_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hai_work_artifacts: {
         Row: {
           content_json: Json
@@ -2520,6 +3664,50 @@ export type Database = {
           },
         ]
       }
+      hai_work_jobs: {
+        Row: {
+          attempts: Json
+          created_at: string
+          error_message: string | null
+          lease_token: string | null
+          lease_until: string | null
+          next_dispatch_at: string
+          payload: Json
+          phase: string
+          run_id: string
+        }
+        Insert: {
+          attempts?: Json
+          created_at?: string
+          error_message?: string | null
+          lease_token?: string | null
+          lease_until?: string | null
+          next_dispatch_at?: string
+          payload: Json
+          phase?: string
+          run_id: string
+        }
+        Update: {
+          attempts?: Json
+          created_at?: string
+          error_message?: string | null
+          lease_token?: string | null
+          lease_until?: string | null
+          next_dispatch_at?: string
+          payload?: Json
+          phase?: string
+          run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hai_work_jobs_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: true
+            referencedRelation: "hai_work_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hai_work_runs: {
         Row: {
           client_request_id: string
@@ -2527,6 +3715,8 @@ export type Database = {
           created_at: string
           duration_ms: number | null
           error_message: string | null
+          execution_mode: string
+          execution_phase: string | null
           id: string
           input_snapshot: Json
           input_tokens: number | null
@@ -2540,6 +3730,7 @@ export type Database = {
           task_id: string
           updated_at: string
           user_id: string
+          workflow_state: Json | null
         }
         Insert: {
           client_request_id: string
@@ -2547,6 +3738,8 @@ export type Database = {
           created_at?: string
           duration_ms?: number | null
           error_message?: string | null
+          execution_mode?: string
+          execution_phase?: string | null
           id?: string
           input_snapshot?: Json
           input_tokens?: number | null
@@ -2560,6 +3753,7 @@ export type Database = {
           task_id: string
           updated_at?: string
           user_id: string
+          workflow_state?: Json | null
         }
         Update: {
           client_request_id?: string
@@ -2567,6 +3761,8 @@ export type Database = {
           created_at?: string
           duration_ms?: number | null
           error_message?: string | null
+          execution_mode?: string
+          execution_phase?: string | null
           id?: string
           input_snapshot?: Json
           input_tokens?: number | null
@@ -2580,6 +3776,7 @@ export type Database = {
           task_id?: string
           updated_at?: string
           user_id?: string
+          workflow_state?: Json | null
         }
         Relationships: [
           {
@@ -2611,6 +3808,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      hai_work_scheduler_config: {
+        Row: {
+          auth_secret: string
+          enabled: boolean
+          endpoint_url: string
+          singleton: boolean
+        }
+        Insert: {
+          auth_secret: string
+          enabled?: boolean
+          endpoint_url: string
+          singleton?: boolean
+        }
+        Update: {
+          auth_secret?: string
+          enabled?: boolean
+          endpoint_url?: string
+          singleton?: boolean
+        }
+        Relationships: []
       }
       hai_work_skill_references: {
         Row: {
@@ -3005,6 +4223,159 @@ export type Database = {
           },
         ]
       }
+      live_participant_tags: {
+        Row: {
+          created_at: string
+          live_id: string
+          tag: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          live_id: string
+          tag: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          live_id?: string
+          tag?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_participant_tags_live_id_user_id_fkey"
+            columns: ["live_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "live_participants"
+            referencedColumns: ["live_id", "user_id"]
+          },
+        ]
+      }
+      live_participants: {
+        Row: {
+          joined_at: string
+          last_seen_at: string
+          live_id: string
+          user_id: string
+        }
+        Insert: {
+          joined_at?: string
+          last_seen_at?: string
+          live_id: string
+          user_id: string
+        }
+        Update: {
+          joined_at?: string
+          last_seen_at?: string
+          live_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_participants_live_id_fkey"
+            columns: ["live_id"]
+            isOneToOne: false
+            referencedRelation: "live_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_question_target_tags: {
+        Row: {
+          question_id: string
+          tag: string
+        }
+        Insert: {
+          question_id: string
+          tag: string
+        }
+        Update: {
+          question_id?: string
+          tag?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_question_target_tags_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_question_target_users: {
+        Row: {
+          question_id: string
+          user_id: string
+        }
+        Insert: {
+          question_id: string
+          user_id: string
+        }
+        Update: {
+          question_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_question_target_users_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "live_question_target_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      live_sessions: {
+        Row: {
+          current_question_id: string | null
+          id: string
+          question_state: string
+          room_code: string | null
+          status: string
+          title: string
+        }
+        Insert: {
+          current_question_id?: string | null
+          id?: string
+          question_state: string
+          room_code?: string | null
+          status: string
+          title: string
+        }
+        Update: {
+          current_question_id?: string | null
+          id?: string
+          question_state?: string
+          room_code?: string | null
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "live_sessions_current_question_id_fkey"
+            columns: ["current_question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       member_profiles: {
         Row: {
           created_at: string
@@ -3037,6 +4408,32 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      membership_course_access: {
+        Row: {
+          access_level: Database["public"]["Enums"]["access_level"]
+          created_at: string
+          product_code: string
+        }
+        Insert: {
+          access_level: Database["public"]["Enums"]["access_level"]
+          created_at?: string
+          product_code: string
+        }
+        Update: {
+          access_level?: Database["public"]["Enums"]["access_level"]
+          created_at?: string
+          product_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membership_course_access_product_code_fkey"
+            columns: ["product_code"]
+            isOneToOne: false
+            referencedRelation: "course_access_products"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       password_reset_requests: {
         Row: {
@@ -3172,32 +4569,6 @@ export type Database = {
         }
         Relationships: []
       }
-      membership_course_access: {
-        Row: {
-          access_level: Database["public"]["Enums"]["access_level"]
-          created_at: string
-          product_code: string
-        }
-        Insert: {
-          access_level: Database["public"]["Enums"]["access_level"]
-          created_at?: string
-          product_code: string
-        }
-        Update: {
-          access_level?: Database["public"]["Enums"]["access_level"]
-          created_at?: string
-          product_code?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "membership_course_access_product_code_fkey"
-            columns: ["product_code"]
-            isOneToOne: false
-            referencedRelation: "course_access_products"
-            referencedColumns: ["code"]
-          },
-        ]
-      }
       profiles: {
         Row: {
           access_level: Database["public"]["Enums"]["access_level"]
@@ -3240,6 +4611,70 @@ export type Database = {
         }
         Relationships: []
       }
+      question_keys: {
+        Row: {
+          correct_answer: Json
+          question_id: string
+        }
+        Insert: {
+          correct_answer: Json
+          question_id: string
+        }
+        Update: {
+          correct_answer?: Json
+          question_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_keys_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: true
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questions: {
+        Row: {
+          audience_mode: string
+          content: string
+          id: string
+          live_id: string
+          options: Json
+          position: number
+          title: string
+          type: string
+        }
+        Insert: {
+          audience_mode?: string
+          content: string
+          id?: string
+          live_id: string
+          options?: Json
+          position: number
+          title: string
+          type: string
+        }
+        Update: {
+          audience_mode?: string
+          content?: string
+          id?: string
+          live_id?: string
+          options?: Json
+          position?: number
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_live_id_fkey"
+            columns: ["live_id"]
+            isOneToOne: false
+            referencedRelation: "live_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       resources: {
         Row: {
           cover_url: string | null
@@ -3278,6 +4713,42 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      responses: {
+        Row: {
+          answer: Json
+          answered_at: string
+          question_id: string
+          user_id: string
+        }
+        Insert: {
+          answer: Json
+          answered_at?: string
+          question_id: string
+          user_id: string
+        }
+        Update: {
+          answer?: Json
+          answered_at?: string
+          question_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "responses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       site_content: {
         Row: {
@@ -3369,6 +4840,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "user_course_entitlements_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "user_course_entitlements_product_code_fkey"
             columns: ["product_code"]
             isOneToOne: false
@@ -3418,6 +4896,832 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "user_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_assessment_blocks: {
+        Row: {
+          assessment_type_id: string | null
+          created_at: string
+          estimated_minutes: number | null
+          id: string
+          instructions_markdown: string | null
+          lesson_id: string | null
+          required: boolean
+          sort_order: number
+          status: string
+          title: string
+          unit_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          assessment_type_id?: string | null
+          created_at?: string
+          estimated_minutes?: number | null
+          id?: string
+          instructions_markdown?: string | null
+          lesson_id?: string | null
+          required?: boolean
+          sort_order?: number
+          status?: string
+          title: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assessment_type_id?: string | null
+          created_at?: string
+          estimated_minutes?: number | null
+          id?: string
+          instructions_markdown?: string | null
+          lesson_id?: string | null
+          required?: boolean
+          sort_order?: number
+          status?: string
+          title?: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_assessment_blocks_assessment_type_id_fkey"
+            columns: ["assessment_type_id"]
+            isOneToOne: false
+            referencedRelation: "v2_dictionary_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_assessment_blocks_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "v2_course_lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_assessment_blocks_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "v2_course_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_assessment_items: {
+        Row: {
+          assessment_block_id: string
+          case_markdown: string | null
+          created_at: string
+          grading_mode_id: string | null
+          id: string
+          is_required: boolean
+          item_type_id: string | null
+          max_score: number | null
+          prompt_markdown: string
+          rubric: Json | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          assessment_block_id: string
+          case_markdown?: string | null
+          created_at?: string
+          grading_mode_id?: string | null
+          id?: string
+          is_required?: boolean
+          item_type_id?: string | null
+          max_score?: number | null
+          prompt_markdown: string
+          rubric?: Json | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          assessment_block_id?: string
+          case_markdown?: string | null
+          created_at?: string
+          grading_mode_id?: string | null
+          id?: string
+          is_required?: boolean
+          item_type_id?: string | null
+          max_score?: number | null
+          prompt_markdown?: string
+          rubric?: Json | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_assessment_items_assessment_block_id_fkey"
+            columns: ["assessment_block_id"]
+            isOneToOne: false
+            referencedRelation: "v2_assessment_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_assessment_items_grading_mode_id_fkey"
+            columns: ["grading_mode_id"]
+            isOneToOne: false
+            referencedRelation: "v2_dictionary_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_assessment_items_item_type_id_fkey"
+            columns: ["item_type_id"]
+            isOneToOne: false
+            referencedRelation: "v2_dictionary_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_assessment_options: {
+        Row: {
+          id: string
+          item_id: string
+          option_key: string
+          option_text: string
+          sort_order: number
+        }
+        Insert: {
+          id?: string
+          item_id: string
+          option_key: string
+          option_text: string
+          sort_order?: number
+        }
+        Update: {
+          id?: string
+          item_id?: string
+          option_key?: string
+          option_text?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_assessment_options_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v2_assessment_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_course_access: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          granted_by: string | null
+          notes: string | null
+          starts_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          granted_by?: string | null
+          notes?: string | null
+          starts_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          granted_by?: string | null
+          notes?: string | null
+          starts_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_course_access_granted_by_fkey"
+            columns: ["granted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_course_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_course_lessons: {
+        Row: {
+          body_markdown: string | null
+          challenge_markdown: string | null
+          challenge_title: string | null
+          created_at: string
+          credits: number
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          is_trial: boolean
+          lesson_type_id: string | null
+          membership_type: string | null
+          objectives: Json
+          published_at: string | null
+          slug: string | null
+          sort_order: number
+          status: string
+          subtitle: string | null
+          success_criteria_markdown: string | null
+          takeaway_markdown: string | null
+          title: string
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          body_markdown?: string | null
+          challenge_markdown?: string | null
+          challenge_title?: string | null
+          created_at?: string
+          credits?: number
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_trial?: boolean
+          lesson_type_id?: string | null
+          membership_type?: string | null
+          objectives?: Json
+          published_at?: string | null
+          slug?: string | null
+          sort_order?: number
+          status?: string
+          subtitle?: string | null
+          success_criteria_markdown?: string | null
+          takeaway_markdown?: string | null
+          title: string
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          body_markdown?: string | null
+          challenge_markdown?: string | null
+          challenge_title?: string | null
+          created_at?: string
+          credits?: number
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_trial?: boolean
+          lesson_type_id?: string | null
+          membership_type?: string | null
+          objectives?: Json
+          published_at?: string | null
+          slug?: string | null
+          sort_order?: number
+          status?: string
+          subtitle?: string | null
+          success_criteria_markdown?: string | null
+          takeaway_markdown?: string | null
+          title?: string
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_course_lessons_lesson_type_id_fkey"
+            columns: ["lesson_type_id"]
+            isOneToOne: false
+            referencedRelation: "v2_dictionary_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_course_lessons_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "v2_course_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_course_units: {
+        Row: {
+          created_at: string
+          description_markdown: string | null
+          id: string
+          is_active: boolean
+          slug: string
+          sort_order: number
+          status: string
+          title: string
+          unit_type_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description_markdown?: string | null
+          id?: string
+          is_active?: boolean
+          slug: string
+          sort_order?: number
+          status?: string
+          title: string
+          unit_type_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description_markdown?: string | null
+          id?: string
+          is_active?: boolean
+          slug?: string
+          sort_order?: number
+          status?: string
+          title?: string
+          unit_type_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_course_units_unit_type_id_fkey"
+            columns: ["unit_type_id"]
+            isOneToOne: false
+            referencedRelation: "v2_dictionary_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_dictionary_groups: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          key: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          key?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      v2_dictionary_items: {
+        Row: {
+          created_at: string
+          description: string | null
+          group_id: string
+          id: string
+          is_active: boolean
+          key: string
+          label: string
+          metadata: Json
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          group_id: string
+          id?: string
+          is_active?: boolean
+          key: string
+          label: string
+          metadata?: Json
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          group_id?: string
+          id?: string
+          is_active?: boolean
+          key?: string
+          label?: string
+          metadata?: Json
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_dictionary_items_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "v2_dictionary_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_learning_records: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          last_viewed_at: string | null
+          lesson_id: string
+          progress: number
+          status: string
+          updated_at: string
+          user_id: string
+          watch_count: number
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          last_viewed_at?: string | null
+          lesson_id: string
+          progress?: number
+          status?: string
+          updated_at?: string
+          user_id: string
+          watch_count?: number
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          last_viewed_at?: string | null
+          lesson_id?: string
+          progress?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+          watch_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_learning_records_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "v2_course_lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_learning_records_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_lesson_knowledge_cards: {
+        Row: {
+          card_type_id: string | null
+          content_markdown: string
+          created_at: string
+          id: string
+          is_active: boolean
+          lesson_id: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          card_type_id?: string | null
+          content_markdown: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          lesson_id: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          card_type_id?: string | null
+          content_markdown?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          lesson_id?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_lesson_knowledge_cards_card_type_id_fkey"
+            columns: ["card_type_id"]
+            isOneToOne: false
+            referencedRelation: "v2_dictionary_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_lesson_knowledge_cards_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "v2_course_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_lesson_resources: {
+        Row: {
+          created_at: string
+          description: string | null
+          external_url: string | null
+          file_name: string | null
+          file_size: number | null
+          id: string
+          is_active: boolean
+          is_downloadable: boolean
+          lesson_id: string
+          metadata: Json
+          mime_type: string | null
+          resource_type_id: string | null
+          sort_order: number
+          storage_key: string | null
+          storage_provider: string | null
+          title: string | null
+          updated_at: string
+          usage_type_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          external_url?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          id?: string
+          is_active?: boolean
+          is_downloadable?: boolean
+          lesson_id: string
+          metadata?: Json
+          mime_type?: string | null
+          resource_type_id?: string | null
+          sort_order?: number
+          storage_key?: string | null
+          storage_provider?: string | null
+          title?: string | null
+          updated_at?: string
+          usage_type_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          external_url?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          id?: string
+          is_active?: boolean
+          is_downloadable?: boolean
+          lesson_id?: string
+          metadata?: Json
+          mime_type?: string | null
+          resource_type_id?: string | null
+          sort_order?: number
+          storage_key?: string | null
+          storage_provider?: string | null
+          title?: string | null
+          updated_at?: string
+          usage_type_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_lesson_resources_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "v2_course_lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_lesson_resources_resource_type_id_fkey"
+            columns: ["resource_type_id"]
+            isOneToOne: false
+            referencedRelation: "v2_dictionary_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_lesson_resources_usage_type_id_fkey"
+            columns: ["usage_type_id"]
+            isOneToOne: false
+            referencedRelation: "v2_dictionary_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_manual_reviews: {
+        Row: {
+          answer_id: string | null
+          attempt_id: string
+          created_at: string
+          feedback_markdown: string | null
+          id: string
+          review_status: string
+          reviewer_id: string
+          revision_required: boolean
+          rubric_result: Json | null
+          score: number | null
+          updated_at: string
+        }
+        Insert: {
+          answer_id?: string | null
+          attempt_id: string
+          created_at?: string
+          feedback_markdown?: string | null
+          id?: string
+          review_status?: string
+          reviewer_id: string
+          revision_required?: boolean
+          rubric_result?: Json | null
+          score?: number | null
+          updated_at?: string
+        }
+        Update: {
+          answer_id?: string | null
+          attempt_id?: string
+          created_at?: string
+          feedback_markdown?: string | null
+          id?: string
+          review_status?: string
+          reviewer_id?: string
+          revision_required?: boolean
+          rubric_result?: Json | null
+          score?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_manual_reviews_answer_id_fkey"
+            columns: ["answer_id"]
+            isOneToOne: false
+            referencedRelation: "v2_submission_answers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_manual_reviews_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "v2_submission_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_manual_reviews_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_submission_answers: {
+        Row: {
+          answer_json: Json | null
+          answer_text: string | null
+          attachment_data: Json
+          attempt_id: string
+          auto_score: number | null
+          created_at: string
+          id: string
+          item_id: string
+          updated_at: string
+        }
+        Insert: {
+          answer_json?: Json | null
+          answer_text?: string | null
+          attachment_data?: Json
+          attempt_id: string
+          auto_score?: number | null
+          created_at?: string
+          id?: string
+          item_id: string
+          updated_at?: string
+        }
+        Update: {
+          answer_json?: Json | null
+          answer_text?: string | null
+          attachment_data?: Json
+          attempt_id?: string
+          auto_score?: number | null
+          created_at?: string
+          id?: string
+          item_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_submission_answers_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "v2_submission_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_submission_answers_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "v2_assessment_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_submission_attempts: {
+        Row: {
+          assessment_block_id: string
+          attempt_no: number
+          created_at: string
+          final_score: number | null
+          id: string
+          started_at: string
+          status: string
+          submitted_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assessment_block_id: string
+          attempt_no: number
+          created_at?: string
+          final_score?: number | null
+          id?: string
+          started_at?: string
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assessment_block_id?: string
+          attempt_no?: number
+          created_at?: string
+          final_score?: number | null
+          id?: string
+          started_at?: string
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_submission_attempts_assessment_block_id_fkey"
+            columns: ["assessment_block_id"]
+            isOneToOne: false
+            referencedRelation: "v2_assessment_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_submission_attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v2_user_saved_cards: {
+        Row: {
+          created_at: string
+          knowledge_card_id: string
+          user_id: string
+          user_note: string | null
+        }
+        Insert: {
+          created_at?: string
+          knowledge_card_id: string
+          user_id: string
+          user_note?: string | null
+        }
+        Update: {
+          created_at?: string
+          knowledge_card_id?: string
+          user_id?: string
+          user_note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "v2_user_saved_cards_knowledge_card_id_fkey"
+            columns: ["knowledge_card_id"]
+            isOneToOne: false
+            referencedRelation: "v2_lesson_knowledge_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "v2_user_saved_cards_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -3488,6 +5792,14 @@ export type Database = {
         Returns: number
       }
       can_access_course: { Args: { p_course_id: string }; Returns: boolean }
+      clear_phone_login_attempts: {
+        Args: { p_phone: string }
+        Returns: undefined
+      }
+      consume_legacy_email_binding: {
+        Args: { p_digest: string; p_user: string }
+        Returns: string
+      }
       course_catalog_snapshot: { Args: never; Returns: Json }
       course_detail_snapshot: { Args: { p_course_id: string }; Returns: Json }
       course_password_attempt_status: {
@@ -3495,9 +5807,67 @@ export type Database = {
         Returns: Json
       }
       course_questions_feed: { Args: { p_course_id: string }; Returns: Json }
+      get_live_admin_participants: {
+        Args: { p_live_id: string }
+        Returns: Json
+      }
+      get_live_participant_results: {
+        Args: { p_question_id: string }
+        Returns: Json
+      }
+      get_live_room_audience_summary: {
+        Args: { p_live_id: string }
+        Returns: Json
+      }
       get_my_notifications: { Args: never; Returns: Json }
       get_unread_notification_count: { Args: never; Returns: number }
       hai_access_status: { Args: never; Returns: Json }
+      hai_acknowledge_image_delivery: {
+        Args: { p_run_id: string }
+        Returns: Json
+      }
+      hai_act_workflow: {
+        Args: {
+          p_action: string
+          p_feedback?: string
+          p_option_id?: string
+          p_revision: number
+          p_run_id: string
+        }
+        Returns: Json
+      }
+      hai_admin_add_points: {
+        Args: { p_points: number; p_reason: string; p_user_id: string }
+        Returns: Json
+      }
+      hai_admin_batch_adjust_points: {
+        Args: { p_points: number; p_reason: string; p_user_ids: string[] }
+        Returns: Json
+      }
+      hai_admin_course_point_users: {
+        Args: { p_product_code: string }
+        Returns: Json
+      }
+      hai_admin_update_point_billing_config: {
+        Args: {
+          p_flash_cache_hit_multiplier: number
+          p_flash_cache_miss_multiplier: number
+          p_flash_output_multiplier: number
+          p_pro_cache_hit_multiplier: number
+          p_pro_cache_miss_multiplier: number
+          p_pro_output_multiplier: number
+          p_tokens_per_point: number
+        }
+        Returns: Json
+      }
+      hai_check_and_reserve_courseware_image: {
+        Args: { p_metadata?: Json; p_request_id: string; p_route: string }
+        Returns: Json
+      }
+      hai_check_and_reserve_image_generation: {
+        Args: { p_metadata?: Json; p_request_id: string; p_route: string }
+        Returns: Json
+      }
       hai_check_and_reserve_usage: {
         Args: {
           p_estimated_input_tokens: number
@@ -3506,6 +5876,61 @@ export type Database = {
           p_request_id: string
           p_route: string
         }
+        Returns: Json
+      }
+      hai_checkpoint_case_retrieval: {
+        Args: {
+          p_attempt?: Json
+          p_error?: string
+          p_lease_token: string
+          p_release?: boolean
+          p_run_id: string
+          p_state: Json
+        }
+        Returns: undefined
+      }
+      hai_checkpoint_unit_work_job: {
+        Args: { p_attempt: Json; p_lease_token: string; p_run_id: string }
+        Returns: undefined
+      }
+      hai_checkpoint_work_job: {
+        Args: { p_attempt: Json; p_lease_token: string; p_run_id: string }
+        Returns: undefined
+      }
+      hai_checkpoint_workflow: {
+        Args: {
+          p_attempt: Json
+          p_lease_token: string
+          p_result: Json
+          p_run_id: string
+        }
+        Returns: undefined
+      }
+      hai_claim_image_ppt_job: { Args: { p_deck_id: string }; Returns: Json }
+      hai_claim_work_job: { Args: { p_run_id: string }; Returns: Json }
+      hai_clone_courseware_skill_version: {
+        Args: {
+          p_skill_id: string
+          p_source_version_id: string
+          p_version_label: string
+        }
+        Returns: string
+      }
+      hai_clone_work_skill_version: {
+        Args: { p_skill_id: string; p_version_label: string }
+        Returns: string
+      }
+      hai_close_image_generation_failure: {
+        Args: {
+          p_code: string
+          p_detail?: Json
+          p_run_id: string
+          p_stage: string
+        }
+        Returns: Json
+      }
+      hai_complete_image_generation_run: {
+        Args: { p_run_id: string }
         Returns: Json
       }
       hai_create_chat_skill_review_draft: {
@@ -3517,9 +5942,84 @@ export type Database = {
         }
         Returns: Json
       }
-      hai_clone_work_skill_version: {
-        Args: { p_skill_id: string; p_version_label: string }
+      hai_create_image_ppt: {
+        Args: {
+          p_instructions: string
+          p_request_id: string
+          p_requirements: string
+          p_skill_id: string
+          p_source: Json
+          p_user_id: string
+        }
         Returns: string
+      }
+      hai_dispatch_image_ppt_jobs: { Args: never; Returns: number }
+      hai_dispatch_work_jobs: { Args: never; Returns: number }
+      hai_edit_image_ppt: {
+        Args: {
+          p_action: string
+          p_data: Json
+          p_deck_id: string
+          p_revision: number
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      hai_enqueue_work_job: {
+        Args: { p_payload: Json; p_run_id: string }
+        Returns: undefined
+      }
+      hai_ensure_points_wallet: {
+        Args: { p_user_id: string }
+        Returns: {
+          balance_tokens: number
+          created_at: string
+          newcomer_grant_tokens: number
+          newcomer_granted_at: string | null
+          total_consumed_tokens: number
+          total_credited_tokens: number
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "hai_point_wallets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      hai_expire_image_delivery_runs: { Args: never; Returns: number }
+      hai_fail_image_generation_run: {
+        Args: {
+          p_code?: string
+          p_detail?: Json
+          p_run_id: string
+          p_stage?: string
+        }
+        Returns: Json
+      }
+      hai_finalize_courseware_image: {
+        Args: {
+          p_duration_ms?: number
+          p_entity_id?: string
+          p_entity_type?: string
+          p_metadata?: Json
+          p_request_id: string
+          p_route?: string
+          p_status: string
+        }
+        Returns: undefined
+      }
+      hai_finalize_image_generation: {
+        Args: {
+          p_duration_ms?: number
+          p_entity_id?: string
+          p_metadata?: Json
+          p_request_id: string
+          p_route?: string
+          p_status: string
+        }
+        Returns: undefined
       }
       hai_finalize_usage: {
         Args: {
@@ -3534,6 +6034,59 @@ export type Database = {
           p_status: string
         }
         Returns: undefined
+      }
+      hai_finalize_usage_service: {
+        Args: {
+          p_duration_ms?: number
+          p_entity_id?: string
+          p_entity_type?: string
+          p_input_tokens: number
+          p_metadata?: Json
+          p_output_tokens: number
+          p_request_id: string
+          p_route: string
+          p_status: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      hai_find_case_library: {
+        Args: {
+          p_exclude_revision?: number
+          p_exclude_run_id?: string
+          p_limit?: number
+          p_terms: string[]
+        }
+        Returns: {
+          case_records: Json
+          content_text: string
+          id: string
+          source_pages: Json
+          title: string
+          updated_at: string
+        }[]
+      }
+      hai_finish_guided_work_job: {
+        Args: { p_lease_token: string; p_run_id: string }
+        Returns: Json
+      }
+      hai_finish_image_ppt_model: {
+        Args: {
+          p_deck_id: string
+          p_error: string
+          p_lease: string
+          p_result: Json
+          p_usage: Json
+        }
+        Returns: boolean
+      }
+      hai_finish_unit_work_job: {
+        Args: { p_lease_token: string; p_run_id: string }
+        Returns: Json
+      }
+      hai_finish_work_job: {
+        Args: { p_lease_token: string; p_run_id: string }
+        Returns: Json
       }
       hai_get_textbook_sections_by_route: {
         Args: {
@@ -3573,6 +6126,19 @@ export type Database = {
         }[]
       }
       hai_has_access: { Args: { p_user_id?: string }; Returns: boolean }
+      hai_heartbeat_work_job: {
+        Args: { p_lease_token: string; p_run_id: string }
+        Returns: boolean
+      }
+      hai_image_ppt_worker_usage: {
+        Args: {
+          p_args: Json
+          p_deck_id: string
+          p_lease: string
+          p_name: string
+        }
+        Returns: Json
+      }
       hai_import_chat_skill_snapshot: {
         Args: {
           p_instructions: string
@@ -3588,6 +6154,10 @@ export type Database = {
         Returns: Json
       }
       hai_import_textbook_payload: { Args: { p_payload: Json }; Returns: Json }
+      hai_import_textbook_v3_lite_payload: {
+        Args: { p_payload: Json }
+        Returns: Json
+      }
       hai_import_work_skill_snapshot: {
         Args: {
           p_input_contract: Json
@@ -3663,23 +6233,6 @@ export type Database = {
           title: string
         }[]
       }
-      hai_match_selected_material_chunks: {
-        Args: {
-          match_count?: number
-          query_text: string
-          selected_material_ids: string[]
-          target_user_id?: string
-        }
-        Returns: {
-          content: string
-          id: string
-          kind: string
-          material_id: string
-          metadata: Json
-          score: number
-          title: string
-        }[]
-      }
       hai_match_politics_cases: {
         Args: {
           p_frame_query?: string
@@ -3688,8 +6241,8 @@ export type Database = {
           p_match_count?: number
           p_stage: string
           p_subject: string
-          p_unit_query?: string
           p_teaching_mode?: string
+          p_unit_query?: string
         }
         Returns: {
           case_id: string
@@ -3708,7 +6261,56 @@ export type Database = {
           verification_status: string
         }[]
       }
+      hai_match_selected_material_chunks: {
+        Args: {
+          match_count?: number
+          query_text: string
+          selected_material_ids: string[]
+          target_user_id?: string
+        }
+        Returns: {
+          content: string
+          id: string
+          kind: string
+          material_id: string
+          metadata: Json
+          score: number
+          title: string
+        }[]
+      }
+      hai_point_ledger: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
+      hai_prepare_image_ppt_page: {
+        Args: {
+          p_deck_id: string
+          p_lease: string
+          p_page_id: string
+          p_prompt: string
+        }
+        Returns: Json
+      }
+      hai_prepare_web_tool_billing: {
+        Args: { p_lease_token: string; p_run_id: string }
+        Returns: undefined
+      }
+      hai_prepare_work_run: {
+        Args: {
+          p_client_request_id: string
+          p_module_slug: string
+          p_run: Json
+          p_task_id: string
+          p_task_title: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       hai_publish_chat_skill_version: {
+        Args: { p_version_id: string }
+        Returns: undefined
+      }
+      hai_publish_courseware_skill_version: {
         Args: { p_version_id: string }
         Returns: undefined
       }
@@ -3720,8 +6322,25 @@ export type Database = {
         Args: { p_module_slug: string }
         Returns: boolean
       }
+      hai_record_web_tool_success: {
+        Args: {
+          p_lease_token: string
+          p_request_number: number
+          p_run_id: string
+          p_tool_kind: string
+        }
+        Returns: undefined
+      }
       hai_redeem_invite_code: { Args: { p_code: string }; Returns: Json }
+      hai_release_image_ppt_job: {
+        Args: { p_deck_id: string; p_error?: string; p_lease: string }
+        Returns: boolean
+      }
       hai_replace_chat_skill_references: {
+        Args: { p_references: Json; p_version_id: string }
+        Returns: undefined
+      }
+      hai_replace_courseware_skill_references: {
         Args: { p_references: Json; p_version_id: string }
         Returns: undefined
       }
@@ -3729,11 +6348,27 @@ export type Database = {
         Args: { p_references: Json; p_version_id: string }
         Returns: undefined
       }
+      hai_runtime_numeric: {
+        Args: { p_fallback: number; p_key: string }
+        Returns: number
+      }
       hai_save_chat_skill_draft_snapshot: {
         Args: {
           p_instructions: string
           p_reference_config: Json
           p_references: Json
+          p_version_id: string
+          p_version_label: string
+        }
+        Returns: undefined
+      }
+      hai_save_courseware_skill_draft_snapshot: {
+        Args: {
+          p_input_contract: Json
+          p_instructions: string
+          p_output_contract: Json
+          p_references: Json
+          p_source_metadata: Json
           p_version_id: string
           p_version_label: string
         }
@@ -3750,6 +6385,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      hai_set_courseware_fallback_skill: {
+        Args: { p_skill_id: string }
+        Returns: undefined
+      }
+      hai_set_courseware_skill_enabled: {
+        Args: { p_enabled: boolean; p_skill_id: string }
+        Returns: undefined
+      }
       hai_set_work_fallback_skill: {
         Args: { p_skill_id: string }
         Returns: undefined
@@ -3758,9 +6401,17 @@ export type Database = {
         Args: { p_enabled: boolean; p_skill_id: string }
         Returns: boolean
       }
+      hai_start_image_ppt_model: {
+        Args: { p_deck_id: string; p_lease: string }
+        Returns: boolean
+      }
       hai_trigger_daily_review: { Args: never; Returns: number }
+      hai_update_web_tool_prices: {
+        Args: { p_fetch_cny: number; p_search_cny: number }
+        Returns: undefined
+      }
       hai_usage_summary: { Args: { p_user_id?: string }; Returns: Json }
-      hai_point_ledger: { Args: { p_limit?: number; p_offset?: number }; Returns: Json }
+      hai_work_queue_ready: { Args: never; Returns: boolean }
       home_page_snapshot: {
         Args: {
           activity_limit?: number
@@ -3776,6 +6427,10 @@ export type Database = {
         Returns: undefined
       }
       is_admin: { Args: never; Returns: boolean }
+      live_can_access_question: {
+        Args: { p_question_id: string }
+        Returns: boolean
+      }
       mark_notifications_read: { Args: { p_ids: string[] }; Returns: undefined }
       public_member_count: { Args: never; Returns: number }
       record_course_password_attempt: {
@@ -3786,10 +6441,111 @@ export type Database = {
         Args: { p_course_id: string; p_user_id: string }
         Returns: undefined
       }
+      record_live_participant: {
+        Args: { p_live_id: string }
+        Returns: undefined
+      }
       record_visit: { Args: { p_visitor_uuid: string }; Returns: Json }
       refresh_user_total_credits: {
         Args: { p_user_id: string }
         Returns: number
+      }
+      reserve_phone_login_attempt: {
+        Args: { p_phone: string }
+        Returns: boolean
+      }
+      set_live_participant_tags: {
+        Args: { p_live_id: string; p_tags: string[]; p_user_id: string }
+        Returns: string[]
+      }
+      set_live_question_audience: {
+        Args: {
+          p_audience_mode: string
+          p_question_id: string
+          p_tags: string[]
+          p_user_ids: string[]
+        }
+        Returns: Json
+      }
+      start_legacy_email_binding: {
+        Args: { p_digest: string; p_email: string; p_user: string }
+        Returns: boolean
+      }
+      v2_get_assessment_key_admin: {
+        Args: { p_item_id: string }
+        Returns: Json
+      }
+      v2_import_course_workbook: { Args: { p_payload: Json }; Returns: Json }
+      v2_publish_lesson_admin: {
+        Args: { p_lesson_id: string }
+        Returns: {
+          body_markdown: string | null
+          challenge_markdown: string | null
+          challenge_title: string | null
+          created_at: string
+          credits: number
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          is_trial: boolean
+          lesson_type_id: string | null
+          membership_type: string | null
+          objectives: Json
+          published_at: string | null
+          slug: string | null
+          sort_order: number
+          status: string
+          subtitle: string | null
+          success_criteria_markdown: string | null
+          takeaway_markdown: string | null
+          title: string
+          unit_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "v2_course_lessons"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      v2_save_assessment_item_admin: {
+        Args: {
+          p_answer_key: Json
+          p_assessment_block_id: string
+          p_case_markdown: string
+          p_grading_mode_id: string
+          p_is_required: boolean
+          p_item_id: string
+          p_item_type_id: string
+          p_max_score: number
+          p_options: Json
+          p_prompt_markdown: string
+          p_rubric: Json
+          p_sort_order: number
+        }
+        Returns: string
+      }
+      v2_submit_attempt: {
+        Args: { p_attempt_id: string }
+        Returns: {
+          assessment_block_id: string
+          attempt_no: number
+          created_at: string
+          final_score: number | null
+          id: string
+          started_at: string
+          status: string
+          submitted_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "v2_submission_attempts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       verify_course_access_password: {
         Args: { p_course_id: string; p_password: string }
@@ -3797,7 +6553,7 @@ export type Database = {
       }
     }
     Enums: {
-      access_level: "free" | "plus2025" | "plus" | "pro"
+      access_level: "free" | "plus" | "plus2025" | "pro"
       course_level: "入门" | "初级" | "中级" | "高级"
       course_status: "draft" | "published" | "archived"
       isd_access_level: "free" | "paid"
@@ -3820,12 +6576,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3849,11 +6605,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3874,11 +6630,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3899,11 +6655,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3916,11 +6672,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3930,12 +6686,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
-      access_level: ["free", "plus2025", "plus", "pro"],
+      access_level: ["free", "plus", "plus2025", "pro"],
       course_level: ["入门", "初级", "中级", "高级"],
       course_status: ["draft", "published", "archived"],
       isd_access_level: ["free", "paid"],

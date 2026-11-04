@@ -106,11 +106,12 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
     vi.mocked(canAccessCourse).mockReturnValue(false);
 
     const { rerender } = render(<MemoryRouter><Page /></MemoryRouter>);
-    expect(screen.getByRole('link', { name: `购买${name}` })).toHaveAttribute('href', purchaseUrl);
+    fireEvent.click(screen.getByRole('button', { name: `购买${name}` }));
+    expect(within(screen.getByRole('dialog')).getByRole('link', { name: /小红书支付/ })).toHaveAttribute('href', purchaseUrl);
 
     vi.mocked(canAccessCourse).mockReturnValue(true);
     rerender(<MemoryRouter><Page /></MemoryRouter>);
-    await waitFor(() => expect(screen.queryByRole('link', { name: `购买${name}` })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole('button', { name: `购买${name}` })).not.toBeInTheDocument());
   });
 
   it('管理员查看课程目录时不显示购买入口', async () => {
@@ -122,7 +123,7 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
     });
     render(<MemoryRouter><CoursesPage /></MemoryRouter>);
     await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
-    expect(screen.queryByRole('link', { name: '购买教学通识课' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '购买教学通识课' })).not.toBeInTheDocument();
   });
 
   it('访客打开道法单课时可直接看到购买入口', () => {
@@ -131,7 +132,8 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
     render(<MemoryRouter initialEntries={['/courses/daofa/alignment-canvas']}>
       <Routes><Route path="/courses/daofa/:lessonId" element={<DaofaLessonPage />} /></Routes>
     </MemoryRouter>);
-    expect(screen.getByRole('link', { name: '购买道法教材解读课' })).toHaveAttribute('href', 'https://xhslink.com/m/277IB24mn8I');
+    fireEvent.click(screen.getByRole('button', { name: '购买道法教材解读课' }));
+    expect(within(screen.getByRole('dialog')).getByRole('link', { name: /小红书支付/ })).toHaveAttribute('href', 'https://xhslink.com/m/277IB24mn8I');
   });
 
   it('教师 AI 课以课程系列目录呈现，并为课程入口提供可访问名称', async () => {

@@ -7,8 +7,10 @@ import {
 import {
   type ChatMessage,
   createAdminClient,
+  HttpError,
   jsonResponse,
   normalizeRecord,
+  parseBoolean,
   requireUser,
   streamDeepSeek,
 } from "../_shared/hai.ts";
@@ -144,6 +146,7 @@ Deno.serve(async (request) => {
     const result = await runDailyReview(admin, window, settings);
     return jsonResponse({ ok: true, ...result });
   } catch (error) {
+    const status = error instanceof HttpError ? error.status : 500;
     const message = error instanceof Error ? error.message : String(error);
     if (authorized && reviewRunAttempt) {
       await writeRun(admin, window, {
@@ -154,7 +157,7 @@ Deno.serve(async (request) => {
       }).catch(() => undefined);
     }
     console.error("hai daily review failed", error);
-    return jsonResponse({ message }, 500);
+    return jsonResponse({ message }, status);
   }
 });
 
@@ -818,7 +821,8 @@ async function loadSettings(
   if (error) throw error;
   const values = new Map((data ?? []).map((row) => [row.key, row.value]));
   return {
-    enabled: Boolean(values.get("daily_review.enabled") ?? true),
+    // value 列是 jsonb：管理员界面若写入字符串 "false"，Boolean("false") 恒为 true，必须显式解析。
+    enabled: parseBoolean(values.get("daily_review.enabled"), true),
     passScore: numberSetting(values, "daily_review.pass_score", 80, 60, 95),
     minLowScoreTurns: numberSetting(
       values,

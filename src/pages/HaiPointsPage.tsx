@@ -1,3 +1,4 @@
+import { formatPoints } from "@/lib/utils";
 import { ArrowDownLeft, ArrowUpRight, CheckCircle2, ChevronDown, Coins, Loader2, MessageCircleMore, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -308,11 +309,6 @@ function formatLedgerTime(value: string) {
     year: "numeric", month: "2-digit", day: "2-digit",
     hour: "2-digit", minute: "2-digit",
   }).format(date);
-}
-
-function formatPoints(value?: number) {
-  const points = Number(value ?? 0);
-  return Number.isInteger(points) ? points.toLocaleString("zh-CN") : points.toLocaleString("zh-CN", { maximumFractionDigits: 2 });
 }
 
 function formatValueMetrics(value?: string) {

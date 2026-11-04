@@ -116,6 +116,7 @@ Deno.serve(async (request) => {
     if (body.action === "starter_questions") {
       return await generateStarterQuestions({
         admin: auth.admin,
+        userClient: auth.userClient,
         userId: auth.user.id,
         moduleSlug: "hai-chat",
         requestId: body.clientRequestId
@@ -605,6 +606,7 @@ Deno.serve(async (request) => {
 
 async function generateStarterQuestions(params: {
   admin: any;
+  userClient: any;
   userId: string;
   moduleSlug: string;
   requestId: string;
@@ -644,6 +646,39 @@ async function generateStarterQuestions(params: {
   let output = "";
   let usage: HaiProviderUsage | null = null;
   let providerCode = "deepseek";
+
+  const fallbackResponse = () => jsonResponse({
+    questions: buildRecentSceneFallbackQuestions(recentQuestions),
+    personalized: true,
+    sourceCount: recentQuestions.length,
+    fallback: true,
+  });
+
+  // 开场推荐是真实模型调用：与其他对话轮次一样先预占积分再调用，
+  // 额度不足或预占失败时静默降级为场景兜底问题，不消耗模型成本。
+  const estimatedInputTokens = estimateTokens(
+    messages.map((item) => item.content).join("\n"),
+  );
+  const configSnapshot = runtimeConfigSnapshot(runtime, starterOptions);
+  try {
+    await reserveUsage({
+      userClient: params.userClient,
+      requestId: params.requestId,
+      route: "hai-chat-starters",
+      estimatedInputTokens,
+      estimatedOutputTokens: starterOptions.maxTokens,
+      metadata: buildUsageMetadata(runtime, {
+        stage: "chat_starter_questions",
+        module_slug: module.slug,
+      }, configSnapshot),
+    });
+  } catch (reserveError) {
+    console.warn("starter questions reservation failed, using fallback:", {
+      requestId: params.requestId,
+      error: reserveError instanceof Error ? reserveError.message : String(reserveError),
+    });
+    return fallbackResponse();
+  }
 
   try {
     for await (
@@ -686,6 +721,31 @@ async function generateStarterQuestions(params: {
         used_model_output: Boolean(generated),
       },
     });
+    // 结算与主链路一致：预留已建立，必须按实际用量完成或退款。
+    try {
+      const starterUsage = usage as HaiProviderUsage | null;
+      await finalizeUsage({
+        adminClient: params.admin,
+        userId: params.userId,
+        requestId: params.requestId,
+        status: "completed",
+        route: "hai-chat-starters",
+        inputTokens: starterUsage?.promptTokens ?? estimatedInputTokens,
+        outputTokens: starterUsage?.completionTokens ?? estimateTokens(output),
+        entityType: "user",
+        entityId: params.userId,
+        durationMs: Date.now() - startedAt.getTime(),
+        metadata: buildUsageMetadata(runtime, {
+          stage: "chat_starter_questions",
+          module_slug: module.slug,
+        }, configSnapshot),
+      });
+    } catch (finalizeError) {
+      console.error("starter questions finalize failed:", {
+        requestId: params.requestId,
+        error: finalizeError instanceof Error ? finalizeError.message : String(finalizeError),
+      });
+    }
     return jsonResponse({
       questions,
       personalized: true,
@@ -693,6 +753,30 @@ async function generateStarterQuestions(params: {
       fallback: !generated,
     });
   } catch (error) {
+    try {
+      await finalizeUsage({
+        adminClient: params.admin,
+        userId: params.userId,
+        requestId: params.requestId,
+        status: "failed",
+        route: "hai-chat-starters",
+        inputTokens: estimatedInputTokens,
+        outputTokens: estimateTokens(output),
+        entityType: "user",
+        entityId: params.userId,
+        durationMs: Date.now() - startedAt.getTime(),
+        metadata: buildUsageMetadata(runtime, {
+          stage: "chat_starter_questions",
+          module_slug: module.slug,
+          error: error instanceof Error ? error.message : String(error),
+        }, configSnapshot),
+      });
+    } catch (finalizeError) {
+      console.error("starter questions failure finalize failed:", {
+        requestId: params.requestId,
+        error: finalizeError instanceof Error ? finalizeError.message : String(finalizeError),
+      });
+    }
     await recordHaiModelCall({
       admin: params.admin,
       userId: params.userId,
@@ -714,12 +798,7 @@ async function generateStarterQuestions(params: {
         error: error instanceof Error ? error.message : String(error),
       },
     });
-    return jsonResponse({
-      questions: buildRecentSceneFallbackQuestions(recentQuestions),
-      personalized: true,
-      sourceCount: recentQuestions.length,
-      fallback: true,
-    });
+    return fallbackResponse();
   }
 }
 

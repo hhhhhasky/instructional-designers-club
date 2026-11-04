@@ -714,20 +714,23 @@ describe('CourseDetailPage — 未开通课程购买入口', () => {
   });
 
   it('已登录但未开通时显示对应课程的购买链接', async () => {
+    const user = userEvent.setup();
     renderCourseDetail('c1');
 
-    const purchaseLink = await screen.findByRole('link', { name: '购买教师 AI 课' });
-    expect(purchaseLink).toHaveAttribute('href', 'https://xhslink.com/m/4neOp7EhPHm');
+    await user.click(await screen.findByRole('button', { name: '购买教师 AI 课' }));
+    expect(within(screen.getByRole('dialog')).getByRole('link', { name: /小红书支付/ })).toHaveAttribute('href', 'https://xhslink.com/m/4neOp7EhPHm');
     expect(screen.queryByText('课程简介')).not.toBeInTheDocument();
     expect(getCourseProtectedContent).not.toHaveBeenCalled();
   });
 
   it('未登录访客也能看到购买链接和登录入口', async () => {
+    const user = userEvent.setup();
     mockCurrentUser = null;
     renderCourseDetail('c1');
 
-    expect(await screen.findByRole('link', { name: '购买教师 AI 课' })).toHaveAttribute('href', 'https://xhslink.com/m/4neOp7EhPHm');
-    expect(screen.getByRole('button', { name: '登录已有账号' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: '登录已有账号' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '购买教师 AI 课' }));
+    expect(within(screen.getByRole('dialog')).getByRole('link', { name: /小红书支付/ })).toHaveAttribute('href', 'https://xhslink.com/m/4neOp7EhPHm');
     expect(mockNavigate).not.toHaveBeenCalledWith('/login', expect.anything());
   });
 });
@@ -773,7 +776,7 @@ describe('CourseDetailPage — 单课密码试看', () => {
     await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
 
     expect(screen.getByRole('heading', { name: '输入单课访问密码' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '购买教师 AI 课' })).toHaveAttribute('href', 'https://xhslink.com/m/4neOp7EhPHm');
+    expect(screen.getByRole('button', { name: '购买教师 AI 课' })).toBeInTheDocument();
     expect(screen.queryByText('课程简介')).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText('试看密码'), 'lesson-2026');
@@ -871,6 +874,6 @@ describe('正常课程详情按课程产品展示道法视频与正文', () => {
     vi.mocked(getCourseProductCatalog).mockResolvedValue({ courses: [], categories: [], coursesByCategory: {} });
     await renderAndWait('locked', [], { access_product_code: 'daofa-textbook', membership_type: 'plus', video_url: null, has_body: true });
     expect(getCourseProtectedContent).not.toHaveBeenCalled();
-    expect(screen.getByRole('link', { name: '购买道法教材解读课' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '购买道法教材解读课' })).toBeInTheDocument();
   });
 });

@@ -1,3 +1,4 @@
+import { formatShortDateTime } from "@/lib/utils";
 import {
   Activity,
   AlertTriangle,
@@ -320,7 +321,7 @@ export default function HaiDashboardSection() {
             <tbody>
               {(data.recent_model_calls ?? []).slice(0, 30).map((call) => (
                 <tr key={call.id} className="border-b border-bdl">
-                  <td className="py-2 text-ds-xs text-txs">{formatDateTime(call.started_at)}</td>
+                  <td className="py-2 text-ds-xs text-txs">{formatShortDateTime(call.started_at)}</td>
                   <td className="font-ds-semibold text-tx">{call.profile?.nickname ?? "未知用户"}</td>
                   <td><Badge variant="outline">{modelCallStageLabel(call.stage)}</Badge></td>
                   <td className="max-w-[180px] truncate text-ds-xs text-txs">{call.model}</td>
@@ -424,7 +425,7 @@ export default function HaiDashboardSection() {
                   <td className="px-4 py-3 text-right">
                     <span className={user.failed_count > 0 ? "text-red-600" : "text-txs"}>{user.failed_count}</span>
                   </td>
-                  <td className="px-4 py-3 text-right text-ds-xs text-txs">{formatDateTime(user.last_used_at)}</td>
+                  <td className="px-4 py-3 text-right text-ds-xs text-txs">{formatShortDateTime(user.last_used_at)}</td>
                 </tr>
               ))}
               {userRankings.length === 0 && (
@@ -446,7 +447,7 @@ export default function HaiDashboardSection() {
               <tbody>
                 {data.recent_events.slice(0, 12).map((event) => (
                   <tr key={event.id} className="border-b border-bdl">
-                    <td className="py-2 text-ds-xs text-txs">{formatDateTime(event.created_at)}</td>
+                    <td className="py-2 text-ds-xs text-txs">{formatShortDateTime(event.created_at)}</td>
                     <td><span className="font-ds-semibold text-tx">{event.profile?.nickname ?? "未知用户"}</span></td>
                     <td className="text-txs">{event.route}</td>
                     <td><StatusBadge status={event.status} /></td>
@@ -471,7 +472,7 @@ export default function HaiDashboardSection() {
                   <Badge variant="outline" className={alert.severity === "critical" ? "border-red-200 text-red-600" : "border-amber-200 text-amber-700"}>
                     {alert.severity}
                   </Badge>
-                  <span className="text-xs text-txs">{formatDateTime(alert.created_at)}</span>
+                  <span className="text-xs text-txs">{formatShortDateTime(alert.created_at)}</span>
                 </div>
                 <p className="mt-2 text-ds-sm font-ds-bold text-tx">{alert.title}</p>
                 <p className="mt-1 text-ds-xs leading-relaxed text-txs">{alert.description || alert.profile?.nickname || "HAI 运行告警"}</p>
@@ -501,7 +502,7 @@ export default function HaiDashboardSection() {
                       <Badge variant="outline" className={trace.passed === false ? "border-red-200 text-red-600" : "border-tl/30 text-tl"}>
                         {trace.score === null ? "未评分" : `${trace.score} 分`}
                       </Badge>
-                      <span className="text-xs text-txs">{formatDateTime(trace.created_at)}</span>
+                      <span className="text-xs text-txs">{formatShortDateTime(trace.created_at)}</span>
                     </div>
                     <p className="mt-2 line-clamp-2 text-ds-sm leading-relaxed text-tx">{trace.question}</p>
                     <p className="mt-1 text-xs text-txs">{haiSceneLabel(trace.scene)} · {trace.route_method} · 诊断 {trace.diagnostic_module} · 方法卡 {trace.method_card_ids.length} 张 · 记忆 {trace.memory_selection.loaded === true ? "已加载" : "未加载"}</p>
@@ -535,7 +536,7 @@ export default function HaiDashboardSection() {
                   <TraceDetail title={`实际发送给模型的消息组合${trace.prompt_assembly ? ` · ${trace.prompt_assembly.model_calls.length} 次调用 · 最终 ${trace.prompt_assembly.final_stage}` : " · 旧 trace 无快照"}`}>
                     {trace.prompt_assembly ? (
                       <div className="space-y-2">
-                        <p className="text-xs text-txs">记录时间：{formatDateTime(trace.prompt_assembly.captured_at)}</p>
+                        <p className="text-xs text-txs">记录时间：{formatShortDateTime(trace.prompt_assembly.captured_at)}</p>
                         {trace.prompt_assembly.model_calls.map((call, index) => (
                           <details key={`${trace.id}-${call.stage}-${index}`} className="rounded-ds-md border border-bd bg-white p-3">
                             <summary className="cursor-pointer text-ds-xs font-ds-bold text-tx">{index + 1}. {call.stage} · 估算输入 {formatNumber(call.estimated_input_tokens)} tokens · {call.messages.length} 条消息</summary>
@@ -576,7 +577,7 @@ export default function HaiDashboardSection() {
                     <div className="flex flex-wrap items-center gap-1.5">
                       <Badge variant="outline">{workToolLabel(run.module_slug)}</Badge>
                       <Badge variant="outline" className={run.status === "failed" ? "border-red-200 text-red-600" : "border-tl/30 text-tl"}>{workStatusLabel(run.status)}</Badge>
-                      <span className="text-xs text-txs">{formatDateTime(run.created_at)}</span>
+                      <span className="text-xs text-txs">{formatShortDateTime(run.created_at)}</span>
                     </div>
                     <p className="mt-2 text-ds-sm font-ds-bold text-tx">{run.task_title}</p>
                     <p className="mt-1 text-xs text-txs">
@@ -785,10 +786,6 @@ function formatDuration(milliseconds: number) {
   if (milliseconds <= 0) return "-";
   if (milliseconds < 1000) return `${milliseconds}ms`;
   return `${(milliseconds / 1000).toFixed(milliseconds >= 10000 ? 0 : 1)}s`;
-}
-
-function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 }
 
 function maskPhone(phone: string) {

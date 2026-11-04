@@ -1,3 +1,4 @@
+import { formatPoints } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Brain, Coins, Pin, X } from "lucide-react";
@@ -154,11 +155,6 @@ function UsagePanel({
       </div>
     </div>
   );
-}
-
-function formatPoints(value?: number) {
-  const points = Number(value ?? 0);
-  return Number.isInteger(points) ? points.toLocaleString("zh-CN") : points.toLocaleString("zh-CN", { maximumFractionDigits: 2 });
 }
 
 function memoryLabel(category: string) {

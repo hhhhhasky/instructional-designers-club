@@ -1,3 +1,4 @@
+import { formatShortDateTime } from "@/lib/utils";
 import HaiBatchPoints from "@/components/admin/hai/HaiBatchPoints";
 import HaiImagePromptManagement from "@/components/admin/HaiImagePromptManagement";
 import WebToolBillingSettings from "@/components/admin/hai/WebToolBillingSettings";
@@ -1446,7 +1447,7 @@ export default function HaiManagementSection() {
                       </div>
                       <p className="text-xs text-txs">
                         {methodCardDraft.updatedAt
-                          ? `数据库更新于 ${formatDateTime(methodCardDraft.updatedAt)}`
+                          ? `数据库更新于 ${formatShortDateTime(methodCardDraft.updatedAt)}`
                           : "当前为代码默认版本，保存后会生成数据库覆盖记录。"}
                       </p>
                     </div>
@@ -1948,7 +1949,7 @@ export default function HaiManagementSection() {
                 </Badge>
               </div>
               <p className="text-ds-xs text-txs">
-                {source.topic || "未分类"} · {formatDateTime(source.updated_at)} · {source.chunk_count ?? 0} chunks
+                {source.topic || "未分类"} · {formatShortDateTime(source.updated_at)} · {source.chunk_count ?? 0} chunks
               </p>
               <div className="mt-3 grid grid-cols-3 gap-2">
                 <Button size="sm" variant="outline" onClick={(event) => {
@@ -2170,19 +2171,6 @@ export function CollapsiblePanel({
       )}
     </section>
   );
-}
-
-function formatDateTime(value: string) {
-  try {
-    return new Intl.DateTimeFormat("zh-CN", {
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(new Date(value));
-  } catch {
-    return "";
-  }
 }
 
 function formatAdminPoints(value?: number) {

@@ -92,22 +92,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const p = await loadProfile(s.user.id);
-      if (p?.status === 'banned') {
-        await doSignOut();
+      // 资料或权限查询抛错时也必须熄灭加载门，否则整站卡在启动加载且无人可见原因。
+      try {
+        const p = await loadProfile(s.user.id);
+        if (p?.status === 'banned') {
+          await doSignOut();
+          if (mounted && profileLoadId.current === requestId) {
+            setSession(null);
+            setUser(null);
+            setProfile(null);
+            setCourseAccessCodes([]);
+            setLoading(false);
+          }
+          return;
+        }
         if (mounted && profileLoadId.current === requestId) {
-          setSession(null);
-          setUser(null);
+          setProfile(p);
+          setCourseAccessCodes(p ? await getUserCourseAccessCodes(p) : []);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('applySession failed:', error);
+        if (mounted && profileLoadId.current === requestId) {
           setProfile(null);
           setCourseAccessCodes([]);
           setLoading(false);
         }
-        return;
-      }
-      if (mounted && profileLoadId.current === requestId) {
-        setProfile(p);
-        setCourseAccessCodes(p ? await getUserCourseAccessCodes(p) : []);
-        setLoading(false);
       }
     };
 
@@ -196,7 +206,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     profileLoadId.current++;
-    await doSignOut();
+    // 服务端登出失败（如网络中断）时也要完成本地清理，避免界面停留在已登录状态。
+    try {
+      await doSignOut();
+    } catch (error) {
+      console.error('signOut request failed, clearing local session anyway:', error);
+    }
     setUser(null);
     setProfile(null);
     setCourseAccessCodes([]);

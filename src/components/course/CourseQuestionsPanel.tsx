@@ -1,3 +1,4 @@
+import { formatShortDateTime } from "@/lib/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MessageCircle, RefreshCw, Send, UserRound } from "lucide-react";
 import { toast } from "sonner";
@@ -282,7 +283,7 @@ export default function CourseQuestionsPanel({ course }: CourseQuestionsPanelPro
                         {tag.name}
                       </span>
                     ))}
-                    <span className="text-xs text-txs">{formatDate(question.created_at)}</span>
+                    <span className="text-xs text-txs">{formatShortDateTime(question.created_at)}</span>
                   </div>
                   <p className="line-clamp-2 text-sm font-medium leading-relaxed text-tx whitespace-pre-wrap">
                     {question.body}
@@ -298,7 +299,7 @@ export default function CourseQuestionsPanel({ course }: CourseQuestionsPanelPro
                       <div key={reply.id} className="rounded-ds-md bg-bgs px-3 py-3">
                         <div className="flex flex-wrap items-center gap-2 text-xs text-txs mb-1.5">
                           <span>{reply.author_display_name}</span>
-                          <span>{formatDate(reply.created_at)}</span>
+                          <span>{formatShortDateTime(reply.created_at)}</span>
                         </div>
                         <p className="text-sm leading-relaxed text-tx whitespace-pre-wrap">{reply.body}</p>
                       </div>
@@ -348,13 +349,3 @@ export default function CourseQuestionsPanel({ course }: CourseQuestionsPanelPro
   );
 }
 
-function formatDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString("zh-CN", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}

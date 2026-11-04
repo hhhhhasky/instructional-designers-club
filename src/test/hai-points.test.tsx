@@ -362,7 +362,7 @@ describe("HAI points wallet migration contract", () => {
     expect(adminSource).toContain("新增套餐");
     expect(adminSource).toContain('supabase.from("hai_point_packages")');
     expect(adminSource).toContain("可完成内容（每行一条）");
-    expect(adminSource).toContain("每 1 积分售价");
+    expect(adminSource).toContain("每 1 积分基础金额");
     expect(adminSource).toContain("保存金额-积分");
   });
 

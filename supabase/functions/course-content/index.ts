@@ -1,12 +1,8 @@
+import { corsHeaders } from "../_shared/hai.ts";
 import { GetObjectCommand, S3Client } from "npm:@aws-sdk/client-s3";
 import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner";
 import { createClient } from "npm:@supabase/supabase-js@2.103.1";
 import { getSupabasePublishableKey, getSupabaseSecretKey } from "../_shared/supabase-keys.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const signedUrlTtlSeconds = 2 * 60 * 60;
 
@@ -178,18 +174,23 @@ Deno.serve(async (request) => {
     let hasMemberAccess = false;
     const token = extractBearerToken(request);
     if (token) {
-      const { data: userData } = await service.auth.getUser(token);
+      const { data: userData, error: authError } = await service.auth.getUser(token);
       userId = userData.user?.id ?? null;
+      if (authError && authError.status !== 401 && authError.status !== 403) throw authError;
+      if (!userId && !password && course.membership_type !== "free" && !course.is_trial) {
+        return jsonResponse({ error: "登录已失效，请重新登录", code: "SESSION_EXPIRED" }, 401);
+      }
     }
     if (userId && token) {
       const viewer = createClient(supabaseUrl, publishableKey, {
         global: { headers: { Authorization: `Bearer ${token}` } },
         auth: { persistSession: false, autoRefreshToken: false },
       });
-      const [{ data: adminData }, { data: accessData }] = await Promise.all([
+      const [{ data: adminData, error: adminError }, { data: accessData, error: accessError }] = await Promise.all([
         viewer.rpc("is_admin"),
         viewer.rpc("can_access_course", { p_course_id: courseId }),
       ]);
+      if (adminError || accessError) throw adminError || accessError;
       isAdmin = adminData === true;
       hasMemberAccess = accessData === true;
     }

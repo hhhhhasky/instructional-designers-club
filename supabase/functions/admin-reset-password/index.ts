@@ -1,3 +1,4 @@
+import { corsHeaders } from "../_shared/hai.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.103.1";
 import { getSupabasePublishableKey, getSupabaseSecretKey } from "../_shared/supabase-keys.ts";
 
@@ -8,12 +9,6 @@ import { getSupabasePublishableKey, getSupabaseSecretKey } from "../_shared/supa
 //   action=reject  → 标记 rejected
 // 鉴权：请求头 Authorization + is_admin() RPC
 // ============================================================
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
 
 function jsonResponse(body: Record<string, unknown>, status: number) {
   return new Response(JSON.stringify(body), {
