@@ -501,7 +501,7 @@ function WorkToolForm({
     const inputForm = { ...form, constraints: [request.trim(), form.constraints.trim()].filter(Boolean).join("\n\n"), desired_outcome: form.desired_outcome.trim() || request.trim(), desired_outcomes: form.desired_outcomes.trim() || request.trim() };
     const validation = catalogLoading ? "请等待教材目录加载完成。" : isUnitDesign
       ? validateUnitSelection(form.reconstruction_scope, unitBooks) || (catalogLoading ? "请等待教材目录加载完成。" : "")
-      : validateForm(toolSlug, inputForm, files.length, requiresTeacherTextbook, hierarchyLabels);
+      : validateForm(toolSlug, inputForm, requiresTeacherTextbook, hierarchyLabels);
     if (validation) {
       setError(validation);
       return;
@@ -611,7 +611,7 @@ function WorkToolForm({
         )}
         {requiresTeacherTextbook && !isUnitDesign && (
           <div className="mt-4 rounded-[16px] border border-amber-300 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
-            当前年级与学科暂未收录内置教材。请填写教材信息，并通过输入框“+”上传教材文件。
+            当前年级与学科暂未收录内置教材。请填写教材信息；也可以在输入框中补充内容或上传教材文件。
           </div>
         )}
       </div>
@@ -842,7 +842,6 @@ function initialForm(toolSlug: HaiWorkToolSlug) {
 function validateForm(
   toolSlug: HaiWorkToolSlug,
   form: Record<string, string>,
-  fileCount: number,
   requiresTeacherTextbook = false,
   hierarchyLabels: HaiTextbookHierarchy = getHaiTextbookHierarchy(form.subject),
 ) {
@@ -861,13 +860,10 @@ function validateForm(
     if (!form.desired_outcomes.trim()) return "请填写预期成果或任务说明。";
     if (!form.unit_duration.trim()) return "请填写课时或范围。";
   }
-  if (toolSlug === "lesson-diagnosis" && !form.lesson_plan.trim() && fileCount === 0) return "请通过输入框“+”上传教案文件。";
   if (toolSlug === "segment-optimization") {
     if (!form.segment_type) return "请选择要优化的环节。";
-    if (!form.current_design.trim() && fileCount === 0) return "请通过输入框“+”上传环节设计文件。";
     if (!form.desired_outcome.trim()) return "请说明希望优化后达成的效果。";
   }
-  if (requiresTeacherTextbook && !form.textbook_content.trim() && fileCount === 0) return "当前年级与学科暂无内置教材，请通过输入框“+”上传教材文件。";
   return "";
 }
 

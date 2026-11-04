@@ -194,13 +194,7 @@ Deno.serve(async (request) => {
     const politicsCases = toolSlug === "subject-lesson-design"
       ? await loadPoliticsCaseContext(auth.admin, input)
       : { context: "", sources: [] as PoliticsCaseSource[] };
-    if (
-      !textbook.context &&
-      !materialContext &&
-      !String(input.textbook_content ?? "").trim()
-    ) {
-      throw new HttpError(422, "内置教材库没有命中这节课，请检查年级、册次、单元和课题，或上传教材内容。");
-    }
+
 
     let taskId = body.taskId
       ? await validateTask(auth.admin, auth.user.id, String(body.taskId), toolSlug)

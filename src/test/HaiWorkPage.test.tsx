@@ -447,12 +447,12 @@ describe("HAI Work workbench", () => {
     await user.type(screen.getByRole("textbox", { name: "册次 / 教材" }), "上册");
     await user.type(screen.getByRole("textbox", { name: "单元" }), "Unit 1");
     await user.type(screen.getByRole("textbox", { name: /课题/ }), "My school");
-    await attachText(user, "本课教材内容");
     await user.click(screen.getByRole("button", { name: "提交公开课设计任务" }));
 
     expect(submitHaiWork).toHaveBeenCalledWith(
       expect.objectContaining({
         toolSlug: "subject-lesson-design",
+        materialIds: [],
         input: expect.objectContaining({ subject: "英语", grade: "8年级", topic: "My school", teaching_mode: "" }),
       }),
     );
@@ -548,19 +548,21 @@ describe("HAI Work workbench", () => {
     await user.type(screen.getByRole("textbox", { name: "册次 / 教材" }), "上册");
     await user.type(screen.getByRole("textbox", { name: "单元" }), "Unit 1");
     await user.type(screen.getByRole("textbox", { name: /课题/ }), "My school");
-    await attachText(user, "本课教材内容");
+    await user.type(screen.getByLabelText("描述你的教学需求"), "请分析教学目标");
     await user.click(screen.getByRole("button", { name: "提交教案诊断任务" }));
 
     expect(submitHaiWork).toHaveBeenCalledWith(
       expect.objectContaining({
         toolSlug: "lesson-diagnosis",
-        input: expect.objectContaining({ subject: "英语", grade: "4年级" }),
+        materialIds: [],
+        input: expect.objectContaining({ subject: "英语", grade: "4年级", constraints: "请分析教学目标" }),
       }),
     );
   });
 
-  it("rejects segment-optimization when current design and files are both empty", async () => {
+  it("submits segment optimization without a design file", async () => {
     const user = userEvent.setup();
+    vi.mocked(submitHaiWork).mockResolvedValue({ taskId: "task-1", runId: "run-3", status: "queued", artifactId: null, error: null, replayed: false });
     renderAt("/hai/work/segment-optimization");
 
     await screen.findByRole("form", { name: "环节优化设置" });
@@ -573,7 +575,7 @@ describe("HAI Work workbench", () => {
     await user.type(screen.getByLabelText("描述你的教学需求"), "暴露前概念");
     await user.click(screen.getByRole("button", { name: /提交环节优化任务/ }));
 
-    expect(await screen.findByText("请通过输入框“+”上传环节设计文件。")).toBeInTheDocument();
+    expect(submitHaiWork).toHaveBeenCalledWith(expect.objectContaining({ toolSlug: "segment-optimization", materialIds: [], input: expect.objectContaining({ desired_outcome: "暴露前概念" }) }));
   });
 
   it("only exposes the four currently supported segment types", async () => {

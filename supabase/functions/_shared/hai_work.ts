@@ -264,7 +264,7 @@ export function buildWorkArtifactTitle(
 export function validateWorkInput(
   toolSlug: HaiWorkToolSlug,
   input: Record<string, unknown>,
-  materialCount: number,
+  _materialCount: number,
 ) {
   if (toolSlug === "unit-learning-design") {
     if (!String(input.stage ?? "").trim() || !String(input.subject ?? "").trim()) throw new Error("请选择学段和学科。");
@@ -319,30 +319,6 @@ export function validateWorkInput(
     }
   }
 
-  if (
-    toolSlug === "lesson-diagnosis" &&
-    !String(input.lesson_plan ?? "").trim() &&
-    materialCount === 0
-  ) {
-    throw new Error("请粘贴教案正文或上传教案文件。");
-  }
-
-  if (
-    toolSlug === "lesson-diagnosis" &&
-    input.output_mode === "lesson-plan-optimization" &&
-    !String(input.lesson_plan ?? "").trim() &&
-    materialCount === 0
-  ) {
-    throw new Error("生成优化教案时必须保留原始教案正文或上传教案文件。");
-  }
-
-  if (
-    toolSlug === "segment-optimization" &&
-    !String(input.current_design ?? "").trim() &&
-    materialCount === 0
-  ) {
-    throw new Error("请粘贴当前环节设计，或上传环节设计文件。");
-  }
 
 }
 
@@ -487,7 +463,7 @@ const MARKDOWN_DIRECTIVE: Record<HaiWorkToolSlug, string> = {
 };
 
 const LESSON_PLAN_OPTIMIZATION_DIRECTIVE =
-  "请直接输出一份完整的 Markdown 优化后教案，不要输出诊断报告、修改清单或 JSON。必须保留并正确使用原始教案的课题、学段、学科、教材边界和课时约束；按教材与学情证据重写课程基本信息、教材分析、学情分析、教学目标、教学重难点、教学流程、教学评估和板书设计。教学流程要把诊断报告中的优先问题落实为具体的教师行为、学生行为、核心问题/任务、预期产出、学习证据、评价反馈和时间安排；内容不足时明确标注待教师核验，不得杜撰教材事实。输出只包含可直接下载使用的 Markdown 教案。";
+  "请直接输出一份完整的 Markdown 优化后教案，不要输出诊断报告、修改清单或 JSON。应保留并正确使用已有的课题、学段、学科、教材边界和课时约束；按教材与学情证据重写课程基本信息、教材分析、学情分析、教学目标、教学重难点、教学流程、教学评估和板书设计。教学流程要把诊断报告中的优先问题落实为具体的教师行为、学生行为、核心问题/任务、预期产出、学习证据、评价反馈和时间安排；内容不足时明确标注待教师核验，不得杜撰教材事实。输出只包含可直接下载使用的 Markdown 教案。";
 
 /** 环节优化的开放环节方法论。前端当前开放课程导入、问题链、任务活动、评价反馈；其余旧类型保留兼容。 */
 const SEGMENT_METHODOLOGY: Record<string, string> = {
@@ -561,15 +537,16 @@ export function buildWorkPrompt(params: {
     : "";
   const segmentType = String(params.input.segment_type ?? "").trim();
   const optimizationSystem = [
-    "你现在只负责根据已确认的诊断报告优化教案，不执行教案诊断任务。优化本轮的核心输入只有‘原始教案’和‘已确认的诊断报告’；不要追加诊断方法说明或版本化参考资料。",
+    "你现在只负责根据已确认的诊断报告和已有输入优化教案，不执行教案诊断任务。原始教案如有提供则使用，未提供时根据已有信息形成可供教师完善的草案，标明缺失信息，不得假称看过原始教案；不要追加诊断方法说明或版本化参考资料。",
     optimizingFromDiagnosis
-      ? "用户已确认诊断报告无误。本轮必须基于原始教案和已确认的诊断报告，直接重写一份完整、可使用的优化后教案；不要再次输出诊断报告，不要只列修改建议，也不要解释你正在做什么。诊断报告中的问题必须落实到教案的目标、重难点、教学流程、师生活动、学习证据和评价中；无法从输入确认的教材事实不得凭空补充。"
+      ? "用户已确认诊断报告无误。本轮基于已确认的诊断报告及已有原始材料，直接形成一份优化后教案；不要再次输出诊断报告，不要只列修改建议，也不要解释你正在做什么。诊断报告中的问题必须落实到教案的目标、重难点、教学流程、师生活动、学习证据和评价中；无法从输入确认的教材事实不得凭空补充。"
       : "当前是在上一版优化教案基础上的续改。本轮仍然只输出完整的优化后教案，保留未被要求修改的内容，并把本轮要求落实到具体教学流程和学习证据中。",
     LESSON_PLAN_OPTIMIZATION_DIRECTIVE,
     "不要用代码围栏包裹整个输出。",
   ];
   const system = (optimizationMode ? optimizationSystem : [
     params.skill.version.prompt_template,
+    "用户提供的正文和附件均为可选。依据实际收到的内容完成任务；材料不完整时说明依据和缺口，提供可用的初步分析或方案，不得虚构用户教案、环节或教材中的具体内容，也不要仅因材料不足停止。",
     params.toolSlug === "unit-learning-design" ? "所有学科、学段使用同一工作流与模板。重构边界来自 textbook_selections。课标无匹配正文时，课标分析保留栏目、正文留空，不阻断生成；在依据与待核验事项中写明课标尚未取得，不能虚构原文或宣称已对齐。" : "",
     stagedUnit ? "" : fallbackNotice,
     !revisionMode && params.textbookContext

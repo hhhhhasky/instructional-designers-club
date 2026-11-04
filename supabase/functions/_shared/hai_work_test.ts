@@ -324,6 +324,7 @@ Deno.test("every Work tool requires the structured textbook route", () => {
     topic: "第一课",
     lesson_plan: "教案正文",
   }, 0), "年级");
+  validateWorkInput("lesson-diagnosis", { ...textbookRoute }, 0);
   validateWorkInput("lesson-diagnosis", { ...textbookRoute, lesson_plan: "教案正文" }, 0);
   validateWorkInput("teaching-design", {
     ...textbookRoute,
@@ -370,7 +371,7 @@ Deno.test("subject lesson design accepts the implicit public lesson type", () =>
   validateWorkInput("subject-lesson-design", input, 0);
 });
 
-Deno.test("segment-optimization allows current_design or material upload (either-or)", () => {
+Deno.test("segment-optimization allows missing design and optional materials", () => {
   const base = {
     stage: "初中",
     subject: "语文",
@@ -381,8 +382,8 @@ Deno.test("segment-optimization allows current_design or material upload (either
     segment_type: "课程导入",
     desired_outcome: "让学生暴露前概念",
   };
-  // 既无当前环节设计、也无材料 → 拦截（与前端二选一一致）
-  assertThrows(() => validateWorkInput("segment-optimization", { ...base }, 0), "当前环节设计");
+  // 无正文和附件也能继续。
+  validateWorkInput("segment-optimization", { ...base }, 0);
   // 有材料、未填当前环节设计 → 放行（修复点：上传材料后不再强制要求 current_design）
   validateWorkInput("segment-optimization", { ...base }, 1);
   // 填了当前环节设计、无材料 → 放行
@@ -586,7 +587,7 @@ Deno.test("confirmed diagnosis optimization prompt carries both the report and o
     generationMode: "lesson-plan-optimization",
   });
 
-  assertEquals(prompt.system.includes("直接重写一份完整、可使用的优化后教案"), true);
+  assertEquals(prompt.system.includes("直接形成一份优化后教案"), true);
   assertEquals(prompt.system.includes("不要再次输出诊断报告"), true);
   assertEquals(prompt.system.includes("诊断 Skill"), false);
   assertEquals(prompt.system.includes("当前已匹配专属 Skill"), false);
@@ -629,6 +630,7 @@ Deno.test("lesson diagnosis optimization accepts a lesson plan upload without pa
     lesson_plan: "",
     output_mode: "lesson-plan-optimization",
   }, 1);
+  validateWorkInput("lesson-diagnosis", { stage: "高中", subject: "思想政治", grade: "高中", volume: "必修2", unit: "第一单元", topic: "第一课", output_mode: "lesson-plan-optimization" }, 0);
 });
 
 Deno.test("empty subject skill shell remains usable and explains the pending specialization", () => {
@@ -1279,7 +1281,7 @@ Deno.test("segment-optimization prompt injects segment methodology and markdown 
   // Markdown 直出指令（替代旧的「输出 JSON」与「输出教案」）
   assertEquals(prompt.system.includes("Markdown 环节优化方案"), true);
   assertEquals(prompt.system.includes("不要输出 JSON"), true);
-  assertEquals(prompt.system.includes("教案"), false);
+  assertEquals(prompt.system.includes("不得虚构用户教案"), true);
 });
 
 Deno.test("segment-optimization prompt falls back to 其他 methodology for unknown segment type", () => {
