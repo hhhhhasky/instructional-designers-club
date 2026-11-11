@@ -10,7 +10,7 @@ import PageBackBar from '@/components/common/PageBackBar';
 import { useAuth } from '@/contexts/AuthContext';
 import { type CourseProductCatalog, getCourseProductCatalog, subscribeToCourseCatalogUpdates } from '@/db/api';
 import { canAccessCourse } from '@/lib/access-control';
-import { DAOFA_CANVAS_ENTRY } from '@/lib/daofa-catalog';
+import { DAOFA_TOOL_ENTRIES } from '@/lib/daofa-catalog';
 
 export default function DaofaCoursePage() {
   const { courseAccessCodes, profile } = useAuth();
@@ -32,7 +32,7 @@ export default function DaofaCoursePage() {
     window.addEventListener('focus', refresh);
     return () => { active = false; unsubscribe(); window.removeEventListener('focus', refresh); };
   }, []);
-  const chapters = catalog.categories.map((title) => ({ id: title, title, lessons: catalog.coursesByCategory[title] ?? [] }));
+  const chapters = catalog.categories.map((title) => ({ id: title, title, lessons: catalog.coursesByCategory[title] ?? [], tools: DAOFA_TOOL_ENTRIES.filter((entry) => entry.category === title) }));
   const hasAccess = profile?.role === 'admin' || canAccessCourse(courseAccessCodes, 'daofa-textbook');
 
   return <>
@@ -45,9 +45,9 @@ export default function DaofaCoursePage() {
           badge="1—9 年级 · 18 册教材"
           title="道法教材解读课"
           description="先看懂为什么教、到底教什么，再进入教学设计。"
-          audience="建议先学总论，再按正在使用的册次查阅；三元对齐画布可随时用来追溯课标与教材单元的关系。"
+          audience="建议先学总论，再按正在使用的册次查阅；可结合画布查阅课标与单元的对应关系，也可用图谱比较不同册次的核心概念。"
           icon={BookOpen}
-          stats={[{ label: '课程篇章', value: chapters.length }, { label: '可学课程', value: catalog.courses.length }, { label: '备课工具', value: 1 }]}
+          stats={[{ label: '课程篇章', value: chapters.length }, { label: '可学课程', value: catalog.courses.length }, { label: '备课工具', value: DAOFA_TOOL_ENTRIES.length }]}
         >
           <CourseAccessNotice productCode="daofa-textbook" />
         </CourseEditorialHero>
@@ -56,7 +56,7 @@ export default function DaofaCoursePage() {
             <span className="editorial-kicker">选择学习内容</span>
             <nav aria-label="道法课程篇章" className="mt-4 space-y-2">
               {chapters.map((chapter, index) => <a key={chapter.id} href={`#${chapter.id}`} className="flex min-h-11 items-center justify-between rounded-ds-sm px-3 text-sm text-tx hover:bg-acl/40 hover:text-ac">
-                <span>{String(index + 1).padStart(2, '0')} · {chapter.title}</span><span className="text-xs text-txt">{chapter.lessons.length + (chapter.title === DAOFA_CANVAS_ENTRY.category ? 1 : 0)} 项</span>
+                <span>{String(index + 1).padStart(2, '0')} · {chapter.title}</span><span className="text-xs text-txt">{chapter.lessons.length + chapter.tools.length} 项</span>
               </a>)}
             </nav>
             {!hasAccess && <p className="mt-6 border-t border-dashed border-bd pt-4 text-xs leading-6 text-txs"><LockKeyhole className="mr-1 inline h-3.5 w-3.5" />开通“道法教材解读课”后，即可学习下方课程。</p>}
@@ -80,15 +80,15 @@ export default function DaofaCoursePage() {
                     <ArrowRight className="h-4 w-4 shrink-0 text-ac transition-transform group-hover:translate-x-1" />
                   </Link>
                 </li>)}
-                {chapter.title === DAOFA_CANVAS_ENTRY.category && <li className="border-b border-dashed border-bd last:border-b-0">
-                  <Link to={DAOFA_CANVAS_ENTRY.href} className="group flex min-h-20 items-center gap-4 px-4 py-4 transition-colors hover:bg-acl/25 focus-visible:bg-acl/25 sm:px-6">
-                    <span className="w-7 shrink-0 font-mono text-xs text-txt">{String(chapter.lessons.length + 1).padStart(2, '0')}</span>
+                {chapter.tools.map((tool, toolIndex) => <li key={tool.mediaId} className="border-b border-dashed border-bd last:border-b-0">
+                  <Link to={tool.href} className="group flex min-h-20 items-center gap-4 px-4 py-4 transition-colors hover:bg-acl/25 focus-visible:bg-acl/25 sm:px-6">
+                    <span className="w-7 shrink-0 font-mono text-xs text-txt">{String(chapter.lessons.length + toolIndex + 1).padStart(2, '0')}</span>
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-bd text-ac"><Compass className="h-4 w-4" /></span>
-                    <span className="min-w-0 flex-1"><span className="block font-ds-bold text-tx group-hover:text-ac">{DAOFA_CANVAS_ENTRY.title}</span><span className="mt-1 block text-xs leading-5 text-txs">查看课标素养目标、内容要求与教材单元的对应关系。</span></span>
+                    <span className="min-w-0 flex-1"><span className="block font-ds-bold text-tx group-hover:text-ac">{tool.title}</span><span className="mt-1 block text-xs leading-5 text-txs">{tool.description}</span></span>
                     <span className="shrink-0 text-xs text-txs">交互工具</span>
                     <ArrowRight className="h-4 w-4 shrink-0 text-ac transition-transform group-hover:translate-x-1" />
                   </Link>
-                </li>}
+                </li>)}
               </ol>
             </section>)}
           </div>

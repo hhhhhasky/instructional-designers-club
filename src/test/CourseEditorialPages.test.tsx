@@ -293,7 +293,11 @@ it('道法目录用数据库课程ID跳转，后台新增九上无需前端册�
   expect(canvas).toHaveAttribute('href', '/courses/daofa/alignment-canvas');
   expect(canvas.closest('section')).toHaveAttribute('id', '总论篇');
   expect(within(canvas).getByText('05')).toBeInTheDocument();
-  expect(within(canvas.closest('ol')!).getAllByRole('listitem')).toHaveLength(5);
-  expect(screen.getByRole('link', { name: /总论篇.*5\s*项/ })).toBeInTheDocument();
+  const conceptMap = screen.getByRole('link', { name: /核心概念交互图谱/ });
+  expect(conceptMap).toHaveAttribute('href', '/courses/daofa/concept-map');
+  expect(within(conceptMap).getByText('06')).toBeInTheDocument();
+  expect(canvas.closest('li')?.nextElementSibling).toBe(conceptMap.closest('li'));
+  expect(within(canvas.closest('ol')!).getAllByRole('listitem')).toHaveLength(6);
+  expect(screen.getByRole('link', { name: /总论篇.*6\s*项/ })).toBeInTheDocument();
   expect(screen.queryByRole('region', { name: '道法备课工具' })).not.toBeInTheDocument();
 });

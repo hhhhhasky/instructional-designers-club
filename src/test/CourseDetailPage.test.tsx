@@ -851,10 +851,12 @@ describe('正常课程详情按课程产品展示道法视频与正文', () => {
     expect(canvas).toHaveAttribute('href', '/courses/daofa/alignment-canvas');
     const overviewGroup = canvas.parentElement!.parentElement!;
     expect(within(overviewGroup).getByText('总论篇')).toBeInTheDocument();
-    expect(within(overviewGroup).getAllByText('5')).toHaveLength(2);
+    expect(within(overviewGroup).getAllByText('6')).toHaveLength(2);
+    expect(within(overviewGroup).getByRole('link', { name: /6.*核心概念交互图谱/ })).toHaveAttribute('href', '/courses/daofa/concept-map');
     await userEvent.click(within(screen.getByTestId('mobile-course-navigation')).getByRole('button', { name: '打开课程目录' }));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByRole('link', { name: /5\s*三元对齐画布/ })).toHaveAttribute('href', '/courses/daofa/alignment-canvas');
+    expect(within(dialog).getByRole('link', { name: /6.*核心概念交互图谱/ })).toHaveAttribute('href', '/courses/daofa/concept-map');
     await userEvent.keyboard('{Escape}');
     expect(screen.getByRole('link', { name: '返回课程目录' })).toHaveAttribute('href', '/courses/daofa');
   });

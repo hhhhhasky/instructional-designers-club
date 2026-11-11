@@ -60,7 +60,7 @@ import {
 import { canAccessCourse, getUserLearningRecords, recordCourseVisit, updateLearningProgress } from '@/lib/access-control';
 import { getCourseAccessCode } from '@/lib/course-entitlements';
 import { getCoursePurchaseProduct } from '@/lib/course-purchase';
-import { DAOFA_CANVAS_ENTRY } from '@/lib/daofa-catalog';
+import { DAOFA_TOOL_ENTRIES } from '@/lib/daofa-catalog';
 import {
   type Achievement,
   buildGamificationSnapshot,
@@ -899,7 +899,7 @@ export default function CourseDetailPage() {
                     <TeacherAiCatalogToc
                       categories={seriesCatalog.categories}
                       coursesByCategory={seriesCatalog.coursesByCategory}
-                      supplementalEntries={getCourseAccessCode(course) === 'daofa-textbook' ? [DAOFA_CANVAS_ENTRY] : []}
+                      supplementalEntries={getCourseAccessCode(course) === 'daofa-textbook' ? DAOFA_TOOL_ENTRIES : []}
                       currentCourseId={course.id}
                       onSelect={handleNavigateToCourse}
                       learningRecords={learningRecords}
@@ -1384,7 +1384,7 @@ export default function CourseDetailPage() {
                   <TeacherAiCatalogToc
                     categories={seriesCatalog.categories}
                     coursesByCategory={seriesCatalog.coursesByCategory}
-                    supplementalEntries={getCourseAccessCode(course) === 'daofa-textbook' ? [DAOFA_CANVAS_ENTRY] : []}
+                    supplementalEntries={getCourseAccessCode(course) === 'daofa-textbook' ? DAOFA_TOOL_ENTRIES : []}
                     currentCourseId={course.id}
                     onSelect={(cid) => {
                       handleNavigateToCourse(cid);

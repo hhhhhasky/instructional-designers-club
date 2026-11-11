@@ -26,7 +26,7 @@ vi.mock('@/lib/access-control', () => ({
 vi.mock('@/components/layout/Header', () => ({ default: () => <div data-testid="global-header" /> }));
 vi.mock('@/components/common/Footer', () => ({ default: () => <div data-testid="global-footer" /> }));
 vi.mock('@/components/common/PageMeta', () => ({ default: () => null }));
-describe('道法三元对齐画布', () => {
+describe('道法交互工具', () => {
   it('独立占满学习视图，只提供返回目录入口', async () => {
     render(<MemoryRouter initialEntries={['/courses/daofa/alignment-canvas']}>
       <Routes><Route path="/courses/daofa/:lessonId" element={<DaofaLessonPage />} /></Routes>
@@ -41,7 +41,15 @@ describe('道法三元对齐画布', () => {
     expect(getDaofaLessonMedia).toHaveBeenCalledWith('alignment-canvas');
   });
 
-
+  it('图谱地址请求对应的私有媒体，并在独立页面中载入', async () => {
+    render(<MemoryRouter initialEntries={['/courses/daofa/concept-map']}>
+      <Routes><Route path="/courses/daofa/:lessonId" element={<DaofaLessonPage />} /></Routes>
+    </MemoryRouter>);
+    const frame = await screen.findByTitle('1—9 年级核心概念交互图谱');
+    expect(frame).toHaveAttribute('src', 'https://signed.example.test/media');
+    expect(frame).toHaveAttribute('sandbox', 'allow-scripts');
+    expect(getDaofaLessonMedia).toHaveBeenCalledWith('concept-map');
+  });
 });
 
 it('旧固定单课地址返回数据库目录，不再调用独立讲义接口', async () => {
