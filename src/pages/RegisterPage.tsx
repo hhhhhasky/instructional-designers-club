@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { GraduationCap, Eye, EyeOff } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { requestClubSignup } from '@/db/club-email-signup';
 import PageMeta from '@/components/common/PageMeta';
 
 const registerSchema = z
@@ -15,7 +15,7 @@ const registerSchema = z
     password: z.string().min(6, '密码至少6位'),
     confirmPassword: z.string().min(6, '请确认密码'),
     nickname: z
-      .string()
+      .string().trim()
       .min(2, '昵称至少2个字符')
       .max(20, '昵称最多20个字符'),
   })
@@ -27,31 +27,57 @@ const registerSchema = z
 type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
-  const { signUp } = useAuth();
-  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState('');
-  const [confirmationSent, setConfirmationSent] = useState(false);
+  const [attempt, setAttempt] = useState<(Omit<RegisterForm, 'confirmPassword'> & { id: string }) | null>(null);
+  const [code, setCode] = useState('');
+  const [confirming, setConfirming] = useState(false);
+  const [registered, setRegistered] = useState(false);
 
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<RegisterForm>({ resolver: zodResolver(registerSchema) });
 
   const onSubmit = async (data: RegisterForm) => {
     setServerError('');
     try {
-      const result = await signUp(data.phone, data.password, data.nickname, data.email);
-      if (result.error) {
-        setServerError(result.error);
+      const { phone, nickname, password } = data;
+      const email = data.email.toLowerCase();
+      const result = await requestClubSignup({ action: 'start', phone, nickname, email });
+      if (!result.attemptId) {
+        setServerError(result.error ?? '暂时无法发送验证邮件，请稍后重试。');
         return;
       }
-      if (result.requiresConfirmation) setConfirmationSent(true);
-      else navigate('/', { replace: true });
-    } catch (error) {
-      console.error('register submit error:', error);
+      setAttempt({ id: result.attemptId, phone, nickname, email, password });
+      setCode('');
+    } catch {
       setServerError('注册失败：网络请求失败，请检查网络连接后重试');
+    }
+  };
+
+  const confirm = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!attempt || confirming || !/^\d{8}$/.test(code)) return;
+    setConfirming(true);
+    setServerError('');
+    try {
+      const { id, phone, nickname, email, password } = attempt;
+      const result = await requestClubSignup({ action: 'confirm', attemptId: id, phone, nickname, email, password, code });
+      if (result.registered) {
+        setRegistered(true);
+        setAttempt(null);
+        setCode('');
+        reset();
+      } else {
+        setServerError(result.error ?? '暂时无法完成注册，请稍后重试。');
+      }
+    } catch {
+      setServerError('网络请求失败，请检查网络连接后重试。');
+    } finally {
+      setConfirming(false);
     }
   };
 
@@ -71,14 +97,41 @@ export default function RegisterPage() {
                 className="text-3xl font-bold text-tx mb-2"
                 style={{ fontFamily: 'var(--fd)' }}
               >
-                创建账号
+                {registered ? '注册完成' : attempt ? '去查看邮件' : '创建账号'}
               </h1>
-              <p className="text-ds-sm text-txs">注册后即可开始学习</p>
+              {attempt ? (
+                <h2 className="text-lg font-bold leading-snug text-tx">
+                  验证码 10 分钟内有效<br />过期后请重新提交注册
+                </h2>
+              ) : !registered && <p className="text-ds-sm text-txs">验证邮箱后即可开始学习</p>}
             </div>
 
             {/* 表单 */}
-            {confirmationSent ? (
-              <p className="text-ds-sm text-txs leading-relaxed">请查收邮箱中的验证邮件，完成验证后登录。如果没有收到，请检查垃圾邮件；如果邮箱已注册，请直接登录。</p>
+            {registered ? (
+              <p className="text-ds-sm text-txs" role="status">邮箱验证成功，注册已完成。现在可以用手机号或邮箱登录。</p>
+            ) : attempt ? (
+              <form onSubmit={confirm} className="space-y-4">
+                <p className="text-ds-sm text-txs leading-relaxed" role="status">请查收 {attempt.email} 的验证邮件，输入最新一封邮件里的验证码，完成尾号 {attempt.phone.slice(-4)} 的手机号注册。如果邮箱已注册，可直接登录。</p>
+                <input
+                  aria-label="邮箱验证码"
+                  autoComplete="one-time-code"
+                  inputMode="numeric"
+                  placeholder="8 位邮箱验证码"
+                  maxLength={8}
+                  value={code}
+                  onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
+                  className="h-12 w-full rounded-ds-lg border border-bd bg-bg px-4 text-base"
+                  autoFocus
+                />
+                {serverError && <p className="text-sm text-red-500" role="alert">{serverError}</p>}
+                <Button type="submit" disabled={confirming || code.length !== 8} className="h-12 w-full btn-super-cta !text-white">
+                  {confirming ? '正在验证…' : '验证并完成注册'}
+                </Button>
+                <Button type="button" variant="ghost" disabled={confirming} className="w-full" onClick={() => {
+                  setAttempt(null);
+                  setServerError('');
+                }}>修改资料或重新发送</Button>
+              </form>
             ) : <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
                 <input
@@ -96,7 +149,7 @@ export default function RegisterPage() {
               </div>
 
               <div>
-                <input type="email" aria-label="邮箱" placeholder="邮箱（用于找回密码）" autoComplete="email" {...register('email')} className="w-full h-12 px-4 text-base border border-bd rounded-ds-lg bg-bg text-tx placeholder:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all" />
+                <input type="email" aria-label="邮箱" placeholder="邮箱（用于验证和找回密码）" autoComplete="email" {...register('email')} className="w-full h-12 px-4 text-base border border-bd rounded-ds-lg bg-bg text-tx placeholder:text-txt focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all" />
                 {errors.email && <p className="text-sm text-red-500 mt-1">{errors.email.message}</p>}
               </div>
 
@@ -157,7 +210,7 @@ export default function RegisterPage() {
                 disabled={isSubmitting}
                 className="w-full h-12 text-base font-ds-bold btn-super-cta !text-white rounded-ds-lg"
               >
-                {isSubmitting ? '注册中...' : '注册'}
+                {isSubmitting ? '正在发送…' : '发送验证邮件'}
               </Button>
             </form>}
 

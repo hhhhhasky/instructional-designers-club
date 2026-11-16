@@ -247,7 +247,11 @@ export async function adminUpdateUserStatus(
   });
   if (error) {
     console.error("adminUpdateUserStatus error:", error);
-    throw error;
+    if (error.code === "PGRST202") throw new Error("账号状态服务暂不可用，请联系网站维护人员。");
+    if (error.code === "42501" || error.code === "22023" || error.code === "P0002") {
+      throw new Error(error.message);
+    }
+    throw new Error("账号状态更新失败，请刷新后重试。");
   }
 
   const result = Array.isArray(data) ? data[0] : data;

@@ -1,4 +1,4 @@
-import { canonicalSupabaseStorageUrl, supabaseBaseUrl } from "@/lib/supabase-url";
+import { canonicalSupabaseStorageUrl } from "@/lib/supabase-url";
 import type { Session, User } from '@supabase/supabase-js';
 import { clearLearningDataCache } from '@/db/api';
 import { supabase } from '@/db/supabase';
@@ -101,19 +101,12 @@ function isAuthNetworkFailure(error: unknown): boolean {
   );
 }
 
-function getSignUpErrorMessage(error: unknown): string {
-  const message = getAuthErrorMessage(error);
-  if (message.includes('already registered') || message.includes('User already registered')) {
-    return '手机号或邮箱已被使用';
-  }
-  if (isAuthNetworkFailure(error)) {
-    return '注册失败：网络请求失败，请检查网络连接后重试';
-  }
-  return `注册失败：${message || '请稍后重试'}`;
-}
-
 function getSignInErrorMessage(error: unknown): string {
   const message = getAuthErrorMessage(error);
+  if ((typeof error === 'object' && error !== null && 'code' in error && error.code === 'user_banned') ||
+    message === 'User is banned') {
+    return '该账号已停用，请联系管理员';
+  }
   if (message.includes('Invalid login credentials')) {
     return '手机号、邮箱或密码错误';
   }
@@ -158,72 +151,6 @@ async function checkSignedInProfile(user: User | null, session: Session | null):
     return { error: profile?.status === 'banned' ? '该账号已停用，请联系管理员' : '暂时无法确认账号状态，请重试', session: null, user: null };
   }
   return { error: null, session, user };
-}
-
-export async function signUpWithPhone(
-  phone: string,
-  password: string,
-  nickname: string,
-): Promise<{ error: string | null; session: Session | null; user: User | null }> {
-  try {
-    const { error, data } = await supabase.auth.signUp({
-      email: phoneToFakeEmail(phone),
-      password,
-      options: {
-        data: { phone, nickname },
-      },
-    });
-
-    if (error) {
-      console.error('signUp error:', error.message, error.status);
-      return { error: getSignUpErrorMessage(error), session: null, user: null };
-    }
-
-    console.log('signUp success:', data.user?.id);
-
-    if (!data.session) {
-      const signInResult = await signInWithPhone(phone, password);
-      if (signInResult.error) {
-        return {
-          error: '注册成功，但当前项目未自动登录。请确认 Supabase 已关闭邮箱验证后再重试登录。',
-          session: null,
-          user: data.user,
-        };
-      }
-      return signInResult;
-    }
-
-    return { error: null, session: data.session, user: data.user };
-  } catch (error) {
-    console.error('signUp exception:', error);
-    return { error: getSignUpErrorMessage(error), session: null, user: null };
-  }
-}
-
-export async function signUpWithEmailAndPhone(
-  email: string,
-  phone: string,
-  password: string,
-  nickname: string,
-): Promise<{ error: string | null; session: Session | null; user: User | null }> {
-  try {
-    // A project can be configured to mark every address verified at signup.
-    // Never offer self-service recovery until email verification is actually on.
-    const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
-    const settingsResponse = await fetch(`${supabaseBaseUrl}/auth/v1/settings`, { headers: { apikey: key, Authorization: `Bearer ${key}` }, cache: 'no-store' });
-    if (!settingsResponse.ok || (await settingsResponse.json()).mailer_autoconfirm !== false) {
-      return { error: '邮箱注册暂未开放，请稍后再试', session: null, user: null };
-    }
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim().toLowerCase(),
-      password,
-      options: { data: { phone, nickname }, emailRedirectTo: `${window.location.origin}/auth/confirm` },
-    });
-    if (error) return { error: getSignUpErrorMessage(error), session: null, user: null };
-    return { error: null, session: data.session, user: data.user };
-  } catch (error) {
-    return { error: getSignUpErrorMessage(error), session: null, user: null };
-  }
 }
 
 export async function signInWithPhone(

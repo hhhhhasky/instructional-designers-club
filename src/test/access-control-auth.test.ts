@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { signInWithIdentifier, signInWithPhone, signUpWithEmailAndPhone, signUpWithPhone, updateLearningProgress } from '@/lib/access-control';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { signInWithIdentifier, signInWithPhone, updateLearningProgress } from '@/lib/access-control';
 import { supabase } from '@/db/supabase';
 
 vi.mock('@/db/api', () => ({
@@ -11,7 +11,6 @@ vi.mock('@/db/supabase', () => ({
     from: vi.fn(),
     functions: { invoke: vi.fn() },
     auth: {
-      signUp: vi.fn(),
       signInWithPassword: vi.fn(),
       signOut: vi.fn(),
       setSession: vi.fn(),
@@ -22,34 +21,6 @@ vi.mock('@/db/supabase', () => ({
 describe('phone auth error handling', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it('maps Supabase signUp Load failed errors to a readable registration message', async () => {
-    vi.mocked(supabase.auth.signUp).mockResolvedValue({
-      data: { user: null, session: null },
-      error: Object.assign(new Error('Load failed'), {
-        name: 'AuthRetryableFetchError',
-        status: 0,
-      }),
-    } as never);
-
-    const result = await signUpWithPhone('19900000001', 'password1', '新学员');
-
-    expect(result).toEqual({
-      error: '注册失败：网络请求失败，请检查网络连接后重试',
-      session: null,
-      user: null,
-    });
-  });
-
-  it('returns a registration error instead of throwing when signUp rejects', async () => {
-    vi.mocked(supabase.auth.signUp).mockRejectedValue(new TypeError('Load failed'));
-
-    const result = await signUpWithPhone('19900000002', 'password1', '新学员');
-
-    expect(result.error).toBe('注册失败：网络请求失败，请检查网络连接后重试');
-    expect(result.session).toBeNull();
-    expect(result.user).toBeNull();
   });
 
   it('maps login network failures without exposing raw Load failed text', async () => {
@@ -88,21 +59,14 @@ describe('phone auth error handling', () => {
 
 describe('email and phone account flows', () => {
   beforeEach(() => vi.clearAllMocks());
-  afterEach(() => vi.unstubAllGlobals());
-  it('registers with a real email and sends the phone as profile information', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ mailer_autoconfirm: false }) }));
-    vi.mocked(supabase.auth.signUp).mockResolvedValue({ data: { user: { id: 'one' }, session: null }, error: null } as never);
-    const result = await signUpWithEmailAndPhone('Teacher@Example.com', '13900000000', 'password1', '老师');
-    expect(result.error).toBeNull();
-    expect(result.session).toBeNull();
-    expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/auth/v1/settings'), expect.objectContaining({ headers: expect.objectContaining({ Authorization: expect.stringMatching(/^Bearer /) }) }));
-    expect(supabase.auth.signUp).toHaveBeenCalledWith(expect.objectContaining({ email: 'teacher@example.com', options: expect.objectContaining({ data: { phone: '13900000000', nickname: '老师' } }) }));
-  });
-  it('does not create a signup when the project would automatically confirm an unverified email', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ mailer_autoconfirm: true }) }));
-    const result = await signUpWithEmailAndPhone('teacher@example.com', '13900000000', 'password1', '老师');
-    expect(result.error).toBe('邮箱注册暂未开放，请稍后再试');
-    expect(supabase.auth.signUp).not.toHaveBeenCalled();
+  it('explains a ban returned by Auth before it issues a session', async () => {
+    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({
+      data: { session: null, user: null },
+      error: Object.assign(new Error('User is banned'), { code: 'user_banned' }),
+    } as never);
+    const result = await signInWithIdentifier('teacher@example.com', 'password1');
+    expect(result).toEqual({ error: '该账号已停用，请联系管理员', session: null, user: null });
+    expect(supabase.from).not.toHaveBeenCalled();
   });
   it('uses the phone alias through the auth proxy and checks the resulting profile', async () => {
     vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({ data: { user: { id: 'one' }, session: { access_token: 'a' } }, error: null } as never);

@@ -2,10 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PageMeta from '@/components/common/PageMeta';
 import { supabase } from '@/db/supabase';
+import { getProfile } from '@/lib/access-control';
+
+type ConfirmationResult = 'success' | 'invalid' | 'incomplete';
 
 export default function ConfirmEmailPage() {
-  const [status, setStatus] = useState<'checking' | 'success' | 'invalid'>('checking');
-  const check = useRef<Promise<boolean> | null>(null);
+  const [status, setStatus] = useState<'checking' | ConfirmationResult>('checking');
+  const check = useRef<Promise<ConfirmationResult> | null>(null);
   useEffect(() => {
     let active = true;
     if (!check.current) {
@@ -16,11 +19,16 @@ export default function ConfirmEmailPage() {
       if (window.location.hash) window.history.replaceState(null, '', window.location.pathname + window.location.search);
       check.current = type === 'signup' && token && refresh
         ? supabase.auth.setSession({ access_token: token, refresh_token: refresh })
-          .then(({ data, error }) => !error && Boolean(data.session))
-          .catch(() => false)
-        : Promise.resolve(false);
+          .then(async ({ data, error }): Promise<ConfirmationResult> => {
+            const user = data.session?.user;
+            if (error || !user?.email_confirmed_at) return 'invalid';
+            const profile = await getProfile(user.id, { fresh: true });
+            return profile?.status === 'active' ? 'success' : 'incomplete';
+          })
+          .catch(() => 'incomplete')
+        : Promise.resolve('invalid');
     }
-    void check.current.then((ok) => { if (active) setStatus(ok ? 'success' : 'invalid'); });
+    void check.current.then((result) => { if (active) setStatus(result); });
     return () => { active = false; };
   }, []);
   return <main className="min-h-screen bg-cream flex items-center justify-center p-4">
@@ -28,7 +36,8 @@ export default function ConfirmEmailPage() {
     <div className="w-full max-w-sm rounded-ds-lg border border-bd bg-white p-8 shadow-ds-sm">
       <h1 className="text-2xl font-bold mb-4">邮箱验证</h1>
       {status === 'checking' && <p>正在验证，请稍候…</p>}
-      {status === 'success' && <><p>邮箱验证成功，欢迎开始学习。</p><Link className="inline-block mt-4 text-ac hover:underline" to="/">进入首页</Link></>}
+      {status === 'success' && <><p>邮箱验证成功，注册已完成。</p><Link className="inline-block mt-4 text-ac hover:underline" to="/">进入首页</Link></>}
+      {status === 'incomplete' && <><p>暂时无法确认注册状态。请用注册邮箱登录重试，若仍无法登录，请联系管理员。</p><Link className="inline-block mt-4 text-ac hover:underline" to="/login">返回登录</Link></>}
       {status === 'invalid' && <><p>验证链接无效或已过期，请重新注册或联系管理员。</p><Link className="inline-block mt-4 text-ac hover:underline" to="/login">返回登录</Link></>}
     </div>
   </main>;

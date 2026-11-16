@@ -105,9 +105,11 @@ export default function StudentListSection() {
     const student = students.find((item) => item.id === statusUserId); if (!student) return;
     const status = student.status === "active" ? "banned" : "active";
     try {
-      setStatusSaving(true); await adminUpdateUserStatus(student.id, status);
-      setStudents((items) => items.map((item) => item.id === student.id ? { ...item, status } : item));
-      toast.success(status === "banned" ? "账号已停用" : "账号已恢复"); setStatusUserId(null);
+      setStatusSaving(true);
+      const result = await adminUpdateUserStatus(student.id, status);
+      setStudents((items) => items.map((item) => item.id === student.id ? { ...item, status: result.status } : item));
+      toast.success(result.status === "banned" ? "账号已停用" : "账号已恢复");
+      setStatusUserId(null);
     } catch (cause) { toast.error(cause instanceof Error ? cause.message : "账号状态更新失败"); }
     finally { setStatusSaving(false); }
   };

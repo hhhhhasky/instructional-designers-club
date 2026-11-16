@@ -43,6 +43,9 @@ verify_jwt = false
 [functions.legacy-email-binding]
 verify_jwt = true
 
+[functions.club-email-signup]
+verify_jwt = false
+
 [functions.hai-access-status]
 verify_jwt = false
 

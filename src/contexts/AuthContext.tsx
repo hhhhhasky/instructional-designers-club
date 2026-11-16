@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import { supabase } from '@/db/supabase';
-import { getProfile, getUserCourseAccessCodes, signInWithIdentifier, signUpWithEmailAndPhone, signOut as doSignOut } from '@/lib/access-control';
+import { getProfile, getUserCourseAccessCodes, signInWithIdentifier, signOut as doSignOut } from '@/lib/access-control';
 import { clearAllLearningDataCaches } from '@/db/api';
 import type { CourseAccessCode, Profile, MembershipType } from '@/types/types';
 import type { User, Session } from '@supabase/supabase-js';
@@ -12,7 +12,6 @@ interface AuthContextType {
   loading: boolean;
   accessLevel: MembershipType;
   courseAccessCodes: CourseAccessCode[];
-  signUp: (phone: string, password: string, nickname: string, email: string) => Promise<{ error: string | null; requiresConfirmation?: boolean }>;
   signIn: (phone: string, password: string) => Promise<{ error: string | null; needsEmail?: boolean }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -154,36 +153,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [loadProfile]);
 
-  const signUp = async (phone: string, password: string, nickname: string, email: string) => {
-    setLoading(true);
-    try {
-      const result = await signUpWithEmailAndPhone(email, phone, password, nickname);
-      if (!result.error && result.session?.user) {
-        const requestId = ++profileLoadId.current;
-        setSession(result.session);
-        setUser(result.session.user);
-        const p = await loadProfile(result.session.user.id, { fresh: true });
-        if (p?.status === 'banned') {
-          await doSignOut();
-          if (profileLoadId.current === requestId) {
-            setSession(null);
-            setUser(null);
-            setProfile(null);
-            setCourseAccessCodes([]);
-          }
-          return { error: '该账号已停用，请联系管理员' };
-        }
-        if (profileLoadId.current === requestId) {
-          setProfile(p);
-          setCourseAccessCodes(p ? await getUserCourseAccessCodes(p) : []);
-        }
-      }
-      return { error: result.error, requiresConfirmation: !result.error && !result.session };
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const signIn = async (phone: string, password: string) => {
     setLoading(true);
     try {
@@ -221,7 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, profile, session, loading, accessLevel, courseAccessCodes, signUp, signIn, signOut, refreshProfile }}
+      value={{ user, profile, session, loading, accessLevel, courseAccessCodes, signIn, signOut, refreshProfile }}
     >
       {children}
     </AuthContext.Provider>

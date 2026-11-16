@@ -43,4 +43,11 @@ describe("admin user status maintenance", () => {
 
     await expect(adminUpdateUserStatus("member-1", "banned")).rejects.toThrow("账号状态未更新");
   });
+  it("explains when the account status RPC is missing", async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({
+      data: null,
+      error: { code: "PGRST202", message: "Could not find the function" },
+    } as never);
+    await expect(adminUpdateUserStatus("member-1", "banned")).rejects.toThrow("账号状态服务暂不可用");
+  });
 });

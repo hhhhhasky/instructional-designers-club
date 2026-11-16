@@ -18,7 +18,6 @@ vi.mock('@/lib/access-control', () => ({
   getProfile: api.getProfile,
   getUserCourseAccessCodes: api.getCourseCodes,
   signInWithIdentifier: vi.fn(),
-  signUpWithEmailAndPhone: vi.fn(),
   signOut: api.signOut,
 }));
 vi.mock('@/db/api', () => ({ clearAllLearningDataCaches: vi.fn() }));
