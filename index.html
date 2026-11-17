@@ -4,6 +4,60 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <script>
+      (() => {
+        function showLoadError() {
+          const message = document.getElementById("site-load-error");
+          if (message) {
+            message.hidden = false;
+          } else {
+            document.addEventListener("DOMContentLoaded", showLoadError, { once: true });
+          }
+        }
+
+        window.addEventListener("vite:preloadError", showLoadError);
+        window.addEventListener("error", (event) => {
+          const target = event.target;
+          if (target instanceof HTMLScriptElement && target.type === "module") {
+            showLoadError();
+          } else if (target instanceof HTMLLinkElement && target.rel === "stylesheet") {
+            const url = new URL(target.href);
+            if (url.origin === location.origin && url.pathname.startsWith("/assets/")) {
+              showLoadError();
+            }
+          }
+        }, true);
+        document.addEventListener("DOMContentLoaded", () => {
+          document.getElementById("site-reload").addEventListener("click", () => location.reload());
+        }, { once: true });
+      })();
+    </script>
+    <style>
+      #site-load-error:not([hidden]) {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        gap: 12px;
+        padding: 24px;
+        background: #faf8f2;
+        color: #26332b;
+        text-align: center;
+        font: 16px/1.6 system-ui, sans-serif;
+      }
+      #site-load-error p { margin: 0; }
+      #site-reload {
+        padding: 8px 16px;
+        border: 1px solid #3d5f4b;
+        border-radius: 6px;
+        background: #3d5f4b;
+        color: white;
+        font: inherit;
+        cursor: pointer;
+      }
+    </style>
     <title>哈老师聊教学设计</title>
     <meta name="description" content="从真实教学问题出发，和哈老师一起分析教材、学情、目标、课堂活动与评价。了解教学通识课、教师 AI 课和道法教材解读课。" />
     <meta name="keywords" content="哈老师聊教学设计,教师培训,教学设计,教师AI课,道法教材解读课" />
@@ -25,6 +79,11 @@
   </head>
   <body>
     <div id="root"></div>
+    <div id="site-load-error" role="alert" hidden>
+      <p>页面暂时未能加载，请刷新重试。</p>
+      <button id="site-reload" type="button">重新加载</button>
+      <p>如果仍然打不开，请尝试强制刷新或使用无痕窗口。</p>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
