@@ -3,8 +3,8 @@ import type { Session, User } from '@supabase/supabase-js';
 import { clearLearningDataCache } from '@/db/api';
 import { supabase } from '@/db/supabase';
 import {
+  getEffectiveCourseAccessCodes,
   getMembershipCourseAccessCodes,
-  mergeCourseAccessCodes,
 } from '@/lib/course-entitlements';
 import type { CourseAccessCode, LearningRecord, MembershipType, Profile } from '@/types/types';
 
@@ -33,9 +33,9 @@ export function canAccessCourse(
 ): boolean {
   if (Array.isArray(userAccess)) {
     const productCode = requirementToProductCode(courseRequirement);
-    // 仅 2025 版可用旧版权限。
     return productCode === null ||
       userAccess.includes(productCode) ||
+      // 仅 2025 版可用旧版权限，不能把旧版授权合并为常规授权。
       (productCode === 'teaching-general-v1' && userAccess.includes('teaching-general-legacy'));
   }
   if (
@@ -51,25 +51,19 @@ export function canAccessCourse(
 }
 
 export async function getUserCourseAccessCodes(profile: Profile): Promise<CourseAccessCode[]> {
-  const mappedCodes = getMembershipCourseAccessCodes(profile.access_level);
   const { data, error } = await supabase
     .from('user_course_entitlements')
-    .select('product_code')
+    .select('product_code, status, starts_at, expires_at')
     .eq('user_id', profile.id)
-    .eq('status', 'active')
-    .lte('starts_at', new Date().toISOString())
-    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
+    .in('status', ['active', 'denied']);
 
-  // 在本迁移尚未应用的本地/线上环境中，兼容会员映射，不阻断登录。
+  // 权限读取失败时仍可登录，受保护课程由服务端校验。
   if (error) {
-    console.warn('getUserCourseAccessCodes fallback to membership mapping:', error.message);
-    return mappedCodes;
+    console.warn('getUserCourseAccessCodes:', error.message);
+    return [];
   }
 
-  return mergeCourseAccessCodes(
-    mappedCodes,
-    (data ?? []).map((row) => row.product_code as CourseAccessCode),
-  );
+  return getEffectiveCourseAccessCodes(profile.access_level, data ?? []);
 }
 
 // ==================== 认证 ====================

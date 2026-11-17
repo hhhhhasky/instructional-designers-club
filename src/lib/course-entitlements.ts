@@ -47,7 +47,7 @@ export interface CourseAccessProduct {
 export interface UserCourseEntitlement {
   user_id: string;
   product_code: CourseAccessCode;
-  status: "active" | "revoked";
+  status: "active" | "revoked" | "denied";
   starts_at: string;
   expires_at: string | null;
   notes: string | null;
@@ -76,10 +76,24 @@ export function getCourseAccessCode(
   return null;
 }
 
-export function mergeCourseAccessCodes(
-  ...groups: ReadonlyArray<readonly CourseAccessCode[]>
+export function getEffectiveCourseAccessCodes(
+  level: MembershipType,
+  entitlements: readonly Pick<UserCourseEntitlement, "product_code" | "status" | "starts_at" | "expires_at">[],
 ): CourseAccessCode[] {
-  return [...new Set(groups.flat())];
+  const codes = new Set(getMembershipCourseAccessCodes(level));
+  const now = Date.now();
+  for (const entitlement of entitlements) {
+    if (entitlement.status === "denied") {
+      codes.delete(entitlement.product_code);
+    } else if (
+      entitlement.status === "active" &&
+      Date.parse(entitlement.starts_at) <= now &&
+      (entitlement.expires_at === null || Date.parse(entitlement.expires_at) > now)
+    ) {
+      codes.add(entitlement.product_code);
+    }
+  }
+  return [...codes];
 }
 
 export function courseAccessLabel(code: CourseAccessCode): string {

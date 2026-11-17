@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Download, Search, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Search } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
@@ -9,7 +9,7 @@ import {
   type StudentItem,
 } from "@/db/admin-api";
 import {
-  courseAccessLabel, getMembershipCourseAccessCodes, mergeCourseAccessCodes,
+  courseAccessLabel, getEffectiveCourseAccessCodes,
   type CourseAccessProduct, type UserCourseEntitlement,
 } from "@/lib/course-entitlements";
 import { cn } from "@/lib/utils";
@@ -47,14 +47,19 @@ export default function StudentListSection() {
       .finally(() => setLoading(false));
   }, []);
 
-  const directCodesByUser = useMemo(() => {
-    const map = new Map<string, CourseAccessCode[]>();
-    entitlements.forEach((row) => map.set(row.user_id, [...(map.get(row.user_id) ?? []), row.product_code]));
-    return map;
-  }, [entitlements]);
-  const effectiveCodes = (student: StudentItem) => mergeCourseAccessCodes(
-    getMembershipCourseAccessCodes(student.access_level), directCodesByUser.get(student.id) ?? [],
-  );
+  const codesByUser = useMemo(() => {
+    const entitlementsByUser = new Map<string, UserCourseEntitlement[]>();
+    for (const row of entitlements) {
+      const rows = entitlementsByUser.get(row.user_id) ?? [];
+      rows.push(row);
+      entitlementsByUser.set(row.user_id, rows);
+    }
+    return new Map(students.map((student) => [
+      student.id, getEffectiveCourseAccessCodes(student.access_level, entitlementsByUser.get(student.id) ?? []),
+    ]));
+  }, [students, entitlements]);
+  const effectiveCodes = (student: StudentItem) => codesByUser.get(student.id) ?? [];
+  const availableProducts = (userId: string) => products.filter((product) => !codesByUser.get(userId)?.includes(product.code));
   const filtered = useMemo(() => students.filter((student) => {
     const q = search.trim().toLowerCase();
     if (q && !student.nickname.toLowerCase().includes(q) && !student.phone.includes(q)) return false;
@@ -62,32 +67,41 @@ export default function StudentListSection() {
     const codes = effectiveCodes(student);
     if (courseFilter === "none") return codes.length === 0;
     return courseFilter === "all" || codes.includes(courseFilter as CourseAccessCode);
-  }), [students, search, statusFilter, courseFilter, directCodesByUser]);
+  }), [students, search, statusFilter, courseFilter, codesByUser]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const setFilter = (setter: (value: string) => void, value: string) => { setter(value); setPage(1); };
   const openGrant = (userId: string) => {
-    setGrantUserId(userId); setGrantProductCode(products[0]?.code ?? ""); setGrantNotes("");
+    setGrantUserId(userId); setGrantProductCode(availableProducts(userId)[0]?.code ?? ""); setGrantNotes("");
+  };
+  const updateEntitlement = (row: UserCourseEntitlement) => {
+    setEntitlements((items) => [...items.filter((item) => item.user_id !== row.user_id || item.product_code !== row.product_code), row]);
   };
   const saveGrant = async () => {
     if (!grantUserId || !grantProductCode) return;
     try {
       setSavingCourseAccess(true);
       const row = await adminSetUserCourseAccess(grantUserId, grantProductCode, true, grantNotes);
-      setEntitlements((items) => [...items.filter((item) => item.user_id !== grantUserId || item.product_code !== grantProductCode), row]);
+      updateEntitlement(row);
       toast.success(`已开通${courseAccessLabel(grantProductCode)}`); setGrantUserId(null);
     } catch (cause) { toast.error(cause instanceof Error ? cause.message : "课程权限开通失败"); }
     finally { setSavingCourseAccess(false); }
   };
   const revokeGrant = async (student: StudentItem, code: CourseAccessCode) => {
-    if (!window.confirm(`确认收回 ${student.nickname} 的「${courseAccessLabel(code)}」单独授权？`)) return;
+    const remaining2025Permission = code === "teaching-general-v1" ? "teaching-general-legacy"
+      : code === "teaching-general-legacy" ? "teaching-general-v1" : null;
+    const note = remaining2025Permission && effectiveCodes(student).includes(remaining2025Permission)
+      ? `\n该学员仍可通过「${courseAccessLabel(remaining2025Permission)}」观看 2025 版。`
+      : "";
+    if (!window.confirm(`确认收回 ${student.nickname} 的「${courseAccessLabel(code)}」权限？${note}`)) return;
     try {
-      await adminSetUserCourseAccess(student.id, code, false, "后台手动收回");
-      setEntitlements((items) => items.filter((item) => item.user_id !== student.id || item.product_code !== code));
-      toast.success("已收回单独授权");
+      setSavingCourseAccess(true);
+      updateEntitlement(await adminSetUserCourseAccess(student.id, code, false, "后台手动收回"));
+      toast.success(`已收回${courseAccessLabel(code)}`);
     } catch (cause) { toast.error(cause instanceof Error ? cause.message : "收回课程权限失败"); }
+    finally { setSavingCourseAccess(false); }
   };
   const adjustCredits = async () => {
     if (!creditUserId) return;
@@ -128,15 +142,42 @@ export default function StudentListSection() {
     </div>
     <div className="overflow-hidden rounded-ds-lg border border-bd bg-white shadow-ds-xs"><div className="overflow-x-auto"><table className="w-full text-ds-sm">
       <thead><tr className="border-b border-bd bg-warm"><th className="px-4 py-3 text-left">昵称</th><th className="px-4 py-3 text-left">手机号</th><th className="min-w-[340px] px-4 py-3 text-left">课程权限</th><th className="px-4 py-3 text-right">学分</th><th className="px-4 py-3 text-right">奖励</th><th className="px-4 py-3 text-center">状态</th><th className="px-4 py-3 text-left">注册日期</th><th className="px-4 py-3 text-left">最后活跃</th></tr></thead>
-      <tbody>{paged.map((student) => { const mapped = getMembershipCourseAccessCodes(student.access_level); const direct = directCodesByUser.get(student.id) ?? []; const codes = effectiveCodes(student); return <tr key={student.id} className="border-b border-bdl hover:bg-bgs/50">
+      <tbody>{paged.map((student) => { const codes = effectiveCodes(student); return <tr key={student.id} className="border-b border-bdl hover:bg-bgs/50">
         <td className="px-4 py-3 font-ds-medium">{student.nickname}</td><td className="px-4 py-3 font-mono text-txs">{maskPhone(student.phone)}</td>
-        <td className="px-4 py-3"><div className="flex flex-wrap items-center gap-1.5">{codes.length === 0 && <span className="text-txs">暂无</span>}{codes.map((code) => <span key={code} title={direct.includes(code) ? "后台单独开通" : "旧会员等级兼容映射"} className={cn("inline-flex items-center gap-1 rounded-ds-pill px-2 py-1 text-ds-xs", direct.includes(code) ? "bg-blue-soft text-pp" : "bg-warm text-am")}>{courseAccessLabel(code)}{direct.includes(code) && <button type="button" aria-label={`收回${courseAccessLabel(code)}`} onClick={() => void revokeGrant(student, code)}><X className="h-3 w-3" /></button>}</span>)}<button type="button" onClick={() => openGrant(student.id)} className="rounded-ds-pill border border-dashed border-ac px-2 py-1 text-ds-xs text-ac">+开通课程</button>{mapped.length > 0 && <span className="text-xs text-txs">橙色=兼容映射</span>}</div></td>
+        <td className="px-4 py-3">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {codes.length === 0 && <span className="text-txs">暂无</span>}
+            {codes.map((code) => {
+              const label = `收回${courseAccessLabel(code)}`;
+              return (
+                <span key={code} className="inline-flex items-center gap-1 rounded-ds-pill bg-blue-soft py-0.5 pl-2 pr-0.5 text-ds-xs text-pp">
+                  {courseAccessLabel(code)}
+                  <button
+                    type="button"
+                    aria-label={label}
+                    title={label}
+                    disabled={savingCourseAccess}
+                    onClick={() => void revokeGrant(student, code)}
+                    className="inline-flex min-h-6 items-center rounded-full px-1.5 font-ds-semibold hover:bg-white disabled:opacity-50"
+                  >
+                    收回
+                  </button>
+                </span>
+              );
+            })}
+            {availableProducts(student.id).length > 0 && (
+              <button type="button" disabled={savingCourseAccess} onClick={() => openGrant(student.id)} className="rounded-ds-pill border border-dashed border-ac px-2 py-1 text-ds-xs text-ac">
+                +开通课程
+              </button>
+            )}
+          </div>
+        </td>
         <td className="px-4 py-3 text-right font-ds-semibold">{formatCredits(student.total_credits)}</td><td className="px-4 py-3 text-right"><button className="text-tl" onClick={() => { setCreditUserId(student.id); setCreditAmount(""); setCreditReason(""); }}>{student.bonus_credits > 0 ? "+" : ""}{formatCredits(student.bonus_credits)}</button></td>
         <td className="px-4 py-3 text-center"><button onClick={() => setStatusUserId(student.id)}><StatusBadge status={student.status} /></button></td><td className="px-4 py-3 text-txs">{formatDate(student.created_at)}</td><td className="px-4 py-3 text-txs">{student.last_active_at ? formatDate(student.last_active_at) : "从未活跃"}</td>
       </tr>; })}{paged.length === 0 && <tr><td colSpan={8} className="px-4 py-12 text-center text-txs">没有匹配的学员</td></tr>}</tbody>
     </table></div></div>
     {totalPages > 1 && <div className="flex items-center justify-center gap-2"><Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setPage((v) => v - 1)}><ChevronLeft className="h-4 w-4" /></Button><span className="px-2 text-ds-sm text-txs">{currentPage} / {totalPages}</span><Button variant="outline" size="sm" disabled={currentPage >= totalPages} onClick={() => setPage((v) => v + 1)}><ChevronRight className="h-4 w-4" /></Button></div>}
-    {grantUserId && <Modal title="开通课程权限" onClose={() => !savingCourseAccess && setGrantUserId(null)}><select value={grantProductCode} onChange={(e) => setGrantProductCode(e.target.value as CourseAccessCode)} className="w-full rounded-ds-md border border-bd px-3 py-2 text-ds-sm">{products.map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}</select><input value={grantNotes} onChange={(e) => setGrantNotes(e.target.value)} placeholder="备注，如：学员购买课程" className="w-full rounded-ds-md border border-bd px-3 py-2 text-ds-sm" /><DialogActions onCancel={() => setGrantUserId(null)} onConfirm={() => void saveGrant()} saving={savingCourseAccess} confirmText="确认开通" /></Modal>}
+    {grantUserId && <Modal title="开通课程权限" onClose={() => !savingCourseAccess && setGrantUserId(null)}><select aria-label="选择课程权限" value={grantProductCode} onChange={(e) => setGrantProductCode(e.target.value as CourseAccessCode)} className="w-full rounded-ds-md border border-bd px-3 py-2 text-ds-sm">{availableProducts(grantUserId).map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}</select><input value={grantNotes} onChange={(e) => setGrantNotes(e.target.value)} placeholder="备注，如：学员购买课程" className="w-full rounded-ds-md border border-bd px-3 py-2 text-ds-sm" /><DialogActions onCancel={() => setGrantUserId(null)} onConfirm={() => void saveGrant()} saving={savingCourseAccess} confirmText="确认开通" /></Modal>}
     {creditUserId && <Modal title="调整奖励学分" onClose={() => !creditSaving && setCreditUserId(null)}><input type="number" step="0.5" value={creditAmount} onChange={(e) => setCreditAmount(e.target.value)} placeholder="正数加分，负数扣分" className="w-full rounded-ds-md border border-bd px-3 py-2 text-ds-sm" /><textarea value={creditReason} onChange={(e) => setCreditReason(e.target.value)} placeholder="调整原因" rows={2} className="w-full rounded-ds-md border border-bd px-3 py-2 text-ds-sm" /><DialogActions onCancel={() => setCreditUserId(null)} onConfirm={() => void adjustCredits()} saving={creditSaving} confirmText="确认调整" /></Modal>}
     {statusUserId && (() => { const student = students.find((item) => item.id === statusUserId); if (!student) return null; return <Modal title={student.status === "active" ? "确认停用账号？" : "确认恢复账号？"} onClose={() => !statusSaving && setStatusUserId(null)}><p className="text-ds-sm text-txs">{student.nickname} 的学习记录、课程授权和学分都会保留。</p><DialogActions onCancel={() => setStatusUserId(null)} onConfirm={() => void updateStatus()} saving={statusSaving} confirmText={student.status === "active" ? "确认停用" : "确认恢复"} /></Modal>; })()}
   </div>;

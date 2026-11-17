@@ -178,17 +178,23 @@ export async function getAdminCourseAccessProducts(): Promise<CourseAccessProduc
   return (data ?? []) as CourseAccessProduct[];
 }
 
-/** 后台查看全部用户的直接课程授权。 */
+/** 后台查看全部用户的单独开通和明确收回记录。 */
 export async function getAdminUserCourseEntitlements(): Promise<UserCourseEntitlement[]> {
-  const { data, error } = await supabase
-    .from("user_course_entitlements")
-    .select("user_id, product_code, status, starts_at, expires_at, notes")
-    .eq("status", "active");
-  if (error) {
-    console.warn("getAdminUserCourseEntitlements fallback:", error.message);
-    return [];
+  const entitlements: UserCourseEntitlement[] = [];
+  const pageSize = 500;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await supabase
+      .from("user_course_entitlements")
+      .select("user_id, product_code, status, starts_at, expires_at, notes")
+      .in("status", ["active", "denied"])
+      .order("user_id")
+      .order("product_code")
+      .range(offset, offset + pageSize - 1);
+    if (error) throw error;
+    const page = (data ?? []) as UserCourseEntitlement[];
+    entitlements.push(...page);
+    if (page.length < pageSize) return entitlements;
   }
-  return (data ?? []) as UserCourseEntitlement[];
 }
 
 export async function adminSetUserCourseAccess(
@@ -207,7 +213,11 @@ export async function adminSetUserCourseAccess(
     console.error("adminSetUserCourseAccess error:", error);
     throw error;
   }
-  return data as UserCourseEntitlement;
+  const row = data as UserCourseEntitlement | null;
+  if (row?.user_id !== userId || row.product_code !== productCode || row.status !== (enabled ? "active" : "denied")) {
+    throw new Error("课程权限未更新，请刷新后重试");
+  }
+  return row;
 }
 
 /**
