@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Download, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
@@ -150,17 +150,16 @@ export default function StudentListSection() {
             {codes.map((code) => {
               const label = `收回${courseAccessLabel(code)}`;
               return (
-                <span key={code} className="inline-flex items-center gap-1 rounded-ds-pill bg-blue-soft py-0.5 pl-2 pr-0.5 text-ds-xs text-pp">
+                <span key={code} className="relative inline-flex min-h-6 items-center rounded-ds-pill bg-blue-soft py-0.5 pl-2 pr-6 text-ds-xs text-pp">
                   {courseAccessLabel(code)}
                   <button
                     type="button"
                     aria-label={label}
-                    title={label}
                     disabled={savingCourseAccess}
                     onClick={() => void revokeGrant(student, code)}
-                    className="inline-flex min-h-6 items-center rounded-full px-1.5 font-ds-semibold hover:bg-white disabled:opacity-50"
+                    className="absolute right-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full hover:bg-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-ac disabled:opacity-50"
                   >
-                    收回
+                    <X className="h-3 w-3" aria-hidden="true" />
                   </button>
                 </span>
               );
