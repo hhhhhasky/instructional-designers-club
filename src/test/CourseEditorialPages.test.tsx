@@ -196,8 +196,8 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
 
     await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
 
-    expect(screen.getByRole('heading', { level: 1, name: '教学通识课' })).toBeInTheDocument();
-    expect(screen.getByText('教学通识课 · 课程目录')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: '教学通识课 2025 版' })).toBeInTheDocument();
+    expect(screen.getByText('教学通识课 2025 版 · 课程目录')).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: '系列课导航' })).toBeInTheDocument();
     expect(screen.getAllByText('理论篇').length).toBeGreaterThan(0);
     expect(screen.getAllByText('教学设计原理篇').length).toBeGreaterThan(0);

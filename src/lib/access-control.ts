@@ -33,10 +33,14 @@ export function canAccessCourse(
 ): boolean {
   if (Array.isArray(userAccess)) {
     const productCode = requirementToProductCode(courseRequirement);
-    return productCode === null || userAccess.includes(productCode);
+    // 仅 2025 版可用旧版权限。
+    return productCode === null ||
+      userAccess.includes(productCode) ||
+      (productCode === 'teaching-general-v1' && userAccess.includes('teaching-general-legacy'));
   }
   if (
     courseRequirement === 'teaching-general-v1' ||
+    courseRequirement === 'teaching-general-legacy' ||
     courseRequirement === 'teaching-general-v2' ||
     courseRequirement === 'teacher-ai' ||
     courseRequirement === 'daofa-textbook'

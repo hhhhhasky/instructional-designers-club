@@ -2,7 +2,8 @@ import CourseAccessBadge from '@/components/course/CourseAccessBadge';
 import { ArrowRight } from 'lucide-react';
 import CoursePurchaseButton from '@/components/course/CoursePurchaseButton';
 import { Link } from 'react-router-dom';
-import { COURSE_PURCHASE_PRODUCTS } from '@/lib/course-purchase';
+import { canAccessCourse } from '@/lib/access-control';
+import { COURSE_PURCHASE_PRODUCTS, TEACHING_GENERAL_2025_NAME, TEACHING_GENERAL_2025_NOTICE } from '@/lib/course-purchase';
 import type { CourseAccessCode } from '@/lib/course-entitlements';
 import { HOME_LANDING_DEFAULTS, type HomeLandingContent } from '@/lib/home-landing-content';
 
@@ -21,23 +22,26 @@ export default function CoursePurchaseSection({ accessCodes = [], isAdmin = fals
         <div className="grid gap-4 md:grid-cols-3">
           {COURSE_PURCHASE_PRODUCTS.map((product, index) => {
             const details = content.items.find((item) => item.code === product.code) ?? HOME_LANDING_DEFAULTS.home_courses.items.find((item) => item.code === product.code)!;
-            const hasAccess = isAdmin || accessCodes.includes(product.code);
+            const hasAccess = isAdmin || canAccessCourse(accessCodes, product.code);
+            const isTeachingGeneral2025 = product.code === 'teaching-general-v1';
+            const courseName = isTeachingGeneral2025 ? TEACHING_GENERAL_2025_NAME : product.name;
             return (
             <article key={product.code} className={`editorial-paper flex h-full flex-col border-t-[3px] p-5 transition-colors hover:border-ac/50 md:p-6 ${!isLoading && hasAccess ? "border-t-tl" : "border-t-bd"}`}>
               <div className="flex items-start justify-between gap-3">
                 <span className="text-4xl text-ac/60" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
                 {!isLoading && <CourseAccessBadge hasAccess={hasAccess} isAdmin={isAdmin} />}
               </div>
-              <h3 className="text-lg font-semibold mt-6 text-tx" style={{ fontFamily: 'var(--fd)' }}>{product.name}</h3>
+              <h3 className="text-lg font-semibold mt-6 text-tx" style={{ fontFamily: 'var(--fd)' }}>{courseName}</h3>
               <p className="mt-3 text-xs font-ds-bold text-ac">{details.audience}</p>
               <p className="mt-3 flex-1 text-sm leading-7 text-txs">{details.gain}</p>
+              {isTeachingGeneral2025 && <p className="mt-4 text-sm leading-6 text-txs">{TEACHING_GENERAL_2025_NOTICE}</p>}
               <div className="mt-8 border-t border-dashed border-bd pt-5">
                 <Link to={product.cataloguePath} className="inline-flex min-h-10 items-center gap-1.5 text-sm font-ds-semibold text-ac hover:underline">
                   {content.catalogue_cta} <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </Link>
                 {isLoading ? null : hasAccess ? (
                   <Link to={product.cataloguePath} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-ds-sm bg-ac px-5 text-sm font-ds-bold text-white transition-colors hover:bg-acd">
-                    {content.access_cta}{product.name} <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                    {content.access_cta}{courseName} <ArrowRight className="h-4 w-4" aria-hidden="true" />
                   </Link>
                 ) : (
                   <CoursePurchaseButton productCode={product.code} label={`${content.purchase_cta}${product.name}`} className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-ds-sm border border-bd bg-white px-5 text-sm font-ds-bold text-tx hover:border-ac hover:text-ac" />

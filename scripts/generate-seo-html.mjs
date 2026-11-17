@@ -26,7 +26,7 @@ const routes = {
     keywords: '教师课程,教学设计,教师AI课,道法教材解读课',
   },
   '/courses': {
-    title: `教学通识课 | ${SITE_NAME}`,
+    title: `教学通识课 2025 版 | ${SITE_NAME}`,
     description:
       '系统学习教学通识课：从学习科学、教学设计方法，到日常课、说课、公开课等真实教学场景。',
     keywords: '教学通识课,教学设计课程,教师培训课程',

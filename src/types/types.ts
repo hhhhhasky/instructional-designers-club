@@ -3,6 +3,7 @@ export type MembershipType = 'free' | 'plus2025' | 'plus' | 'pro';
 
 export type CourseAccessCode =
   | 'teaching-general-v1'
+  | 'teaching-general-legacy'
   | 'teaching-general-v2'
   | 'teacher-ai'
   | 'daofa-textbook';

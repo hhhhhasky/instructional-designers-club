@@ -1,5 +1,8 @@
 import type { CourseAccessCode } from '@/lib/course-entitlements';
 
+export const TEACHING_GENERAL_2025_NAME = '教学通识课 2025 版';
+export const TEACHING_GENERAL_2025_NOTICE = '2027 年 1 月 1 日后，教学通识课2025版将下架，课程将会升级到 2027 版。';
+
 export interface CoursePurchaseProduct {
   code: CourseAccessCode;
   name: string;

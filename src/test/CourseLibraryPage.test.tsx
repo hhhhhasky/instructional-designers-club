@@ -17,7 +17,7 @@ describe('课程选课首页', () => {
   it('访客可浏览三门课程，卡片仍进入原目录，购买入口分别对应商品', async () => {
     open();
     expect(screen.getAllByRole('article')).toHaveLength(3);
-    expect(screen.getByRole('link', { name: '教学通识课' })).toHaveAttribute('href', '/courses');
+    expect(screen.getByRole('link', { name: '教学通识课 2025 版' })).toHaveAttribute('href', '/courses');
     expect(screen.getByRole('link', { name: '教师 AI 课' })).toHaveAttribute('href', '/teacher-ai-courses');
     expect(screen.getByRole('link', { name: '道法教材解读课' })).toHaveAttribute('href', '/courses/daofa');
     const buyButtons = screen.getAllByRole('button', { name: /购买/ });
@@ -33,12 +33,24 @@ describe('课程选课首页', () => {
 
   it('通识课与 AI 课卡片标注包含 HAI 使用权限，道法教材解读课标注不含 HAI', () => {
     open();
-    const general = screen.getByRole('link', { name: '教学通识课' }).closest('article')!;
+    const general = screen.getByRole('link', { name: '教学通识课 2025 版' }).closest('article')!;
     const ai = screen.getByRole('link', { name: '教师 AI 课' }).closest('article')!;
     const daofa = screen.getByRole('link', { name: '道法教材解读课' }).closest('article')!;
     expect(within(general).getByText('包含 HAI 使用权限')).toBeInTheDocument();
     expect(within(ai).getByText('包含 HAI 使用权限')).toBeInTheDocument();
     expect(within(daofa).getByText('不含 HAI')).toBeInTheDocument();
+  });
+
+  it.each(['teaching-general-v1', 'teaching-general-legacy'] as const)('有 %s 权限时，2025 版显示在已开通课程中', async (code) => {
+    auth.user = { id: 'teacher' };
+    auth.courseAccessCodes = [code];
+    open();
+    await userEvent.setup().click(screen.getByRole('button', { name: '已开通' }));
+    expect(screen.getAllByRole('article')).toHaveLength(1);
+    const general = screen.getByRole('link', { name: '教学通识课 2025 版' }).closest('article')!;
+    expect(within(general).getByText('已开通 · 可观看')).toBeInTheDocument();
+    expect(within(general).getByText('2027 年 1 月 1 日后，教学通识课2025版将下架，课程将会升级到 2027 版。')).toBeInTheDocument();
+    expect(within(general).queryByRole('button', { name: /购买/ })).not.toBeInTheDocument();
   });
 
   it('仅给已开通课程显示可观看，筛选只保留有权限的一门', async () => {

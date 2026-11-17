@@ -4,7 +4,13 @@ export const COURSE_ACCESS_PRODUCTS = [
   {
     code: "teaching-general-v1",
     name: "教学通识课",
-    description: "第一版教学通识课",
+    description: "可观看 2025 版，2027 版上架后可观看新版",
+    grantable: true,
+  },
+  {
+    code: "teaching-general-legacy",
+    name: "教学通识课旧版",
+    description: "仅可观看教学通识课 2025 版",
     grantable: true,
   },
   {

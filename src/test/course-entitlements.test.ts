@@ -11,6 +11,7 @@ describe("course entitlement model", () => {
   it("uses stable codes and keeps V2 non-grantable", () => {
     expect(COURSE_ACCESS_PRODUCTS.map((product) => product.code)).toEqual([
       "teaching-general-v1",
+      "teaching-general-legacy",
       "teaching-general-v2",
       "teacher-ai",
       "daofa-textbook",
@@ -32,6 +33,14 @@ describe("course entitlement model", () => {
     expect(canAccessCourse(access, "daofa-textbook")).toBe(true);
     expect(canAccessCourse(access, "teacher-ai")).toBe(false);
     expect(canAccessCourse(access, "teaching-general-v2")).toBe(false);
+  });
+
+  it("lets a legacy-only grant open the 2025 edition without adding the standard grant or preview access", () => {
+    const legacy = ["teaching-general-legacy"] as const;
+    expect(canAccessCourse(legacy, "teaching-general-v1")).toBe(true);
+    expect(canAccessCourse(legacy, "plus")).toBe(true);
+    expect(canAccessCourse(legacy, "teaching-general-v2")).toBe(false);
+    expect(canAccessCourse(legacy, "teacher-ai")).toBe(false);
   });
 });
 

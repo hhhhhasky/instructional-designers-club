@@ -23,6 +23,7 @@ import type { Course } from '@/types/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { canAccessCourse } from '@/lib/access-control';
 import { getCourseAccessCode, type CourseAccessCode } from '@/lib/course-entitlements';
+import { TEACHING_GENERAL_2025_NAME, TEACHING_GENERAL_2025_NOTICE } from '@/lib/course-purchase';
 import UpgradePopup from '@/components/common/UpgradePopup';
 import {
   PLUS_TRACKS,
@@ -124,7 +125,7 @@ export default function CoursesPage() {
   return (
     <>
       <PageMeta
-        title="教学通识课"
+        title={TEACHING_GENERAL_2025_NAME}
         description="系统学习教学通识课：从底层理论、教学设计原理，到日常课、说课、公开课等真实教学场景。"
         canonicalPath="/courses"
         keywords="教学通识课,教学设计课程,教师培训课程"
@@ -134,9 +135,9 @@ export default function CoursesPage() {
         {isNavigating && <LoadingOverlay message="正在加载课程..." />}
         <main className="course-reading-desk flex-1 pb-12 pt-4">
           <CourseEditorialHero
-            kicker="教学通识课 · 课程目录"
+            kicker={`${TEACHING_GENERAL_2025_NAME} · 课程目录`}
             badge="课程目录"
-            title="教学通识课"
+            title={TEACHING_GENERAL_2025_NAME}
             description="从理解学习和教学的底层规律，到掌握教学设计原理，再把方法用到日常课、说课和公开课等真实任务里。"
             audience="建议按理论篇、教学设计原理篇、场景篇的顺序学习；需要解决具体问题时，也可以直接从目录定位到对应系列课。"
             icon={BookOpen}
@@ -146,6 +147,7 @@ export default function CoursesPage() {
             ]}
           >
             <CourseAccessNotice productCode="teaching-general-v1" />
+            <p className="mt-3 text-sm leading-6 text-txs">{TEACHING_GENERAL_2025_NOTICE}</p>
           </CourseEditorialHero>
 
           {isLoading && (
