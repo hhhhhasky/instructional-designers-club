@@ -40,6 +40,9 @@ verify_jwt = false
 [functions.admin-reset-password]
 verify_jwt = false
 
+[functions.legacy-account-recovery]
+verify_jwt = false
+
 [functions.legacy-email-binding]
 verify_jwt = true
 

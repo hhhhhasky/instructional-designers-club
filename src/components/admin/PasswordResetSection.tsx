@@ -1,3 +1,4 @@
+import { requestLegacyRecovery } from "@/db/legacy-account-recovery";
 import { supabaseBaseUrl } from "@/lib/supabase-url";
 import { Check, Copy, RefreshCw, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -15,6 +16,8 @@ interface PasswordResetRequest {
   phone: string;
   user_id: string | null;
   note: string;
+  recovery_email: string | null;
+  recovery_completed_at: string | null;
   status: "pending" | "approved" | "rejected";
   temp_password: string | null;
   created_at: string;
@@ -64,9 +67,20 @@ export default function PasswordResetSection() {
   }, [load]);
 
   // ---- 操作 ----
-  const handleAction = async (requestId: string, action: "approve" | "reject") => {
+  const handleAction = async (req: PasswordResetRequest, action: "approve" | "reject" | "resend") => {
+    const requestId = req.id;
+    if (req.recovery_email && action !== 'reject' && !window.confirm(
+      `请确认已通过企业微信核实此学员身份。\n原手机号：${req.phone}\n准备绑定的邮箱：${req.recovery_email}\n确认后发送验证邮件，学员验证并设置新密码后完成绑定。`
+    )) return;
     try {
       setProcessingId(requestId);
+      if (req.recovery_email && action !== 'reject') {
+        const result = await requestLegacyRecovery({ action, request_id: requestId });
+        if (result.error || !result.ok) toast.error(result.error || '操作失败');
+        else toast.success('验证邮件已发送，请提醒学员在30分钟内打开邮件并设置新密码');
+        await load();
+        return;
+      }
       const res = await fetch(
         `${supabaseBaseUrl}/functions/v1/admin-reset-password`,
         {
@@ -174,6 +188,8 @@ export default function PasswordResetSection() {
                 >
                   {STATUS_LABEL[req.status]}
                 </span>
+                {req.recovery_email && <span className="text-xs text-txs break-all">准备绑定：{req.recovery_email}</span>}
+                {req.recovery_email && req.status === 'approved' && <span className="text-xs text-txs">{req.recovery_completed_at ? '已完成邮箱绑定和改密' : '已审核，尚未完成；未收到邮件可重新发送'}</span>}
                 {req.note && (
                   <span className="text-txt text-xs truncate max-w-[160px]">{req.note}</span>
                 )}
@@ -208,6 +224,10 @@ export default function PasswordResetSection() {
               </div>
             </div>
 
+            {req.recovery_email && req.status === 'approved' && !req.recovery_completed_at && (
+              <Button size="sm" variant="outline" disabled={processingId === req.id} onClick={() => handleAction(req, 'resend')}>重新发送验证邮件</Button>
+            )}
+
             {/* 右：操作按钮（仅 pending） */}
             {req.status === "pending" && (
               <div className="flex items-center gap-2 shrink-0">
@@ -215,17 +235,17 @@ export default function PasswordResetSection() {
                   size="sm"
                   variant="outline"
                   className="border-tl text-tl hover:bg-tl/10"
-                  onClick={() => handleAction(req.id, "approve")}
+                  onClick={() => handleAction(req, "approve")}
                   disabled={processingId === req.id}
                 >
                   {processingId === req.id ? null : <Check className="w-4 h-4 mr-1" />}
-                  {processingId === req.id ? "处理中..." : "通过"}
+                  {processingId === req.id ? "处理中..." : req.recovery_email ? "核实并发送邮件" : "通过"}
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   className="border-txs/40 text-txs hover:bg-txs/10"
-                  onClick={() => handleAction(req.id, "reject")}
+                  onClick={() => handleAction(req, "reject")}
                   disabled={processingId === req.id}
                 >
                   {processingId === req.id ? null : <X className="w-4 h-4 mr-1" />}

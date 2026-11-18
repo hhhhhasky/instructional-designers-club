@@ -1,4 +1,3 @@
-import { corsHeaders } from "../_shared/hai.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.103.1";
 import { getSupabasePublishableKey, getSupabaseSecretKey } from "../_shared/supabase-keys.ts";
 
@@ -9,6 +8,12 @@ import { getSupabasePublishableKey, getSupabaseSecretKey } from "../_shared/supa
 //   action=reject  → 标记 rejected
 // 鉴权：请求头 Authorization + is_admin() RPC
 // ============================================================
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
 
 function jsonResponse(body: Record<string, unknown>, status: number) {
   return new Response(JSON.stringify(body), {
@@ -82,7 +87,7 @@ Deno.serve(async (request: Request) => {
     // 取申请行
     const { data: reqRow, error: reqError } = await admin
       .from("password_reset_requests")
-      .select("id, phone, user_id, status")
+      .select("id, phone, user_id, status, recovery_email")
       .eq("id", requestId)
       .maybeSingle();
     if (reqError) throw reqError;
@@ -107,9 +112,13 @@ Deno.serve(async (request: Request) => {
       return jsonResponse({ ok: true, status: "rejected" }, 200);
     }
 
+    if (reqRow.recovery_email) {
+      return jsonResponse({ error: "此申请需要验证邮箱，请使用核实并发送邮件入口" }, 409);
+    }
+
     // ---- 通过 ----
-    // 反查用户 id（若申请行已有 user_id 直接用，否则按 phone 查 profiles）
-    let userId: string | null = reqRow.user_id ?? null;
+    // 按注册手机号反查用户，忽略申请中可能由旧客户端填写的 user_id。
+    let userId: string | null = null; // Always resolve the account from the registered phone, never a caller-supplied user_id.
     if (!userId) {
       const { data: profile, error: profileError } = await admin
         .from("profiles")

@@ -8,9 +8,11 @@ import { KeyRound, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/db/supabase';
 import PageMeta from '@/components/common/PageMeta';
+import { requestLegacyRecovery } from '@/db/legacy-account-recovery';
 
 const forgotSchema = z.object({
   phone: z.string().regex(/^1[3-9]\d{9}$/, '请输入正确的11位手机号'),
+  recoveryEmail: z.string().email('请输入可收信的邮箱').max(254, '邮箱过长'),
   note: z
     .string()
     .max(50, '备注最多50字')
@@ -22,6 +24,7 @@ type ForgotForm = z.infer<typeof forgotSchema>;
 export default function ForgotPasswordPage() {
   const [submitted, setSubmitted] = useState(false);
   const [submittedPhone, setSubmittedPhone] = useState('');
+  const [submittedEmail, setSubmittedEmail] = useState('');
   const [email, setEmail] = useState('');
   const [emailSent, setEmailSent] = useState(false);
   const [emailSending, setEmailSending] = useState(false);
@@ -53,32 +56,21 @@ export default function ForgotPasswordPage() {
   } = useForm<ForgotForm>({ resolver: zodResolver(forgotSchema) });
 
   const onSubmit = async (data: ForgotForm) => {
-    // 防止同手机号短期内重复提交：查最近一条未处理/已通过的申请
-    const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-    const { data: recent, error: recentError } = await supabase
-      .from('password_reset_requests')
-      .select('id, status')
-      .eq('phone', data.phone)
-      .in('status', ['pending', 'approved'])
-      .gte('created_at', tenMinAgo)
-      .limit(1);
-
-    if (!recentError && recent && recent.length > 0) {
-      toast.error('你已有重置申请，请私信哈老师的企业微信，告知注册手机号以便核对');
-      return;
-    }
-
-    const { error } = await supabase.from('password_reset_requests').insert({
-      phone: data.phone,
-      note: data.note?.trim() || '',
-    });
-
-    if (error) {
-      toast.error('提交失败，请稍后重试');
+    try {
+      const result = await requestLegacyRecovery({
+        action: 'submit', phone: data.phone, email: data.recoveryEmail.trim(), note: data.note?.trim() || '',
+      });
+      if (result.error || !result.ok) {
+        toast.error(result.error || '提交失败，请稍后重试');
+        return;
+      }
+    } catch {
+      toast.error('网络连接失败，请稍后重试');
       return;
     }
 
     setSubmittedPhone(data.phone);
+    setSubmittedEmail(data.recoveryEmail.trim());
     setSubmitted(true);
     toast.success('重置申请已提交');
   };
@@ -104,7 +96,7 @@ export default function ForgotPasswordPage() {
                 <p className="text-ds-sm text-txs">
                   {manualRecovery ? (submitted
                     ? '请继续联系哈老师完成信息核对'
-                    : '填写注册手机号，提交后请联系哈老师的企业微信') : '通过绑定的邮箱重置密码'}
+                    : '填写原注册手机号和可收信的邮箱，提交后联系哈老师核对身份') : '通过绑定的邮箱重置密码'}
                 </p>
               </div>
 
@@ -131,7 +123,7 @@ export default function ForgotPasswordPage() {
                     <p className="text-ds-sm text-txs leading-relaxed">
                       手机号 <span className="text-tx">{submittedPhone}</span> 的重置申请已收到。
                       <br />
-                      请务必私信哈老师的企业微信，告知你的注册手机号以便核对信息。核对后，哈老师才能在后台处理，并通过企业微信将临时密码发给你。
+                      请通过企业微信联系哈老师，告知原注册手机号。核实身份后，验证邮件将发送至 {submittedEmail}。打开邮件链接即可绑定邮箱并设置新密码，原有课程和学习记录保留。链接30分钟内有效，请同时检查垃圾邮件。
                     </p>
                     <img
                       src="/哈老师企微二维码.png"
@@ -169,6 +161,15 @@ export default function ForgotPasswordPage() {
                     {errors.phone && (
                       <p className="text-sm text-red-500 mt-1">{errors.phone.message}</p>
                     )}
+                  </div>
+
+                  <div>
+                    <label className="block text-ds-sm text-txs mb-2" htmlFor="recovery-email">准备绑定的邮箱</label>
+                    <input id="recovery-email" type="email" placeholder="可接收验证邮件的邮箱" autoComplete="email"
+                      {...register('recoveryEmail')}
+                      className="w-full h-12 px-4 text-base border border-bd rounded-ds-lg bg-bg text-tx" />
+                    {errors.recoveryEmail && <p className="text-sm text-red-500 mt-1">{errors.recoveryEmail.message}</p>}
+                    <p className="text-ds-xs text-txs mt-2">管理员核实后向此邮箱发信，验证并设置新密码后才完成绑定。</p>
                   </div>
 
                   <div>
