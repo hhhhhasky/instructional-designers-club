@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
 import { Button } from "@/components/ui/button";
 import {
-  adminAdjustBonusCredits, adminSetUserCourseAccess, adminUpdateUserStatus,
+  adminAdjustBonusCredits, adminReplaceUserCourseAccess, adminSetUserCourseAccess, adminUpdateUserStatus,
   getAdminCourseAccessProducts, getAdminStudentList, getAdminUserCourseEntitlements,
   type StudentItem,
 } from "@/db/admin-api";
@@ -16,6 +16,9 @@ import { cn } from "@/lib/utils";
 import type { CourseAccessCode } from "@/types/types";
 
 const PAGE_SIZE = 20;
+const TEACHING_GENERAL_2025_PERMISSIONS: readonly CourseAccessCode[] = [
+  "teaching-general-v1", "teaching-general-legacy", "gongding-gongkaike",
+];
 
 export default function StudentListSection() {
   const [students, setStudents] = useState<StudentItem[]>([]);
@@ -29,6 +32,7 @@ export default function StudentListSection() {
   const [page, setPage] = useState(1);
   const [grantUserId, setGrantUserId] = useState<string | null>(null);
   const [grantProductCode, setGrantProductCode] = useState<CourseAccessCode | "">("");
+  const [previousProductCode, setPreviousProductCode] = useState<CourseAccessCode | null>(null);
   const [grantNotes, setGrantNotes] = useState("");
   const [savingCourseAccess, setSavingCourseAccess] = useState(false);
   const [creditUserId, setCreditUserId] = useState<string | null>(null);
@@ -73,32 +77,44 @@ export default function StudentListSection() {
   const paged = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const setFilter = (setter: (value: string) => void, value: string) => { setter(value); setPage(1); };
-  const openGrant = (userId: string) => {
-    setGrantUserId(userId); setGrantProductCode(availableProducts(userId)[0]?.code ?? ""); setGrantNotes("");
+  const openGrant = (userId: string, previousCode: CourseAccessCode | null = null) => {
+    setGrantUserId(userId);
+    setPreviousProductCode(previousCode);
+    setGrantProductCode(availableProducts(userId)[0]?.code ?? "");
+    setGrantNotes(entitlements.find((row) => row.user_id === userId && row.product_code === previousCode)?.notes ?? "");
   };
-  const updateEntitlement = (row: UserCourseEntitlement) => {
-    setEntitlements((items) => [...items.filter((item) => item.user_id !== row.user_id || item.product_code !== row.product_code), row]);
+  const updateEntitlements = (...rows: UserCourseEntitlement[]) => {
+    setEntitlements((items) => [
+      ...items.filter((item) => !rows.some((row) => item.user_id === row.user_id && item.product_code === row.product_code)),
+      ...rows,
+    ]);
   };
   const saveGrant = async () => {
     if (!grantUserId || !grantProductCode) return;
     try {
       setSavingCourseAccess(true);
-      const row = await adminSetUserCourseAccess(grantUserId, grantProductCode, true, grantNotes);
-      updateEntitlement(row);
-      toast.success(`已开通${courseAccessLabel(grantProductCode)}`); setGrantUserId(null);
-    } catch (cause) { toast.error(cause instanceof Error ? cause.message : "课程权限开通失败"); }
+      if (previousProductCode) {
+        updateEntitlements(...await adminReplaceUserCourseAccess(grantUserId, previousProductCode, grantProductCode, grantNotes));
+        toast.success(`已更换为${courseAccessLabel(grantProductCode)}`);
+      } else {
+        updateEntitlements(await adminSetUserCourseAccess(grantUserId, grantProductCode, true, grantNotes));
+        toast.success(`已开通${courseAccessLabel(grantProductCode)}`);
+      }
+      setGrantUserId(null);
+    } catch (cause) { toast.error(cause instanceof Error ? cause.message : "课程权限保存失败"); }
     finally { setSavingCourseAccess(false); }
   };
   const revokeGrant = async (student: StudentItem, code: CourseAccessCode) => {
-    const remaining2025Permission = code === "teaching-general-v1" ? "teaching-general-legacy"
-      : code === "teaching-general-legacy" ? "teaching-general-v1" : null;
-    const note = remaining2025Permission && effectiveCodes(student).includes(remaining2025Permission)
+    const remaining2025Permission = TEACHING_GENERAL_2025_PERMISSIONS.find(
+      (product) => product !== code && effectiveCodes(student).includes(product),
+    );
+    const note = TEACHING_GENERAL_2025_PERMISSIONS.includes(code) && remaining2025Permission
       ? `\n该学员仍可通过「${courseAccessLabel(remaining2025Permission)}」观看 2025 版。`
       : "";
     if (!window.confirm(`确认收回 ${student.nickname} 的「${courseAccessLabel(code)}」权限？${note}`)) return;
     try {
       setSavingCourseAccess(true);
-      updateEntitlement(await adminSetUserCourseAccess(student.id, code, false, "后台手动收回"));
+      updateEntitlements(await adminSetUserCourseAccess(student.id, code, false, "后台手动收回"));
       toast.success(`已收回${courseAccessLabel(code)}`);
     } catch (cause) { toast.error(cause instanceof Error ? cause.message : "收回课程权限失败"); }
     finally { setSavingCourseAccess(false); }
@@ -142,7 +158,7 @@ export default function StudentListSection() {
     </div>
     <div className="overflow-hidden rounded-ds-lg border border-bd bg-white shadow-ds-xs"><div className="overflow-x-auto"><table className="w-full text-ds-sm">
       <thead><tr className="border-b border-bd bg-warm"><th className="px-4 py-3 text-left">昵称</th><th className="px-4 py-3 text-left">手机号</th><th className="min-w-[340px] px-4 py-3 text-left">课程权限</th><th className="px-4 py-3 text-right">学分</th><th className="px-4 py-3 text-right">奖励</th><th className="px-4 py-3 text-center">状态</th><th className="px-4 py-3 text-left">注册日期</th><th className="px-4 py-3 text-left">最后活跃</th></tr></thead>
-      <tbody>{paged.map((student) => { const codes = effectiveCodes(student); return <tr key={student.id} className="border-b border-bdl hover:bg-bgs/50">
+      <tbody>{paged.map((student) => { const codes = effectiveCodes(student); const canGrant = availableProducts(student.id).length > 0; return <tr key={student.id} className="border-b border-bdl hover:bg-bgs/50">
         <td className="px-4 py-3 font-ds-medium">{student.nickname}</td><td className="px-4 py-3 font-mono text-txs">{maskPhone(student.phone)}</td>
         <td className="px-4 py-3">
           <div className="flex flex-wrap items-center gap-1.5">
@@ -151,7 +167,16 @@ export default function StudentListSection() {
               const label = `收回${courseAccessLabel(code)}`;
               return (
                 <span key={code} className="relative inline-flex min-h-6 items-center rounded-ds-pill bg-blue-soft py-0.5 pl-2 pr-6 text-ds-xs text-pp">
-                  {courseAccessLabel(code)}
+                  <button
+                    type="button"
+                    aria-label={`更换${courseAccessLabel(code)}权限`}
+                    title="更换课程权限"
+                    disabled={savingCourseAccess || !canGrant}
+                    onClick={() => openGrant(student.id, code)}
+                    className="rounded-sm enabled:hover:underline focus-visible:outline focus-visible:outline-1 focus-visible:outline-ac"
+                  >
+                    {courseAccessLabel(code)}
+                  </button>
                   <button
                     type="button"
                     aria-label={label}
@@ -164,7 +189,7 @@ export default function StudentListSection() {
                 </span>
               );
             })}
-            {availableProducts(student.id).length > 0 && (
+            {canGrant && (
               <button type="button" disabled={savingCourseAccess} onClick={() => openGrant(student.id)} className="rounded-ds-pill border border-dashed border-ac px-2 py-1 text-ds-xs text-ac">
                 +开通课程
               </button>
@@ -176,7 +201,23 @@ export default function StudentListSection() {
       </tr>; })}{paged.length === 0 && <tr><td colSpan={8} className="px-4 py-12 text-center text-txs">没有匹配的学员</td></tr>}</tbody>
     </table></div></div>
     {totalPages > 1 && <div className="flex items-center justify-center gap-2"><Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setPage((v) => v - 1)}><ChevronLeft className="h-4 w-4" /></Button><span className="px-2 text-ds-sm text-txs">{currentPage} / {totalPages}</span><Button variant="outline" size="sm" disabled={currentPage >= totalPages} onClick={() => setPage((v) => v + 1)}><ChevronRight className="h-4 w-4" /></Button></div>}
-    {grantUserId && <Modal title="开通课程权限" onClose={() => !savingCourseAccess && setGrantUserId(null)}><select aria-label="选择课程权限" value={grantProductCode} onChange={(e) => setGrantProductCode(e.target.value as CourseAccessCode)} className="w-full rounded-ds-md border border-bd px-3 py-2 text-ds-sm">{availableProducts(grantUserId).map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}</select><input value={grantNotes} onChange={(e) => setGrantNotes(e.target.value)} placeholder="备注，如：学员购买课程" className="w-full rounded-ds-md border border-bd px-3 py-2 text-ds-sm" /><DialogActions onCancel={() => setGrantUserId(null)} onConfirm={() => void saveGrant()} saving={savingCourseAccess} confirmText="确认开通" /></Modal>}
+    {grantUserId && (
+      <Modal title={previousProductCode ? "更换课程权限" : "开通课程权限"} onClose={() => !savingCourseAccess && setGrantUserId(null)}>
+        {previousProductCode && <p className="text-ds-sm text-txs">更换后，将同时收回「{courseAccessLabel(previousProductCode)}」权限。</p>}
+        <select
+          aria-label="选择课程权限"
+          value={grantProductCode}
+          onChange={(e) => setGrantProductCode(e.target.value as CourseAccessCode)}
+          disabled={savingCourseAccess}
+          className="w-full rounded-ds-md border border-bd px-3 py-2 text-ds-sm"
+        >
+          {availableProducts(grantUserId).map((product) => <option key={product.code} value={product.code}>{product.name}</option>)}
+        </select>
+        <p className="text-ds-sm text-txs">{products.find((product) => product.code === grantProductCode)?.description}</p>
+        <input aria-label="备注" value={grantNotes} onChange={(e) => setGrantNotes(e.target.value)} placeholder="备注，如：学员购买课程" className="w-full rounded-ds-md border border-bd px-3 py-2 text-ds-sm" />
+        <DialogActions onCancel={() => setGrantUserId(null)} onConfirm={() => void saveGrant()} saving={savingCourseAccess} confirmText={previousProductCode ? "确认更换" : "确认开通"} />
+      </Modal>
+    )}
     {creditUserId && <Modal title="调整奖励学分" onClose={() => !creditSaving && setCreditUserId(null)}><input type="number" step="0.5" value={creditAmount} onChange={(e) => setCreditAmount(e.target.value)} placeholder="正数加分，负数扣分" className="w-full rounded-ds-md border border-bd px-3 py-2 text-ds-sm" /><textarea value={creditReason} onChange={(e) => setCreditReason(e.target.value)} placeholder="调整原因" rows={2} className="w-full rounded-ds-md border border-bd px-3 py-2 text-ds-sm" /><DialogActions onCancel={() => setCreditUserId(null)} onConfirm={() => void adjustCredits()} saving={creditSaving} confirmText="确认调整" /></Modal>}
     {statusUserId && (() => { const student = students.find((item) => item.id === statusUserId); if (!student) return null; return <Modal title={student.status === "active" ? "确认停用账号？" : "确认恢复账号？"} onClose={() => !statusSaving && setStatusUserId(null)}><p className="text-ds-sm text-txs">{student.nickname} 的学习记录、课程授权和学分都会保留。</p><DialogActions onCancel={() => setStatusUserId(null)} onConfirm={() => void updateStatus()} saving={statusSaving} confirmText={student.status === "active" ? "确认停用" : "确认恢复"} /></Modal>; })()}
   </div>;

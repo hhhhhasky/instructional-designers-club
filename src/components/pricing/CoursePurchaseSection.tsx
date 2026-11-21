@@ -3,7 +3,7 @@ import { ArrowRight } from 'lucide-react';
 import CoursePurchaseButton from '@/components/course/CoursePurchaseButton';
 import { Link } from 'react-router-dom';
 import { canAccessCourse } from '@/lib/access-control';
-import { COURSE_PURCHASE_PRODUCTS, TEACHING_GENERAL_2025_NAME, TEACHING_GENERAL_2025_NOTICE } from '@/lib/course-purchase';
+import { COURSE_PURCHASE_PRODUCTS, TEACHING_GENERAL_2025_NAME } from '@/lib/course-purchase';
 import type { CourseAccessCode } from '@/lib/course-entitlements';
 import { HOME_LANDING_DEFAULTS, type HomeLandingContent } from '@/lib/home-landing-content';
 
@@ -34,7 +34,6 @@ export default function CoursePurchaseSection({ accessCodes = [], isAdmin = fals
               <h3 className="text-lg font-semibold mt-6 text-tx" style={{ fontFamily: 'var(--fd)' }}>{courseName}</h3>
               <p className="mt-3 text-xs font-ds-bold text-ac">{details.audience}</p>
               <p className="mt-3 flex-1 text-sm leading-7 text-txs">{details.gain}</p>
-              {isTeachingGeneral2025 && <p className="mt-4 text-sm leading-6 text-txs">{TEACHING_GENERAL_2025_NOTICE}</p>}
               <div className="mt-8 border-t border-dashed border-bd pt-5">
                 <Link to={product.cataloguePath} className="inline-flex min-h-10 items-center gap-1.5 text-sm font-ds-semibold text-ac hover:underline">
                   {content.catalogue_cta} <ArrowRight className="h-4 w-4" aria-hidden="true" />

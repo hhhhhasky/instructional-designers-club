@@ -56,9 +56,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       try {
         const p = await loadProfile(user.id, { fresh: true });
+        const viewingCodes = p && profileLoadId.current === requestId ? await getUserCourseAccessCodes() : [];
         if (profileLoadId.current === requestId) {
           setProfile(p);
-          setCourseAccessCodes(p ? await getUserCourseAccessCodes(p) : []);
+          setCourseAccessCodes(viewingCodes);
         }
       } finally {
         if (profileLoadId.current === requestId) {
@@ -105,9 +106,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           return;
         }
+        const viewingCodes = p && mounted && profileLoadId.current === requestId ? await getUserCourseAccessCodes() : [];
         if (mounted && profileLoadId.current === requestId) {
           setProfile(p);
-          setCourseAccessCodes(p ? await getUserCourseAccessCodes(p) : []);
+          setCourseAccessCodes(viewingCodes);
           setLoading(false);
         }
       } catch (error) {
@@ -162,9 +164,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(result.session);
         setUser(result.session.user);
         const p = await loadProfile(result.session.user.id, { fresh: true });
+        const viewingCodes = p && profileLoadId.current === requestId ? await getUserCourseAccessCodes() : [];
         if (profileLoadId.current === requestId) {
           setProfile(p);
-          setCourseAccessCodes(p ? await getUserCourseAccessCodes(p) : []);
+          setCourseAccessCodes(viewingCodes);
         }
       }
       return { error: result.error, needsEmail: !!result.user?.email?.endsWith('@phone.local') };

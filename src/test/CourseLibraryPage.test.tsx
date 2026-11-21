@@ -41,16 +41,19 @@ describe('课程选课首页', () => {
     expect(within(daofa).getByText('不含 HAI')).toBeInTheDocument();
   });
 
-  it.each(['teaching-general-v1', 'teaching-general-legacy'] as const)('有 %s 权限时，2025 版显示在已开通课程中', async (code) => {
+  it.each([
+    { access: ['teaching-general-v1'] as const },
+    { access: ['teaching-general-v1', 'gongding-gongkaike'] as const },
+  ])('可观看 2025 版时将其显示在已开通，待上线课程保持隐藏（$access）', async ({ access }) => {
     auth.user = { id: 'teacher' };
-    auth.courseAccessCodes = [code];
+    auth.courseAccessCodes = [...access];
     open();
     await userEvent.setup().click(screen.getByRole('button', { name: '已开通' }));
     expect(screen.getAllByRole('article')).toHaveLength(1);
     const general = screen.getByRole('link', { name: '教学通识课 2025 版' }).closest('article')!;
     expect(within(general).getByText('已开通 · 可观看')).toBeInTheDocument();
-    expect(within(general).getByText('2027 年 1 月 1 日后，教学通识课2025版将下架，课程将会升级到 2027 版。')).toBeInTheDocument();
     expect(within(general).queryByRole('button', { name: /购买/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/俱乐部 plus 课程|搞定公开课/)).not.toBeInTheDocument();
   });
 
   it('仅给已开通课程显示可观看，筛选只保留有权限的一门', async () => {

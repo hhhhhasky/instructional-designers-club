@@ -12,11 +12,14 @@ describe("course entitlement model", () => {
     expect(COURSE_ACCESS_PRODUCTS.map((product) => product.code)).toEqual([
       "teaching-general-v1",
       "teaching-general-legacy",
+      "gongding-gongkaike",
       "teaching-general-v2",
       "teacher-ai",
       "daofa-textbook",
     ]);
     expect(COURSE_ACCESS_PRODUCTS.find((product) => product.code === "teaching-general-v2")?.grantable).toBe(false);
+    expect(COURSE_ACCESS_PRODUCTS.find((product) => product.code === "teaching-general-legacy")?.name).toBe("俱乐部 plus 课程");
+    expect(COURSE_ACCESS_PRODUCTS.find((product) => product.code === "gongding-gongkaike")?.name).toBe("搞定公开课");
   });
 
   it("maps legacy memberships without granting V2", () => {
@@ -35,12 +38,14 @@ describe("course entitlement model", () => {
     expect(canAccessCourse(access, "teaching-general-v2")).toBe(false);
   });
 
-  it("lets a legacy-only grant open the 2025 edition without adding the standard grant or preview access", () => {
-    const legacy = ["teaching-general-legacy"] as const;
-    expect(canAccessCourse(legacy, "teaching-general-v1")).toBe(true);
-    expect(canAccessCourse(legacy, "plus")).toBe(true);
-    expect(canAccessCourse(legacy, "teaching-general-v2")).toBe(false);
-    expect(canAccessCourse(legacy, "teacher-ai")).toBe(false);
+  it("uses the server's course viewing scopes without inferring access to the future course", () => {
+    const oldEditionOnly = ["teaching-general-v1"] as const;
+    const bothEditions = ["teaching-general-v1", "gongding-gongkaike"] as const;
+    expect(canAccessCourse(oldEditionOnly, "teaching-general-v1")).toBe(true);
+    expect(canAccessCourse(oldEditionOnly, "plus")).toBe(true);
+    expect(canAccessCourse(oldEditionOnly, "gongding-gongkaike")).toBe(false);
+    expect(canAccessCourse(bothEditions, "gongding-gongkaike")).toBe(true);
+    expect(canAccessCourse(bothEditions, "teaching-general-v2")).toBe(false);
   });
 });
 

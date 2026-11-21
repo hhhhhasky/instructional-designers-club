@@ -20,7 +20,7 @@ import {
   getCourseProtectedContent,
   notifyCourseCatalogUpdated,
 } from "./api";
-import { supabase } from "./supabase";
+import { supabase, typedSupabase } from "./supabase";
 import {
   COURSE_ACCESS_PRODUCTS,
   type CourseAccessProduct,
@@ -153,7 +153,7 @@ export async function getAdminStudentList(): Promise<StudentItem[]> {
   return data || [];
 }
 
-/** 后台可授权的已上线课程产品。 */
+/** 后台可开通的课程权限，包括已开放授权的待上线课程。 */
 export async function getAdminCourseAccessProducts(): Promise<CourseAccessProduct[]> {
   const { data, error } = await supabase
     .from("course_access_products")
@@ -218,6 +218,30 @@ export async function adminSetUserCourseAccess(
     throw new Error("课程权限未更新，请刷新后重试");
   }
   return row;
+}
+
+export async function adminReplaceUserCourseAccess(
+  userId: string,
+  previousCode: CourseAccessCode,
+  productCode: CourseAccessCode,
+  notes?: string,
+): Promise<UserCourseEntitlement[]> {
+  const { data, error } = await typedSupabase.rpc("admin_replace_user_course_access", {
+    p_user_id: userId,
+    p_previous_product_code: previousCode,
+    p_product_code: productCode,
+    p_notes: notes?.trim() || undefined,
+  });
+  if (error) throw new Error(error.message);
+
+  const result = data as { granted?: UserCourseEntitlement; revoked?: UserCourseEntitlement } | null;
+  const granted = result?.granted;
+  const revoked = result?.revoked;
+  if (granted?.user_id !== userId || granted.product_code !== productCode || granted.status !== "active"
+    || revoked?.user_id !== userId || revoked.product_code !== previousCode || revoked.status !== "denied") {
+    throw new Error("课程权限未更新，请刷新后重试");
+  }
+  return [granted, revoked];
 }
 
 /**

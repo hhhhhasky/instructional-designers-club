@@ -5768,6 +5768,15 @@ export type Database = {
       admin_course_rankings: { Args: never; Returns: Json }
       admin_inactive_students: { Args: never; Returns: Json }
       admin_member_overview: { Args: never; Returns: Json }
+      admin_replace_user_course_access: {
+        Args: {
+          p_notes?: string
+          p_previous_product_code: string
+          p_product_code: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       admin_set_course_access_password: {
         Args: { p_course_id: string; p_password?: string }
         Returns: boolean
@@ -5819,6 +5828,7 @@ export type Database = {
         Args: { p_live_id: string }
         Returns: Json
       }
+      get_my_course_viewing_codes: { Args: never; Returns: string[] }
       get_my_notifications: { Args: never; Returns: Json }
       get_unread_notification_count: { Args: never; Returns: number }
       hai_access_status: { Args: never; Returns: Json }

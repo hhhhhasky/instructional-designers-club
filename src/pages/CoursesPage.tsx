@@ -23,7 +23,7 @@ import type { Course } from '@/types/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { canAccessCourse } from '@/lib/access-control';
 import { getCourseAccessCode, type CourseAccessCode } from '@/lib/course-entitlements';
-import { TEACHING_GENERAL_2025_NAME, TEACHING_GENERAL_2025_NOTICE } from '@/lib/course-purchase';
+import { TEACHING_GENERAL_2025_NAME } from '@/lib/course-purchase';
 import UpgradePopup from '@/components/common/UpgradePopup';
 import {
   PLUS_TRACKS,
@@ -147,7 +147,6 @@ export default function CoursesPage() {
             ]}
           >
             <CourseAccessNotice productCode="teaching-general-v1" />
-            <p className="mt-3 text-sm leading-6 text-txs">{TEACHING_GENERAL_2025_NOTICE}</p>
           </CourseEditorialHero>
 
           {isLoading && (

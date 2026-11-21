@@ -5,6 +5,7 @@ export type CourseAccessCode =
   | 'teaching-general-v1'
   | 'teaching-general-legacy'
   | 'teaching-general-v2'
+  | 'gongding-gongkaike'
   | 'teacher-ai'
   | 'daofa-textbook';
 

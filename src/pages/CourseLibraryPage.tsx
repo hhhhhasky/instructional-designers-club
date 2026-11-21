@@ -8,7 +8,6 @@ import { canAccessCourse } from '@/lib/access-control';
 import {
   COURSE_PURCHASE_PRODUCTS,
   TEACHING_GENERAL_2025_NAME,
-  TEACHING_GENERAL_2025_NOTICE,
 } from '@/lib/course-purchase';
 
 const COURSE_DETAILS = [
@@ -50,11 +49,6 @@ export default function CourseLibraryPage() {
                 <p className={`mb-3 flex items-center gap-1.5 text-xs ${product.hasAccess ? 'text-sage' : 'text-txs'}`} role="status">{loading ? '正在确认观看权限…' : product.hasAccess ? <><Check className="h-3.5 w-3.5" />已开通 · 可观看</> : <><LockKeyhole className="h-3.5 w-3.5" />{user ? '未开通' : '登录后确认观看权限'}</>}</p>
                 <p className="text-lg leading-relaxed text-muted-foreground">{product.headline}</p>
                 <p className="mt-3 text-sm leading-7 text-txs">{product.content}</p>
-                {product.code === 'teaching-general-v1' && (
-                  <p className="mt-4 rounded-md bg-warm px-3 py-2 text-sm leading-6 text-tx">
-                    {TEACHING_GENERAL_2025_NOTICE}
-                  </p>
-                )}
                 <p className="mb-6 mt-4 text-xs leading-6 text-txs">适合：{product.audience}</p>
                 <div className="mt-auto flex items-center justify-between gap-3 border-t border-bd pt-5">
                   <span className="inline-flex items-center gap-2 text-sm font-semibold text-ac">{!loading && product.hasAccess ? '进入学习' : '查看课程'}<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></span>

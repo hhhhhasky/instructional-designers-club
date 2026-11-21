@@ -1,11 +1,8 @@
 import { canonicalSupabaseStorageUrl } from "@/lib/supabase-url";
 import type { Session, User } from '@supabase/supabase-js';
 import { clearLearningDataCache } from '@/db/api';
-import { supabase } from '@/db/supabase';
-import {
-  getEffectiveCourseAccessCodes,
-  getMembershipCourseAccessCodes,
-} from '@/lib/course-entitlements';
+import { supabase, typedSupabase } from '@/db/supabase';
+import { getMembershipCourseAccessCodes } from '@/lib/course-entitlements';
 import type { CourseAccessCode, LearningRecord, MembershipType, Profile } from '@/types/types';
 
 // ==================== 访问控制 ====================
@@ -32,16 +29,15 @@ export function canAccessCourse(
   courseRequirement: CourseAccessRequirement,
 ): boolean {
   if (Array.isArray(userAccess)) {
+    // Signed-in callers receive viewing scopes calculated by the server.
     const productCode = requirementToProductCode(courseRequirement);
-    return productCode === null ||
-      userAccess.includes(productCode) ||
-      // 仅 2025 版可用旧版权限，不能把旧版授权合并为常规授权。
-      (productCode === 'teaching-general-v1' && userAccess.includes('teaching-general-legacy'));
+    return productCode === null || userAccess.includes(productCode);
   }
   if (
     courseRequirement === 'teaching-general-v1' ||
     courseRequirement === 'teaching-general-legacy' ||
     courseRequirement === 'teaching-general-v2' ||
+    courseRequirement === 'gongding-gongkaike' ||
     courseRequirement === 'teacher-ai' ||
     courseRequirement === 'daofa-textbook'
   ) {
@@ -50,12 +46,8 @@ export function canAccessCourse(
   return LEVEL_HIERARCHY[userAccess as MembershipType] >= LEVEL_HIERARCHY[courseRequirement ?? 'free'];
 }
 
-export async function getUserCourseAccessCodes(profile: Profile): Promise<CourseAccessCode[]> {
-  const { data, error } = await supabase
-    .from('user_course_entitlements')
-    .select('product_code, status, starts_at, expires_at')
-    .eq('user_id', profile.id)
-    .in('status', ['active', 'denied']);
+export async function getUserCourseAccessCodes(): Promise<CourseAccessCode[]> {
+  const { data, error } = await typedSupabase.rpc('get_my_course_viewing_codes');
 
   // 权限读取失败时仍可登录，受保护课程由服务端校验。
   if (error) {
@@ -63,7 +55,7 @@ export async function getUserCourseAccessCodes(profile: Profile): Promise<Course
     return [];
   }
 
-  return getEffectiveCourseAccessCodes(profile.access_level, data ?? []);
+  return (data ?? []) as CourseAccessCode[];
 }
 
 // ==================== 认证 ====================

@@ -4,13 +4,19 @@ export const COURSE_ACCESS_PRODUCTS = [
   {
     code: "teaching-general-v1",
     name: "教学通识课",
-    description: "可观看 2025 版，2027 版上架后可观看新版",
+    description: "可观看教学通识课 2025 版和上线后的搞定公开课新版",
     grantable: true,
   },
   {
     code: "teaching-general-legacy",
-    name: "教学通识课旧版",
-    description: "仅可观看教学通识课 2025 版",
+    name: "俱乐部 plus 课程",
+    description: "可观看教学通识课 2025 版",
+    grantable: true,
+  },
+  {
+    code: "gongding-gongkaike",
+    name: "搞定公开课",
+    description: "可观看教学通识课 2025 版和上线后的搞定公开课新版",
     grantable: true,
   },
   {

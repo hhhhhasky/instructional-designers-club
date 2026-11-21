@@ -40,7 +40,7 @@ describe('course purchase links', () => {
   });
 
   it('takes a legacy-only learner into the 2025 edition from the landing page', () => {
-    render(<MemoryRouter><CoursePurchaseSection accessCodes={['teaching-general-legacy']} /></MemoryRouter>);
+    render(<MemoryRouter><CoursePurchaseSection accessCodes={['teaching-general-v1']} /></MemoryRouter>);
     expect(screen.getByRole('link', { name: '进入教学通识课 2025 版' })).toHaveAttribute('href', '/courses');
     expect(screen.queryByRole('button', { name: '购买教学通识课' })).not.toBeInTheDocument();
   });
