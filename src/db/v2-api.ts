@@ -19,6 +19,7 @@ export interface V2Unit {
 
 export interface V2Lesson {
   id: string;
+  route_slug?: string;
   unit_id: string;
   slug: string | null;
   title: string;
@@ -248,8 +249,8 @@ function throwIfError<T>(result: { data: T; error: unknown }, message: string): 
   return result.data;
 }
 
-async function loadV2LessonBundle(lessonId: string, userId: string, adminMode: boolean): Promise<V2LessonBundle | null> {
-  const lessonResult = await table("v2_course_lessons").select("*").eq("id", lessonId).maybeSingle();
+async function loadV2LessonBundle(lessonKey: string, userId: string, adminMode: boolean, lookup: "id" | "route_slug" = "id"): Promise<V2LessonBundle | null> {
+  const lessonResult = await table("v2_course_lessons").select("*").eq(lookup, lessonKey).maybeSingle();
   const lesson = throwIfError(lessonResult, "getV2LessonBundle lesson error") as V2Lesson | null;
   if (!lesson) return null;
 
@@ -302,8 +303,8 @@ async function loadV2LessonBundle(lessonId: string, userId: string, adminMode: b
   return { lesson, unit, resources, cards, assessments, learningRecord, attempts, answers, reviews, savedCardIds, dictionaryItems };
 }
 
-export async function getV2LessonBundle(lessonId: string, userId: string): Promise<V2LessonBundle | null> {
-  return loadV2LessonBundle(lessonId, userId, false);
+export async function getV2LessonBundle(lessonKey: string, userId: string, lookup?: "route_slug"): Promise<V2LessonBundle | null> {
+  return loadV2LessonBundle(lessonKey, userId, false, lookup);
 }
 
 export async function getV2LessonAdminBundle(lessonId: string, userId: string): Promise<V2LessonBundle | null> {

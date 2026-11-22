@@ -1,3 +1,5 @@
+import { useCourseLessonHref } from "@/components/routing/CoursePaths";
+import { COURSE_PATH, COURSE_SLUGS, courseCatalogPath } from "@/lib/course-paths";
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -26,6 +28,7 @@ import { cn } from '@/lib/utils';
 import type { Course } from '@/types/types';
 
 export default function TeacherAiCoursesPage() {
+  const lessonHref = useCourseLessonHref();
   const navigate = useNavigate();
   const { user, profile, courseAccessCodes } = useAuth();
   const [categories, setCategories] = useState<string[]>([]);
@@ -115,7 +118,7 @@ export default function TeacherAiCoursesPage() {
 
     if (profile?.role !== 'admin' && !canAccessCourse(courseAccessCodes, getCourseAccessCode(course))) {
       if (!user) {
-        navigate('/login', { state: { from: `/courses/${course.id}` } });
+        navigate('/login', { state: { from: lessonHref(course.id) } });
         return;
       }
       setShowUpgrade(true);
@@ -124,7 +127,7 @@ export default function TeacherAiCoursesPage() {
 
     setClickedCourseId(course.id);
     setIsNavigating(true);
-    setTimeout(() => navigate(`/courses/${course.id}`), 200);
+    setTimeout(() => navigate(lessonHref(course.id)), 200);
   };
   const totalCourseCount = categories.reduce(
     (sum, category) => sum + (coursesByCategory[category]?.length ?? 0),
@@ -136,11 +139,11 @@ export default function TeacherAiCoursesPage() {
       <PageMeta
         title="教师AI课"
         description="教师 AI 课学习页，系统学习 AI 科普、AI 工具测评和 ClaudeCode 教程，让 AI 成为教学设计协作伙伴。"
-        canonicalPath="/teacher-ai-courses"
+        canonicalPath={courseCatalogPath(COURSE_SLUGS.teacherAi)}
         keywords="教师AI课,AI教学课程,ClaudeCode教程,AI工具测评"
       />
       <div className="min-h-screen bg-cream flex flex-col">
-        <PageBackBar to="/course-library" label="返回课程" />
+        <PageBackBar to={COURSE_PATH} label="返回课程" />
         {isNavigating && <LoadingOverlay message="正在加载课程..." />}
         <main className="course-reading-desk flex-1 pb-12 pt-4">
           <CourseEditorialHero

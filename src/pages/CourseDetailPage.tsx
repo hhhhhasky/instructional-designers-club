@@ -1,3 +1,5 @@
+import { useCourseLessonHref } from "@/components/routing/CoursePaths";
+import { COURSE_PATH, COURSE_SLUGS, courseCatalogPath, courseSlug } from "@/lib/course-paths";
 import { proxiedSupabaseUrl } from "@/lib/supabase-url";
 import {
   AlertCircle,
@@ -24,7 +26,7 @@ import {
   User,
 } from 'lucide-react';
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
 import MarkdownRenderer from '@/components/common/MarkdownRenderer';
@@ -146,9 +148,13 @@ function shouldRunDetailWrite(key: string): boolean {
   return true;
 }
 
-export default function CourseDetailPage() {
-  const { id } = useParams<{ id: string }>();
+export default function CourseDetailPage({ courseId, canonicalPath }: { courseId?: string; canonicalPath?: string } = {}) {
+  const { id: routeId } = useParams<{ id: string }>();
+  const id = courseId ?? routeId;
+  const location = useLocation();
+  const currentUrl = `${location.pathname}${location.search}${location.hash}`;
   const navigate = useNavigate();
+  const lessonHref = useCourseLessonHref();
   const { user, profile, courseAccessCodes, loading: authLoading } = useAuth();
   const [course, setCourse] = useState<Course | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -618,19 +624,19 @@ export default function CourseDetailPage() {
     if (membershipType === 'plus' && plusPlacement) {
       return buildPlusTrackUrl(plusPlacement.resolvedTrackId, plusPlacement.resolvedModuleId);
     }
-    return membershipType === 'pro' ? '/teacher-ai-courses' : '/courses';
+    return course ? courseCatalogPath(courseSlug(course)) : COURSE_PATH;
   };
 
   const getCourseListName = (membershipType?: string | null) => {
     if (purchaseProduct && purchaseProduct.code !== 'teaching-general-v1' && purchaseProduct.code !== 'teacher-ai') return purchaseProduct.name;
     if (membershipType === 'plus' && plusTrack) return plusTrack.title;
-    return membershipType === 'pro' ? '教师AI课' : '教学通识课';
+    return course && courseSlug(course) === COURSE_SLUGS.free ? '免费体验课' : membershipType === 'pro' ? '教师AI课' : '教学通识课';
   };
 
   // 侧边栏内切换课程：直接跳转，不走 isNavigating 状态
   const handleNavigateToCourse = (courseId: string) => {
     if (courseId === id) return;
-    navigate(`/courses/${courseId}`);
+    navigate(lessonHref(courseId));
   };
 
   const handleVerifyPassword = async (password: string) => {
@@ -658,7 +664,7 @@ export default function CourseDetailPage() {
     }
   };
 
-  const courseBackPath = course ? getCourseListPath(course.membership_type) : "/course-library";
+  const courseBackPath = course ? getCourseListPath(course.membership_type) : COURSE_PATH;
 
   if (isLoading || authLoading) {
     return (
@@ -678,8 +684,8 @@ export default function CourseDetailPage() {
             <AlertCircle className="w-14 h-14 text-ac/60 mx-auto mb-5" />
             <h1 className="text-3xl font-bold text-tx mb-5">{error}</h1>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button onClick={() => navigate('/courses')} className="btn-press">
-                返回教学通识课
+              <Button onClick={() => navigate(courseBackPath)} className="btn-press">
+                返回课程
               </Button>
               <Button onClick={() => window.location.reload()} variant="outline" className="btn-press">
                 刷新页面
@@ -699,7 +705,7 @@ export default function CourseDetailPage() {
         <main className="flex-1 flex items-center justify-center px-4">
           <div className="text-center">
             <h1 className="text-3xl font-bold text-tx mb-5">登录已失效，请重新登录</h1>
-            <Button onClick={() => navigate('/login', { state: { from: `/courses/${course?.id ?? id}` } })}>
+            <Button onClick={() => navigate('/login', { state: { from: currentUrl } })}>
               重新登录
             </Button>
           </div>
@@ -727,7 +733,7 @@ export default function CourseDetailPage() {
           error={passwordGateError}
           onVerify={handleVerifyPassword}
           onBack={() => navigate(getCourseListPath(course.membership_type))}
-          onLogin={() => navigate('/login', { state: { from: `/courses/${course.id}` } })}
+          onLogin={() => navigate('/login', { state: { from: currentUrl } })}
         />
         <Footer />
       </div>
@@ -747,11 +753,11 @@ export default function CourseDetailPage() {
             <p className="mb-3 text-sm font-ds-semibold text-tx">{course?.title}</p>
             <p className="mb-6 text-sm leading-6 text-txs">购买后按现有流程开通课程权限。若已购买，请联系课程管理员核对当前账号。</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button onClick={() => navigate(course ? getCourseListPath(course.membership_type) : '/courses')} variant="outline" className="btn-press">
+              <Button onClick={() => navigate(courseBackPath)} variant="outline" className="btn-press">
                 返回课程目录
               </Button>
               {purchaseProduct && <CoursePurchaseButton productCode={purchaseProduct.code} />}
-              {!user && <Button onClick={() => navigate('/login', { state: { from: `/courses/${course?.id ?? id}` } })} variant="outline" className="btn-press">登录已有账号</Button>}
+              {!user && <Button onClick={() => navigate('/login', { state: { from: currentUrl } })} variant="outline" className="btn-press">登录已有账号</Button>}
             </div>
           </div>
         </main>
@@ -782,8 +788,8 @@ export default function CourseDetailPage() {
               课程不存在或已下架
             </h1>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button onClick={() => navigate('/courses')} className="btn-press">
-                返回教学通识课
+              <Button onClick={() => navigate(courseBackPath)} className="btn-press">
+                返回课程
               </Button>
             </div>
           </div>
@@ -847,7 +853,7 @@ export default function CourseDetailPage() {
         <PageMeta
           title={course.title}
           description={course.description || `${course.title} - 哈老师聊教学设计课程`}
-          canonicalPath={`/courses/${course.id}`}
+          canonicalPath={canonicalPath ?? lessonHref(course.id)}
           ogType="article"
           ogImage={course.image_url || undefined}
           keywords={course.category || undefined}

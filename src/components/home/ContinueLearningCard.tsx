@@ -1,3 +1,4 @@
+import { useCourseLessonHref } from "@/components/routing/CoursePaths";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, Play } from "lucide-react";
 import type { RecentLearningItem } from "@/types/types";
@@ -11,6 +12,7 @@ interface Props {
  * item 为 null 时返回 null，由父容器控制显隐。
  */
 export default function ContinueLearningCard({ item }: Props) {
+  const lessonHref = useCourseLessonHref();
   const navigate = useNavigate();
 
   if (!item) return null;
@@ -20,7 +22,7 @@ export default function ContinueLearningCard({ item }: Props) {
   return (
     <button
       type="button"
-      onClick={() => navigate(`/courses/${item.courseId}`)}
+      onClick={() => navigate(lessonHref(item.courseId))}
       className="group w-full text-left bg-white rounded-ds-lg border border-bd shadow-ds-sm hover-lift p-4 md:p-5 transition-all"
     >
       <div className="flex items-center gap-2 mb-3">

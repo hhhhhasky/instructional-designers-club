@@ -1,3 +1,4 @@
+import { COURSE_PATH, COURSE_SLUGS, courseCatalogPath, v2LessonPath } from "@/lib/course-paths";
 import { ArrowRight, BookOpen, Clock3, LockKeyhole } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -19,7 +20,7 @@ export default function CourseV2CatalogPage() {
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
-      navigate("/login", { replace: true, state: { from: "/course-v2" } });
+      navigate("/login", { replace: true, state: { from: courseCatalogPath(COURSE_SLUGS.v2) } });
       return;
     }
     let cancelled = false;
@@ -47,7 +48,7 @@ export default function CourseV2CatalogPage() {
     <>
       <PageMeta title="教学通识课 V2" description="教学通识课第二版：按 Unit 和 Lesson 学习。" noIndex />
       <div className="min-h-screen bg-[var(--bg)]">
-        <PageBackBar to="/course-library" label="返回课程" />
+        <PageBackBar to={COURSE_PATH} label="返回课程" />
         <main className="pb-16 pt-4">
           {authLoading || loading ? (
             <LoadingOverlay message="正在加载 V2 课程目录..." />
@@ -78,7 +79,7 @@ export default function CourseV2CatalogPage() {
                     {unit.description_markdown && <p className="mt-3 max-w-3xl text-sm leading-6 text-txs">{unit.description_markdown}</p>}
                     <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                             {lessons.map((lesson, lessonIndex) => (
-                              <Link key={lesson.id} to={`/course-v2/lesson/${lesson.id}`} className="group flex min-h-[140px] flex-col rounded-2xl border border-bdl bg-white p-4 transition hover:-translate-y-0.5 hover:border-ac hover:shadow-ds-sm">
+                              <Link key={lesson.id} to={v2LessonPath(lesson)} className="group flex min-h-[140px] flex-col rounded-2xl border border-bdl bg-white p-4 transition hover:-translate-y-0.5 hover:border-ac hover:shadow-ds-sm">
                                 <div className="flex items-center gap-2 text-xs text-txs"><BookOpen className="h-3.5 w-3.5 text-ac" />LESSON {lessonIndex + 1}{lesson.duration_minutes != null && <span className="ml-auto inline-flex items-center gap-1"><Clock3 className="h-3 w-3" />{lesson.duration_minutes} 分钟</span>}</div>
                                 <p className="mt-3 text-lg font-ds-black leading-6 text-tx">{lesson.title}</p>
                                 {lesson.subtitle && <p className="mt-1 line-clamp-2 text-xs leading-5 text-txs">{lesson.subtitle}</p>}

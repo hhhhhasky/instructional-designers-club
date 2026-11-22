@@ -129,8 +129,8 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
   it('访客打开道法单课时可直接看到购买入口', () => {
     mockAuthUser = null;
     vi.mocked(canAccessCourse).mockReturnValue(false);
-    render(<MemoryRouter initialEntries={['/courses/daofa/alignment-canvas']}>
-      <Routes><Route path="/courses/daofa/:lessonId" element={<DaofaLessonPage />} /></Routes>
+    render(<MemoryRouter initialEntries={['/course/daofa/alignment-canvas']}>
+      <Routes><Route path="/course/daofa/:lessonId" element={<DaofaLessonPage />} /></Routes>
     </MemoryRouter>);
     fireEvent.click(screen.getByRole('button', { name: '购买道法教材解读课' }));
     expect(within(screen.getByRole('dialog')).getByRole('link', { name: /小红书支付/ })).toHaveAttribute('href', 'https://xhslink.com/m/277IB24mn8I');
@@ -156,7 +156,7 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
     });
 
     render(
-      <MemoryRouter initialEntries={['/teacher-ai-courses']}>
+      <MemoryRouter initialEntries={['/course/teacher-ai']}>
         <TeacherAiCoursesPage />
       </MemoryRouter>,
     );
@@ -189,7 +189,7 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
     });
 
     render(
-      <MemoryRouter initialEntries={['/courses']}>
+      <MemoryRouter initialEntries={['/course/teaching-general-2025']}>
         <CoursesPage />
       </MemoryRouter>,
     );
@@ -222,7 +222,7 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
     });
 
     render(
-      <MemoryRouter initialEntries={['/teacher-ai-courses']}>
+      <MemoryRouter initialEntries={['/course/teacher-ai']}>
         <TeacherAiCoursesPage />
       </MemoryRouter>,
     );
@@ -266,7 +266,7 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
     });
 
     render(
-      <MemoryRouter initialEntries={['/courses']}>
+      <MemoryRouter initialEntries={['/course/teaching-general-2025']}>
         <CoursesPage />
       </MemoryRouter>,
     );
@@ -290,11 +290,11 @@ it('道法目录用数据库课程ID跳转，后台新增九上无需前端册�
   expect(link).toHaveAttribute('href', '/courses/new-nine-up');
   expect(getCourseProductCatalog).toHaveBeenCalledWith('daofa-textbook');
   const canvas = screen.getByRole('link', { name: /三元对齐画布/ });
-  expect(canvas).toHaveAttribute('href', '/courses/daofa/alignment-canvas');
+  expect(canvas).toHaveAttribute('href', '/course/daofa/alignment-canvas');
   expect(canvas.closest('section')).toHaveAttribute('id', '总论篇');
   expect(within(canvas).getByText('05')).toBeInTheDocument();
   const conceptMap = screen.getByRole('link', { name: /核心概念交互图谱/ });
-  expect(conceptMap).toHaveAttribute('href', '/courses/daofa/concept-map');
+  expect(conceptMap).toHaveAttribute('href', '/course/daofa/concept-map');
   expect(within(conceptMap).getByText('06')).toBeInTheDocument();
   expect(canvas.closest('li')?.nextElementSibling).toBe(conceptMap.closest('li'));
   expect(within(canvas.closest('ol')!).getAllByRole('listitem')).toHaveLength(6);

@@ -1,3 +1,5 @@
+import { useCourseLessonHref } from "@/components/routing/CoursePaths";
+import { COURSE_PATH } from "@/lib/course-paths";
 import { proxiedSupabaseUrl } from "@/lib/supabase-url";
 import { ArrowDown, ArrowRight, BookOpen, Play } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -17,6 +19,7 @@ export default function HomePage() {
 }
 
 function HomePageContent() {
+  const lessonHref = useCourseLessonHref();
   const { user, profile, courseAccessCodes, loading } = useAuth();
   const { loaded, homeCourses, landing, founder } = useHomeContent();
   const { home_hero: hero, home_situations: situationCopy, home_problem: problemCopy, home_method: methodCopy, home_founder: founderCopy, home_outcomes: outcomeCopy, home_learning: learningCopy, home_extra: extraCopy } = landing;
@@ -81,11 +84,11 @@ function HomePageContent() {
                   <span className="editorial-kicker">免费体验课程 · {extraCopy.free_kicker}</span>
                   <h2 id="free-courses-title" className="mt-3 text-2xl font-ds-black text-tx md:text-4xl" style={{ fontFamily: 'var(--fd)' }}>{extraCopy.free_title}</h2>
                 </div>
-                <Link to="/course-library" className="inline-flex items-center gap-2 text-sm font-ds-semibold text-ac hover:underline">{extraCopy.free_cta} <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
+                <Link to={COURSE_PATH} className="inline-flex items-center gap-2 text-sm font-ds-semibold text-ac hover:underline">{extraCopy.free_cta} <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
               </div>
               <div className="mt-6 grid gap-4 md:grid-cols-2">
                 {freeCourses.map((course) => (
-                  <Link key={course.id} to={`/courses/${course.id}`} className="group flex flex-col border border-bd bg-white p-6 transition-colors hover:border-ac focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac focus-visible:ring-offset-2 md:p-8">
+                  <Link key={course.id} to={lessonHref(course.id)} className="group flex flex-col border border-bd bg-white p-6 transition-colors hover:border-ac focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac focus-visible:ring-offset-2 md:p-8">
                     <div className="flex items-center justify-between gap-4">
                       <BookOpen className="h-6 w-6 text-ac" aria-hidden="true" />
                       <span className="editorial-stamp">免费体验</span>

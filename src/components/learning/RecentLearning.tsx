@@ -1,3 +1,4 @@
+import { useCourseLessonHref } from "@/components/routing/CoursePaths";
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, PlayCircle, BookOpen } from 'lucide-react';
 import type { RecentLearningItem } from '@/types/types';
@@ -13,6 +14,7 @@ const STATUS_LABEL = {
 };
 
 export default function RecentLearning({ items }: Props) {
+  const lessonHref = useCourseLessonHref();
   const navigate = useNavigate();
 
   if (items.length === 0) return null;
@@ -30,7 +32,7 @@ export default function RecentLearning({ items }: Props) {
           return (
             <button
               key={item.courseId}
-              onClick={() => navigate(`/courses/${item.courseId}`)}
+              onClick={() => navigate(lessonHref(item.courseId))}
               className="w-full flex items-center gap-3 px-4 py-3 hover:bg-bgs/50 transition-colors text-left group"
             >
               {/* 缩略图 */}

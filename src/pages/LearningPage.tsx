@@ -1,3 +1,5 @@
+import { useCourseLessonHref } from "@/components/routing/CoursePaths";
+import { LEARNING_MAP_PATH } from "@/lib/course-paths";
 import { ChevronRight, GraduationCap, TriangleAlert, Map as MapIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -20,6 +22,7 @@ import type { LearningOverview as LearningOverviewType, RecentLearningItem, Seri
 
 export default function LearningPage() {
   const navigate = useNavigate();
+  const lessonHref = useCourseLessonHref();
   const { user, profile, loading, session, refreshProfile, courseAccessCodes } = useAuth();
   const initialCheckDone = useRef(false);
 
@@ -141,6 +144,7 @@ export default function LearningPage() {
       seriesProgress,
       recentLearning,
       accessLevel: courseAccessCodes,
+      lessonHref,
     })
     : null;
 
@@ -166,7 +170,7 @@ export default function LearningPage() {
 
           {/* 学习地图入口（R-P1-01） */}
           <Link
-            to="/learning-map"
+            to={LEARNING_MAP_PATH}
             className="flex items-center gap-3 p-4 rounded-ds-lg bg-gradient-primary text-white mb-6 hover-lift transition-all group"
           >
             <span className="w-10 h-10 rounded-ds-full bg-white/20 flex items-center justify-center shrink-0">

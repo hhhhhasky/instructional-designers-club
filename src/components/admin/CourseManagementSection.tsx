@@ -1,3 +1,5 @@
+import { useCourseLessonHref } from "@/components/routing/CoursePaths";
+import { COURSE_PATH, courseCatalogPath, courseSlug } from "@/lib/course-paths";
 import {
   Archive,
   ChevronLeft,
@@ -172,6 +174,7 @@ function getErrorMessage(error: unknown, fallback: string): string {
 }
 
 export default function CourseManagementSection() {
+  const lessonHref = useCourseLessonHref();
   const [courses, setCourses] = useState<Course[]>([]);
   const [structureTracks, setStructureTracks] = useState<PlusTrackConfig[]>(PLUS_TRACKS);
   const [loading, setLoading] = useState(true);
@@ -369,8 +372,10 @@ export default function CourseManagementSection() {
     setPage(1);
   };
   const handlePreviewCurrentStructure = () => {
-    const url = productFilter === "teacher-ai" ? "/teacher-ai-courses"
-      : productFilter === "daofa-textbook" ? "/courses/daofa" : "/courses";
+    const productCode = PRODUCT_OPTIONS.find(({ value }) => value === productFilter)?.value;
+    const url = productFilter === "all"
+      ? COURSE_PATH
+      : courseCatalogPath(courseSlug({ membership_type: "free", access_product_code: productCode }));
     window.open(url, "_blank");
   };
 
@@ -857,7 +862,7 @@ export default function CourseManagementSection() {
                     <div className="flex items-center justify-center gap-2">
                       <button
                         type="button"
-                        onClick={() => window.open(`/courses/${course.id}`, '_blank')}
+                        onClick={() => window.open(lessonHref(course.id), '_blank')}
                         className="p-1.5 rounded-ds-md hover:bg-warm transition-colors text-txs hover:text-tl"
                         title="预览"
                       >

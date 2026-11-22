@@ -1,3 +1,4 @@
+import { LEARNING_MAP_PATH, legacyCourseLessonPath } from "./course-paths";
 import { canAccessCourse, type CourseAccessSubject } from '@/lib/access-control';
 import { buildLearningMapData, type LearningMapData, type RecommendedNextCourse } from '@/lib/learningMap';
 import type {
@@ -146,11 +147,13 @@ export function buildGamificationSnapshot({
   seriesProgress,
   recentLearning,
   accessLevel,
+  lessonHref = legacyCourseLessonPath,
 }: {
   overview: LearningOverview;
   seriesProgress: SeriesProgress[];
   recentLearning: RecentLearningItem[];
   accessLevel: CourseAccessSubject;
+  lessonHref?: (id: string) => string;
 }): GamificationSnapshot {
   const mapData = buildLearningMapData(seriesProgress, accessLevel);
   const achievements = buildAchievements(seriesProgress, accessLevel);
@@ -176,7 +179,7 @@ export function buildGamificationSnapshot({
     explorationPercentage,
     currentNodeName,
     achievements,
-    quests: buildQuests(seriesProgress, recentLearning, achievements, mapData, accessLevel),
+    quests: buildQuests(seriesProgress, recentLearning, achievements, mapData, accessLevel, lessonHref),
     nextCourse: mapData.recommendedNextCourse,
     mapData,
   };
@@ -229,6 +232,7 @@ function buildQuests(
   achievements: Achievement[],
   mapData: LearningMapData,
   accessLevel: CourseAccessSubject,
+  lessonHref: (id: string) => string,
 ): Quest[] {
   const quests: Quest[] = [];
   const continueItem = recentLearning.find((item) => item.status === 'in_progress');
@@ -239,7 +243,7 @@ function buildQuests(
       title: '继续学习轨迹',
       description: `把《${continueItem.title}》推进到 100%。`,
       ctaLabel: '继续',
-      href: `/courses/${continueItem.courseId}`,
+      href: lessonHref(continueItem.courseId),
       progress: Math.round(continueItem.progress || 0),
       target: 100,
       accent: 'ac',
@@ -254,7 +258,7 @@ function buildQuests(
       title: '完成一节短课',
       description: `用 ${shortCourse.duration ?? 10} 分钟完成《${shortCourse.title}》。`,
       ctaLabel: '开始',
-      href: `/courses/${shortCourse.courseId}`,
+      href: lessonHref(shortCourse.courseId),
       progress: 0,
       target: 1,
       accent: 'am',
@@ -270,7 +274,7 @@ function buildQuests(
       title: `点亮${nextAchievement.shortName}徽章`,
       description: `还差 ${nextAchievement.remaining} 节课获得「${nextAchievement.name}」。`,
       ctaLabel: '查看地图',
-      href: '/learning-map',
+      href: LEARNING_MAP_PATH,
       progress: nextAchievement.completed,
       target: nextAchievement.target,
       accent: nextAchievement.accent,
@@ -300,7 +304,7 @@ function buildQuests(
       title: '找回学习轨迹',
       description: '距离上次学习已超过 3 天，先接回最近的课程。',
       ctaLabel: '回到课程',
-      href: `/courses/${lastLearning.courseId}`,
+      href: lessonHref(lastLearning.courseId),
       progress: 0,
       target: 1,
       accent: 'pp',
@@ -314,7 +318,7 @@ function buildQuests(
       title: '开启第一段探索',
       description: `从《${mapData.recommendedNextCourse.course.title}》开始点亮学习地图。`,
       ctaLabel: '开始',
-      href: `/courses/${mapData.recommendedNextCourse.course.courseId}`,
+      href: lessonHref(mapData.recommendedNextCourse.course.courseId),
       progress: 0,
       target: 1,
       accent: 'ac',

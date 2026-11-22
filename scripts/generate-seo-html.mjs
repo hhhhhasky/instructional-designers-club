@@ -20,22 +20,37 @@ const routes = {
       '从真实教学问题出发，和哈老师一起分析教材、学情、目标、课堂活动与评价。了解教学通识课、教师 AI 课和道法教材解读课。',
     keywords: '哈老师聊教学设计,教师培训,教学设计,教师AI课,道法教材解读课',
   },
-  '/course-library': {
+  '/course': {
     title: `课程 | ${SITE_NAME}`,
-    description: '浏览教学通识课、教师 AI 课与道法教材解读课，选择适合自己的学习方向。',
+    description: '浏览搞定公开课 2027 版、教学通识课 2025 版、教师 AI 课和道法教材解读课。',
     keywords: '教师课程,教学设计,教师AI课,道法教材解读课',
   },
-  '/courses': {
+  '/course/teaching-general-2025': {
     title: `教学通识课 2025 版 | ${SITE_NAME}`,
     description:
       '系统学习教学通识课：从学习科学、教学设计方法，到日常课、说课、公开课等真实教学场景。',
     keywords: '教学通识课,教学设计课程,教师培训课程',
   },
-  '/teacher-ai-courses': {
+  '/course/teacher-ai': {
     title: `教师AI课 | ${SITE_NAME}`,
     description:
       '教师 AI 课：学习判断和使用 AI 工具，让 AI 成为教学设计的协作伙伴。',
     keywords: '教师AI课,AI教学课程,ClaudeCode教程,AI工具测评',
+  },
+  '/course/gaoding-gongkaike-2027': {
+    title: `搞定公开课 2027 版 | ${SITE_NAME}`,
+    description: '查看搞定公开课 2027 版目录，学习确定公开课教什么、怎么上，以及磨课和说课。',
+    keywords: '公开课,公开课教案,教学设计,说课,磨课',
+  },
+  '/course/daofa': {
+    title: `道法教材解读课 | ${SITE_NAME}`,
+    description: '从总论到一至九年级分册，学习道德与法治课标、教材单元和单课解读。',
+    keywords: '道德与法治,道法教材解读,课程标准',
+  },
+  '/course/free': {
+    title: `免费体验课 | ${SITE_NAME}`,
+    description: '浏览哈老师的免费体验课。',
+    keywords: '教师培训,免费体验课',
   },
   '/resources': {
     title: `资源中心 | ${SITE_NAME}`,
@@ -100,10 +115,14 @@ for (const [route, meta] of Object.entries(routes)) {
   const seo = buildSeoHead(meta, route);
   const html = cleanBase.replace('</head>', `    ${seo}\n  </head>`);
 
-  const dir = path.join(distDir, route);
-  fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, 'index.html'), html);
-  console.log(`Generated ${route}/index.html`);
+  // Pages serves foo.html at /foo and foo/index.html at /foo/. Use the course canonical paths.
+  const output = route === '/course' || route.startsWith('/course/')
+    ? `${route}.html`
+    : `${route}/index.html`;
+  const file = path.join(distDir, output);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, html);
+  console.log(`Generated ${output}`);
 }
 
 console.log('SEO HTML generation complete!');

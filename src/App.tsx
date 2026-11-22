@@ -3,6 +3,7 @@ import {
   BrowserRouter as Router,
   Routes,
   Route,
+  matchRoutes,
   Navigate,
   useLocation,
   useNavigate,
@@ -10,6 +11,9 @@ import {
 import { Toaster } from "sonner";
 
 import routes from "./routes";
+import { CoursePathsProvider } from "@/components/routing/CoursePaths";
+import NotFoundPage from "@/pages/NotFoundPage";
+import { COURSE_PATH, LEARNING_MAP_PATH, courseCatalogPath } from "@/lib/course-paths";
 import ScrollToTop from "@/components/common/ScrollToTop";
 import SiteSidebar from "@/components/layout/SiteSidebar";
 import SiteNotifications from "@/components/layout/SiteNotifications";
@@ -19,7 +23,9 @@ import { ArrowLeft, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 const App: React.FC = () => {
   return (
     <Router>
-      <AppContent />
+      <CoursePathsProvider>
+        <AppContent />
+      </CoursePathsProvider>
     </Router>
   );
 };
@@ -40,13 +46,13 @@ function AppContent() {
     location.pathname === "/hai/chat" ||
     location.pathname === "/hai/work" ||
     location.pathname.startsWith("/hai/work/");
-  const currentTitle =
-    routes.find((route) => route.path === location.pathname)?.name ||
-    (location.pathname.startsWith("/courses/")
-      ? "课程学习"
-      : location.pathname.startsWith("/course-v2/")
-        ? "课程学习"
-        : "");
+  const matches = matchRoutes(routes, location);
+  const route = matches?.[matches.length - 1]?.route;
+  const currentTitle = route?.name ?? "";
+  const [section, course, lesson] = location.pathname.split("/").filter(Boolean);
+  const parentPath = section === "course" && route && course
+    ? lesson ? courseCatalogPath(course) : COURSE_PATH
+    : location.pathname === LEARNING_MAP_PATH ? "/learning" : null;
   const isAdmin =
     location.pathname === "/admin" || location.pathname.startsWith("/admin/");
   const back = () => {
@@ -55,21 +61,22 @@ function AppContent() {
       navigate("/hai/work");
       return;
     }
+    if (parentPath) {
+      navigate(parentPath);
+      return;
+    }
     if (window.history.state?.idx > 0) {
       navigate(-1);
       return;
     }
     if (location.pathname.startsWith("/hai/")) navigate("/hai/work");
-    else if (
-      location.pathname.startsWith("/courses/") ||
-      location.pathname === "/courses" ||
-      location.pathname === "/teacher-ai-courses"
-    )
-      navigate("/course-library");
-    else if (location.pathname.startsWith("/course-v2/"))
-      navigate("/course-v2");
+    else if (location.pathname.startsWith("/courses/")) navigate(COURSE_PATH);
     else navigate("/");
   };
+  if (location.pathname === "/" && /^#\/courses\//.test(location.hash)) {
+    return <Navigate to={location.hash.slice(1)} state={location.state} replace />;
+  }
+
   return (
     <>
       <ScrollToTop />
@@ -159,7 +166,7 @@ function AppContent() {
                     element={route.element}
                   />
                 ))}
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </Suspense>
           </SiteToolbarContext.Provider>

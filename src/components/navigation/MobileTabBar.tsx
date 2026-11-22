@@ -1,3 +1,4 @@
+import { COURSE_PATH } from "@/lib/course-paths";
 import { BookOpen, Bot, GraduationCap, Home, Radio } from 'lucide-react';
 import { Link, useLocation, useMatch } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -11,13 +12,13 @@ interface TabItem {
 
 export default function MobileTabBar() {
   const location = useLocation();
-  const isCourseDetail = useMatch({ path: '/courses/:id', end: true });
+  const isCourseDetail = useMatch({ path: `${COURSE_PATH}/:courseSlug/:lessonSlug`, end: true });
   const isHai = location.pathname === '/hai' || location.pathname.startsWith('/hai/');
   const isAdmin = location.pathname === '/admin' || location.pathname.startsWith('/admin/');
 
   const tabs: TabItem[] = [
     { name: '首页', path: '/', icon: Home },
-    { name: '课程', path: '/course-library', icon: BookOpen },
+    { name: '课程', path: COURSE_PATH, icon: BookOpen },
     { name: 'HAI', path: '/hai', icon: Bot },
     { name: 'Live 互动', path: '/live', icon: Radio },
     { name: '我的学习', path: '/learning', icon: GraduationCap },
@@ -28,15 +29,11 @@ export default function MobileTabBar() {
     if (path === '/') {
       return location.pathname === '/';
     }
-    if (path === '/course-library') {
-      return location.pathname === '/course-library' || location.pathname === '/courses' || location.pathname.startsWith('/courses/plus') || location.pathname === '/teacher-ai-courses';
-    }
-    return location.pathname.startsWith(path);
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
   // 课程详情页使用自己的目录 / 上一节 / 下一节控制栏。
-  // 精确匹配避免误伤 /courses 列表页和 /courses/plus/:trackId 篇章页。
-  if (isCourseDetail || location.pathname === '/course-library') return null;
+  if (isCourseDetail || location.pathname === COURSE_PATH) return null;
   if (isAdmin) return null;
   if (isHai) return <HaiModeNavigation />;
 

@@ -401,6 +401,6 @@ describe('CourseManagementSection', () => {
     await screen.findByText('Plus 示例课程');
     await user.selectOptions(screen.getByLabelText('筛选课程产品'), 'teacher-ai');
     await user.click(screen.getByRole('button', { name: '预览结构' }));
-    expect(window.open).toHaveBeenCalledWith('/teacher-ai-courses', '_blank');
+    expect(window.open).toHaveBeenCalledWith('/course/teacher-ai', '_blank');
   });
 });

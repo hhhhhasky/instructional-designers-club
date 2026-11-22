@@ -1,3 +1,4 @@
+import { useCourseLessonHref } from "@/components/routing/CoursePaths";
 import { Eye, EyeOff, MessageCircle, RotateCcw, Search, Send, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -21,6 +22,7 @@ const STATUS_OPTIONS: { value: "all" | CourseQuestionStatus; label: string }[] =
 ];
 
 export default function CourseQuestionsManagementSection() {
+  const lessonHref = useCourseLessonHref();
   const { user } = useAuth();
   const [questions, setQuestions] = useState<AdminCourseQuestionItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -209,7 +211,7 @@ export default function CourseQuestionsManagementSection() {
                     </div>
                     <p className="text-sm font-ds-semibold text-tx mb-1">
                       <a
-                        href={`/#/courses/${question.course_id}`}
+                        href={lessonHref(question.course_id)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-ac hover:underline"

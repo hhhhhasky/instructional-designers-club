@@ -1,3 +1,5 @@
+import { useCourseLessonHref } from "@/components/routing/CoursePaths";
+import { LEARNING_MAP_PATH } from "@/lib/course-paths";
 import { Award, BookOpenCheck, ChevronRight, Map, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AchievementBadge } from '@/components/learning/gamification/GamificationPanel';
@@ -26,6 +28,7 @@ export default function CourseCompletionDialog({
   snapshot,
 }: Props) {
   const navigate = useNavigate();
+  const lessonHref = useCourseLessonHref();
   const nextCourse = snapshot?.nextCourse;
   const isAchievementUnlocked = achievement?.state === 'unlocked';
 
@@ -87,7 +90,7 @@ export default function CourseCompletionDialog({
               <Button
                 type="button"
                 className="w-full btn-super-cta !text-white rounded-ds-lg"
-                onClick={() => goTo(`/courses/${nextCourse.course.courseId}`)}
+                onClick={() => goTo(lessonHref(nextCourse.course.courseId))}
               >
                 学习下一课
                 <ChevronRight className="w-4 h-4" />
@@ -97,7 +100,7 @@ export default function CourseCompletionDialog({
               type="button"
               variant="secondary"
               className="w-full rounded-ds-lg"
-              onClick={() => goTo('/learning-map')}
+              onClick={() => goTo(LEARNING_MAP_PATH)}
             >
               查看学习地图
             </Button>

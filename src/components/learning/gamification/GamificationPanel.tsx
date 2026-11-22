@@ -1,3 +1,4 @@
+import { LEARNING_MAP_PATH } from "@/lib/course-paths";
 import {
   Award,
   BookOpenCheck,
@@ -181,7 +182,7 @@ function AchievementGallery({ achievements }: { achievements: Achievement[] }) {
           <span className="w-1 h-4 rounded-full bg-am inline-block" />
           学习徽章
         </h2>
-        <Link to="/learning-map" className="text-ds-xs text-ac font-ds-bold hover:underline">
+        <Link to={LEARNING_MAP_PATH} className="text-ds-xs text-ac font-ds-bold hover:underline">
           查看地图
         </Link>
       </div>

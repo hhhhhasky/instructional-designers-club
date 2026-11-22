@@ -1,3 +1,4 @@
+import { useCourseLessonHref } from "@/components/routing/CoursePaths";
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, Circle, PlayCircle, Lock } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
@@ -22,6 +23,7 @@ const STATUS_CONFIG = {
 };
 
 export default function SeriesProgressCard({ series, accessLevel }: Props) {
+  const lessonHref = useCourseLessonHref();
   const navigate = useNavigate();
 
   return (
@@ -58,7 +60,7 @@ export default function SeriesProgressCard({ series, accessLevel }: Props) {
                 return (
                   <button
                     key={course.courseId}
-                    onClick={() => navigate(`/courses/${course.courseId}`)}
+                    onClick={() => navigate(lessonHref(course.courseId))}
                     className="w-full flex items-center gap-3 px-2 py-2 rounded-ds-md hover:bg-bgs transition-colors text-left group"
                   >
                     {/* 序号 */}

@@ -1,3 +1,5 @@
+import { useCourseLessonHref } from "@/components/routing/CoursePaths";
+import { COURSE_PATH } from "@/lib/course-paths";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { BookOpen, ChevronRight } from "lucide-react";
@@ -17,6 +19,7 @@ import { GONGDING_2027_PURCHASE_PRODUCT, TEACHING_GENERAL_2025_NAME, TEACHING_GE
 import { GONGDING_2027_CODE, GONGDING_2027_NAME, GONGDING_2027_STATUS } from "@/lib/gongding-2027";
 
 export default function Gongding2027CatalogPage() {
+  const lessonHref = useCourseLessonHref();
   const { profile, courseAccessCodes, loading } = useAuth();
   const [catalog, setCatalog] = useState<CourseProductCatalog | null>(null);
   const [failed, setFailed] = useState(false);
@@ -53,7 +56,7 @@ export default function Gongding2027CatalogPage() {
         <ol className="space-y-2">
           {lessons.map((lesson) => (
             <li key={lesson.id}>
-              <Link to={`/courses/${lesson.id}`} className="course-editorial-entry group">
+              <Link to={lessonHref(lesson.id)} className="course-editorial-entry group">
                 <span className="course-editorial-index">{String(lesson.sort_order).padStart(2, "0")}</span>
                 <span className="min-w-0 flex-1 font-semibold text-tx group-hover:text-ac">{lesson.title}</span>
                 <ChevronRight className="h-4 w-4 shrink-0 text-txs" aria-hidden="true" />
@@ -68,7 +71,7 @@ export default function Gongding2027CatalogPage() {
   return (
     <div className="min-h-screen bg-cream flex flex-col">
       <PageMeta title={GONGDING_2027_NAME} description={product.description} canonicalPath={product.cataloguePath} />
-      <PageBackBar to="/course-library" label="返回课程" />
+      <PageBackBar to={COURSE_PATH} label="返回课程" />
       <main className="course-reading-desk flex-1 pb-12 pt-4">
         <CourseEditorialHero
           kicker="课程目录"

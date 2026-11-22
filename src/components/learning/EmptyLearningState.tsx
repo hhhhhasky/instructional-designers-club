@@ -1,3 +1,4 @@
+import { COURSE_PATH } from "@/lib/course-paths";
 import { BookOpen, Compass, PlayCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -29,7 +30,7 @@ export default function EmptyLearningState() {
         </div>
       </div>
       <Button
-        onClick={() => navigate('/courses')}
+        onClick={() => navigate(COURSE_PATH)}
         className="btn-super-cta !text-white font-ds-bold rounded-ds-lg px-8"
       >
         前往课程中心

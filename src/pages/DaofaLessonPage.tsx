@@ -6,15 +6,16 @@ import CoursePurchaseButton from "@/components/course/CoursePurchaseButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { getDaofaLessonMedia } from "@/db/daofa-media";
 import { canAccessCourse } from "@/lib/access-control";
+import { COURSE_SLUGS, courseCatalogPath } from "@/lib/course-paths";
 import { DAOFA_TOOL_ENTRIES } from "@/lib/daofa-catalog";
 
-export default function DaofaLessonPage() {
+export default function DaofaLessonPage({ toolId }: { toolId?: string } = {}) {
   const { lessonId } = useParams<{ lessonId: string }>();
-  const tool = DAOFA_TOOL_ENTRIES.find((entry) => entry.mediaId === lessonId);
+  const tool = DAOFA_TOOL_ENTRIES.find((entry) => entry.mediaId === (toolId ?? lessonId));
 
   return tool
     ? <DaofaToolPage key={tool.mediaId} tool={tool} />
-    : <Navigate to="/courses/daofa" replace />;
+    : <Navigate to={courseCatalogPath(COURSE_SLUGS.daofa)} replace />;
 }
 
 function DaofaToolPage({ tool }: { tool: (typeof DAOFA_TOOL_ENTRIES)[number] }) {
@@ -107,7 +108,7 @@ function DaofaToolPage({ tool }: { tool: (typeof DAOFA_TOOL_ENTRIES)[number] }) 
           </div>
         )}
         <Link
-          to="/courses/daofa"
+          to={courseCatalogPath(COURSE_SLUGS.daofa)}
           className="absolute left-4 top-4 z-10 inline-flex min-h-10 items-center gap-2 rounded-lg border border-white/25 bg-[var(--sage-dark)] px-4 text-sm font-ds-bold text-white shadow-lg transition-colors hover:bg-[var(--sage-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d0a453] sm:left-6"
         >
           <ArrowLeft className="h-4 w-4" />

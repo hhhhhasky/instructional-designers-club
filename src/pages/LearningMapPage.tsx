@@ -1,3 +1,5 @@
+import { useCourseLessonHref } from "@/components/routing/CoursePaths";
+import { LEARNING_MAP_PATH } from "@/lib/course-paths";
 import { MapPin, Map as MapIcon, PartyPopper, Sparkles } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +23,7 @@ import type {
 import { isAllElementsExplored } from '@/lib/learningMap';
 
 export default function LearningMapPage() {
+  const lessonHref = useCourseLessonHref();
   const navigate = useNavigate();
   const { user, profile, loading, session, refreshProfile, courseAccessCodes } = useAuth();
   const initialCheckDone = useRef(false);
@@ -33,7 +36,7 @@ export default function LearningMapPage() {
   useEffect(() => {
     if (loading && !initialCheckDone.current) return;
     if (!user) {
-      navigate('/login', { state: { from: '/learning-map' } });
+      navigate('/login', { state: { from: LEARNING_MAP_PATH } });
       return;
     }
     if (!profile) return; // profile 未就绪，等下一次 effect
@@ -153,7 +156,7 @@ export default function LearningMapPage() {
                   currentNode={currentNode}
                   nextCourse={nextCourse}
                   allExplored={allExplored}
-                  onOpenCourse={(id) => navigate(`/courses/${id}`)}
+                  onOpenCourse={(id) => navigate(lessonHref(id))}
                 />
                 <LearningMap data={mapData} accessLevel={courseAccessCodes} />
               </div>

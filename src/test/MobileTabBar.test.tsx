@@ -13,7 +13,7 @@ function renderAt(path: string) {
 
 describe('MobileTabBar — 课程详情路由', () => {
   it('在精确课程详情路由隐藏五标签导航', () => {
-    renderAt('/courses/course-123');
+    renderAt('/course/teaching-general-2025/course-123');
 
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
     expect(screen.queryByText('首页')).not.toBeInTheDocument();
@@ -32,7 +32,7 @@ describe('MobileTabBar — 课程详情路由', () => {
     expect(screen.getByRole('link', { name: 'HAI' })).toHaveAttribute('href', '/hai/work');
   });
 
-  it.each(['/courses', '/courses/plus/scenarios'])('在 %s 保留五标签导航', (path) => {
+  it.each(['/course/teaching-general-2025', '/course/teacher-ai'])('在 %s 保留五标签导航', (path) => {
     renderAt(path);
 
     expect(screen.getByRole('navigation')).toBeInTheDocument();

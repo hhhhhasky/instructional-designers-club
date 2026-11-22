@@ -1,3 +1,4 @@
+import { COURSE_PATH } from "@/lib/course-paths";
 import { proxiedSupabaseUrl } from "@/lib/supabase-url";
 import {
   BookOpen,
@@ -22,7 +23,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const links = [
   { label: "首页", path: "/", icon: Home },
-  { label: "课程", path: "/course-library", icon: BookOpen },
+  { label: "课程", path: COURSE_PATH, icon: BookOpen },
   { label: "HAI", path: "/hai/work", icon: Bot },
   { label: "Live 互动", path: "/live", icon: Radio },
   { label: "我的学习", path: "/learning", icon: GraduationCap },
@@ -103,12 +104,7 @@ export default function SiteSidebar({
   const active = (path: string) =>
     path === "/"
       ? location.pathname === "/"
-      : path === "/course-library"
-        ? location.pathname === path ||
-          location.pathname.startsWith("/courses") ||
-          location.pathname.startsWith("/course-v2") ||
-          location.pathname === "/teacher-ai-courses"
-        : path === "/hai/work"
+      : path === "/hai/work"
           ? location.pathname.startsWith("/hai")
           : location.pathname === path ||
             location.pathname.startsWith(`${path}/`);

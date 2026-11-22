@@ -1,3 +1,4 @@
+import { useCourseLessonHref } from "@/components/routing/CoursePaths";
 import { useNavigate } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import type { SeriesCourseItem } from "@/types/types";
@@ -11,6 +12,7 @@ interface Props {
  * data 为 null 时返回 null，由父容器控制显隐。
  */
 export default function NextCourseCard({ data }: Props) {
+  const lessonHref = useCourseLessonHref();
   const navigate = useNavigate();
 
   if (!data) return null;
@@ -20,7 +22,7 @@ export default function NextCourseCard({ data }: Props) {
   return (
     <button
       type="button"
-      onClick={() => navigate(`/courses/${course.courseId}`)}
+      onClick={() => navigate(lessonHref(course.courseId))}
       className="group w-full text-left bg-acl rounded-ds-lg border border-ac/20 shadow-ds-sm hover-lift p-4 md:p-5 transition-all"
     >
       <div className="flex items-center gap-2 mb-3">

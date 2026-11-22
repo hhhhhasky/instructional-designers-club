@@ -1,3 +1,4 @@
+import { COURSE_PATH, COURSE_SLUGS, courseCatalogPath } from "@/lib/course-paths";
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, BookOpen, Check, LockKeyhole } from 'lucide-react';
@@ -43,7 +44,7 @@ export default function CourseLibraryPage() {
 
   return (
     <div className="min-h-screen bg-bg text-tx">
-      <PageMeta title="课程" description="浏览搞定公开课 2027 版、教学通识课 2025 版、教师 AI 课与道法教材解读课。" canonicalPath="/course-library" />
+      <PageMeta title="课程" description="浏览搞定公开课 2027 版、教学通识课 2025 版、教师 AI 课与道法教材解读课。" canonicalPath={COURSE_PATH} />
       <main className="mx-auto max-w-[1600px] px-5 pb-16 pt-9 md:px-10 md:pt-12">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-5">
           <div><p className="mb-3 text-xs tracking-[0.18em] text-txs">哈老师 · 教师学习课程</p><h1 className="text-3xl font-bold tracking-tight">从你的教学问题出发</h1><p className="mt-3 text-sm leading-7 text-txs">学设计、用 AI、读教材。选择一门课，把方法带回课堂。</p></div>
@@ -77,7 +78,8 @@ export default function CourseLibraryPage() {
             </article>
           ))}
         </div>
-        {visible.length === 0 && <div className="py-16 text-center text-sm leading-7 text-txs" role="status">{loading ? '正在确认已开通课程…' : user ? '你还没有开通课程，可以先在「全部课程」中查看目录。' : <span>登录后，即可查看你已开通的课程。<Link to="/login" state={{ from: '/course-library' }} className="ml-2 font-semibold text-ac hover:underline">登录</Link></span>}</div>}
+        {visible.length === 0 && <div className="py-16 text-center text-sm leading-7 text-txs" role="status">{loading ? '正在确认已开通课程…' : user ? '你还没有开通课程，可以先在「全部课程」中查看目录。' : <span>登录后，即可查看你已开通的课程。<Link to="/login" state={{ from: COURSE_PATH }} className="ml-2 font-semibold text-ac hover:underline">登录</Link></span>}</div>}
+        {filter === "all" && <Link to={courseCatalogPath(COURSE_SLUGS.free)} className="mt-7 inline-flex items-center gap-2 font-semibold text-ac">免费体验课<ArrowRight className="h-4 w-4" /></Link>}
         <p className="mt-7 text-xs leading-6 text-txs">可选择小红书或微信小店下单，官网不收款。课程按人工流程开通；已购买但仍显示未开通，请联系运营核对订单与官网账号。</p>
       </main>
     </div>

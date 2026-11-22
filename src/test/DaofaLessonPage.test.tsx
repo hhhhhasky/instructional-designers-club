@@ -28,11 +28,11 @@ vi.mock('@/components/common/Footer', () => ({ default: () => <div data-testid="
 vi.mock('@/components/common/PageMeta', () => ({ default: () => null }));
 describe('道法交互工具', () => {
   it('独立占满学习视图，只提供返回目录入口', async () => {
-    render(<MemoryRouter initialEntries={['/courses/daofa/alignment-canvas']}>
-      <Routes><Route path="/courses/daofa/:lessonId" element={<DaofaLessonPage />} /></Routes>
+    render(<MemoryRouter initialEntries={['/course/daofa/alignment-canvas']}>
+      <Routes><Route path="/course/daofa/:lessonId" element={<DaofaLessonPage />} /></Routes>
     </MemoryRouter>);
 
-    expect(screen.getByRole('link', { name: '返回课程目录' })).toHaveAttribute('href', '/courses/daofa');
+    expect(screen.getByRole('link', { name: '返回课程目录' })).toHaveAttribute('href', '/course/daofa');
     expect(screen.queryByTestId('global-header')).not.toBeInTheDocument();
     expect(screen.queryByTestId('global-footer')).not.toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: '道法课程目录' })).not.toBeInTheDocument();
@@ -42,8 +42,8 @@ describe('道法交互工具', () => {
   });
 
   it('图谱地址请求对应的私有媒体，并在独立页面中载入', async () => {
-    render(<MemoryRouter initialEntries={['/courses/daofa/concept-map']}>
-      <Routes><Route path="/courses/daofa/:lessonId" element={<DaofaLessonPage />} /></Routes>
+    render(<MemoryRouter initialEntries={['/course/daofa/concept-map']}>
+      <Routes><Route path="/course/daofa/:lessonId" element={<DaofaLessonPage />} /></Routes>
     </MemoryRouter>);
     const frame = await screen.findByTitle('1—9 年级核心概念交互图谱');
     expect(frame).toHaveAttribute('src', 'https://signed.example.test/media');
@@ -54,8 +54,8 @@ describe('道法交互工具', () => {
 
 it('旧固定单课地址返回数据库目录，不再调用独立讲义接口', async () => {
   vi.mocked(getDaofaLessonMedia).mockClear();
-  render(<MemoryRouter initialEntries={['/courses/daofa/grade-9-up']}>
-    <Routes><Route path="/courses/daofa/:lessonId" element={<DaofaLessonPage />} /><Route path="/courses/daofa" element={<div>数据库课程目录</div>} /></Routes>
+  render(<MemoryRouter initialEntries={['/course/daofa/grade-9-up']}>
+    <Routes><Route path="/course/daofa/:lessonId" element={<DaofaLessonPage />} /><Route path="/course/daofa" element={<div>数据库课程目录</div>} /></Routes>
   </MemoryRouter>);
   expect(await screen.findByText('数据库课程目录')).toBeInTheDocument();
   expect(getDaofaLessonMedia).not.toHaveBeenCalled();
@@ -64,8 +64,8 @@ it('旧固定单课地址返回数据库目录，不再调用独立讲义接口'
 it('无权限时画布继续阻止读取私有媒体', () => {
   access.allowed = false;
   vi.mocked(getDaofaLessonMedia).mockClear();
-  render(<MemoryRouter initialEntries={['/courses/daofa/alignment-canvas']}>
-    <Routes><Route path="/courses/daofa/:lessonId" element={<DaofaLessonPage />} /></Routes>
+  render(<MemoryRouter initialEntries={['/course/daofa/alignment-canvas']}>
+    <Routes><Route path="/course/daofa/:lessonId" element={<DaofaLessonPage />} /></Routes>
   </MemoryRouter>);
   expect(screen.getByText('尚未开通道法教材解读课')).toBeInTheDocument();
   expect(getDaofaLessonMedia).not.toHaveBeenCalled();

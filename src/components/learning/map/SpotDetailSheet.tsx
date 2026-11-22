@@ -1,3 +1,4 @@
+import { useCourseLessonHref } from "@/components/routing/CoursePaths";
 import type { LucideIcon } from 'lucide-react';
 import { CheckCircle, Circle, Lock, PlayCircle, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -38,12 +39,13 @@ export default function SpotDetailSheet({
   accessLevel,
 }: Props) {
   const navigate = useNavigate();
+  const lessonHref = useCourseLessonHref();
   const node = nodeId ? getMapNodeById(nodeId) : undefined;
   const expl = nodeId ? data.nodes[nodeId] : undefined;
 
   const openCourse = (courseId: string) => {
     onChangeNodeId(null);
-    navigate(`/courses/${courseId}`);
+    navigate(lessonHref(courseId));
   };
 
   return (

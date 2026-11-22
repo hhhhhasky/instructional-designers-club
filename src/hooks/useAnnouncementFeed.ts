@@ -1,3 +1,4 @@
+import { useCourseLessonHref } from "@/components/routing/CoursePaths";
 import { useMemo } from "react";
 import type { HomePageSnapshot } from "@/db/api";
 import { useHomeSnapshot } from "@/hooks/useHomeSnapshot";
@@ -106,15 +107,16 @@ function isExternalHref(url: string): boolean {
 }
 
 export function useAnnouncementFeed(): AnnouncementFeedState {
+  const lessonHref = useCourseLessonHref();
   const { snapshot, loading } = useHomeSnapshot();
   const items = useMemo(
-    () => snapshot ? buildAnnouncementFeed(snapshot) : [],
-    [snapshot],
+    () => snapshot ? buildAnnouncementFeed(snapshot, lessonHref) : [],
+    [snapshot, lessonHref],
   );
   return { items, loading };
 }
 
-function buildAnnouncementFeed(snapshot: HomePageSnapshot): FeedItem[] {
+function buildAnnouncementFeed(snapshot: HomePageSnapshot, lessonHref: (id: string) => string): FeedItem[] {
   const merged: FeedItem[] = [];
 
   for (const announcement of snapshot.announcements.slice(0, MAX_ITEMS)) {
@@ -144,7 +146,7 @@ function buildAnnouncementFeed(snapshot: HomePageSnapshot): FeedItem[] {
       timestamp: course.created_at || snapshot.generated_at ||
         "1970-01-01T00:00:00.000Z",
       pinned: false,
-      href: `/courses/${course.id}`,
+      href: lessonHref(course.id),
       external: false,
       linkLabel: "去学习",
     });

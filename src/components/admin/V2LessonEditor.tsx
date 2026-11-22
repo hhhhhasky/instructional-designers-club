@@ -1,3 +1,4 @@
+import { v2LessonPath } from "@/lib/course-paths";
 import { useEffect, useState } from "react";
 import {
   Link as LinkIcon,
@@ -179,7 +180,7 @@ export default function V2LessonEditor({ bundle, unitId, onSaved }: V2LessonEdit
         </div>
         <div className="flex gap-2">
           <Link
-            to={`/course-v2/lesson/${lesson.id}`}
+            to={v2LessonPath(lesson)}
             target="_blank"
             className="inline-flex h-9 items-center gap-1.5 rounded-md border border-bdl px-3 text-xs font-ds-bold text-txs hover:border-ac hover:text-ac"
           >

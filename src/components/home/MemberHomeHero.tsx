@@ -1,3 +1,4 @@
+import { COURSE_PATH, LEARNING_MAP_PATH } from "@/lib/course-paths";
 import { ClipboardPenLine, MapPinned, MessageSquareText } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -137,7 +138,7 @@ export default function MemberHomeHero() {
         </div>
 
         <nav className="mb-6 grid gap-2 sm:grid-cols-3" aria-label="今日教研快捷入口">
-          <Link to="/learning-map" className="editorial-desk-link">
+          <Link to={LEARNING_MAP_PATH} className="editorial-desk-link">
             <MapPinned className="h-4 w-4 text-ac" aria-hidden="true" />
             <span><strong>{copy.learning_map_title}</strong><small>{copy.learning_map_description}</small></span>
           </Link>
@@ -185,7 +186,7 @@ export default function MemberHomeHero() {
                     {copy.completed_description}
                   </p>
                   <Link
-                    to="/course-library"
+                    to={COURSE_PATH}
                     className="text-ds-sm text-ac font-ds-semibold hover:underline"
                   >
                     {copy.all_courses_cta} →

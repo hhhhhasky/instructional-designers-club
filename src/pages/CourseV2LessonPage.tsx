@@ -1,7 +1,9 @@
+import RouteRedirect from "@/components/routing/RouteRedirect";
+import { COURSE_SLUGS, courseCatalogPath, v2LessonPath } from "@/lib/course-paths";
 import { proxiedSupabaseUrl } from "@/lib/supabase-url";
 import { Award, Bookmark, Check, Clock3, FileDown, Headphones, Image as ImageIcon, LockKeyhole, PlayCircle, Send, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 import Footer from "@/components/common/Footer";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
@@ -18,7 +20,10 @@ import { buildV2AssessmentLayout, type V2AssessmentGroup } from "@/lib/v2-assess
 import { isSubjectExplorerResource } from "@/lib/v2-subject-explorer";
 
 export default function CourseV2LessonPage() {
-  const { lessonId } = useParams<{ lessonId: string }>();
+  const { lessonId, lessonSlug } = useParams<{ lessonId: string; lessonSlug: string }>();
+  const lessonKey = lessonSlug ?? lessonId;
+  const location = useLocation();
+  const currentUrl = `${location.pathname}${location.search}${location.hash}`;
   const navigate = useNavigate();
   const { user, profile, loading: authLoading } = useAuth();
   const [bundle, setBundle] = useState<V2LessonBundle | null>(null);
@@ -30,10 +35,10 @@ export default function CourseV2LessonPage() {
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
-      navigate("/login", { replace: true, state: { from: `/course-v2/lesson/${lessonId ?? ""}` } });
+      navigate("/login", { replace: true, state: { from: currentUrl } });
       return;
     }
-    if (!lessonId) {
+    if (!lessonKey) {
       setError("缺少课程 ID");
       setLoading(false);
       return;
@@ -46,7 +51,7 @@ export default function CourseV2LessonPage() {
     let cancelled = false;
     setError(null);
     setLoading(true);
-    getV2LessonBundle(lessonId, user.id)
+    (lessonSlug ? getV2LessonBundle(lessonKey, user.id, "route_slug") : getV2LessonBundle(lessonKey, user.id))
       .then((data) => {
         if (!cancelled) {
           setBundle(data);
@@ -59,7 +64,7 @@ export default function CourseV2LessonPage() {
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [authLoading, lessonId, navigate, profile, user]);
+  }, [authLoading, currentUrl, lessonKey, lessonSlug, navigate, profile, user]);
 
   const latestAttemptByBlock = useMemo(() => {
     const map = new Map<string, V2LessonBundle["attempts"][number]>();
@@ -109,6 +114,10 @@ export default function CourseV2LessonPage() {
     } finally { setSaving(false); }
   }
 
+  if (!loading && !authLoading && !error && lessonId && bundle?.lesson.id === lessonId && bundle.lesson.route_slug) {
+    return <RouteRedirect to={v2LessonPath(bundle.lesson)} />;
+  }
+
   if (authLoading || loading) return <LoadingScreen />;
   if (error || !bundle) return <ErrorScreen message={error ?? "课程暂不可用"} />;
 
@@ -120,7 +129,7 @@ export default function CourseV2LessonPage() {
   return (
     <>
       <PageMeta title={`${lesson.title}｜V2课程`} description={lesson.description ?? lesson.subtitle ?? "教学通识课 V2"} noIndex />
-      <PageBackBar to="/course-v2" label="返回 V2 课程目录" />
+      <PageBackBar to={courseCatalogPath(COURSE_SLUGS.v2)} label="返回 V2 课程目录" />
       <main className="min-h-screen bg-[var(--bg)] px-4 pb-20 pt-4 sm:px-6">
         <div className="mx-auto max-w-6xl">
 
@@ -280,5 +289,5 @@ export function V2AssessmentSection({ assessment, dictionaryItems, latestAttempt
 
 function SectionHeading({ eyebrow, title }: { eyebrow: string; title: string }) { return <div><p className="text-xs font-ds-black tracking-[.16em] text-ac">{eyebrow}</p><h2 className="text-2xl font-bold mt-2 text-tx">{title}</h2></div>; }
 
-function LoadingScreen() { return <div className="min-h-screen bg-[var(--bg)]"><PageBackBar to="/course-v2" label="返回 V2 课程目录" /><LoadingOverlay message="正在打开 V2 课程..." /></div>; }
-function ErrorScreen({ message }: { message: string }) { return <><PageBackBar to="/course-v2" label="返回 V2 课程目录" /><main className="flex min-h-screen items-center justify-center bg-[var(--bg)] px-4 pt-4"><div className="max-w-md rounded-3xl border border-[var(--sage)]/10 bg-white/75 p-8 text-center"><LockKeyhole className="mx-auto h-10 w-10 text-ac" /><h1 className="text-3xl font-bold mt-4 text-tx">V2 课程暂不可用</h1><p className="mt-3 text-sm leading-6 text-txs">{message}</p><Link to="/learning" className="mt-6 inline-flex text-sm font-ds-bold text-ac hover:underline">回到学习主页</Link></div></main><Footer /></>; }
+function LoadingScreen() { return <div className="min-h-screen bg-[var(--bg)]"><PageBackBar to={courseCatalogPath(COURSE_SLUGS.v2)} label="返回 V2 课程目录" /><LoadingOverlay message="正在打开 V2 课程..." /></div>; }
+function ErrorScreen({ message }: { message: string }) { return <><PageBackBar to={courseCatalogPath(COURSE_SLUGS.v2)} label="返回 V2 课程目录" /><main className="flex min-h-screen items-center justify-center bg-[var(--bg)] px-4 pt-4"><div className="max-w-md rounded-3xl border border-[var(--sage)]/10 bg-white/75 p-8 text-center"><LockKeyhole className="mx-auto h-10 w-10 text-ac" /><h1 className="text-3xl font-bold mt-4 text-tx">V2 课程暂不可用</h1><p className="mt-3 text-sm leading-6 text-txs">{message}</p><Link to="/learning" className="mt-6 inline-flex text-sm font-ds-bold text-ac hover:underline">回到学习主页</Link></div></main><Footer /></>; }

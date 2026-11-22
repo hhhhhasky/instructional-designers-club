@@ -401,7 +401,7 @@ describe('CourseDetailPage — 课程导航功能', () => {
   it('顶部返回对应课程目录，课程位置不再提供重复返回按钮', async () => {
     await renderAndWait('c1');
 
-    expect(screen.getByRole('link', { name: '返回课程目录' })).toHaveAttribute('href', '/teacher-ai-courses');
+    expect(screen.getByRole('link', { name: '返回课程目录' })).toHaveAttribute('href', '/course/teacher-ai');
     expect(screen.queryByTestId('header')).not.toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: '返回课程目录' })).toHaveLength(1);
     expect(screen.queryByLabelText('课程位置')).not.toBeInTheDocument();
@@ -622,7 +622,7 @@ describe('CourseDetailPage — 课程导航功能', () => {
     expect(screen.getAllByText('说课篇').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('说课篇02：教材分析').length).toBeGreaterThanOrEqual(1);
 
-    expect(screen.getByRole('link', { name: '返回课程目录' })).toHaveAttribute('href', '/courses#scenarios-%E8%AF%B4%E8%AF%BE%E7%AF%87');
+    expect(screen.getByRole('link', { name: '返回课程目录' })).toHaveAttribute('href', '/course/teaching-general-2025#scenarios-%E8%AF%B4%E8%AF%BE%E7%AF%87');
   });
 
   // ============================
@@ -643,7 +643,7 @@ describe('CourseDetailPage — 课程导航功能', () => {
     await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
 
     expect(screen.getByText('课程不存在')).toBeInTheDocument();
-    expect(screen.getByText('返回教学通识课')).toBeInTheDocument();
+    expect(screen.getByText('返回课程')).toBeInTheDocument();
   });
 });
 
@@ -849,17 +849,17 @@ describe('正常课程详情按课程产品展示道法视频与正文', () => {
     expect(screen.getAllByText('道法教材解读课目录').length).toBeGreaterThan(0);
     expect(screen.queryByText('教师AI课目录')).not.toBeInTheDocument();
     const canvas = screen.getByRole('link', { name: /5\s*三元对齐画布/ });
-    expect(canvas).toHaveAttribute('href', '/courses/daofa/alignment-canvas');
+    expect(canvas).toHaveAttribute('href', '/course/daofa/alignment-canvas');
     const overviewGroup = canvas.parentElement!.parentElement!;
     expect(within(overviewGroup).getByText('总论篇')).toBeInTheDocument();
     expect(within(overviewGroup).getAllByText('6')).toHaveLength(2);
-    expect(within(overviewGroup).getByRole('link', { name: /6.*核心概念交互图谱/ })).toHaveAttribute('href', '/courses/daofa/concept-map');
+    expect(within(overviewGroup).getByRole('link', { name: /6.*核心概念交互图谱/ })).toHaveAttribute('href', '/course/daofa/concept-map');
     await userEvent.click(within(screen.getByTestId('mobile-course-navigation')).getByRole('button', { name: '打开课程目录' }));
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByRole('link', { name: /5\s*三元对齐画布/ })).toHaveAttribute('href', '/courses/daofa/alignment-canvas');
-    expect(within(dialog).getByRole('link', { name: /6.*核心概念交互图谱/ })).toHaveAttribute('href', '/courses/daofa/concept-map');
+    expect(within(dialog).getByRole('link', { name: /5\s*三元对齐画布/ })).toHaveAttribute('href', '/course/daofa/alignment-canvas');
+    expect(within(dialog).getByRole('link', { name: /6.*核心概念交互图谱/ })).toHaveAttribute('href', '/course/daofa/concept-map');
     await userEvent.keyboard('{Escape}');
-    expect(screen.getByRole('link', { name: '返回课程目录' })).toHaveAttribute('href', '/courses/daofa');
+    expect(screen.getByRole('link', { name: '返回课程目录' })).toHaveAttribute('href', '/course/daofa');
   });
 
   it('只有body没有视频时仍正常显示正文，不出现独立讲义iframe', async () => {
@@ -910,7 +910,7 @@ describe('搞定公开课 2027 版单课', () => {
     renderCourseDetail(preview.id);
     expect(await screen.findByRole('heading', { name: preview.title })).toBeInTheDocument();
     expect(screen.getByText(GONGDING_2027_LESSON_PLACEHOLDER)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '查看整套课程大纲' })).toHaveAttribute('href', '/courses/gongding-gongkaike');
+    expect(screen.getByRole('link', { name: '查看整套课程大纲' })).toHaveAttribute('href', '/course/gaoding-gongkaike-2027');
     expect(getCourseProtectedContent).not.toHaveBeenCalled();
     expect(recordCourseVisit).not.toHaveBeenCalled();
   });

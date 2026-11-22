@@ -18,12 +18,12 @@ describe('课程选课首页', () => {
     open();
     const cards = screen.getAllByRole('article');
     expect(cards).toHaveLength(4);
-    expect(within(cards[0]).getByRole('link', { name: '搞定公开课 2027 版' })).toHaveAttribute('href', '/courses/gongding-gongkaike');
+    expect(within(cards[0]).getByRole('link', { name: '搞定公开课 2027 版' })).toHaveAttribute('href', '/course/gaoding-gongkaike-2027');
     expect(within(cards[0]).getByText(/正在研发中，预计 2027 年初全面上线/)).toBeInTheDocument();
     expect(within(cards[0]).getByText(/升级版.*可先学习旧版/)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '教学通识课 2025 版' })).toHaveAttribute('href', '/courses');
-    expect(screen.getByRole('link', { name: '教师 AI 课' })).toHaveAttribute('href', '/teacher-ai-courses');
-    expect(screen.getByRole('link', { name: '道法教材解读课' })).toHaveAttribute('href', '/courses/daofa');
+    expect(screen.getByRole('link', { name: '教学通识课 2025 版' })).toHaveAttribute('href', '/course/teaching-general-2025');
+    expect(screen.getByRole('link', { name: '教师 AI 课' })).toHaveAttribute('href', '/course/teacher-ai');
+    expect(screen.getByRole('link', { name: '道法教材解读课' })).toHaveAttribute('href', '/course/daofa');
     const buyButtons = screen.getAllByRole('button', { name: /购买/ });
     expect(buyButtons).toHaveLength(4);
     const user = userEvent.setup();

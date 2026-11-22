@@ -7,9 +7,9 @@ import { HOME_LANDING_DEFAULTS } from '@/lib/home-landing-content';
 
 describe('course purchase links', () => {
   it.each([
-    ['教学通识课 2025 版', '教学通识课', '/courses', 'https://xhslink.com/m/5JAHDTqPSdk'],
-    ['教师 AI 课', '教师 AI 课', '/teacher-ai-courses', 'https://xhslink.com/m/4neOp7EhPHm'],
-    ['道法教材解读课', '道法教材解读课', '/courses/daofa', 'https://xhslink.com/m/277IB24mn8I'],
+    ['教学通识课 2025 版', '教学通识课', '/course/teaching-general-2025', 'https://xhslink.com/m/5JAHDTqPSdk'],
+    ['教师 AI 课', '教师 AI 课', '/course/teacher-ai', 'https://xhslink.com/m/4neOp7EhPHm'],
+    ['道法教材解读课', '道法教材解读课', '/course/daofa', 'https://xhslink.com/m/277IB24mn8I'],
   ])('opens the matching %s product', async (courseName, productName, cataloguePath, purchaseUrl) => {
     const user = userEvent.setup();
     render(<MemoryRouter><CoursePurchaseSection /></MemoryRouter>);
@@ -32,7 +32,7 @@ describe('course purchase links', () => {
     render(<MemoryRouter><CoursePurchaseSection accessCodes={['teacher-ai']} /></MemoryRouter>);
 
     const card = screen.getByRole('heading', { name: '教师 AI 课' }).closest('article');
-    expect(within(card!).getByRole('link', { name: '进入教师 AI 课' })).toHaveAttribute('href', '/teacher-ai-courses');
+    expect(within(card!).getByRole('link', { name: '进入教师 AI 课' })).toHaveAttribute('href', '/course/teacher-ai');
     expect(within(card!).queryByRole('button', { name: '购买教师 AI 课' })).not.toBeInTheDocument();
     expect(within(card!).getByText('已开通')).toBeInTheDocument();
     const otherCard = screen.getByRole('heading', { name: '教学通识课 2025 版' }).closest('article');
@@ -41,14 +41,14 @@ describe('course purchase links', () => {
 
   it('takes a legacy-only learner into the 2025 edition from the landing page', () => {
     render(<MemoryRouter><CoursePurchaseSection accessCodes={['teaching-general-v1']} /></MemoryRouter>);
-    expect(screen.getByRole('link', { name: '进入教学通识课 2025 版' })).toHaveAttribute('href', '/courses');
+    expect(screen.getByRole('link', { name: '进入教学通识课 2025 版' })).toHaveAttribute('href', '/course/teaching-general-2025');
     expect(screen.queryByRole('button', { name: '购买教学通识课' })).not.toBeInTheDocument();
   });
 
   it('shows course entry instead of purchase to an administrator', () => {
     render(<MemoryRouter><CoursePurchaseSection isAdmin /></MemoryRouter>);
     expect(screen.queryByRole('button', { name: '购买教师 AI 课' })).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: '进入教师 AI 课' })).toHaveAttribute('href', '/teacher-ai-courses');
+    expect(screen.getByRole('link', { name: '进入教师 AI 课' })).toHaveAttribute('href', '/course/teacher-ai');
     expect(screen.getAllByText('可直接学习')).toHaveLength(3);
     expect(screen.queryByText('已开通')).not.toBeInTheDocument();
   });

@@ -1,3 +1,5 @@
+import { useCourseLessonHref } from "@/components/routing/CoursePaths";
+import { COURSE_PATH } from "@/lib/course-paths";
 import { ArrowRight, BookOpen, Compass, LockKeyhole, PlayCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -13,6 +15,7 @@ import { canAccessCourse } from '@/lib/access-control';
 import { DAOFA_TOOL_ENTRIES } from '@/lib/daofa-catalog';
 
 export default function DaofaCoursePage() {
+  const lessonHref = useCourseLessonHref();
   const { courseAccessCodes, profile } = useAuth();
   const [catalog, setCatalog] = useState<CourseProductCatalog>({ courses: [], categories: [], coursesByCategory: {} });
   const [error, setError] = useState(false);
@@ -38,7 +41,7 @@ export default function DaofaCoursePage() {
   return <>
     <PageMeta title="道法教材解读课" description="从课标到单元，再从单元到单课，建立一至九年级道法教材地图。" noIndex />
     <div className="min-h-screen bg-cream flex flex-col">
-      <PageBackBar to="/course-library" label="返回课程" />
+      <PageBackBar to={COURSE_PATH} label="返回课程" />
       <main className="flex-1 pt-4">
         <CourseEditorialHero
           kicker="道法教材解读课 · 课程目录"
@@ -72,7 +75,7 @@ export default function DaofaCoursePage() {
               </div>
               <ol className="overflow-hidden rounded-ds-sm border border-bd bg-[var(--paper)]">
                 {chapter.lessons.map((lesson, lessonIndex) => <li key={lesson.id} className="border-b border-dashed border-bd last:border-b-0">
-                  <Link to={`/courses/${lesson.id}`} className="group flex min-h-20 items-center gap-4 px-4 py-4 transition-colors hover:bg-acl/25 focus-visible:bg-acl/25 sm:px-6">
+                  <Link to={lessonHref(lesson.id)} className="group flex min-h-20 items-center gap-4 px-4 py-4 transition-colors hover:bg-acl/25 focus-visible:bg-acl/25 sm:px-6">
                     <span className="w-7 shrink-0 font-mono text-xs text-txt">{String(lessonIndex + 1).padStart(2, '0')}</span>
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-bd text-ac">{lesson.course_type === 'video' ? <PlayCircle className="h-4 w-4" /> : <BookOpen className="h-4 w-4" />}</span>
                     <span className="min-w-0 flex-1"><span className="block font-ds-bold text-tx group-hover:text-ac">{lesson.title}</span><span className="mt-1 block text-xs leading-5 text-txs">{lesson.description}</span></span>

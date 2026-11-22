@@ -1,3 +1,5 @@
+import { useCourseLessonHref } from "@/components/routing/CoursePaths";
+import { COURSE_PATH, COURSE_SLUGS, courseCatalogPath } from "@/lib/course-paths";
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -36,6 +38,7 @@ import {
 } from '@/lib/plusCourseStructure';
 
 export default function CoursesPage() {
+  const lessonHref = useCourseLessonHref();
   const navigate = useNavigate();
   const { user, profile, courseAccessCodes } = useAuth();
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -109,7 +112,7 @@ export default function CoursesPage() {
 
     if (course.membership_type !== 'free' && profile?.role !== 'admin' && !canAccessCourse(courseAccessCodes, getCourseAccessCode(course))) {
       if (!user) {
-        navigate('/login', { state: { from: `/courses/${course.id}` } });
+        navigate('/login', { state: { from: lessonHref(course.id) } });
         return;
       }
       setUpgradeLevel(course.membership_type as 'plus' | 'pro');
@@ -119,7 +122,7 @@ export default function CoursesPage() {
     }
 
     setIsNavigating(true);
-    setTimeout(() => navigate(`/courses/${course.id}`), 200);
+    setTimeout(() => navigate(lessonHref(course.id)), 200);
   };
 
   return (
@@ -127,11 +130,11 @@ export default function CoursesPage() {
       <PageMeta
         title={TEACHING_GENERAL_2025_NAME}
         description="系统学习教学通识课：从底层理论、教学设计原理，到日常课、说课、公开课等真实教学场景。"
-        canonicalPath="/courses"
+        canonicalPath={courseCatalogPath(COURSE_SLUGS.teachingGeneral)}
         keywords="教学通识课,教学设计课程,教师培训课程"
       />
       <div className="min-h-screen bg-cream flex flex-col">
-        <PageBackBar to="/course-library" label="返回课程" />
+        <PageBackBar to={COURSE_PATH} label="返回课程" />
         {isNavigating && <LoadingOverlay message="正在加载课程..." />}
         <main className="course-reading-desk flex-1 pb-12 pt-4">
           <CourseEditorialHero

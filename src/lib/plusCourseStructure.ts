@@ -1,3 +1,4 @@
+import { COURSE_SLUGS, courseCatalogPath } from "./course-paths";
 import {
   Award,
   BookOpen,
@@ -387,7 +388,7 @@ export function getModuleIcon(moduleId: string): LucideIcon {
 }
 
 export function buildPlusTrackUrl(trackId: PlusCourseTrackId, moduleId?: string): string {
-  return `/courses#${encodeURIComponent(moduleId ? `${trackId}-${moduleId}` : trackId)}`;
+  return `${courseCatalogPath(COURSE_SLUGS.teachingGeneral)}#${encodeURIComponent(moduleId ? `${trackId}-${moduleId}` : trackId)}`;
 }
 
 export function resolvePlusCoursePlacement(
