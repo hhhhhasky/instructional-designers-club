@@ -16,10 +16,6 @@ export interface AsyncCache<T> {
   peek: () => T | null;
 }
 
-function canUseSessionStorage(): boolean {
-  return typeof window !== "undefined" && typeof window.sessionStorage !== "undefined";
-}
-
 export function createAsyncCache<T>({
   key,
   ttlMs,
@@ -30,7 +26,7 @@ export function createAsyncCache<T>({
   let pending: Promise<T> | null = null;
 
   const readSession = (): CacheEntry<T> | null => {
-    if (storage !== "session" || !canUseSessionStorage()) return null;
+    if (storage !== "session" || typeof window === "undefined") return null;
     try {
       const raw = window.sessionStorage.getItem(key);
       if (!raw) return null;
@@ -46,7 +42,7 @@ export function createAsyncCache<T>({
   };
 
   const writeSession = (entry: CacheEntry<T>) => {
-    if (storage !== "session" || !canUseSessionStorage()) return;
+    if (storage !== "session" || typeof window === "undefined") return;
     try {
       window.sessionStorage.setItem(key, JSON.stringify(entry));
     } catch {
@@ -55,7 +51,7 @@ export function createAsyncCache<T>({
   };
 
   const clearSession = () => {
-    if (storage !== "session" || !canUseSessionStorage()) return;
+    if (storage !== "session" || typeof window === "undefined") return;
     try {
       window.sessionStorage.removeItem(key);
     } catch {
