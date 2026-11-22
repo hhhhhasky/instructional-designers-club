@@ -7,24 +7,43 @@ import { useAuth } from '@/contexts/AuthContext';
 import { canAccessCourse } from '@/lib/access-control';
 import {
   COURSE_PURCHASE_PRODUCTS,
+  GONGDING_2027_PURCHASE_PRODUCT,
   TEACHING_GENERAL_2025_NAME,
 } from '@/lib/course-purchase';
+import { GONGDING_2027_CODE, GONGDING_2027_STATUS } from '@/lib/gongding-2027';
 
-const COURSE_DETAILS = [
-  { topic: '教学设计与课堂实践', headline: '把一堂课，想清楚。', color: 'var(--sage)', background: 'var(--sage-soft)', words: ['理解学习', '设计教学', '改进课堂'], content: '从学习与教学的底层规律，到教材、学情、目标、活动和评价，建立一套能用在日常课、说课与公开课中的设计方法。', audience: '想系统理顺备课思路的老师', haiSupported: true },
-  { topic: 'AI 工具与教学协作', headline: '让 AI，接住具体工作。', color: 'var(--brown)', background: 'var(--brown-soft)', words: ['认识工具', '人机协作', '工作流程'], content: '理解 AI 工具的用法，把教学分析、教学设计与课程开发中的具体工作交给 AI 辅助完成，同时保留教师自己的判断。', audience: '想把 AI 用进教学工作的老师', haiSupported: true },
-  { topic: '课标、教材与单课解读', headline: '读懂教材，才好教。', color: 'var(--slate)', background: 'var(--slate-soft)', words: ['课程标准', '单元结构', '单课教学'], content: '从总论到一至九年级分册，贯通道德与法治课标、教材单元与单课内容，理解教材为什么这样编、课堂可以怎样教。', audience: '需要深入研读道法教材的老师', haiSupported: false },
-];
+const COURSE_DETAILS = {
+  [GONGDING_2027_CODE]: {
+    topic: '公开课备课与教学',
+    headline: GONGDING_2027_STATUS,
+    color: 'var(--ac)',
+    background: 'var(--acl)',
+    words: ['确定教什么', '设计怎么教', '磨课与说课'],
+    content: GONGDING_2027_PURCHASE_PRODUCT.description,
+    audience: '正在准备公开课、展示课或赛课的老师',
+    haiSupported: true,
+  },
+  'teaching-general-v1': { topic: '教学设计与课堂实践', headline: '把一堂课，想清楚。', color: 'var(--sage)', background: 'var(--sage-soft)', words: ['理解学习', '设计教学', '改进课堂'], content: '从学习与教学的底层规律，到教材、学情、目标、活动和评价，建立一套能用在日常课、说课与公开课中的设计方法。', audience: '想系统理顺备课思路的老师', haiSupported: true },
+  'teacher-ai': { topic: 'AI 工具与教学协作', headline: '让 AI，接住具体工作。', color: 'var(--brown)', background: 'var(--brown-soft)', words: ['认识工具', '人机协作', '工作流程'], content: '理解 AI 工具的用法，把教学分析、教学设计与课程开发中的具体工作交给 AI 辅助完成，同时保留教师自己的判断。', audience: '想把 AI 用进教学工作的老师', haiSupported: true },
+  'daofa-textbook': { topic: '课标、教材与单课解读', headline: '读懂教材，才好教。', color: 'var(--slate)', background: 'var(--slate-soft)', words: ['课程标准', '单元结构', '单课教学'], content: '从总论到一至九年级分册，贯通道德与法治课标、教材单元与单课内容，理解教材为什么这样编、课堂可以怎样教。', audience: '需要深入研读道法教材的老师', haiSupported: false },
+};
+
+const LIBRARY_PRODUCTS = [GONGDING_2027_PURCHASE_PRODUCT, ...COURSE_PURCHASE_PRODUCTS];
 
 export default function CourseLibraryPage() {
   const { user, profile, courseAccessCodes, loading } = useAuth();
   const [filter, setFilter] = useState<'all' | 'mine'>('all');
-  const products = COURSE_PURCHASE_PRODUCTS.map((product, index) => ({ ...product, ...COURSE_DETAILS[index], hasAccess: Boolean(user) && (profile?.role === 'admin' || canAccessCourse(courseAccessCodes, product.code)) }));
+  const products = LIBRARY_PRODUCTS.map((product) => ({
+    ...product,
+    ...COURSE_DETAILS[product.code],
+    inDevelopment: product.code === GONGDING_2027_CODE,
+    hasAccess: Boolean(user) && (profile?.role === 'admin' || canAccessCourse(courseAccessCodes, product.code)),
+  }));
   const visible = products.filter((product) => filter === 'all' || (!loading && product.hasAccess));
 
   return (
     <div className="min-h-screen bg-bg text-tx">
-      <PageMeta title="课程" description="浏览教学通识课、教师 AI 课与道法教材解读课，选择适合自己的学习方向。" canonicalPath="/course-library" />
+      <PageMeta title="课程" description="浏览搞定公开课 2027 版、教学通识课 2025 版、教师 AI 课与道法教材解读课。" canonicalPath="/course-library" />
       <main className="mx-auto max-w-[1600px] px-5 pb-16 pt-9 md:px-10 md:pt-12">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-5">
           <div><p className="mb-3 text-xs tracking-[0.18em] text-txs">哈老师 · 教师学习课程</p><h1 className="text-3xl font-bold tracking-tight">从你的教学问题出发</h1><p className="mt-3 text-sm leading-7 text-txs">学设计、用 AI、读教材。选择一门课，把方法带回课堂。</p></div>
@@ -46,12 +65,12 @@ export default function CourseLibraryPage() {
                 <div className="flex flex-wrap gap-2">{product.words.map((word) => <span key={word} className="border border-current/20 px-2 py-1 text-xs">{word}</span>)}</div>
               </div>
               <div className="flex flex-1 flex-col p-6 md:p-7">
-                <p className={`mb-3 flex items-center gap-1.5 text-xs ${product.hasAccess ? 'text-sage' : 'text-txs'}`} role="status">{loading ? '正在确认观看权限…' : product.hasAccess ? <><Check className="h-3.5 w-3.5" />已开通 · 可观看</> : <><LockKeyhole className="h-3.5 w-3.5" />{user ? '未开通' : '登录后确认观看权限'}</>}</p>
+                <p className={`mb-3 flex items-center gap-1.5 text-xs ${product.hasAccess ? 'text-sage' : 'text-txs'}`} role="status">{loading ? '正在确认观看权限…' : product.hasAccess ? <><Check className="h-3.5 w-3.5" />{product.inDevelopment ? '已开通 · 可查看目录' : '已开通 · 可观看'}</> : <><LockKeyhole className="h-3.5 w-3.5" />{user ? '未开通' : '登录后确认观看权限'}</>}</p>
                 <p className="text-lg leading-relaxed text-muted-foreground">{product.headline}</p>
                 <p className="mt-3 text-sm leading-7 text-txs">{product.content}</p>
                 <p className="mb-6 mt-4 text-xs leading-6 text-txs">适合：{product.audience}</p>
                 <div className="mt-auto flex items-center justify-between gap-3 border-t border-bd pt-5">
-                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-ac">{!loading && product.hasAccess ? '进入学习' : '查看课程'}<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></span>
+                  <span className="inline-flex items-center gap-2 text-sm font-semibold text-ac">{product.inDevelopment ? '查看课程目录' : !loading && product.hasAccess ? '进入学习' : '查看课程'}<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></span>
                   {!loading && !product.hasAccess && <CoursePurchaseButton productCode={product.code} label="购买课程" className="relative z-10 inline-flex min-h-10 items-center gap-2 rounded-md bg-ac px-4 text-sm font-semibold text-white hover:bg-acd" />}
                 </div>
               </div>

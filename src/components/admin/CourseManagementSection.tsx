@@ -53,6 +53,7 @@ import {
   type PlusTrackConfig,
 } from "@/lib/plusCourseStructure";
 import { cn } from "@/lib/utils";
+import { GONGDING_2027_CODE, GONGDING_2027_NAME } from "@/lib/gongding-2027";
 import type { Course, CourseAccessCode, CourseAttachment, MembershipType } from "@/types/types";
 
 const PAGE_SIZE = 20;
@@ -68,6 +69,7 @@ const LEVEL_OPTIONS = ["入门", "初级", "中级", "高级"] as const;
 const PRODUCT_OPTIONS: { value: CourseAccessCode | null; label: string }[] = [
   { value: null, label: "免费课程" },
   { value: "teaching-general-v1", label: "教学通识课" },
+  { value: GONGDING_2027_CODE, label: GONGDING_2027_NAME },
   { value: "teaching-general-v2", label: "教学通识课 V2" },
   { value: "teacher-ai", label: "教师 AI 课" },
   { value: "daofa-textbook", label: "道法教材解读课" },
@@ -109,7 +111,7 @@ const COURSE_ATTACHMENT_ACCEPT = [
   ".gif",
 ].join(",");
 
-const LEVEL_LABELS: Record<Course["level"], string> = {
+const LEVEL_LABELS: Record<NonNullable<Course["level"]>, string> = {
   entry: "入门",
   beginner: "初级",
   intermediate: "中级",
@@ -210,9 +212,11 @@ export default function CourseManagementSection() {
     category.is_active && category.access_product_code === form.access_product_code
   ), [categories, form.access_product_code]);
   const levelOptions = useMemo(() => {
-    const levelSet = new Set<Course["level"]>();
+    const levelSet = new Set<NonNullable<Course["level"]>>();
     LEVEL_OPTIONS.forEach((level) => levelSet.add(level));
-    courses.forEach((course) => levelSet.add(course.level));
+    courses.forEach((course) => {
+      if (course.level) levelSet.add(course.level);
+    });
     return Array.from(levelSet);
   }, [courses]);
   const plusTracks = useMemo(
@@ -396,7 +400,7 @@ export default function CourseManagementSection() {
       instructor: course.instructor,
       category_id: course.category_id,
       category: course.category,
-      level: course.level as CourseForm["level"],
+      level: course.level,
       duration: course.duration,
       credits: course.credits,
       status: course.status,
@@ -977,6 +981,7 @@ export default function CourseManagementSection() {
                     <option value="unselected" disabled>请选择课程产品</option>
                     <option value="">无（仅免费/试看）</option>
                     <option value="teaching-general-v1">教学通识课</option>
+                    <option value={GONGDING_2027_CODE}>{GONGDING_2027_NAME}</option>
                     {form.access_product_code === "teaching-general-v2" && (
                       <option value="teaching-general-v2">教学通识课 V2（管理员专用）</option>
                     )}
@@ -1057,10 +1062,11 @@ export default function CourseManagementSection() {
                 <div>
                   <label className="block text-ds-xs text-txs mb-1">难度等级</label>
                   <select
-                    value={form.level}
-                    onChange={(e) => updateForm("level", e.target.value as CourseForm["level"])}
+                    value={form.level ?? ""}
+                    onChange={(e) => updateForm("level", (e.target.value || null) as CourseForm["level"])}
                     className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
                   >
+                    <option value="">暂未设置</option>
                     {LEVEL_OPTIONS.map((opt) => (
                       <option key={opt} value={opt}>
                         {opt}

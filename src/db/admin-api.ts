@@ -429,7 +429,7 @@ function normalizeCourseWritePayload(
   }
 
   if (!partial || "title" in course) payload.title = normalizeOptionalText(course.title) ?? "";
-  if (!partial || "level" in course) payload.level = course.level ?? "入门";
+  if (!partial || "level" in course) payload.level = course.level === undefined ? "入门" : course.level;
   if (!partial || "duration" in course) payload.duration = Number.isFinite(Number(course.duration)) ? Number(course.duration) : 0;
   if (!partial || "status" in course) payload.status = course.status ?? "draft";
   if (!partial || "membership_type" in course) payload.membership_type = course.membership_type ?? "plus";

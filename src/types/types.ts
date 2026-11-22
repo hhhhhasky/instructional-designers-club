@@ -42,7 +42,7 @@ export interface Course {
   instructor: string | null;
   category_id: string | null;
   category: string | null;
-  level: 'entry' | 'beginner' | 'intermediate' | 'advanced' | '入门' | '初级' | '中级' | '高级';
+  level: 'entry' | 'beginner' | 'intermediate' | 'advanced' | '入门' | '初级' | '中级' | '高级' | null;
   duration: number | null;
   credits: string | null;
   status: 'draft' | 'published' | 'archived';

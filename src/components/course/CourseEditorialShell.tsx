@@ -151,6 +151,7 @@ export function CourseEditorialCatalogLayout({
 interface CourseEditorialVolumeProps {
   id: string;
   index: number;
+  unit?: string;
   title: string;
   description?: string;
   count: number;
@@ -163,6 +164,7 @@ interface CourseEditorialVolumeProps {
 export function CourseEditorialVolume({
   id,
   index,
+  unit = "部分",
   title,
   description,
   count,
@@ -183,7 +185,7 @@ export function CourseEditorialVolume({
           <Icon className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <span className="editorial-kicker">第 {index + 1} 部分</span>
+          <span className="editorial-kicker">第 {index + 1} {unit}</span>
           <h2 id={headingId} className="text-2xl font-bold mt-1 text-tx" style={{ fontFamily: "var(--fd)" }}>
             {title}
           </h2>

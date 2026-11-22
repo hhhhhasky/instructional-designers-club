@@ -5,6 +5,7 @@ const loadHomePage = () => import('./pages/HomePage');
 const loadResourcesPage = () => import('./pages/ResourcesPage');
 const loadCourseLibraryPage = () => import('./pages/CourseLibraryPage');
 const loadCoursesPage = () => import('./pages/CoursesPage');
+const loadGongding2027CatalogPage = () => import('./pages/Gongding2027CatalogPage');
 const loadTeacherAiCoursesPage = () => import('./pages/TeacherAiCoursesPage');
 const loadCourseDetailPage = () => import('./pages/CourseDetailPage');
 const loadCourseV2CatalogPage = () => import('./pages/CourseV2CatalogPage');
@@ -36,6 +37,7 @@ const HomePage = lazy(loadHomePage);
 const ResourcesPage = lazy(loadResourcesPage);
 const CourseLibraryPage = lazy(loadCourseLibraryPage);
 const CoursesPage = lazy(loadCoursesPage);
+const Gongding2027CatalogPage = lazy(loadGongding2027CatalogPage);
 const TeacherAiCoursesPage = lazy(loadTeacherAiCoursesPage);
 const CourseDetailPage = lazy(loadCourseDetailPage);
 const CourseV2CatalogPage = lazy(loadCourseV2CatalogPage);
@@ -92,6 +94,13 @@ const routes: RouteConfig[] = [
     element: <CoursesPage />,
     visible: false,
     preload: loadCoursesPage
+  },
+  {
+    name: '搞定公开课 2027 版',
+    path: '/courses/gongding-gongkaike',
+    element: <Gongding2027CatalogPage />,
+    visible: false,
+    preload: loadGongding2027CatalogPage
   },
   {
     name: '道法教材解读课',

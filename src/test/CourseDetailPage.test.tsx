@@ -90,7 +90,8 @@ import {
   getPlusCourseStructure,
 } from '@/db/api';
 import { getCourseQuestions, getCourseQuestionTags } from '@/db/course-questions';
-import { canAccessCourse, getUserLearningRecords, updateLearningProgress } from '@/lib/access-control';
+import { canAccessCourse, getUserLearningRecords, recordCourseVisit, updateLearningProgress } from '@/lib/access-control';
+import { GONGDING_2027_LESSON_PLACEHOLDER } from '@/lib/gongding-2027';
 import type { PlusTrackConfig } from '@/lib/plusCourseStructure';
 import type { LearningRecord } from '@/types/types';
 
@@ -877,5 +878,50 @@ describe('正常课程详情按课程产品展示道法视频与正文', () => {
     await renderAndWait('locked', [], { access_product_code: 'daofa-textbook', membership_type: 'plus', video_url: null, has_body: true });
     expect(getCourseProtectedContent).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: '购买道法教材解读课' })).toBeInTheDocument();
+  });
+});
+
+describe('搞定公开课 2027 版单课', () => {
+  const preview = makeCourse({
+    id: 'gongding-lesson',
+    title: '四个层次：优质公开课长什么样？',
+    description: GONGDING_2027_LESSON_PLACEHOLDER,
+    category: '导论',
+    membership_type: 'plus',
+    access_product_code: 'gongding-gongkaike',
+    video_url: null,
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    const coursesByCategory = { 导论: [preview] };
+    vi.mocked(getCourseProductCatalog).mockResolvedValue({
+      courses: [preview],
+      categories: ['导论'],
+      coursesByCategory,
+    });
+    window.HTMLElement.prototype.scrollIntoView = vi.fn();
+  });
+
+  it.each([false, true])('可浏览研发提示且不写学习记录（已开通 %s）', async (hasAccess) => {
+    mockCurrentUser = hasAccess ? mockUser : null;
+    vi.mocked(canAccessCourse).mockReturnValue(hasAccess);
+    vi.mocked(getCourseDetailSnapshot).mockResolvedValue(makeDetailSnapshot(preview));
+    renderCourseDetail(preview.id);
+    expect(await screen.findByRole('heading', { name: preview.title })).toBeInTheDocument();
+    expect(screen.getByText(GONGDING_2027_LESSON_PLACEHOLDER)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '查看整套课程大纲' })).toHaveAttribute('href', '/courses/gongding-gongkaike');
+    expect(getCourseProtectedContent).not.toHaveBeenCalled();
+    expect(recordCourseVisit).not.toHaveBeenCalled();
+  });
+
+  it('填入正文后按原有权限校验，不向未开通的访客读取正文', async () => {
+    mockCurrentUser = null;
+    vi.mocked(canAccessCourse).mockReturnValue(false);
+    vi.mocked(getCourseDetailSnapshot).mockResolvedValue(makeDetailSnapshot({ ...preview, has_body: true }));
+    renderCourseDetail(preview.id);
+    expect(await screen.findByRole('button', { name: '购买搞定公开课 2027 版' })).toBeInTheDocument();
+    expect(screen.queryByText(GONGDING_2027_LESSON_PLACEHOLDER)).not.toBeInTheDocument();
+    expect(getCourseProtectedContent).not.toHaveBeenCalled();
   });
 });

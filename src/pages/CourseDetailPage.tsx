@@ -24,7 +24,7 @@ import {
   User,
 } from 'lucide-react';
 import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
 import MarkdownRenderer from '@/components/common/MarkdownRenderer';
@@ -60,6 +60,7 @@ import {
 import { canAccessCourse, getUserLearningRecords, recordCourseVisit, updateLearningProgress } from '@/lib/access-control';
 import { getCourseAccessCode } from '@/lib/course-entitlements';
 import { getCoursePurchaseProduct } from '@/lib/course-purchase';
+import { GONGDING_2027_CODE, GONGDING_2027_LESSON_PLACEHOLDER, isGongdingLessonPreview } from '@/lib/gongding-2027';
 import { DAOFA_TOOL_ENTRIES } from '@/lib/daofa-catalog';
 import {
   type Achievement,
@@ -199,6 +200,7 @@ export default function CourseDetailPage() {
     if (video) video.playbackRate = playbackRate;
   }, [playbackRate, course?.id]);
 
+  const isDevelopmentPreview = isGongdingLessonPreview(course);
   const hasStandardCourseAccess = Boolean(
     profile?.role === 'admin' || course?.is_trial || (course && canAccessCourse(courseAccessCodes, getCourseAccessCode(course))),
   );
@@ -394,7 +396,7 @@ export default function CourseDetailPage() {
           setError('课程不存在');
         } else {
           setCourse(courseData);
-          if (courseData.status === 'published' && shouldRunDetailWrite(`view:${id}`)) {
+          if (courseData.status === 'published' && !isGongdingLessonPreview(courseData) && shouldRunDetailWrite(`view:${id}`)) {
             await incrementCourseViewCount(id);
           }
 
@@ -457,7 +459,7 @@ export default function CourseDetailPage() {
 
   // 标准会员、免费/试看课程和管理员都必须经过服务端授权后才能取得正文和媒体地址。
   useEffect(() => {
-    if (!course || isLoading || authLoading || !hasStandardCourseAccess) return;
+    if (!course || isLoading || authLoading || isDevelopmentPreview || !hasStandardCourseAccess) return;
     if (protectedContentCourseId === course.id) return;
 
     let cancelled = false;
@@ -487,11 +489,11 @@ export default function CourseDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [course, isLoading, authLoading, hasStandardCourseAccess, protectedContentCourseId]);
+  }, [course, isLoading, authLoading, isDevelopmentPreview, hasStandardCourseAccess, protectedContentCourseId]);
 
   // 访问控制检查独立于课程加载
   useEffect(() => {
-    if (!course || isLoading || authLoading) return;
+    if (!course || isLoading || authLoading || isDevelopmentPreview) return;
 
     if (!hasStandardCourseAccess && !hasPasswordPreviewAccess) {
       if (course.password_access_enabled && (course.membership_type === 'plus' || course.membership_type === 'pro')) {
@@ -539,7 +541,7 @@ export default function CourseDetailPage() {
       setShowUpgrade(false);
       setLearningRecords([]);
     }
-  }, [course, user, hasStandardCourseAccess, hasPasswordPreviewAccess, protectedContentCourseId, isLoading, authLoading, navigate]);
+  }, [course, user, hasStandardCourseAccess, hasPasswordPreviewAccess, protectedContentCourseId, isLoading, authLoading, isDevelopmentPreview, navigate]);
 
   // 暂停、锁屏、切后台或离开页面时都立即同步，避免移动浏览器冻结后丢失断点。
   useEffect(() => {
@@ -709,6 +711,7 @@ export default function CourseDetailPage() {
 
   if (
     course &&
+    !isDevelopmentPreview &&
     !hasStandardCourseAccess &&
     !hasPasswordPreviewAccess &&
     course.password_access_enabled &&
@@ -731,7 +734,7 @@ export default function CourseDetailPage() {
     );
   }
 
-  if (showUpgrade || (course && !hasStandardCourseAccess && !hasPasswordPreviewAccess)) {
+  if (!isDevelopmentPreview && (showUpgrade || (course && !hasStandardCourseAccess && !hasPasswordPreviewAccess))) {
     return (
       <div className="min-h-screen bg-cream flex flex-col">
         <PageBackBar to={courseBackPath} label="返回课程目录" />
@@ -757,7 +760,7 @@ export default function CourseDetailPage() {
     );
   }
 
-  if (course && hasStandardCourseAccess && protectedContentCourseId !== course.id) {
+  if (course && !isDevelopmentPreview && hasStandardCourseAccess && protectedContentCourseId !== course.id) {
     return (
       <div className="min-h-screen bg-cream flex flex-col">
         <PageBackBar to={courseBackPath} label="返回课程目录" />
@@ -795,6 +798,8 @@ export default function CourseDetailPage() {
   const currentCourseProgress = isCurrentCompleted ? 100 : getProgress(course.id);
   const hasSeriesCatalog = seriesCatalog.categories.length > 0;
   const isPlusCourse = getCourseAccessCode(course) === 'teaching-general-v1';
+  const hasDevelopmentDescription = course.access_product_code === GONGDING_2027_CODE &&
+    course.description === GONGDING_2027_LESSON_PLACEHOLDER;
   const hasPlusCatalog = isPlusCourse && plusAllCourses.length > 0 && plusTracks.length > 0;
 
   const handleMarkComplete = () => {
@@ -973,7 +978,7 @@ export default function CourseDetailPage() {
               <div className="course-reading-paper">
 
                 {/* Hero Video */}
-                <div ref={videoContainerRef} className="relative bg-black">
+                {!isDevelopmentPreview && <div ref={videoContainerRef} className="relative bg-black">
                   {heroContent}
                   {course.video_url && (
                     <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
@@ -1000,7 +1005,7 @@ export default function CourseDetailPage() {
                       </Badge>
                     )}
                   </div>
-                </div>
+                </div>}
 
                 {/* Tablet/Desktop Prev/Next Navigation */}
                 {siblingCourses.length > 1 && (
@@ -1139,8 +1144,19 @@ export default function CourseDetailPage() {
                   </div>
                 )}
 
-                {/* Course Info */}
-                <div className="p-6 md:p-8">
+                {isDevelopmentPreview ? (
+                  <div className="p-6 md:p-8">
+                    <span className="editorial-kicker">第 {course.sort_order} 课 · {courseCollectionLabel}</span>
+                    <h1 className="mt-2 text-3xl font-bold leading-tight text-tx">{course.title}</h1>
+                    <p className="mt-6 border-l-2 border-ac/35 bg-[var(--paper-deep)] p-5 text-lg leading-relaxed text-tx">
+                      {GONGDING_2027_LESSON_PLACEHOLDER}
+                    </p>
+                    <Link to={courseBackPath} className="mt-6 inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-ac hover:underline">
+                      <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                      查看整套课程大纲
+                    </Link>
+                  </div>
+                ) : <div className="p-6 md:p-8">
 
                   {/* Title */}
                   <span className="editorial-kicker">
@@ -1178,7 +1194,7 @@ export default function CourseDetailPage() {
                   />
 
                   {/* Description */}
-                  <section className="pt-7 pb-6 border-b border-bdl">
+                  {!hasDevelopmentDescription && <section className="pt-7 pb-6 border-b border-bdl">
                     <h2 className="text-2xl font-bold text-tx mb-3 flex items-center gap-2">
                       <BookOpen className="w-4 h-4 text-ac" />
                       课程简介
@@ -1188,7 +1204,7 @@ export default function CourseDetailPage() {
                         {course.description || '本课程将帮助您深入理解教学设计的核心概念和实践方法，通过系统化的学习，掌握AI时代的教学设计技能。'}
                       </p>
                     </div>
-                  </section>
+                  </section>}
 
                   {/* 多载体内容栈：音频 / 正文 / 图集（按存在性叠加渲染） */}
                   <CourseContentStack
@@ -1288,7 +1304,7 @@ export default function CourseDetailPage() {
                     )}
                   </section>
 
-                </div>
+                </div>}
               </div>
             </div>
 
