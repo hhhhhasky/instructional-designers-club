@@ -9,7 +9,7 @@ import { canAccessCourse } from '@/lib/access-control';
 import {
   COURSE_PURCHASE_PRODUCTS,
   GONGDING_2027_PURCHASE_PRODUCT,
-  TEACHING_GENERAL_2025_NAME,
+  TEACHING_GENERAL_2025_CATALOG,
 } from '@/lib/course-purchase';
 import { GONGDING_2027_CODE, GONGDING_2027_STATUS } from '@/lib/gongding-2027';
 
@@ -29,7 +29,11 @@ const COURSE_DETAILS = {
   'daofa-textbook': { topic: '课标、教材与单课解读', headline: '读懂教材，才好教。', color: 'var(--slate)', background: 'var(--slate-soft)', words: ['课程标准', '单元结构', '单课教学'], content: '从总论到一至九年级分册，贯通道德与法治课标、教材单元与单课内容，理解教材为什么这样编、课堂可以怎样教。', audience: '需要深入研读道法教材的老师', haiSupported: false },
 };
 
-const LIBRARY_PRODUCTS = [GONGDING_2027_PURCHASE_PRODUCT, ...COURSE_PURCHASE_PRODUCTS];
+const LIBRARY_PRODUCTS = [
+  GONGDING_2027_PURCHASE_PRODUCT,
+  TEACHING_GENERAL_2025_CATALOG,
+  ...COURSE_PURCHASE_PRODUCTS.filter(({ code }) => code !== GONGDING_2027_CODE),
+];
 
 export default function CourseLibraryPage() {
   const { user, profile, courseAccessCodes, loading } = useAuth();
@@ -37,6 +41,7 @@ export default function CourseLibraryPage() {
   const products = LIBRARY_PRODUCTS.map((product) => ({
     ...product,
     ...COURSE_DETAILS[product.code],
+    isTeachingGeneral2025: product.code === TEACHING_GENERAL_2025_CATALOG.code,
     inDevelopment: product.code === GONGDING_2027_CODE,
     hasAccess: Boolean(user) && (profile?.role === 'admin' || canAccessCourse(courseAccessCodes, product.code)),
   }));
@@ -60,19 +65,19 @@ export default function CourseLibraryPage() {
               <div className="px-6 py-7 md:px-7" style={{ backgroundColor: product.background, color: product.color }}>
                 <p className="text-xs font-medium tracking-widest">{product.topic}</p>
                 <div className="mb-6 mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
-                  <h2 className="text-2xl font-bold leading-snug"><Link to={product.cataloguePath} className="after:absolute after:inset-0 focus:outline-none">{product.code === 'teaching-general-v1' ? TEACHING_GENERAL_2025_NAME : product.name}</Link></h2>
+                  <h2 className="text-2xl font-bold leading-snug"><Link to={product.cataloguePath} className="after:absolute after:inset-0 focus:outline-none">{product.name}</Link></h2>
                   <span className={`inline-flex shrink-0 items-center rounded-ds-pill border px-2 py-0.5 text-xs font-ds-semibold leading-5 ${product.haiSupported ? 'border-current bg-white/80 text-current' : 'border-bd bg-white/40'}`}>{product.haiSupported ? '包含 HAI 使用权限' : '不含 HAI'}</span>
                 </div>
                 <div className="flex flex-wrap gap-2">{product.words.map((word) => <span key={word} className="border border-current/20 px-2 py-1 text-xs">{word}</span>)}</div>
               </div>
               <div className="flex flex-1 flex-col p-6 md:p-7">
-                <p className={`mb-3 flex items-center gap-1.5 text-xs ${product.hasAccess ? 'text-sage' : 'text-txs'}`} role="status">{loading ? '正在确认观看权限…' : product.hasAccess ? <><Check className="h-3.5 w-3.5" />{product.inDevelopment ? '已开通 · 可查看目录' : '已开通 · 可观看'}</> : <><LockKeyhole className="h-3.5 w-3.5" />{user ? '未开通' : '登录后确认观看权限'}</>}</p>
+                <p className={`mb-3 flex items-center gap-1.5 text-xs ${product.hasAccess ? 'text-sage' : 'text-txs'}`} role="status">{loading ? '正在确认观看权限…' : product.hasAccess ? <><Check className="h-3.5 w-3.5" />{product.inDevelopment ? '已开通 · 可查看目录' : '已开通 · 可观看'}</> : <><LockKeyhole className="h-3.5 w-3.5" />{product.isTeachingGeneral2025 ? '旧版 · 供已开通学员学习' : user ? '未开通' : '登录后确认观看权限'}</>}</p>
                 <p className="text-lg leading-relaxed text-muted-foreground">{product.headline}</p>
                 <p className="mt-3 text-sm leading-7 text-txs">{product.content}</p>
                 <p className="mb-6 mt-4 text-xs leading-6 text-txs">适合：{product.audience}</p>
                 <div className="mt-auto flex items-center justify-between gap-3 border-t border-bd pt-5">
                   <span className="inline-flex items-center gap-2 text-sm font-semibold text-ac">{product.inDevelopment ? '查看课程目录' : !loading && product.hasAccess ? '进入学习' : '查看课程'}<ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></span>
-                  {!loading && !product.hasAccess && <CoursePurchaseButton productCode={product.code} label="购买课程" className="relative z-10 inline-flex min-h-10 items-center gap-2 rounded-md bg-ac px-4 text-sm font-semibold text-white hover:bg-acd" />}
+                  {!loading && !product.hasAccess && !product.isTeachingGeneral2025 && <CoursePurchaseButton productCode={product.code} label="购买课程" className="relative z-10 inline-flex min-h-10 items-center gap-2 rounded-md bg-ac px-4 text-sm font-semibold text-white hover:bg-acd" />}
                 </div>
               </div>
             </article>

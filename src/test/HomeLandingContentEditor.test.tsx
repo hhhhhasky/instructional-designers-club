@@ -33,8 +33,20 @@ describe('homepage copy editing', () => {
     expect(content.home_hero.title_line1).toBe('数据库里的标题');
     expect(content.home_hero.title_line2).toBe(HOME_LANDING_DEFAULTS.home_hero.title_line2);
     expect(content.home_courses.items.map((item) => item.code)).toEqual([
-      'teaching-general-v1', 'teacher-ai', 'daofa-textbook',
+      'gongding-gongkaike', 'teacher-ai', 'daofa-textbook',
     ]);
+  });
+
+  it('replaces the previously saved old course card and keeps other edited card copy', () => {
+    const content = mergeHomeLandingContent({
+      home_courses: { data: { items: [
+        { code: 'teaching-general-v1', audience: '旧课程适合人群', gain: '旧课程收获' },
+        { code: 'teacher-ai', audience: '为教师 AI 课自定义的人群' },
+      ] } },
+    });
+    expect(content.home_courses.items[0]).toEqual(HOME_LANDING_DEFAULTS.home_courses.items[0]);
+    expect(content.home_courses.items[1].audience).toBe('为教师 AI 课自定义的人群');
+    expect(content.home_courses.items.some((item) => item.code === 'teaching-general-v1')).toBe(false);
   });
 
   it('refreshes known old wording without overwriting custom purchase instructions', () => {

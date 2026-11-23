@@ -95,7 +95,6 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
   });
 
   it.each([
-    [CoursesPage, '教学通识课', 'https://xhslink.com/m/5JAHDTqPSdk'],
     [TeacherAiCoursesPage, '教师 AI 课', 'https://xhslink.com/m/4neOp7EhPHm'],
     [DaofaCoursePage, '道法教材解读课', 'https://xhslink.com/m/277IB24mn8I'],
   ])('%s 未开通时显示对应购买入口，已开通时隐藏', async (Page, name, purchaseUrl) => {
@@ -114,8 +113,7 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: `购买${name}` })).not.toBeInTheDocument());
   });
 
-  it('管理员查看课程目录时不显示购买入口', async () => {
-    mockProfileRole = 'admin';
+  it('未开通的学员可以查看旧版教学通识课目录，页面只提示既有学员学习', async () => {
     vi.mocked(canAccessCourse).mockReturnValue(false);
     vi.mocked(getCourseCatalogSnapshot).mockResolvedValue({
       plus_courses: [], plus_tracks: [], pro_courses: [], pro_categories: [], pro_category_tags: {},
@@ -123,7 +121,8 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
     });
     render(<MemoryRouter><CoursesPage /></MemoryRouter>);
     await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
-    expect(screen.queryByRole('button', { name: '购买教学通识课' })).not.toBeInTheDocument();
+    expect(screen.getByText('2025 版供已开通学员学习。')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /购买/ })).not.toBeInTheDocument();
   });
 
   it('访客打开道法单课时可直接看到购买入口', () => {

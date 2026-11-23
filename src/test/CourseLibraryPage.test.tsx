@@ -14,7 +14,7 @@ function open() { render(<MemoryRouter><CourseLibraryPage /></MemoryRouter>); }
 describe('课程选课首页', () => {
   beforeEach(() => { auth.user = null; auth.profile = null; auth.courseAccessCodes = []; auth.loading = false; });
 
-  it('访客首先看到新版公开课，购买沿用通识课的两个入口', async () => {
+  it('访客可购买新版公开课，旧版通识课只保留目录入口', async () => {
     open();
     const cards = screen.getAllByRole('article');
     expect(cards).toHaveLength(4);
@@ -25,14 +25,16 @@ describe('课程选课首页', () => {
     expect(screen.getByRole('link', { name: '教师 AI 课' })).toHaveAttribute('href', '/course/teacher-ai');
     expect(screen.getByRole('link', { name: '道法教材解读课' })).toHaveAttribute('href', '/course/daofa');
     const buyButtons = screen.getAllByRole('button', { name: /购买/ });
-    expect(buyButtons).toHaveLength(4);
+    expect(buyButtons).toHaveLength(3);
+    expect(within(cards[1]).queryByRole('button', { name: /购买/ })).not.toBeInTheDocument();
+    expect(within(cards[1]).getByText('旧版 · 供已开通学员学习')).toBeInTheDocument();
     const user = userEvent.setup();
-    const expectedHrefs = ['https://xhslink.com/m/5JAHDTqPSdk', 'https://xhslink.com/m/5JAHDTqPSdk', 'https://xhslink.com/m/4neOp7EhPHm', 'https://xhslink.com/m/277IB24mn8I'];
+    const expectedHrefs = ['https://xhslink.com/m/5JAHDTqPSdk', 'https://xhslink.com/m/4neOp7EhPHm', 'https://xhslink.com/m/277IB24mn8I'];
     for (let i = 0; i < buyButtons.length; i += 1) {
       await user.click(buyButtons[i]);
       const dialog = within(screen.getByRole('dialog'));
       expect(dialog.getByRole('link', { name: /小红书支付/ })).toHaveAttribute('href', expectedHrefs[i]);
-      if (i < 2) {
+      if (i === 0) {
         await user.click(dialog.getByRole('button', { name: '微信支付' }));
         expect(dialog.getByRole('img')).toHaveAttribute('src', '/images/course-purchase/general-wechat.png');
       }
@@ -79,7 +81,7 @@ describe('课程选课首页', () => {
     const ai = screen.getByRole('link', { name: '教师 AI 课' }).closest('article')!;
     expect(within(ai).getByText('已开通 · 可观看')).toBeInTheDocument();
     expect(within(ai).queryByRole('button', { name: /购买/ })).not.toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /购买/ })).toHaveLength(3);
+    expect(screen.getAllByRole('button', { name: /购买/ })).toHaveLength(2);
     await userEvent.setup().click(screen.getByRole('button', { name: '已开通' }));
     expect(screen.getAllByRole('article')).toHaveLength(1);
     expect(screen.getByRole('link', { name: '教师 AI 课' })).toBeInTheDocument();

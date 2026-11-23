@@ -15,7 +15,7 @@ import CoursePurchaseButton from "@/components/course/CoursePurchaseButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCourseProductCatalog, type CourseProductCatalog } from "@/db/api";
 import { canAccessCourse } from "@/lib/access-control";
-import { GONGDING_2027_PURCHASE_PRODUCT, TEACHING_GENERAL_2025_NAME, TEACHING_GENERAL_PURCHASE_PRODUCT } from "@/lib/course-purchase";
+import { GONGDING_2027_PURCHASE_PRODUCT, TEACHING_GENERAL_2025_CATALOG } from "@/lib/course-purchase";
 import { GONGDING_2027_CODE, GONGDING_2027_NAME, GONGDING_2027_STATUS } from "@/lib/gongding-2027";
 
 export default function Gongding2027CatalogPage() {
@@ -27,7 +27,7 @@ export default function Gongding2027CatalogPage() {
   const product = GONGDING_2027_PURCHASE_PRODUCT;
   const isAdmin = profile?.role === "admin";
   const hasAccess = isAdmin || canAccessCourse(courseAccessCodes, GONGDING_2027_CODE);
-  const hasOldAccess = isAdmin || canAccessCourse(courseAccessCodes, TEACHING_GENERAL_PURCHASE_PRODUCT.code);
+  const hasOldAccess = isAdmin || canAccessCourse(courseAccessCodes, TEACHING_GENERAL_2025_CATALOG.code);
 
   useEffect(() => {
     let active = true;
@@ -87,8 +87,8 @@ export default function Gongding2027CatalogPage() {
           {!loading && <div className="flex flex-wrap items-center gap-4">
             {!hasAccess && <CoursePurchaseButton productCode={GONGDING_2027_CODE} />}
             {hasOldAccess && (
-              <Link className="inline-flex min-h-11 items-center gap-1 rounded-ds-sm border border-bd px-4 text-sm font-semibold text-ac hover:border-ac" to={TEACHING_GENERAL_PURCHASE_PRODUCT.cataloguePath}>
-                去看{TEACHING_GENERAL_2025_NAME}
+              <Link className="inline-flex min-h-11 items-center gap-1 rounded-ds-sm border border-bd px-4 text-sm font-semibold text-ac hover:border-ac" to={TEACHING_GENERAL_2025_CATALOG.cataloguePath}>
+                去看{TEACHING_GENERAL_2025_CATALOG.name}
                 <ChevronRight className="h-4 w-4" aria-hidden="true" />
               </Link>
             )}

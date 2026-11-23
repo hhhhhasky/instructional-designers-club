@@ -53,7 +53,7 @@ export default function CoursePasswordGate({
           </div>
 
           <p className="text-ds-sm leading-6 text-txs">
-            这是一节{product?.name ?? '付费'}课程。拿到老师分享的密码后，可以试看本节内容；需要继续学习整门课程时，可购买对应课程。
+            拿到老师分享的密码后，可以试看本节内容。{product && '需要继续学习整门课程时，可购买对应课程。'}
           </p>
           <p className="mt-2 line-clamp-2 text-ds-sm font-ds-semibold text-tx">《{courseTitle}》</p>
 

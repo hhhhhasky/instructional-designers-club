@@ -1,3 +1,10 @@
+import { GONGDING_2027_CODE } from './gongding-2027';
+
+const LEGACY_COURSE_FAQ = {
+  title: '现在可以单独购买教学通识课 2025 版吗？',
+  detail: '2025 版供已开通学员继续学习。购买《搞定公开课 2027 版》后，也可以先学习 2025 版。',
+};
+
 /** 首页落地页文案的默认值。后台 site_content 使用相同的区块键和字段。 */
 export const HOME_LANDING_DEFAULTS = {
   home_hero: {
@@ -104,7 +111,7 @@ export const HOME_LANDING_DEFAULTS = {
     access_cta: '进入',
     footnote: '下单后，请联系商家，为你的官网账号开通课程。',
     items: [
-      { code: 'teaching-general-v1', audience: '适合想理顺日常课与公开课备课逻辑的教师', gain: '从教材与学情出发，练习让目标、学习过程和评价彼此对齐。' },
+      { code: GONGDING_2027_CODE, audience: '适合正在准备公开课、展示课或赛课的老师', gain: '从确定教什么、设计怎么教，到磨课和说课，逐步备好一节公开课。' },
       { code: 'teacher-ai', audience: '适合正在尝试用 AI 辅助教学设计的教师', gain: '学习检查和修改 AI 生成的内容，把它用到自己的备课与课堂中。' },
       { code: 'daofa-textbook', audience: '适合需要梳理道法课标与教材脉络的教师', gain: '沿课标、单元与单课建立教材地图，理解内容如何进入课堂。' },
     ],
@@ -128,7 +135,7 @@ export const HOME_LANDING_DEFAULTS = {
     faq_kicker: '还有疑问？',
     faq_title: '关于选课和学习',
     faq_items: [
-      { title: '需要先购买教学通识课，才能学习另外两门吗？', detail: '不需要。三门课可以单独购买，按你的教学需要选择即可；已开通的课程可以直接学习。' },
+      LEGACY_COURSE_FAQ,
       { title: '下单后为什么还看不到课程？', detail: '课程需要人工开通。请联系商家，提供订单和用于学习的官网账号，核对后即可开通。' },
     ],
     faq_cta: '回到三门课程',
@@ -143,6 +150,9 @@ export const HOME_LANDING_KEYS = Object.keys(HOME_LANDING_DEFAULTS) as HomeLandi
 
 // 只更新确定已弃用的旧文案，保留后台编辑过的其他内容与开通步骤。
 const LEGACY_HOME_COPY: Record<string, string> = {
+  '需要先购买教学通识课，才能学习另外两门吗？': LEGACY_COURSE_FAQ.title,
+  '不需要。三门课可以单独购买，按你的教学需要选择即可；已开通的课程可以直接学习。': LEGACY_COURSE_FAQ.detail,
+  '三门课程有各自的目录和商品页，可以按自己的教学问题选择。访问权限以实际开通的课程为准。': LEGACY_COURSE_FAQ.detail,
   "TODAY'S DESK · 今日教研桌": '继续学习与备课',
   '课程、咨询与教研产物，都在这张桌上接续。': '继续上次的课程，或打开已保存的教案、课件。',
   '继续教研产物': '查看教案与课件',
@@ -160,6 +170,18 @@ function refreshLegacyHomeCopy(value: unknown): unknown {
   return value;
 }
 
+export function mergeHomeCourseItems(value: unknown): HomeLandingContent['home_courses']['items'] {
+  const saved = Array.isArray(value) ? value : [];
+  return HOME_LANDING_DEFAULTS.home_courses.items.map((item) => {
+    const match = saved.find((entry) => entry?.code === item.code);
+    return {
+      code: item.code,
+      audience: typeof match?.audience === 'string' ? match.audience : item.audience,
+      gain: typeof match?.gain === 'string' ? match.gain : item.gain,
+    };
+  });
+}
+
 export function mergeHomeLandingContent(rows: Record<string, { data?: Record<string, unknown> } | undefined>): HomeLandingContent {
   const merged = {} as Record<HomeLandingKey, unknown>;
   for (const key of HOME_LANDING_KEYS) {
@@ -167,6 +189,7 @@ export function mergeHomeLandingContent(rows: Record<string, { data?: Record<str
     const saved = refreshLegacyHomeCopy(rows[key]?.data ?? {}) as Record<string, unknown>;
     merged[key] = Object.fromEntries(Object.entries(fallback).map(([field, value]) => {
       const candidate = saved[field];
+      if (key === 'home_courses' && field === 'items') return [field, mergeHomeCourseItems(candidate)];
       if (typeof value === 'string') return [field, typeof candidate === 'string' ? candidate : value];
       if (Array.isArray(value) && Array.isArray(candidate)) return [field, candidate];
       return [field, value];

@@ -61,7 +61,7 @@ import {
 } from '@/db/api';
 import { canAccessCourse, getUserLearningRecords, recordCourseVisit, updateLearningProgress } from '@/lib/access-control';
 import { getCourseAccessCode } from '@/lib/course-entitlements';
-import { getCoursePurchaseProduct } from '@/lib/course-purchase';
+import { getCoursePurchaseProduct, TEACHING_GENERAL_2025_CATALOG } from '@/lib/course-purchase';
 import { GONGDING_2027_CODE, GONGDING_2027_LESSON_PLACEHOLDER, isGongdingLessonPreview } from '@/lib/gongding-2027';
 import { DAOFA_TOOL_ENTRIES } from '@/lib/daofa-catalog';
 import {
@@ -607,7 +607,9 @@ export default function CourseDetailPage({ courseId, canonicalPath }: { courseId
   const plusModule = plusPlacement ? getPlusModule(plusPlacement.resolvedTrackId, plusPlacement.resolvedModuleId, plusTracks) : undefined;
   const courseCollectionLabel = plusModule?.title || course?.category || '课程目录';
   const courseBadgeLabel = course?.membership_type === 'plus' ? courseCollectionLabel : course?.category;
-  const purchaseProduct = course ? getCoursePurchaseProduct(getCourseAccessCode(course)) : undefined;
+  const productCode = course ? getCourseAccessCode(course) : null;
+  const purchaseProduct = getCoursePurchaseProduct(productCode);
+  const isOldEdition = productCode === TEACHING_GENERAL_2025_CATALOG.code;
 
   const getProgress = (courseId: string): number => {
     const record = learningRecords.find(r => r.course_id === courseId);
@@ -748,10 +750,10 @@ export default function CourseDetailPage({ courseId, canonicalPath }: { courseId
           <div className="text-center animate-fade-in max-w-md">
             <AlertCircle className="w-14 h-14 text-ac/60 mx-auto mb-5" />
             <h1 className="text-3xl font-bold text-tx mb-5">
-              尚未开通{purchaseProduct?.name ?? '当前课程'}
+              尚未开通{purchaseProduct?.name ?? (isOldEdition ? TEACHING_GENERAL_2025_CATALOG.name : '当前课程')}
             </h1>
             <p className="mb-3 text-sm font-ds-semibold text-tx">{course?.title}</p>
-            <p className="mb-6 text-sm leading-6 text-txs">购买后按现有流程开通课程权限。若已购买，请联系课程管理员核对当前账号。</p>
+            <p className="mb-6 text-sm leading-6 text-txs">{purchaseProduct ? '购买后按现有流程开通课程权限。若已购买，请联系课程管理员核对当前账号。' : '如已开通，请联系课程管理员核对当前账号。'}</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button onClick={() => navigate(courseBackPath)} variant="outline" className="btn-press">
                 返回课程目录
