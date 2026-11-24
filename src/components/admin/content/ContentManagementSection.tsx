@@ -21,12 +21,12 @@ export default function ContentManagementSection() {
       <div className="w-9 h-9 rounded-ds-full bg-acl flex items-center justify-center flex-shrink-0"><LayoutDashboard className="w-5 h-5 text-ac" /></div>
       <div className="text-ds-sm text-txs leading-relaxed">
         <p className="font-ds-semibold text-tx mb-0.5">首页内容编辑</p>
-        按浏览顺序逐段修改文案。每个区块单独保存到数据库，前台刷新即可显示。人物资料与头像在“哈老师资料与头像”中维护。
+        按浏览顺序逐段修改文案。点击「保存并发布」后，首页会自动构建。人物资料与头像在「哈老师资料与头像」中维护。
       </div>
     </div>
     <div className="flex flex-wrap gap-2 pb-3 border-b border-bd" aria-label="首页内容区块">
       {TABS.map((entry) => <button key={entry.key} type="button" onClick={() => setTab(entry.key)} className={`px-3 py-1.5 text-ds-sm rounded-ds-pill whitespace-nowrap transition-colors flex-shrink-0 ${tab === entry.key ? 'bg-ac text-white font-ds-semibold' : 'bg-warm text-txs hover:text-ac'}`}>{entry.label}</button>)}
     </div>
-    {tab === 'founder' ? <FounderEditor /> : tab === 'announcements' ? <AnnouncementsEditor /> : tab === 'activities' ? <ActivitiesEditor /> : tab === 'resources' ? <ResourcesEditor /> : <HomeLandingEditor sectionKey={tab} />}
+    {tab === 'founder' ? <FounderEditor /> : tab === 'announcements' ? <AnnouncementsEditor /> : tab === 'activities' ? <ActivitiesEditor /> : tab === 'resources' ? <ResourcesEditor /> : <HomeLandingEditor key={tab} sectionKey={tab} />}
   </div>;
 }

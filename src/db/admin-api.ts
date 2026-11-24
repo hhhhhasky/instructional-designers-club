@@ -908,6 +908,20 @@ export async function adminUpsertSiteContent(
   clearHomePageSnapshotCache();
 }
 
+export async function adminPublishHomeContent(): Promise<void> {
+  const { data: { session }, error } = await supabase.auth.getSession();
+  if (error || !session) throw new Error("请重新登录后发布首页");
+  const apikey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
+  if (!apikey) throw new Error("缺少首页发布所需的站点配置");
+  const result = await fetch("/publish-home-content", {
+    method: "POST",
+    headers: { authorization: `Bearer ${session.access_token}`, apikey },
+  });
+  if (result.status === 202) return;
+  const body = await result.json().catch(() => null);
+  throw new Error(typeof body?.message === "string" ? body.message : "首页发布服务暂不可用");
+}
+
 // ---------- member_profiles ----------
 
 export const adminListMemberProfiles = () =>

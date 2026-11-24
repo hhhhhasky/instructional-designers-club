@@ -4,6 +4,7 @@ import type {
   HomeCourseBuckets,
   HomePageSnapshot,
 } from "@/db/api";
+import { publishedHomeContent } from "@/lib/published-home-content";
 import { useHomeSnapshot } from "@/hooks/useHomeSnapshot";
 import { HOME_LANDING_DEFAULTS, mergeHomeLandingContent, type HomeLandingContent } from "@/lib/home-landing-content";
 import { FOUNDER_PORTRAIT_URL, normalizeFounderAvatarUrl } from "@/lib/founder-avatar";
@@ -227,7 +228,29 @@ const FALLBACK: HomeContent = {
   loadingHomeCourses: true,
 };
 
-const d = (row: SiteContent | null | undefined): Record<string, unknown> => row?.data ?? {};
+const d = (row: Partial<Pick<SiteContent, "data">> | null | undefined): Record<string, unknown> => row?.data ?? {};
+
+function buildFounderContent(row: { data?: Record<string, unknown> } | null | undefined) {
+  const data = d(row);
+  return {
+    section_title: asStr(data.section_title, DEFAULT_FOUNDER.section_title),
+    avatar_url: normalizeFounderAvatarUrl(asStr(data.avatar_url, DEFAULT_FOUNDER.avatar_url)),
+    avatar_alt: asStr(data.avatar_alt, DEFAULT_FOUNDER.avatar_alt),
+    name: asStr(data.name, DEFAULT_FOUNDER.name),
+    motto: asStr(data.motto, DEFAULT_FOUNDER.motto),
+    tags: Array.isArray(data.tags) ? (data.tags as typeof DEFAULT_FOUNDER.tags) : DEFAULT_FOUNDER.tags,
+    info_items: (Array.isArray(data.info_items) ? (data.info_items as typeof DEFAULT_FOUNDER.info_items) : DEFAULT_FOUNDER.info_items)
+      .map((item) => ({ ...item, text: asStr(item?.text).replace(/教学设计师俱乐部/g, "哈老师聊教学设计") })),
+    stats: Array.isArray(data.stats) ? (data.stats as typeof DEFAULT_FOUNDER.stats) : DEFAULT_FOUNDER.stats,
+  };
+}
+
+const initialHomeContent: HomeContent = publishedHomeContent ? {
+  ...FALLBACK,
+  loaded: true,
+  landing: publishedHomeContent.landing,
+  founder: buildFounderContent(publishedHomeContent.founder),
+} : FALLBACK;
 
 function buildHomeContentFromSnapshot(snapshot: HomePageSnapshot): HomeContent {
   const siteContent = snapshot.site_content ?? {};
@@ -242,7 +265,7 @@ function buildHomeContentFromSnapshot(snapshot: HomePageSnapshot): HomeContent {
 
   return {
     loaded: true,
-    landing: mergeHomeLandingContent(siteContent),
+    landing: publishedHomeContent?.landing ?? mergeHomeLandingContent(siteContent),
     hero: {
       title_line1: asStr(d(heroRow).title_line1, DEFAULT_HERO.title_line1),
       title_line2: asStr(d(heroRow).title_line2, DEFAULT_HERO.title_line2),
@@ -264,17 +287,7 @@ function buildHomeContentFromSnapshot(snapshot: HomePageSnapshot): HomeContent {
       values_subtitle: asStr(d(valuesRow).values_subtitle, DEFAULT_VALUES.values_subtitle),
       items: pickArr(d(valuesRow).items, DEFAULT_VALUES.items),
     },
-    founder: {
-      section_title: asStr(d(founderRow).section_title, DEFAULT_FOUNDER.section_title),
-      avatar_url: normalizeFounderAvatarUrl(asStr(d(founderRow).avatar_url, DEFAULT_FOUNDER.avatar_url)),
-      avatar_alt: asStr(d(founderRow).avatar_alt, DEFAULT_FOUNDER.avatar_alt),
-      name: asStr(d(founderRow).name, DEFAULT_FOUNDER.name),
-      motto: asStr(d(founderRow).motto, DEFAULT_FOUNDER.motto),
-      tags: Array.isArray(d(founderRow).tags) ? (d(founderRow).tags as typeof DEFAULT_FOUNDER.tags) : DEFAULT_FOUNDER.tags,
-      info_items: (Array.isArray(d(founderRow).info_items) ? (d(founderRow).info_items as typeof DEFAULT_FOUNDER.info_items) : DEFAULT_FOUNDER.info_items)
-        .map((item) => ({ ...item, text: item.text.replace(/教学设计师俱乐部/g, "哈老师聊教学设计") })),
-      stats: Array.isArray(d(founderRow).stats) ? (d(founderRow).stats as typeof DEFAULT_FOUNDER.stats) : DEFAULT_FOUNDER.stats,
-    },
+    founder: buildFounderContent(publishedHomeContent ? publishedHomeContent.founder : founderRow),
     stats: {
       section_title: asStr(d(statsRow).section_title, DEFAULT_STATS.section_title),
       section_subtitle: asStr(d(statsRow).section_subtitle, DEFAULT_STATS.section_subtitle),
@@ -311,9 +324,9 @@ function buildHomeContentFromSnapshot(snapshot: HomePageSnapshot): HomeContent {
 export function useHomeContent(): HomeContent {
   const { snapshot, loading, error } = useHomeSnapshot();
   return useMemo(() => {
-    if (loading) return FALLBACK;
+    if (loading) return initialHomeContent;
     if (snapshot) return buildHomeContentFromSnapshot(snapshot);
     if (error) console.error("加载首页内容快照失败:", error);
-    return { ...FALLBACK, loaded: true, loadingHomeCourses: false };
+    return { ...initialHomeContent, loaded: true, loadingHomeCourses: false };
   }, [error, loading, snapshot]);
 }

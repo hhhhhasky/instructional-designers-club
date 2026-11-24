@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
 import InlineConfirmButton from "@/components/common/InlineConfirmButton";
 import { Button } from "@/components/ui/button";
-import { adminUpsertSiteContent, getAdminSiteContent } from "@/db/admin-api";
+import { adminPublishHomeContent, adminUpsertSiteContent, getAdminSiteContent } from "@/db/admin-api";
 import { normalizeFounderAvatarUrl } from "@/lib/founder-avatar";
 
 /**
@@ -16,12 +16,14 @@ export default function SiteContentForm({
   sectionLabel,
   description,
   defaultData,
+  publishHome = false,
   children,
 }: {
   sectionKey: string;
   sectionLabel: string;
   description?: string;
   defaultData?: Record<string, unknown>;
+  publishHome?: boolean;
   children: (ctx: {
     data: Record<string, unknown>;
     setField: (key: string, value: unknown) => void;
@@ -33,6 +35,7 @@ export default function SiteContentForm({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [publishError, setPublishError] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -66,13 +69,33 @@ export default function SiteContentForm({
     setDataState((prev) => ({ ...prev, [key]: value }));
   };
 
+  const publishSavedContent = async () => {
+    try {
+      await adminPublishHomeContent();
+      setPublishError("");
+      toast.success("文案已保存，首页构建已提交");
+    } catch (error) {
+      setPublishError(error instanceof Error ? error.message : "首页发布服务暂不可用");
+    }
+  };
+
   const handleSave = async () => {
     try {
       setSaving(true);
       await adminUpsertSiteContent(sectionKey, sectionLabel, data);
-      toast.success("已保存，前台刷新即生效");
+      if (publishHome) await publishSavedContent();
+      else toast.success("已保存，前台刷新即生效");
     } catch {
       toast.error("保存失败，请重试");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const retryPublish = async () => {
+    setSaving(true);
+    try {
+      await publishSavedContent();
     } finally {
       setSaving(false);
     }
@@ -95,10 +118,16 @@ export default function SiteContentForm({
             setData: setDataState,
           })}
 
+        {publishError && (
+          <div className="flex flex-wrap items-center justify-between gap-3 text-ds-sm text-red-700">
+            <p role="alert">文案已保存。{publishError}</p>
+            <Button variant="outline" onClick={retryPublish} disabled={saving}>重试发布已保存的文案</Button>
+          </div>
+        )}
         <div className="flex justify-end pt-2 border-t border-bdl">
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={!loaded || saving}>
             <Save className="w-4 h-4 mr-1" />
-            {saving ? "保存中..." : "保存"}
+            {saving ? "正在提交…" : publishHome ? "保存并发布" : "保存"}
           </Button>
         </div>
       </div>

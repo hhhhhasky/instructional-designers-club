@@ -1,3 +1,4 @@
+import { publishedHomeContent } from "@/lib/published-home-content";
 import React, { lazy, Suspense, useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
@@ -150,7 +151,9 @@ function AppContent() {
         <main className="min-w-0 flex-grow">
           <SiteToolbarContext.Provider value={toolbarContent}>
             <Suspense
-              fallback={location.pathname === "/" ? <HomeInitialHero /> : (
+              fallback={location.pathname === "/" && publishedHomeContent ? (
+                <HomeInitialHero hero={publishedHomeContent.landing.home_hero} />
+              ) : (
                 <div
                   className="editorial-route-loading"
                   role="status"

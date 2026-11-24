@@ -20,13 +20,11 @@ type HomeSnapshotState = {
 const HomeSnapshotContext = createContext<HomeSnapshotState | null>(null);
 
 export function HomeSnapshotProvider({ children }: { children: ReactNode }) {
-  const cached = getCachedHomePageSnapshot();
-  const [state, setState] = useState<HomeSnapshotState>({
-    snapshot: cached,
-    // 首页文案必须等本次请求完成；会话缓存可能还是后台修改前的旧版本。
+  const [state, setState] = useState<HomeSnapshotState>(() => ({
+    snapshot: getCachedHomePageSnapshot(),
     loading: true,
     error: null,
-  });
+  }));
 
   useEffect(() => {
     let active = true;

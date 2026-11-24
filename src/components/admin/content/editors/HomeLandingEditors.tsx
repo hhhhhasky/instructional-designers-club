@@ -38,8 +38,9 @@ export function HomeLandingEditor({ sectionKey }: { sectionKey: HomeLandingKey }
   return <SiteContentForm
     sectionKey={sectionKey}
     sectionLabel={tab.label}
-    description="每个字段均对应首页的一处文字。保存后，前台刷新即可读取数据库中的新文案。"
+    description="文案保存后会提交首页构建，构建完成后访客即可看到新版。"
     defaultData={defaults}
+    publishHome
   >
     {({ data, setField }) => <div className="space-y-5">
       {Object.entries(defaults).map(([field, fallback]) => {

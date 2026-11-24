@@ -137,11 +137,11 @@ describe("home page audience split", () => {
     expect(within(about).queryByText('开发小白')).not.toBeInTheDocument();
   });
 
-  it("shows the default heading while the snapshot loads and then uses the saved copy", () => {
+  it("waits for live copy in a development build without a published snapshot", () => {
     homeContent.loaded = false;
     const view = renderHome();
 
-    expect(screen.getByRole('heading', { level: 1, name: /教案写得很完整/ })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
 
     homeContent.loaded = true;
     homeContent.heroTitle = '后台更新的标题';

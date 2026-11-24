@@ -63,27 +63,6 @@
         font: inherit;
         cursor: pointer;
       }
-      .home-initial-hero {
-        padding: 64px 24px 56px;
-        background: #faf8f2;
-        color: #26332b;
-        font-family: system-ui, sans-serif;
-      }
-      .home-initial-hero > div { max-width: 1152px; margin: auto; }
-      .home-initial-kicker { color: #3d5f4b; font-size: 13px; font-weight: 700; }
-      .home-initial-hero h1 { margin: 20px 0; font-size: clamp(32px, 5vw, 60px); line-height: 1.22; font-weight: 900; }
-      .home-initial-hero h1 span { color: #3d5f4b; }
-      .home-initial-description { max-width: 640px; font-size: 16px; line-height: 1.75; }
-      .home-initial-hero a {
-        display: inline-block;
-        margin-top: 12px;
-        padding: 10px 16px;
-        border-radius: 6px;
-        background: #3d5f4b;
-        color: white;
-        font-weight: 700;
-        text-decoration: none;
-      }
     </style>
     <title>哈老师聊教学设计</title>
     <meta name="description" content="从真实教学问题出发，和哈老师一起分析教材、学情、目标、课堂活动与评价。了解教学通识课、教师 AI 课和道法教材解读课。" />
@@ -102,7 +81,7 @@
   </head>
   <body>
     <div id="root">
-      <div id="home-initial-hero" hidden><!-- home-initial-hero --></div>
+      <div id="home-initial-hero" class="site-shell pt-14" hidden><!-- home-initial-hero --></div>
     </div>
     <script>
       if (location.pathname === "/" && !location.hash.startsWith("#/")) {

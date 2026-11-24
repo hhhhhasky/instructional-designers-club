@@ -7,6 +7,7 @@ import { FOUNDER_PORTRAIT_URL, normalizeFounderAvatarUrl } from '@/lib/founder-a
 const api = vi.hoisted(() => ({
   getAdminSiteContent: vi.fn(),
   adminUpsertSiteContent: vi.fn(),
+  adminPublishHomeContent: vi.fn(),
 }));
 
 vi.mock('@/db/admin-api', () => api);
@@ -15,17 +16,32 @@ describe('homepage copy editing', () => {
   beforeEach(() => {
     api.getAdminSiteContent.mockReset().mockResolvedValue(null);
     api.adminUpsertSiteContent.mockReset().mockResolvedValue(undefined);
+    api.adminPublishHomeContent.mockReset().mockResolvedValue(undefined);
   });
 
   it('shows default copy as editable fields and saves the changed section to site_content', async () => {
     render(<HomeLandingEditor sectionKey="home_hero" />);
     const title = await screen.findByDisplayValue(HOME_LANDING_DEFAULTS.home_hero.title_line1);
     fireEvent.change(title, { target: { value: '我的新首页标题' } });
-    fireEvent.click(screen.getByRole('button', { name: '保存' }));
+    fireEvent.click(screen.getByRole('button', { name: '保存并发布' }));
 
     await waitFor(() => expect(api.adminUpsertSiteContent).toHaveBeenCalledWith(
       'home_hero', '首屏与按钮', expect.objectContaining({ title_line1: '我的新首页标题' }),
     ));
+    await waitFor(() => expect(api.adminPublishHomeContent).toHaveBeenCalledOnce());
+    expect(api.adminUpsertSiteContent.mock.invocationCallOrder[0]).toBeLessThan(api.adminPublishHomeContent.mock.invocationCallOrder[0]);
+  });
+
+  it('can retry a rejected build request without writing the saved content twice', async () => {
+    api.adminPublishHomeContent.mockRejectedValueOnce(new Error('发布服务暂不可用'));
+    render(<HomeLandingEditor sectionKey="home_hero" />);
+    await screen.findByDisplayValue(HOME_LANDING_DEFAULTS.home_hero.title_line1);
+    fireEvent.click(screen.getByRole('button', { name: '保存并发布' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('文案已保存。发布服务暂不可用');
+    fireEvent.click(screen.getByRole('button', { name: '重试发布已保存的文案' }));
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+    expect(api.adminUpsertSiteContent).toHaveBeenCalledOnce();
+    expect(api.adminPublishHomeContent).toHaveBeenCalledTimes(2);
   });
 
   it('uses saved fields while keeping defaults for fields the admin has not edited', () => {
@@ -76,7 +92,7 @@ describe('homepage copy editing', () => {
     const biography = await screen.findByDisplayValue(HOME_LANDING_DEFAULTS.home_founder.biography[0]);
     fireEvent.change(biography, { target: { value: '更新后的个人经历' } });
     expect(screen.getByDisplayValue('哈士奇聊教学设计')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: '保存' }));
+    fireEvent.click(screen.getByRole('button', { name: '保存并发布' }));
     await waitFor(() => expect(api.adminUpsertSiteContent).toHaveBeenCalledWith(
       'home_founder', '哈老师是谁', expect.objectContaining({ biography: ['更新后的个人经历', HOME_LANDING_DEFAULTS.home_founder.biography[1]] }),
     ));

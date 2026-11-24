@@ -221,6 +221,7 @@ export function FounderEditor() {
       sectionLabel="哈老师资料与头像"
       description="沿用原有的姓名、座右铭、身份标签与愿景等资料；首页人物介绍正文在“哈老师是谁”中编辑。"
       defaultData={DEFAULT_FOUNDER}
+      publishHome
     >
       {({ data, setField }) => (
         <div className="space-y-4">

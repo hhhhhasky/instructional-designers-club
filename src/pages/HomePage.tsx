@@ -1,8 +1,10 @@
-import { lazy, Suspense } from "react";
+import HomeInitialHero from "@/components/home/HomeInitialHero";
+import LoadingOverlay from "@/components/common/LoadingOverlay";
+import { lazy, Suspense, useEffect } from "react";
 import { useCourseLessonHref } from "@/components/routing/CoursePaths";
 import { COURSE_PATH } from "@/lib/course-paths";
 import { proxiedSupabaseUrl } from "@/lib/supabase-url";
-import { ArrowDown, ArrowRight, BookOpen, Play } from 'lucide-react';
+import { ArrowRight, BookOpen, Play } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
@@ -23,9 +25,20 @@ export default function HomePage() {
 function HomePageContent() {
   const lessonHref = useCourseLessonHref();
   const { user, profile, courseAccessCodes, loading } = useAuth();
-  const { homeCourses, landing, founder } = useHomeContent();
+  const { loaded, homeCourses, landing, founder } = useHomeContent();
   const { home_hero: hero, home_situations: situationCopy, home_problem: problemCopy, home_method: methodCopy, home_founder: founderCopy, home_outcomes: outcomeCopy, home_learning: learningCopy, home_extra: extraCopy } = landing;
   const freeCourses = homeCourses.free.filter((course) => course.membership_type === 'free').slice(0, 2);
+
+  useEffect(() => {
+    if (!loaded) return;
+    const target = document.getElementById(window.location.hash.slice(1));
+    if (target) {
+      const frame = requestAnimationFrame(() => target.scrollIntoView());
+      return () => cancelAnimationFrame(frame);
+    }
+  }, [loaded]);
+
+  if (!loaded) return <LoadingOverlay message="正在加载首页内容…" />;
 
   return <>
     <PageMeta title="哈老师聊教学设计" description="从真实教学问题出发，和哈老师一起分析教材、学情、目标、课堂活动与评价。了解教学通识课、教师 AI 课和道法教材解读课。" canonicalPath="/" keywords="哈老师聊教学设计,教师培训,教学设计,教师AI课,道法教材解读课" />
@@ -33,27 +46,19 @@ function HomePageContent() {
       <Header />
       <main>
         {user?.email?.endsWith('@phone.local') && <div className="border-b border-bd bg-acl px-4 py-3 text-center text-sm text-tx">绑定邮箱后，忘记密码时可以自己找回。{' '}<Link to="/settings" className="font-semibold text-ac underline">去绑定邮箱</Link></div>}
-        <section id="teaching-problems" aria-labelledby="home-title" className="relative overflow-hidden border-b border-[var(--paper-rule)] bg-[var(--paper)] px-4 pb-14 pt-16 md:pb-20 md:pt-20">
-          <div className="pointer-events-none absolute -right-24 top-0 h-96 w-96 rounded-full bg-ac/5 blur-3xl" aria-hidden="true" />
-          <div className="relative mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_330px] lg:items-center">
-            <div className="animate-fade-in-up">
-              <p className="editorial-kicker">{hero.kicker}</p>
-              <h1 id="home-title" className="mt-6 max-w-4xl text-4xl font-ds-black leading-[1.22] tracking-tight text-tx md:text-6xl" style={{ fontFamily: 'var(--fd)' }}>{hero.title_line1}<br /><span className="text-ac">{hero.title_line2}</span></h1>
-              <p className="mt-7 max-w-2xl text-base leading-8 text-txs md:text-lg md:leading-9">{hero.description}</p>
-              <div className="mt-8 flex flex-wrap gap-3">
-                <a href="#real-situations" className="inline-flex min-h-12 items-center gap-2 rounded-ds-sm bg-ac px-6 font-ds-bold text-white transition-colors hover:bg-acd focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac focus-visible:ring-offset-2">{hero.primary_cta} <ArrowDown className="h-4 w-4" aria-hidden="true" /></a>
-                <a href="#course-products" className="inline-flex min-h-12 items-center gap-2 rounded-ds-sm border border-bd bg-white px-6 font-ds-semibold text-tx transition-colors hover:border-ac focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac focus-visible:ring-offset-2">{hero.secondary_cta} <ArrowRight className="h-4 w-4" aria-hidden="true" /></a>
-                {freeCourses.length > 0 && <a href="#free-courses" className="inline-flex min-h-12 items-center gap-2 rounded-ds-sm border border-ac/30 bg-[var(--annotation-soft)] px-6 font-ds-semibold text-ac transition-colors hover:border-ac focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac focus-visible:ring-offset-2"><Play className="h-4 w-4" aria-hidden="true" />免费体验课程</a>}
-              </div>
-              {user && !loading && <Link to="/learning" className="mt-6 inline-flex items-center gap-2 text-sm font-ds-semibold text-ac hover:underline">{hero.learning_cta} <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>}
-            </div>
-            <aside className="editorial-paper animate-fade-in border-[var(--paper-rule)] p-6 shadow-ds-md md:p-7" aria-label="一节课的设计线索">
-              <div className="flex items-center justify-between border-b border-dashed border-[var(--paper-rule)] pb-4"><span className="editorial-stamp">{hero.aside_title}</span><span className="font-serif text-3xl text-ac/45" aria-hidden="true">01</span></div>
-              <ol className="mt-5">{hero.aside_steps.map((item, index) => <li key={item} className="flex items-center gap-4 border-l-2 border-ac/25 py-3 pl-4 text-sm text-tx"><span className="font-mono text-xs text-ac">0{index + 1}</span><strong>{item}</strong></li>)}</ol>
-              <p className="mt-5 border-t border-dashed border-[var(--paper-rule)] pt-4 text-sm leading-7 text-txs">{hero.aside_note}</p>
-            </aside>
-          </div>
-        </section>
+        <HomeInitialHero
+          hero={hero}
+          hasFreeCourses={freeCourses.length > 0}
+          learningLink={user && !loading && (
+            <Link
+              to="/learning"
+              className="mt-6 inline-flex items-center gap-2 text-sm font-ds-semibold text-ac hover:underline"
+            >
+              {hero.learning_cta}{" "}
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          )}
+        />
 
         {user && !loading && <div className="bg-[var(--paper-deep)]"><Suspense fallback={null}><MemberHomeHero /><NotificationCard /></Suspense></div>}
 

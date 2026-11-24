@@ -1,3 +1,4 @@
+import { publishedHomeContent } from "@/lib/published-home-content";
 import { createAsyncCache } from "@/lib/async-cache";
 import { getCourseCoverUrl, withProtectedCourseCover } from "@/lib/course-cover";
 import { HOME_LANDING_KEYS } from "@/lib/home-landing-content";
@@ -767,12 +768,13 @@ async function fetchHomePageSnapshotRpc(): Promise<HomePageSnapshot> {
       activity_limit: 20,
       home_course_limit: 4,
     }),
-    supabase.from('site_content').select('*').in('section_key', HOME_LANDING_KEYS),
+    publishedHomeContent ? null : supabase.from('site_content').select('*').in('section_key', HOME_LANDING_KEYS),
   ]);
 
   if (rpcResult.error) throw rpcResult.error;
-  if (landingResult.error) throw landingResult.error;
+  if (landingResult?.error) throw landingResult.error;
   const snapshot = normalizeHomeSnapshot(rpcResult.data, 'rpc');
+  if (!landingResult) return snapshot;
   return {
     ...snapshot,
     site_content: {
