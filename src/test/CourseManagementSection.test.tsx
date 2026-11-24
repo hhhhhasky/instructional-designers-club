@@ -14,7 +14,8 @@ import {
   getAdminCourseAttachments,
   getAdminCourseCategories,
   getAdminCourseTracks,
-  getAdminCourseList,
+  getAdminCourseDetail,
+  getAdminCoursePage,
 } from '@/db/admin-api';
 import { getPlusCourseStructure } from '@/db/api';
 import { uploadCourseFile } from '@/db/course-media';
@@ -51,7 +52,8 @@ vi.mock('@/db/admin-api', () => ({
   getAdminCourseAttachments: vi.fn(),
   getAdminCourseCategories: vi.fn(),
   getAdminCourseTracks: vi.fn(),
-  getAdminCourseList: vi.fn(),
+  getAdminCourseDetail: vi.fn(),
+  getAdminCoursePage: vi.fn(),
 }));
 
 vi.mock('@/db/api', () => ({
@@ -143,11 +145,31 @@ const makeCourse = (overrides: Partial<Course> = {}): Course => ({
   ...overrides,
 });
 
+function mockCourses(courses: Course[]) {
+  vi.mocked(getAdminCoursePage).mockImplementation(async (args) => {
+    const items = courses.filter((course) =>
+      (!args.p_product || (course.access_product_code ?? 'free') === args.p_product) &&
+      (!args.p_status || course.status === args.p_status) &&
+      (!args.p_category || course.category === args.p_category) &&
+      (!args.p_level || course.level === args.p_level) &&
+      (!args.p_search || course.title.includes(args.p_search))
+    );
+    const page = Math.min(args.p_page, Math.max(1, Math.ceil(items.length / args.p_page_size)));
+    return {
+      items: items.slice((page - 1) * args.p_page_size, page * args.p_page_size),
+      page,
+      total: items.length,
+      levels: courses.flatMap((course) => course.level === null ? [] : [course.level]),
+    };
+  });
+  vi.mocked(getAdminCourseDetail).mockImplementation(async (id) => courses.find((course) => course.id === id)!);
+}
+
 describe('CourseManagementSection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(window, 'open').mockImplementation(() => null);
-    vi.mocked(getAdminCourseList).mockResolvedValue([makeCourse()]);
+    mockCourses([makeCourse()]);
     vi.mocked(getAdminCourseCategories).mockResolvedValue([
       { id: 'cat-shuoke', name: '说课篇', sort_order: 1, is_active: true, plus_track_id: 'theory', access_product_code: 'teaching-general-v1' },
       { id: 'cat-learning', name: '学习科学篇', sort_order: 2, is_active: true, plus_track_id: 'theory', access_product_code: 'teaching-general-v1' },
@@ -265,7 +287,7 @@ describe('CourseManagementSection', () => {
 
   it('clears an existing course preview password without exposing the old password', async () => {
     const user = userEvent.setup();
-    vi.mocked(getAdminCourseList).mockResolvedValue([
+    mockCourses([
       makeCourse({ password_access_enabled: true }),
     ]);
 
@@ -282,9 +304,29 @@ describe('CourseManagementSection', () => {
     });
   });
 
+  it('reads one list page at a time and requests the course body only when editing', async () => {
+    const user = userEvent.setup();
+    mockCourses(Array.from({ length: 21 }, (_, index) => makeCourse({
+      id: `course-${index + 1}`,
+      title: `第 ${index + 1} 课`,
+      body: "完整课程正文",
+    })));
+
+    render(<CourseManagementSection />);
+    await screen.findByText('第 1 课');
+    expect(screen.queryByText('第 21 课')).not.toBeInTheDocument();
+    expect(getAdminCourseDetail).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: '下一页' }));
+    await screen.findByText('第 21 课');
+    expect(getAdminCoursePage).toHaveBeenLastCalledWith(expect.objectContaining({ p_page: 2, p_page_size: 20 }), expect.any(AbortSignal));
+    await user.click(screen.getByTitle('编辑'));
+    expect(getAdminCourseDetail).toHaveBeenCalledWith('course-21');
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
   it('filters courses by product and shows the requested list columns', async () => {
     const user = userEvent.setup();
-    vi.mocked(getAdminCourseList).mockResolvedValue([
+    mockCourses([
       makeCourse({ id: 'general', title: '教学通识单课' }),
       makeCourse({ id: 'ai', title: 'AI 工具课', category_id: 'cat-ai', category: 'AI工具', membership_type: 'pro', access_product_code: 'teacher-ai' }),
       makeCourse({ id: 'daofa', title: '道法课程', category_id: 'cat-daofa', category: '道法总论', access_product_code: 'daofa-textbook' }),
@@ -302,7 +344,7 @@ describe('CourseManagementSection', () => {
     }
 
     await user.selectOptions(screen.getByLabelText('筛选课程产品'), 'teacher-ai');
-    expect(screen.getByText('AI 工具课')).toBeInTheDocument();
+    expect(await screen.findByText('AI 工具课')).toBeInTheDocument();
     expect(screen.queryByText('教学通识单课')).not.toBeInTheDocument();
     expect(screen.queryByText('道法课程')).not.toBeInTheDocument();
     expect(screen.getByLabelText('筛选课程分类')).toHaveTextContent('AI工具');
@@ -311,7 +353,7 @@ describe('CourseManagementSection', () => {
 
   it('combines product, category and level filters', async () => {
     const user = userEvent.setup();
-    vi.mocked(getAdminCourseList).mockResolvedValue([
+    mockCourses([
       makeCourse({ id: 'target', title: '目标单课', category: '说课篇', level: '中级' }),
       makeCourse({ id: 'other-category', title: '其他系列单课', category: '学习科学篇', level: '中级' }),
       makeCourse({ id: 'other-level', title: '初级单课', category: '说课篇', level: '初级' }),
@@ -322,17 +364,17 @@ describe('CourseManagementSection', () => {
     await user.selectOptions(screen.getByLabelText('筛选课程产品'), 'teaching-general-v1');
     await user.selectOptions(screen.getByLabelText('筛选课程分类'), '说课篇');
     await user.selectOptions(screen.getByLabelText('筛选课程等级'), '中级');
-    expect(screen.getByText('目标单课')).toBeInTheDocument();
+    expect(await screen.findByText('目标单课')).toBeInTheDocument();
     expect(screen.queryByText('其他系列单课')).not.toBeInTheDocument();
     expect(screen.queryByText('初级单课')).not.toBeInTheDocument();
     expect(screen.queryByText('AI 同名课程')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '清空筛选' }));
-    expect(screen.getByText('AI 同名课程')).toBeInTheDocument();
+    expect(await screen.findByText('AI 同名课程')).toBeInTheDocument();
   });
 
   it('creates a series category in the selected product and chapter', async () => {
     const user = userEvent.setup();
-    vi.mocked(getAdminCourseList).mockResolvedValue([]);
+    mockCourses([]);
     render(<CourseManagementSection />);
     await screen.findByText('没有匹配的课程');
     await user.click(screen.getByRole('button', { name: '添加课程' }));
@@ -351,7 +393,7 @@ describe('CourseManagementSection', () => {
 
   it('scopes the editor categories when changing products', async () => {
     const user = userEvent.setup();
-    vi.mocked(getAdminCourseList).mockResolvedValue([]);
+    mockCourses([]);
     render(<CourseManagementSection />);
     await screen.findByText('没有匹配的课程');
     await user.click(screen.getByRole('button', { name: '添加课程' }));

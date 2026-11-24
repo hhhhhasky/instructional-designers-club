@@ -13,7 +13,7 @@ import {
   Sparkles,
   Users,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import {
   Bar,
   CartesianGrid,
@@ -29,6 +29,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   getAdminHaiDashboard,
+  fetchAdminHaiChatTraceBatch,
+  fetchAdminHaiChatTraceDetails,
+  fetchAdminHaiPptTraceBatch,
+  fetchAdminHaiPptTraceDetails,
+  fetchAdminHaiWorkTraceBatch,
+  fetchAdminHaiWorkTraceDetails,
+  type HaiRecentTrace,
+  type HaiPptTraceRow,
+  type HaiTraceBatch,
   type HaiDashboardData,
   type HaiDashboardRangeDays,
   type HaiWorkDebugTraceRow,
@@ -489,127 +498,280 @@ export default function HaiDashboardSection() {
         </div>
       </section>
 
-      <section className="rounded-ds-lg border border-bd bg-white p-4 shadow-ds-xs md:p-6">
-        <SectionTitle title="编排 trace 全量追溯" description={`当前周期共 ${data.recent_traces.length} 条；默认折叠，展开后查看方法卡、记忆、reference 与实际发送给模型的完整消息组合`} />
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {data.recent_traces.map((trace) => (
-            <details key={trace.id} className="group rounded-ds-md border border-bd bg-bg p-3 md:col-span-2 xl:col-span-4">
-              <summary className="cursor-pointer list-none">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <Badge variant="outline">{haiIntentLabel(trace.intent)}</Badge>
-                      <Badge variant="outline" className={trace.passed === false ? "border-red-200 text-red-600" : "border-tl/30 text-tl"}>
-                        {trace.score === null ? "未评分" : `${trace.score} 分`}
-                      </Badge>
-                      <span className="text-xs text-txs">{formatShortDateTime(trace.created_at)}</span>
-                    </div>
-                    <p className="mt-2 line-clamp-2 text-ds-sm leading-relaxed text-tx">{trace.question}</p>
-                    <p className="mt-1 text-xs text-txs">{haiSceneLabel(trace.scene)} · {trace.route_method} · 诊断 {trace.diagnostic_module} · 方法卡 {trace.method_card_ids.length} 张 · 记忆 {trace.memory_selection.loaded === true ? "已加载" : "未加载"}</p>
-                  </div>
-                  <span className="shrink-0 text-ds-xs text-txs transition group-open:rotate-180">⌄</span>
+      <TraceList
+        key={`chat-${displayedRangeDays}-${refreshKey}`}
+        title="编排 trace 全量追溯"
+        load={(before) => fetchAdminHaiChatTraceBatch(displayedRangeDays, before)}
+        render={(row) => (
+          <TraceCard
+            summary={<>{row.question} · {formatShortDateTime(row.created_at)}</>}
+            load={() => fetchAdminHaiChatTraceDetails(row.id)}
+            render={(trace) => <ChatTraceDetails trace={trace} />}
+          />
+        )}
+      />
+      <TraceList
+        key={`work-${displayedRangeDays}-${refreshKey}`}
+        title="HAI Work 教案生成全量追溯"
+        load={(before) => fetchAdminHaiWorkTraceBatch(displayedRangeDays, before)}
+        render={(run) => (
+          <TraceCard
+            summary={(
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Badge variant="outline">{workToolLabel(run.module_slug)}</Badge>
+                  <Badge variant="outline" className={run.status === "failed" ? "border-red-200 text-red-600" : "border-tl/30 text-tl"}>{workStatusLabel(run.status)}</Badge>
+                  <span className="text-xs text-txs">{formatShortDateTime(run.created_at)}</span>
                 </div>
-              </summary>
-              <div className="mt-4 grid gap-4 border-t border-bd pt-4 lg:grid-cols-2">
-                <TraceDetail title="路由与 Skill">
-                  <div className="space-y-1 text-ds-xs text-txs">
-                    <p>场景：{haiSceneLabel(trace.scene)}</p>
-                    <p>目的：{haiUserGoalLabel(trace.user_goal)}</p>
-                    <p>支持：{haiSupportDepthLabel(trace.support_depth)}</p>
-                    <p>路由：{trace.route_method}</p>
-                    <p>诊断模块：{trace.diagnostic_module}</p>
-                    <p>Skill：{trace.skill ? `${trace.skill.name} · ${trace.skill.slug} · ${trace.skill.version_label}` : "旧 trace / 未记录"}</p>
-                    {trace.skill?.snapshot_hash && <p className="break-all">snapshot：{trace.skill.snapshot_hash}</p>}
-                  </div>
-                </TraceDetail>
-                <TraceDetail title="方法卡与 References">
-                  <p className="text-ds-xs text-txs">方法卡 ID：{trace.method_card_ids.length > 0 ? trace.method_card_ids.join("、") : "无"}</p>
-                  <p className="mt-2 text-ds-xs text-txs">Reference：{trace.reference_paths.length > 0 ? trace.reference_paths.join("、") : "无"}</p>
-                </TraceDetail>
-                <TraceDetail title="记忆加载状态">
-                  <JsonBlock value={trace.memory_selection} />
-                </TraceDetail>
-                <TraceDetail title="质检结果">
-                  {trace.problems.length > 0 ? <p className="text-ds-xs leading-relaxed text-red-600">{trace.problems.join("；")}</p> : <p className="text-ds-xs text-txs">没有记录问题。</p>}
-                </TraceDetail>
-                <div className="lg:col-span-2">
-                  <TraceDetail title={`实际发送给模型的消息组合${trace.prompt_assembly ? ` · ${trace.prompt_assembly.model_calls.length} 次调用 · 最终 ${trace.prompt_assembly.final_stage}` : " · 旧 trace 无快照"}`}>
-                    {trace.prompt_assembly ? (
-                      <div className="space-y-2">
-                        <p className="text-xs text-txs">记录时间：{formatShortDateTime(trace.prompt_assembly.captured_at)}</p>
-                        {trace.prompt_assembly.model_calls.map((call, index) => (
-                          <details key={`${trace.id}-${call.stage}-${index}`} className="rounded-ds-md border border-bd bg-white p-3">
-                            <summary className="cursor-pointer text-ds-xs font-ds-bold text-tx">{index + 1}. {call.stage} · 估算输入 {formatNumber(call.estimated_input_tokens)} tokens · {call.messages.length} 条消息</summary>
-                            <div className="mt-3 space-y-3">
-                              {call.messages.map((message, messageIndex) => (
-                                <div key={`${trace.id}-${index}-${messageIndex}`} className="rounded-ds-sm border border-bdl bg-bg p-3">
-                                  <p className="mb-1 text-xs font-ds-bold text-ac">{message.role}</p>
-                                  <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words text-xs leading-relaxed text-tx">{message.content}</pre>
-                                </div>
-                              ))}
-                            </div>
-                          </details>
-                        ))}
-                      </div>
-                    ) : <p className="text-ds-xs text-txs">这条历史 trace 创建时尚未保存完整 prompt assembly。</p>}
-                  </TraceDetail>
-                </div>
+                <p className="mt-2 text-ds-sm font-ds-bold text-tx">{run.task_title}</p>
+                <p className="mt-1 text-xs text-txs">
+                  {run.profile?.nickname ?? "未知用户"} · 输入 {formatNumber(run.input_tokens ?? 0)} · 输出 {formatNumber(run.output_tokens ?? 0)} · 耗时 {formatDuration(run.duration_ms ?? 0)}
+                </p>
               </div>
-            </details>
-          ))}
-          {data.recent_traces.length === 0 && (
-            <p className="rounded-ds-md bg-bg px-4 py-10 text-center text-ds-sm text-txs md:col-span-2 xl:col-span-4">当前周期暂无编排 trace</p>
-          )}
-        </div>
-      </section>
-
-      <section className="rounded-ds-lg border border-bd bg-white p-4 shadow-ds-xs md:p-6">
-        <SectionTitle
-          title="HAI Work 教案生成全量追溯"
-          description={`当前周期共 ${(data.recent_work_traces ?? []).length} 次运行；展开后查看输入、教材/材料检索、Skill references、完整 prompt、模型原文、清洗和产物落盘时间线`}
-        />
-        <div className="mt-4 space-y-3">
-          {(data.recent_work_traces ?? []).map((run) => (
-            <details key={run.id} className="group rounded-ds-md border border-bd bg-bg p-3">
-              <summary className="cursor-pointer list-none">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <Badge variant="outline">{workToolLabel(run.module_slug)}</Badge>
-                      <Badge variant="outline" className={run.status === "failed" ? "border-red-200 text-red-600" : "border-tl/30 text-tl"}>{workStatusLabel(run.status)}</Badge>
-                      <span className="text-xs text-txs">{formatShortDateTime(run.created_at)}</span>
-                    </div>
-                    <p className="mt-2 text-ds-sm font-ds-bold text-tx">{run.task_title}</p>
-                    <p className="mt-1 text-xs text-txs">
-                      {run.profile?.nickname ?? "未知用户"} · 输入 {formatNumber(run.input_tokens ?? 0)} · 输出 {formatNumber(run.output_tokens ?? 0)} · 耗时 {formatDuration(run.duration_ms ?? 0)}
-                    </p>
-                  </div>
-                  <span className="shrink-0 text-ds-xs text-txs transition group-open:rotate-180">⌄</span>
-                </div>
-              </summary>
-              <div className="mt-4 space-y-4 border-t border-bd pt-4">
-                {run.debug_trace ? <WorkTraceDetails trace={run.debug_trace} run={run} /> : (
-                  <p className="rounded-ds-md border border-amber-200 bg-amber-50 p-3 text-ds-xs leading-relaxed text-amber-800">
-                    这条是历史运行，创建时尚未保存完整 HAI Work debug trace；仍可参考下方输入快照、Skill 快照、状态、Token 和错误信息。新运行会保存完整生成过程。
-                  </p>
-                )}
-                <div className="grid gap-3 lg:grid-cols-2">
-                  <TraceDetail title="运行元数据">
-                    <JsonBlock value={{ status: run.status, task_id: run.task_id, run_id: run.id, parent_artifact_id: run.parent_artifact_id, started_at: run.started_at, completed_at: run.completed_at, error: run.error_message }} />
-                  </TraceDetail>
-                  <TraceDetail title="历史输入 / Skill 快照">
-                    <JsonBlock value={{ input_snapshot: run.input_snapshot, skill_snapshot: run.skill_snapshot }} />
-                  </TraceDetail>
-                </div>
-              </div>
-            </details>
-          ))}
-          {(data.recent_work_traces ?? []).length === 0 && (
-            <p className="rounded-ds-md bg-bg px-4 py-10 text-center text-ds-sm text-txs">当前周期暂无 HAI Work 运行记录</p>
-          )}
-        </div>
-      </section>
+            )}
+            load={() => fetchAdminHaiWorkTraceDetails(run.id)}
+            render={(detail) => <WorkTraceCardDetails run={{ ...run, ...detail }} />}
+          />
+        )}
+      />
+      <TraceList
+        key={`ppt-${displayedRangeDays}-${refreshKey}`}
+        title="HAI PPT 全量追溯"
+        load={(before) => fetchAdminHaiPptTraceBatch(displayedRangeDays, before)}
+        render={(run) => (
+          <TraceCard
+            summary={<>{run.title} · {pptStatusLabel(run.status)} · {run.visual_mode === "V3" ? "纯图片 PPT" : "可编辑 PPT"} · {run.profile?.nickname ?? "未知用户"} · {formatShortDateTime(run.created_at)}</>}
+            load={() => fetchAdminHaiPptTraceDetails(run.id)}
+            render={(detail) => <PptTraceDetails run={detail} />}
+          />
+        )}
+      />
     </div>
+  );
+}
+
+function ChatTraceDetails({ trace }: { trace: HaiRecentTrace }) {
+  return (
+    <div className="mt-4 grid gap-4 border-t border-bd pt-4 lg:grid-cols-2">
+      <TraceDetail title="路由与 Skill">
+        <div className="space-y-1 text-ds-xs text-txs">
+          <p>意图：{haiIntentLabel(trace.intent)}</p>
+          <p>评分：{trace.score === null ? "未评分" : `${trace.score} 分`} · {trace.passed === true ? "通过" : trace.passed === false ? "未通过" : "未判定"}</p>
+          <p>场景：{haiSceneLabel(trace.scene)}</p>
+          <p>目的：{haiUserGoalLabel(trace.user_goal)}</p>
+          <p>支持：{haiSupportDepthLabel(trace.support_depth)}</p>
+          <p>路由：{trace.route_method}</p>
+          <p>诊断模块：{trace.diagnostic_module}</p>
+          <p>Skill：{trace.skill ? `${trace.skill.name} · ${trace.skill.slug} · ${trace.skill.version_label}` : "旧 trace / 未记录"}</p>
+          {trace.skill?.snapshot_hash && <p className="break-all">snapshot：{trace.skill.snapshot_hash}</p>}
+        </div>
+      </TraceDetail>
+      <TraceDetail title="方法卡与 References">
+        <p className="text-ds-xs text-txs">方法卡 ID：{trace.method_card_ids.length > 0 ? trace.method_card_ids.join("、") : "无"}</p>
+        <p className="mt-2 text-ds-xs text-txs">Reference：{trace.reference_paths.length > 0 ? trace.reference_paths.join("、") : "无"}</p>
+      </TraceDetail>
+      <TraceDetail title="记忆加载状态">
+        <JsonBlock value={trace.memory_selection} />
+      </TraceDetail>
+      <TraceDetail title="质检结果">
+        {trace.problems.length > 0 ? <p className="text-ds-xs leading-relaxed text-red-600">{trace.problems.join("；")}</p> : <p className="text-ds-xs text-txs">没有记录问题。</p>}
+      </TraceDetail>
+      <div className="lg:col-span-2">
+        <TraceDetail title={`实际发送给模型的消息组合${trace.prompt_assembly ? ` · ${trace.prompt_assembly.model_calls.length} 次调用 · 最终 ${trace.prompt_assembly.final_stage}` : " · 旧 trace 无快照"}`}>
+          {trace.prompt_assembly ? (
+            <div className="space-y-2">
+              <p className="text-xs text-txs">记录时间：{formatShortDateTime(trace.prompt_assembly.captured_at)}</p>
+              {trace.prompt_assembly.model_calls.map((call, index) => (
+                <details key={`${trace.id}-${call.stage}-${index}`} className="rounded-ds-md border border-bd bg-white p-3">
+                  <summary className="cursor-pointer text-ds-xs font-ds-bold text-tx">{index + 1}. {call.stage} · 估算输入 {formatNumber(call.estimated_input_tokens)} tokens · {call.messages.length} 条消息</summary>
+                  <div className="mt-3 space-y-3">
+                    {call.messages.map((message, messageIndex) => (
+                      <div key={`${trace.id}-${index}-${messageIndex}`} className="rounded-ds-sm border border-bdl bg-bg p-3">
+                        <p className="mb-1 text-xs font-ds-bold text-ac">{message.role}</p>
+                        <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words text-xs leading-relaxed text-tx">{message.content}</pre>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              ))}
+            </div>
+          ) : <p className="text-ds-xs text-txs">这条历史 trace 创建时尚未保存完整 prompt assembly。</p>}
+        </TraceDetail>
+      </div>
+    </div>
+  );
+}
+
+function WorkTraceCardDetails({ run }: { run: HaiWorkDebugTraceRow }) {
+  return (
+    <div className="mt-4 space-y-4 border-t border-bd pt-4">
+      {run.debug_trace ? <WorkTraceDetails trace={run.debug_trace} run={run} /> : (
+        <p className="rounded-ds-md border border-amber-200 bg-amber-50 p-3 text-ds-xs leading-relaxed text-amber-800">
+          这条是历史运行，创建时尚未保存完整 HAI Work debug trace；仍可参考下方输入快照、Skill 快照、状态、Token 和错误信息。新运行会保存完整生成过程。
+        </p>
+      )}
+      <div className="grid gap-3 lg:grid-cols-2">
+        <TraceDetail title="运行元数据">
+          <JsonBlock value={{ status: run.status, task_id: run.task_id, run_id: run.id, parent_artifact_id: run.parent_artifact_id, started_at: run.started_at, completed_at: run.completed_at, error: run.error_message }} />
+        </TraceDetail>
+        <TraceDetail title="历史输入 / Skill 快照">
+          <JsonBlock value={{ input_snapshot: run.input_snapshot, skill_snapshot: run.skill_snapshot }} />
+        </TraceDetail>
+      </div>
+    </div>
+  );
+}
+
+function TraceList<T extends { id: string }>({
+  title, load, render,
+}: {
+  title: string;
+  load: (before: HaiTraceBatch<T>["next_before"]) => Promise<HaiTraceBatch<T>>;
+  render: (run: T) => ReactNode;
+}) {
+  const [batch, setBatch] = useState<HaiTraceBatch<T> | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+
+  async function loadPage() {
+    setLoading(true);
+    setError(false);
+    try {
+      const next = await load(batch?.next_before ?? null);
+      setBatch({ ...next, items: [...(batch?.items ?? []), ...next.items] });
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <section className="rounded-ds-lg border border-bd bg-white p-4 shadow-ds-xs md:p-6">
+      <SectionTitle title={title} />
+      {batch && (
+        <div className="mt-4 space-y-3">
+          {batch.items.map((run) => <div key={run.id}>{render(run)}</div>)}
+          {batch.items.length === 0 && <p className="text-ds-sm text-txs">当前周期暂无运行记录</p>}
+        </div>
+      )}
+      {error && <p role="alert" className="mt-3 text-ds-sm text-red-700">追溯记录加载失败</p>}
+      {(!batch || batch.has_more) && (
+        <Button className="mt-3" variant="outline" disabled={loading} onClick={() => void loadPage()}>
+          {loading ? "正在加载" : error ? "重试" : batch ? "加载更多" : "查看运行记录"}
+        </Button>
+      )}
+    </section>
+  );
+}
+
+function TraceCard<T>({ summary, load, render }: {
+  summary: ReactNode;
+  load: () => Promise<T>;
+  render: (detail: T) => ReactNode;
+}) {
+  const [detail, setDetail] = useState<T | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+
+  async function loadDetail() {
+    setLoading(true);
+    setError(false);
+    try {
+      setDetail(await load());
+    } catch {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <details
+      className="rounded-ds-md border border-bd bg-bg p-3"
+      onToggle={(event) => {
+        if (event.currentTarget.open && !detail && !loading && !error) void loadDetail();
+      }}
+    >
+      <summary className="cursor-pointer text-ds-sm font-ds-bold text-tx">{summary}</summary>
+      {loading && <p role="status" className="mt-3 text-ds-sm text-txs">正在读取详情</p>}
+      {error && <Button className="mt-3" variant="outline" onClick={() => void loadDetail()}>详情加载失败，重试</Button>}
+      {detail && render(detail)}
+    </details>
+  );
+}
+
+function PptTraceDetails({ run }: { run: HaiPptTraceRow }) {
+  const aiOutput = run.ai_output ?? {};
+  return (
+      <div className="mt-4 grid gap-3 border-t border-bd pt-4 lg:grid-cols-2">
+        <TraceDetail title="流程与来源">
+          <JsonBlock
+            value={{
+              status: run.status,
+              source_task_id: run.source_task_id,
+              source_artifact_id: run.source_artifact_id,
+              source_artifact_version: run.source_artifact_version,
+              created_at: run.created_at,
+              updated_at: run.updated_at,
+              error: run.error_message,
+            }}
+          />
+        </TraceDetail>
+        <TraceDetail title="Skill 快照">
+          <JsonBlock value={run.skill_snapshot} />
+        </TraceDetail>
+        <TraceDetail title="用户确认后的 PPT 大纲">
+          <JsonBlock value={aiOutput.pptOutline ?? null} />
+        </TraceDetail>
+        <TraceDetail title="整套视觉方案">
+          <JsonBlock value={aiOutput.visualDesign ?? null} />
+        </TraceDetail>
+        <TraceDetail title="模型调用">
+          <JsonBlock
+            value={run.model_calls.map((call) => ({
+              stage: call.stage,
+              pipeline_stage: call.metadata?.pipeline_stage,
+              model: call.model,
+              status: call.status,
+              prompt_tokens: call.prompt_tokens,
+              completion_tokens: call.completion_tokens,
+              total_cost: call.total_cost,
+              started_at: call.started_at,
+              completed_at: call.completed_at,
+            }))}
+          />
+        </TraceDetail>
+        <TraceDetail title="逐张生图记录">
+          <JsonBlock
+            value={run.image_events.map((event) => ({
+              status: event.status,
+              slide_id: event.metadata?.slide_id,
+              provider: event.metadata?.provider,
+              model: event.metadata?.model,
+              created_at: event.created_at,
+            }))}
+          />
+        </TraceDetail>
+        <div className="lg:col-span-2">
+          <TraceDetail title="内部生图执行快照（不在用户确认页展示）">
+            <JsonBlock value={aiOutput.imagePrompts ?? null} />
+          </TraceDetail>
+        </div>
+      </div>
+  );
+}
+
+function pptStatusLabel(status: string) {
+  return (
+    {
+      queued: "排队中",
+      running: "生成中",
+      awaiting_outline_confirmation: "待确认大纲",
+      awaiting_visual_confirmation: "待确认视觉",
+      completed: "已完成",
+      failed: "失败",
+    }[status] ?? status
   );
 }
 
@@ -714,7 +876,7 @@ function SignalCard({ icon: Icon, label, value, note, tone }: { icon: typeof Act
   );
 }
 
-function SectionTitle({ title, description }: { title: string; description: string }) {
+function SectionTitle({ title, description }: { title: string; description?: string }) {
   return <div><h3 className="text-lg font-semibold text-tx">{title}</h3><p className="mt-1 text-ds-xs text-txs">{description}</p></div>;
 }
 

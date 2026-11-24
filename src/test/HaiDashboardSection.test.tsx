@@ -1,12 +1,12 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import HaiDashboardSection from "@/components/admin/HaiDashboardSection";
-import { getAdminHaiDashboard, type HaiDashboardData } from "@/db/hai-analytics";
+import { fetchAdminHaiWorkTraceBatch, fetchAdminHaiWorkTraceDetails, getAdminHaiDashboard, type HaiDashboardData } from "@/db/hai-analytics";
 
 vi.mock("@/db/hai-analytics", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/db/hai-analytics")>();
-  return { ...actual, getAdminHaiDashboard: vi.fn() };
+  return { ...actual, getAdminHaiDashboard: vi.fn(), fetchAdminHaiWorkTraceBatch: vi.fn(), fetchAdminHaiWorkTraceDetails: vi.fn() };
 });
 
 vi.mock("recharts", () => ({
@@ -74,6 +74,35 @@ describe("HAI dashboard", () => {
     expect(rankingRows.querySelectorAll("tr")[0]).toHaveTextContent("陈老师");
     expect(screen.getByText("当前统计周期：近 30 天")).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Token 总量（近 30 天）" })).toBeInTheDocument();
+  });
+
+  it("loads the Work list and its details only when requested", async () => {
+    const user = userEvent.setup();
+    vi.mocked(fetchAdminHaiWorkTraceBatch).mockResolvedValue({
+      items: [{ id: "work-one", task_id: "task-one", user_id: "test-admin", input_tokens: null, output_tokens: null, started_at: null, completed_at: null, parent_artifact_id: null, profile: null, task_title: "单元备课", status: "completed", module_slug: "unit", duration_ms: 1200, created_at: "2026-06-03T08:00:00Z" }],
+      has_more: false,
+      next_before: null,
+    });
+    vi.mocked(fetchAdminHaiWorkTraceDetails).mockResolvedValue({
+      skill_snapshot: {},
+      input_snapshot: { topic: "教学任务" },
+      debug_trace: null,
+      error_message: null,
+    });
+    render(<HaiDashboardSection />);
+    expect(await screen.findByText("HAI PPT 全量追溯")).toBeInTheDocument();
+    expect(screen.queryByText("Chat 编排 Trace 全量追溯")).not.toBeInTheDocument();
+    expect(fetchAdminHaiWorkTraceBatch).not.toHaveBeenCalled();
+    const workSection = screen.getByText("HAI Work 教案生成全量追溯").closest("section")!;
+    await user.click(within(workSection).getByRole("button", { name: "查看运行记录" }));
+    const summary = await within(workSection).findByText(/单元备课/);
+    expect(fetchAdminHaiWorkTraceBatch).toHaveBeenCalledWith(30, null);
+    expect(fetchAdminHaiWorkTraceDetails).not.toHaveBeenCalled();
+    const details = summary.closest("details")!;
+    details.open = true;
+    fireEvent(details, new Event("toggle"));
+    expect(await within(workSection).findByText(/教学任务/)).toBeInTheDocument();
+    expect(fetchAdminHaiWorkTraceDetails).toHaveBeenCalledWith("work-one");
   });
 });
 

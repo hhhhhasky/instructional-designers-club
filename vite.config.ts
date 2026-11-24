@@ -3,12 +3,20 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import svgr from 'vite-plugin-svgr';
 import path from 'path';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import HomeInitialHero from './src/components/home/HomeInitialHero';
 
 import { miaodaDevPlugin } from "miaoda-sc-plugin";
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), svgr({
+  plugins: [react(), {
+    name: 'home-initial-hero',
+    transformIndexHtml(html) {
+      return html.replace('<!-- home-initial-hero -->', renderToStaticMarkup(createElement(HomeInitialHero)));
+    },
+  }, svgr({
       svgrOptions: {
         icon: true, exportType: 'named', namedExport: 'ReactComponent', }, }), miaodaDevPlugin()],
   build: {

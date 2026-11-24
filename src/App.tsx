@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useState } from "react";
+import React, { lazy, Suspense, useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -16,9 +16,12 @@ import NotFoundPage from "@/pages/NotFoundPage";
 import { COURSE_PATH, LEARNING_MAP_PATH, courseCatalogPath } from "@/lib/course-paths";
 import ScrollToTop from "@/components/common/ScrollToTop";
 import SiteSidebar from "@/components/layout/SiteSidebar";
-import SiteNotifications from "@/components/layout/SiteNotifications";
+import HomeInitialHero from "@/components/home/HomeInitialHero";
+import { useAuth } from "@/contexts/AuthContext";
 import { SiteToolbarContext } from "@/components/layout/SiteToolbarContext";
 import { ArrowLeft, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+
+const SiteNotifications = lazy(() => import("@/components/layout/SiteNotifications"));
 
 const App: React.FC = () => {
   return (
@@ -31,6 +34,7 @@ const App: React.FC = () => {
 };
 
 function AppContent() {
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -141,12 +145,12 @@ function AppContent() {
               </span>
             )}
           </div>
-          <SiteNotifications />
+          {user && <Suspense fallback={null}><SiteNotifications /></Suspense>}
         </header>
         <main className="min-w-0 flex-grow">
           <SiteToolbarContext.Provider value={toolbarContent}>
             <Suspense
-              fallback={
+              fallback={location.pathname === "/" ? <HomeInitialHero /> : (
                 <div
                   className="editorial-route-loading"
                   role="status"
@@ -156,7 +160,7 @@ function AppContent() {
                   <span className="loading-spinner" aria-hidden="true" />
                   <span className="sr-only">页面加载中</span>
                 </div>
-              }
+              )}
             >
               <Routes>
                 {routes.map((route) => (

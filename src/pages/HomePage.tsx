@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { useCourseLessonHref } from "@/components/routing/CoursePaths";
 import { COURSE_PATH } from "@/lib/course-paths";
 import { proxiedSupabaseUrl } from "@/lib/supabase-url";
@@ -6,13 +7,14 @@ import { Link } from 'react-router-dom';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
 import PageMeta from '@/components/common/PageMeta';
-import MemberHomeHero from '@/components/home/MemberHomeHero';
-import NotificationCard from '@/components/home/NotificationCard';
 import AnnouncementFeed from '@/components/home/AnnouncementFeed';
 import CoursePurchaseSection from '@/components/pricing/CoursePurchaseSection';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHomeContent } from '@/hooks/useHomeContent';
 import { HomeSnapshotProvider } from '@/hooks/useHomeSnapshot';
+
+const MemberHomeHero = lazy(() => import("@/components/home/MemberHomeHero"));
+const NotificationCard = lazy(() => import("@/components/home/NotificationCard"));
 
 export default function HomePage() {
   return <HomeSnapshotProvider><HomePageContent /></HomeSnapshotProvider>;
@@ -21,30 +23,9 @@ export default function HomePage() {
 function HomePageContent() {
   const lessonHref = useCourseLessonHref();
   const { user, profile, courseAccessCodes, loading } = useAuth();
-  const { loaded, homeCourses, landing, founder } = useHomeContent();
+  const { homeCourses, landing, founder } = useHomeContent();
   const { home_hero: hero, home_situations: situationCopy, home_problem: problemCopy, home_method: methodCopy, home_founder: founderCopy, home_outcomes: outcomeCopy, home_learning: learningCopy, home_extra: extraCopy } = landing;
   const freeCourses = homeCourses.free.filter((course) => course.membership_type === 'free').slice(0, 2);
-
-  if (!loaded) {
-    return <>
-      <PageMeta title="哈老师聊教学设计" description="从真实教学问题出发，和哈老师一起分析教材、学情、目标、课堂活动与评价。了解教学通识课、教师 AI 课和道法教材解读课。" canonicalPath="/" keywords="哈老师聊教学设计,教师培训,教学设计,教师AI课,道法教材解读课" />
-      <div className="min-h-screen bg-cream">
-        <Header />
-        <main aria-busy="true" aria-label="首页内容加载中" className="min-h-[70vh] bg-[var(--paper)] px-4 pb-14 pt-16 md:pb-20 md:pt-20">
-          <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_330px] lg:items-center">
-            <div className="animate-pulse space-y-6" aria-hidden="true">
-              <div className="h-4 w-48 rounded bg-bd/60" />
-              <div className="h-14 max-w-2xl rounded bg-bd/60" />
-              <div className="h-14 max-w-xl rounded bg-bd/60" />
-              <div className="h-5 max-w-2xl rounded bg-bd/40" />
-              <div className="h-5 max-w-lg rounded bg-bd/40" />
-            </div>
-            <div className="hidden h-64 animate-pulse rounded-ds-lg bg-bd/40 lg:block" aria-hidden="true" />
-          </div>
-        </main>
-      </div>
-    </>;
-  }
 
   return <>
     <PageMeta title="哈老师聊教学设计" description="从真实教学问题出发，和哈老师一起分析教材、学情、目标、课堂活动与评价。了解教学通识课、教师 AI 课和道法教材解读课。" canonicalPath="/" keywords="哈老师聊教学设计,教师培训,教学设计,教师AI课,道法教材解读课" />
@@ -74,7 +55,7 @@ function HomePageContent() {
           </div>
         </section>
 
-        {user && !loading && <div className="bg-[var(--paper-deep)]"><MemberHomeHero /><NotificationCard /></div>}
+        {user && !loading && <div className="bg-[var(--paper-deep)]"><Suspense fallback={null}><MemberHomeHero /><NotificationCard /></Suspense></div>}
 
         {freeCourses.length > 0 && (
           <section id="free-courses" className="scroll-mt-28 border-b border-[var(--paper-rule)] bg-[var(--annotation-soft)] px-4 py-14 md:py-20" aria-labelledby="free-courses-title">

@@ -5765,6 +5765,23 @@ export type Database = {
       admin_course_attachments: { Args: { p_course_id: string }; Returns: Json }
       admin_course_detail: { Args: { p_course_id: string }; Returns: Json }
       admin_course_list: { Args: never; Returns: Json }
+      admin_course_page: {
+        Args: {
+          p_category: string | null
+          p_level: string | null
+          p_page: number
+          p_page_size: number
+          p_product: string | null
+          p_search: string
+          p_search_products: string[]
+          p_status: string | null
+        }
+        Returns: Json
+      }
+      admin_hai_quality_summary: {
+        Args: { p_since: string }
+        Returns: { scored_count: number; passed_count: number; score_total: number }[]
+      }
       admin_course_rankings: { Args: never; Returns: Json }
       admin_inactive_students: { Args: never; Returns: Json }
       admin_member_overview: { Args: never; Returns: Json }

@@ -20,7 +20,7 @@ import {
   Trash2,
   UploadCloud,
 } from "lucide-react";
-import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import MarkdownEditor from "@/components/admin/MarkdownEditor";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
@@ -35,6 +35,8 @@ import {
 } from "@/components/ui/dialog";
 import {
   type AdminCourseCategory,
+  type AdminCourseListItem,
+  type AdminCoursePage,
   adminArchiveCourse,
   adminCreateCourse,
   adminCreateCourseCategory,
@@ -45,7 +47,8 @@ import {
   adminUpdateCourseTrack,
   getAdminCourseAttachments,
   getAdminCourseCategories,
-  getAdminCourseList,
+  getAdminCourseDetail,
+  getAdminCoursePage,
 } from "@/db/admin-api";
 import { getPlusCourseStructure } from "@/db/api";
 import { uploadCourseFile, uploadCourseMedia } from "@/db/course-media";
@@ -77,7 +80,7 @@ const PRODUCT_OPTIONS: { value: CourseAccessCode | null; label: string }[] = [
   { value: "daofa-textbook", label: "道法教材解读课" },
 ];
 
-function getCourseProductCode(course: Course): CourseAccessCode | null {
+function getCourseProductCode(course: Pick<Course, "access_product_code" | "membership_type">): CourseAccessCode | null {
   return course.access_product_code ?? (course.membership_type === "pro"
     ? "teacher-ai"
     : course.membership_type === "plus" ? "teaching-general-v1" : null);
@@ -175,7 +178,9 @@ function getErrorMessage(error: unknown, fallback: string): string {
 
 export default function CourseManagementSection() {
   const lessonHref = useCourseLessonHref();
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [coursePage, setCoursePage] = useState<AdminCoursePage | null>(null);
+  const [revision, reloadCourses] = useState(0);
+  const [editorDataLoading, setEditorDataLoading] = useState(true);
   const [structureTracks, setStructureTracks] = useState<PlusTrackConfig[]>(PLUS_TRACKS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -189,6 +194,7 @@ export default function CourseManagementSection() {
   // Dialog
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  const [loadingEdit, setLoadingEdit] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<CourseForm>(EMPTY_FORM);
   const [categoryMode, setCategoryMode] = useState<CategoryMode>("existing");
@@ -214,17 +220,10 @@ export default function CourseManagementSection() {
   const formCategories = useMemo(() => categories.filter((category) =>
     category.is_active && category.access_product_code === form.access_product_code
   ), [categories, form.access_product_code]);
-  const levelOptions = useMemo(() => {
-    const levelSet = new Set<NonNullable<Course["level"]>>();
-    LEVEL_OPTIONS.forEach((level) => levelSet.add(level));
-    courses.forEach((course) => {
-      if (course.level) levelSet.add(course.level);
-    });
-    return Array.from(levelSet);
-  }, [courses]);
+  const levelOptions = Array.from(new Set([...LEVEL_OPTIONS, ...(coursePage?.levels ?? [])]));
   const plusTracks = useMemo(
-    () => getEffectivePlusTracks(courses, structureTracks),
-    [courses, structureTracks]
+    () => getEffectivePlusTracks([], structureTracks),
+    [structureTracks],
   );
   const categoryByName = useMemo(() => {
     const map = new Map<string, AdminCourseCategory>();
@@ -235,30 +234,55 @@ export default function CourseManagementSection() {
   }, [categories]);
 
 
-  const loadCourses = useCallback(async () => {
-    try {
-      setLoading(true);
-      const [result, structureData] = await Promise.all([
-        getAdminCourseList(),
-        getPlusCourseStructure(),
-      ]);
-      setCourses(result);
-      setStructureTracks(structureData.length > 0 ? structureData : PLUS_TRACKS);
-    } catch {
-      setError("加载课程数据失败，请刷新重试");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setError(null);
+    const keyword = search.trim();
+    const searchProducts = keyword
+      ? PRODUCT_OPTIONS.filter(({ label }) => label.toLowerCase().includes(keyword.toLowerCase()))
+        .map(({ value }) => value ?? "free")
+      : [];
+    const timer = window.setTimeout(() => {
+      void getAdminCoursePage({
+        p_page: page,
+        p_page_size: PAGE_SIZE,
+        p_search: keyword,
+        p_status: statusFilter === "all" ? null : statusFilter,
+        p_category: categoryFilter === "all" ? null : categoryFilter,
+        p_level: levelFilter === "all" ? null : levelFilter,
+        p_product: productFilter === "all" ? null : productFilter,
+        p_search_products: searchProducts,
+      }, controller.signal).then((result) => {
+        if (!controller.signal.aborted) setCoursePage(result);
+      }).catch(() => {
+        if (!controller.signal.aborted) setError("加载课程数据失败，请重试");
+      }).finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    }, keyword ? 180 : 0);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [page, search, statusFilter, categoryFilter, levelFilter, productFilter, revision]);
 
   useEffect(() => {
-    loadCourses();
-  }, [loadCourses]);
-
-  useEffect(() => {
-    getAdminCourseCategories().then(setCategories).catch(() => {
-      toast.error("加载课程分类失败，请刷新重试");
+    let active = true;
+    const tracks = getPlusCourseStructure().then((tracks) => {
+      if (active && tracks.length) setStructureTracks(tracks);
+    }).catch(() => {
+      if (active) toast.error("加载课程结构失败，请刷新重试");
     });
+    const categories = getAdminCourseCategories().then((items) => {
+      if (active) setCategories(items);
+    }).catch(() => {
+      if (active) toast.error("加载课程分类失败，请刷新重试");
+    });
+    void Promise.all([tracks, categories]).then(() => {
+      if (active) setEditorDataLoading(false);
+    });
+    return () => { active = false; };
   }, []);
 
   useEffect(() => {
@@ -286,54 +310,10 @@ export default function CourseManagementSection() {
     };
   }, [dialogOpen, editingCourse]);
 
-  // Client-side filter
-  const filtered = useMemo(() => {
-    let result = courses;
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      result = result.filter(
-        (c) => {
-          return [
-            c.title,
-            c.instructor,
-            c.category,
-            c.level,
-            productLabel(getCourseProductCode(c)),
-          ]
-            .filter(Boolean)
-            .some((value) => String(value).toLowerCase().includes(q));
-        }
-      );
-    }
-    if (statusFilter !== "all") {
-      result = result.filter((c) => c.status === statusFilter);
-    }
-    if (categoryFilter !== "all") {
-      result = result.filter((c) => c.category === categoryFilter);
-    }
-    if (levelFilter !== "all") {
-      result = result.filter((c) => c.level === levelFilter);
-    }
-    if (productFilter !== "all") {
-      result = result.filter((c) => (getCourseProductCode(c) ?? "free") === productFilter);
-    }
-    return result;
-  }, [
-    courses,
-    search,
-    statusFilter,
-    categoryFilter,
-    levelFilter,
-    productFilter,
-  ]);
-
-  // Pagination
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const paged = filtered.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
-  );
+  const total = coursePage?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const currentPage = coursePage?.page ?? 1;
+  const paged = loading || error ? [] : coursePage?.items ?? [];
   const hasActiveFilters =
     search.trim() !== "" ||
     statusFilter !== "all" ||
@@ -397,7 +377,19 @@ export default function CourseManagementSection() {
   };
 
   // Open dialog for editing
-  const handleEdit = (course: Course) => {
+  const handleEdit = async (courseId: string) => {
+    setLoadingEdit(courseId);
+    try {
+      const course = await getAdminCourseDetail(courseId);
+      openCourseEditor(course);
+    } catch (error) {
+      toast.error(getErrorMessage(error, "加载课程详情失败，请重试"));
+    } finally {
+      setLoadingEdit(null);
+    }
+  };
+
+  const openCourseEditor = (course: Course) => {
     setEditingCourse(course);
     setForm({
       title: course.title,
@@ -547,30 +539,25 @@ export default function CourseManagementSection() {
         }
       }
       if (editingCourse) {
-        let updatedCourse = await adminUpdateCourse(editingCourse.id, payload);
+        await adminUpdateCourse(editingCourse.id, payload);
         if (payload.membership_type === "free" || removeAccessPassword) {
           if (editingCourse.password_access_enabled) {
             await adminSetCourseAccessPassword(editingCourse.id, null);
           }
-          updatedCourse = { ...updatedCourse, password_access_enabled: false };
         } else if (normalizedAccessPassword) {
-          const passwordEnabled = await adminSetCourseAccessPassword(editingCourse.id, normalizedAccessPassword);
-          updatedCourse = { ...updatedCourse, password_access_enabled: passwordEnabled };
+          await adminSetCourseAccessPassword(editingCourse.id, normalizedAccessPassword);
         }
-        setCourses((prev) =>
-          prev.map((course) => (course.id === updatedCourse.id ? updatedCourse : course))
-        );
         toast.success("课程更新成功");
       } else {
-        let createdCourse = await adminCreateCourse(payload);
+        const createdCourse = await adminCreateCourse(payload);
         if (payload.membership_type !== "free" && normalizedAccessPassword) {
-          const passwordEnabled = await adminSetCourseAccessPassword(createdCourse.id, normalizedAccessPassword);
-          createdCourse = { ...createdCourse, password_access_enabled: passwordEnabled };
+          await adminSetCourseAccessPassword(createdCourse.id, normalizedAccessPassword);
         }
-        setCourses((prev) => [createdCourse, ...prev]);
+        setPage(1);
         toast.success("课程创建成功");
       }
       setDialogOpen(false);
+      reloadCourses((value) => value + 1);
     } catch (error) {
       toast.error(getErrorMessage(error, editingCourse ? "更新课程失败" : "创建课程失败"));
     } finally {
@@ -579,16 +566,14 @@ export default function CourseManagementSection() {
   };
 
   // Archive
-  const handleArchive = async (course: Course) => {
+  const handleArchive = async (course: AdminCourseListItem) => {
     if (course.status === "archived") {
       toast.info("课程已处于归档状态");
       return;
     }
     try {
       await adminArchiveCourse(course.id);
-      setCourses((prev) =>
-        prev.map((item) => (item.id === course.id ? { ...item, status: "archived" } : item))
-      );
+      reloadCourses((value) => value + 1);
       toast.success("课程已归档");
     } catch {
       toast.error("归档失败");
@@ -691,19 +676,7 @@ export default function CourseManagementSection() {
     }
   };
 
-  if (loading) return <LoadingOverlay message="正在加载课程数据..." />;
-  if (error)
-    return (
-      <div className="text-center py-12">
-        <p className="text-txs mb-4">{error}</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="text-ac hover:underline"
-        >
-          刷新页面
-        </button>
-      </div>
-    );
+  if (loading && !coursePage) return <LoadingOverlay message="正在加载课程数据..." />;
 
   return (
     <div className="space-y-4">
@@ -782,14 +755,14 @@ export default function CourseManagementSection() {
 
         <div className="flex flex-wrap items-center gap-3 self-stretch xl:self-auto">
           <span className="text-ds-sm text-txs">
-            共 {filtered.length} 门课程
+            共 {total} 门课程
           </span>
           {hasActiveFilters && (
             <Button variant="ghost" onClick={handleClearFilters}>
               清空筛选
             </Button>
           )}
-          <Button onClick={handleAdd}>
+          <Button onClick={handleAdd} disabled={editorDataLoading || loadingEdit !== null}>
             <Plus className="w-4 h-4 mr-1" />
             添加课程
           </Button>
@@ -870,11 +843,12 @@ export default function CourseManagementSection() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleEdit(course)}
+                        onClick={() => void handleEdit(course.id)}
+                        disabled={editorDataLoading || loadingEdit !== null}
                         className="p-1.5 rounded-ds-md hover:bg-warm transition-colors text-txs hover:text-ac"
                         title="编辑"
                       >
-                        <Edit2 className="w-4 h-4" />
+                        {loadingEdit === course.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Edit2 className="w-4 h-4" />}
                       </button>
                       <button
                         type="button"
@@ -894,7 +868,12 @@ export default function CourseManagementSection() {
                     colSpan={7}
                     className="px-4 py-12 text-center text-txs"
                   >
-                    没有匹配的课程
+                    {error ? (
+                      <div role="alert">
+                        <p>{error}</p>
+                        <Button variant="link" onClick={() => reloadCourses((value) => value + 1)}>重新加载</Button>
+                      </div>
+                    ) : loading ? <span role="status">正在加载课程…</span> : "没有匹配的课程"}
                   </td>
                 </tr>
               )}
@@ -909,8 +888,9 @@ export default function CourseManagementSection() {
           <Button
             variant="outline"
             size="sm"
-            disabled={currentPage <= 1}
-            onClick={() => setPage((p) => p - 1)}
+            aria-label="上一页"
+            disabled={loading || currentPage <= 1}
+            onClick={() => setPage(currentPage - 1)}
           >
             <ChevronLeft className="w-4 h-4" />
           </Button>
@@ -920,8 +900,9 @@ export default function CourseManagementSection() {
           <Button
             variant="outline"
             size="sm"
-            disabled={currentPage >= totalPages}
-            onClick={() => setPage((p) => p + 1)}
+            aria-label="下一页"
+            disabled={loading || currentPage >= totalPages}
+            onClick={() => setPage(currentPage + 1)}
           >
             <ChevronRight className="w-4 h-4" />
           </Button>

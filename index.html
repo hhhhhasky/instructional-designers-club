@@ -30,6 +30,12 @@
         document.addEventListener("DOMContentLoaded", () => {
           document.getElementById("site-reload").addEventListener("click", () => location.reload());
         }, { once: true });
+        window.addEventListener("load", () => {
+          const font = document.createElement("link");
+          font.rel = "stylesheet";
+          font.href = "https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap";
+          document.head.append(font);
+        }, { once: true });
       })();
     </script>
     <style>
@@ -57,6 +63,27 @@
         font: inherit;
         cursor: pointer;
       }
+      .home-initial-hero {
+        padding: 64px 24px 56px;
+        background: #faf8f2;
+        color: #26332b;
+        font-family: system-ui, sans-serif;
+      }
+      .home-initial-hero > div { max-width: 1152px; margin: auto; }
+      .home-initial-kicker { color: #3d5f4b; font-size: 13px; font-weight: 700; }
+      .home-initial-hero h1 { margin: 20px 0; font-size: clamp(32px, 5vw, 60px); line-height: 1.22; font-weight: 900; }
+      .home-initial-hero h1 span { color: #3d5f4b; }
+      .home-initial-description { max-width: 640px; font-size: 16px; line-height: 1.75; }
+      .home-initial-hero a {
+        display: inline-block;
+        margin-top: 12px;
+        padding: 10px 16px;
+        border-radius: 6px;
+        background: #3d5f4b;
+        color: white;
+        font-weight: 700;
+        text-decoration: none;
+      }
     </style>
     <title>哈老师聊教学设计</title>
     <meta name="description" content="从真实教学问题出发，和哈老师一起分析教材、学情、目标、课堂活动与评价。了解教学通识课、教师 AI 课和道法教材解读课。" />
@@ -72,13 +99,16 @@
     <meta name="twitter:title" content="哈老师聊教学设计" />
     <meta name="twitter:description" content="从真实教学问题出发，和哈老师一起分析教材、学情、目标、课堂活动与评价。了解教学通识课、教师 AI 课和道法教材解读课。" />
     <link rel="canonical" href="https://idclub.hasky.top" />
-    <!-- Design System: 暖色学术风 字体加载（全站统一思源黑体，不再加载衬线宋体） -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="home-initial-hero" hidden><!-- home-initial-hero --></div>
+    </div>
+    <script>
+      if (location.pathname === "/" && !location.hash.startsWith("#/")) {
+        document.getElementById("home-initial-hero").hidden = false;
+      }
+    </script>
     <div id="site-load-error" role="alert" hidden>
       <p>页面暂时未能加载，请刷新重试。</p>
       <button id="site-reload" type="button">重新加载</button>

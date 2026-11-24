@@ -1,4 +1,4 @@
-import { supabase } from "./supabase";
+import { supabase, typedSupabase } from "./supabase";
 
 export type HaiDashboardRangeDays = 7 | 30 | 90;
 
@@ -244,14 +244,13 @@ export interface HaiDashboardData {
 
 const PAGE_SIZE = 1000;
 const MAX_EVENT_PAGES = 20;
-const MAX_TRACE_PAGES = 20;
-const MAX_WORK_TRACE_PAGES = 20;
+const TRACE_LOAD_MORE_LIMIT = 10;
 const MAX_MODEL_CALL_PAGES = 20;
 
 export async function getAdminHaiDashboard(rangeDays: HaiDashboardRangeDays): Promise<HaiDashboardData> {
   const now = new Date();
   const since = startOfRange(rangeDays, now).toISOString();
-  const [events, modelCalls, alertResult, traceMessages, workTraces, dailyReviews, pointWalletResult, pointRatioResult] = await Promise.all([
+  const [events, modelCalls, alertResult, quality, dailyReviews, pointWalletResult, pointRatioResult] = await Promise.all([
     fetchUsageEvents(since),
     fetchModelCalls(since),
     supabase
@@ -260,8 +259,7 @@ export async function getAdminHaiDashboard(rangeDays: HaiDashboardRangeDays): Pr
       .eq("status", "open")
       .order("created_at", { ascending: false })
       .limit(50),
-    fetchTraceMessages(since),
-    fetchWorkDebugTraces(since),
+    fetchQualitySummary(since),
     fetchDailyReviews(),
     supabase
       .from("hai_point_wallets")
@@ -277,18 +275,29 @@ export async function getAdminHaiDashboard(rangeDays: HaiDashboardRangeDays): Pr
   if (alertResult.error) throw alertResult.error;
   if (pointWalletResult.error) throw pointWalletResult.error;
   if (pointRatioResult.error) throw pointRatioResult.error;
-  return buildHaiDashboardData(
+  const data = buildHaiDashboardData(
     events,
     (alertResult.data as HaiUsageAlertRow[]) ?? [],
-    traceMessages,
+    [],
     rangeDays,
     now,
     dailyReviews,
-    workTraces,
+    [],
     modelCalls,
     (pointWalletResult.data as HaiPointWalletRow[]) ?? [],
     positiveNumber(pointRatioResult.data?.value, 1000),
   );
+  Object.assign(data.summary, quality);
+  return data;
+}
+
+async function fetchQualitySummary(since: string) {
+  const { data, error } = await typedSupabase.rpc("admin_hai_quality_summary", { p_since: since }).single();
+  if (error) console.warn("getAdminHaiDashboard: quality summary unavailable.", error);
+  return {
+    quality_average: data?.scored_count ? Math.round(data.score_total / data.scored_count) : null,
+    quality_pass_rate: data?.scored_count ? roundPercent(data.passed_count / data.scored_count) : null,
+  };
 }
 
 async function fetchModelCalls(since: string): Promise<HaiModelCallRow[]> {
@@ -297,7 +306,7 @@ async function fetchModelCalls(since: string): Promise<HaiModelCallRow[]> {
     const from = page * PAGE_SIZE;
     const { data, error } = await (supabase as any)
       .from("hai_model_calls")
-      .select("id, user_id, request_id, call_index, stage, route, model, provider_request_id, status, started_at, completed_at, prompt_tokens, cache_hit_tokens, cache_miss_tokens, completion_tokens, reasoning_tokens, visible_output_tokens, total_tokens, usage_status, price_band, total_cost, currency, metadata, profiles!user_id(nickname, phone, access_level)")
+      .select("id, user_id, request_id, call_index, stage, route, model, provider_request_id, status, started_at, completed_at, prompt_tokens, cache_hit_tokens, cache_miss_tokens, completion_tokens, reasoning_tokens, visible_output_tokens, total_tokens, usage_status, price_band, total_cost, currency, profiles!user_id(nickname, phone, access_level)")
       .gte("started_at", since)
       .order("started_at", { ascending: false })
       .range(from, from + PAGE_SIZE - 1);
@@ -313,54 +322,168 @@ async function fetchModelCalls(since: string): Promise<HaiModelCallRow[]> {
   return rows;
 }
 
-async function fetchWorkDebugTraces(since: string): Promise<HaiWorkDebugTraceRow[]> {
-  const rows: HaiWorkDebugTraceRow[] = [];
-  for (let page = 0; page < MAX_WORK_TRACE_PAGES; page += 1) {
-    const from = page * PAGE_SIZE;
-    const { data, error } = await supabase
-      .from("hai_work_runs")
-      .select("id, task_id, user_id, status, input_tokens, output_tokens, duration_ms, error_message, skill_snapshot, input_snapshot, parent_artifact_id, created_at, started_at, completed_at, profiles!user_id(nickname, phone, access_level), hai_work_tasks!inner(title, module_slug), hai_work_debug_traces(debug_trace)")
-      .gte("created_at", since)
-      .order("created_at", { ascending: false })
-      .range(from, from + PAGE_SIZE - 1);
-    if (error) throw error;
-    const batch = ((data ?? []) as unknown[]).map((row) => {
-      const item = row as Record<string, unknown>;
-      const task = Array.isArray(item.hai_work_tasks) ? item.hai_work_tasks[0] : item.hai_work_tasks;
-      const debug = Array.isArray(item.hai_work_debug_traces) ? item.hai_work_debug_traces[0] : item.hai_work_debug_traces;
-      return {
-        ...item,
-        task_title: (task as Record<string, unknown> | null)?.title ?? "未命名任务",
-        module_slug: (task as Record<string, unknown> | null)?.module_slug ?? "-",
-        profile: profileOf(item.profiles as HaiProfileRelation | undefined),
-        skill_snapshot: recordOf(item.skill_snapshot) ?? {},
-        input_snapshot: recordOf(item.input_snapshot) ?? {},
-        debug_trace: recordOf((debug as Record<string, unknown> | null)?.debug_trace),
-      } as HaiWorkDebugTraceRow;
-    });
-    rows.push(...batch);
-    if (batch.length < PAGE_SIZE) break;
-  }
-  return rows;
+type HaiTraceCursor = { created_at: string; id: string };
+
+export interface HaiTraceBatch<T> {
+  items: T[];
+  has_more: boolean;
+  next_before: HaiTraceCursor | null;
 }
 
-async function fetchTraceMessages(since: string): Promise<HaiTraceMessageRow[]> {
-  const rows: HaiTraceMessageRow[] = [];
-  for (let page = 0; page < MAX_TRACE_PAGES; page += 1) {
-    const from = page * PAGE_SIZE;
-    const { data, error } = await supabase
-      .from("hai_messages")
-      .select("id, metadata, created_at")
-      .eq("role", "assistant")
-      .gte("created_at", since)
-      .order("created_at", { ascending: false })
-      .range(from, from + PAGE_SIZE - 1);
-    if (error) throw error;
-    const batch = (data as HaiTraceMessageRow[]) ?? [];
-    rows.push(...batch);
-    if (batch.length < PAGE_SIZE) break;
-  }
-  return rows;
+type HaiWorkTraceListItem = Omit<HaiWorkDebugTraceRow, "skill_snapshot" | "input_snapshot" | "debug_trace" | "error_message">;
+
+interface HaiPptTraceListItem {
+  id: string;
+  title: string;
+  visual_mode: string;
+  status: string;
+  created_at: string;
+  source_artifact_version: number;
+  profile: HaiProfile | null;
+}
+
+export interface HaiPptTraceRow extends HaiPptTraceListItem {
+  source_task_id: string;
+  source_artifact_id: string;
+  updated_at: string;
+  error_message: string | null;
+  ai_output: Record<string, unknown> | null;
+  skill_snapshot: Record<string, unknown>;
+  model_calls: Pick<HaiModelCallRow, "stage" | "model" | "status" | "prompt_tokens" | "completion_tokens" | "total_cost" | "started_at" | "completed_at" | "metadata">[];
+  image_events: { status: string; metadata: Record<string, unknown> | null; created_at: string }[];
+}
+
+function annotateTraceError(source: string, error: { message?: string }) {
+  return new Error(`HAI dashboard ${source} failed: ${error.message ?? "unknown error"}`);
+}
+
+export async function fetchAdminHaiChatTraceBatch(
+  rangeDays: HaiDashboardRangeDays,
+  before: HaiTraceCursor | null,
+): Promise<HaiTraceBatch<HaiTraceCursor & { question: string }>> {
+  const since = startOfRange(rangeDays, new Date()).toISOString();
+  let query = supabase.from("hai_messages")
+    .select("id, created_at, question:metadata->hai_trace->>question, skill_question:metadata->hai_skill_trace->>question, context_question:metadata->hai_context_trace->>question")
+    .eq("role", "assistant")
+    .gte("created_at", since)
+    .or("metadata->hai_trace.not.is.null,metadata->hai_skill_trace.not.is.null,metadata->hai_context_trace.not.is.null")
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(TRACE_LOAD_MORE_LIMIT + 1);
+  if (before) query = query.or(traceBeforeFilter(before));
+  const { data, error } = await query;
+  if (error) throw annotateTraceError("chat traces", error);
+  return traceBatch((data ?? []).map(({ id, created_at, question, skill_question, context_question }) => ({
+    id, created_at, question: question || skill_question || context_question || "无问题文本",
+  })));
+}
+
+export async function fetchAdminHaiChatTraceDetails(messageId: string): Promise<HaiRecentTrace> {
+  const { data, error } = await supabase.from("hai_messages")
+    .select("id, metadata, created_at").eq("id", messageId).eq("role", "assistant").single();
+  if (error) throw annotateTraceError("chat trace details", error);
+  const trace = toTrace(data as HaiTraceMessageRow);
+  if (!trace) throw new Error("这条消息没有追溯记录");
+  return trace;
+}
+
+function traceBeforeFilter(before: HaiTraceCursor) {
+  return `created_at.lt.${before.created_at},and(created_at.eq.${before.created_at},id.lt.${before.id})`;
+}
+
+export async function fetchAdminHaiWorkTraceBatch(
+  rangeDays: HaiDashboardRangeDays,
+  before: HaiTraceCursor | null,
+): Promise<HaiTraceBatch<HaiWorkTraceListItem>> {
+  const since = startOfRange(rangeDays, new Date()).toISOString();
+  let query = typedSupabase.from("hai_work_runs")
+    .select("id, task_id, user_id, status, input_tokens, output_tokens, duration_ms, parent_artifact_id, created_at, started_at, completed_at, profiles!user_id(nickname, phone, access_level), hai_work_tasks!inner(title, module_slug)")
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(TRACE_LOAD_MORE_LIMIT + 1);
+  if (before) query = query.or(traceBeforeFilter(before));
+  const { data, error } = await query;
+  if (error) throw annotateTraceError("work traces", error);
+  return traceBatch(data.map(({ hai_work_tasks: task, profiles, ...row }) => ({
+    ...row,
+    status: row.status as HaiWorkTraceListItem["status"],
+    task_title: task.title,
+    module_slug: task.module_slug,
+    profile: profileOf(profiles),
+  })));
+}
+
+export async function fetchAdminHaiPptTraceBatch(
+  rangeDays: HaiDashboardRangeDays,
+  before: HaiTraceCursor | null,
+): Promise<HaiTraceBatch<HaiPptTraceListItem>> {
+  const since = startOfRange(rangeDays, new Date()).toISOString();
+  let query = (supabase as any).from("hai_courseware_decks")
+    .select("id, title, visual_mode, status, created_at, source_artifact_version, profiles!user_id(nickname, phone, access_level)")
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(TRACE_LOAD_MORE_LIMIT + 1);
+  if (before) query = query.or(traceBeforeFilter(before));
+  const { data, error } = await query;
+  if (error) throw annotateTraceError("ppt traces", error);
+  return traceBatch((data as (Omit<HaiPptTraceListItem, "profile"> & { profiles: HaiProfileRelation })[])
+    .map(({ profiles, ...row }) => ({ ...row, profile: profileOf(profiles) })));
+}
+
+export async function fetchAdminHaiWorkTraceDetails(runId: string): Promise<
+  Pick<HaiWorkDebugTraceRow, "skill_snapshot" | "input_snapshot" | "debug_trace" | "error_message">
+> {
+  const { data, error } = await supabase.from("hai_work_runs")
+    .select("skill_snapshot, input_snapshot, error_message, hai_work_debug_traces(debug_trace)")
+    .eq("id", runId)
+    .single();
+  if (error) throw annotateTraceError("work trace details", error);
+  const item = data as unknown as Record<string, unknown>;
+  const debug = Array.isArray(item.hai_work_debug_traces) ? item.hai_work_debug_traces[0] : item.hai_work_debug_traces;
+  return {
+    skill_snapshot: recordOf(item.skill_snapshot) ?? {},
+    input_snapshot: recordOf(item.input_snapshot) ?? {},
+    error_message: typeof item.error_message === "string" ? item.error_message : null,
+    debug_trace: recordOf((debug as Record<string, unknown> | null)?.debug_trace),
+  };
+}
+
+export async function fetchAdminHaiPptTraceDetails(runId: string): Promise<HaiPptTraceRow> {
+  const [deck, calls, images] = await Promise.all([
+    (supabase as any).from("hai_courseware_decks")
+      .select("id, user_id, source_task_id, source_artifact_id, source_artifact_version, title, visual_mode, status, ai_output, skill_snapshot, error_message, created_at, updated_at, profiles!user_id(nickname, phone, access_level)")
+      .eq("id", runId).single(),
+    (supabase as any).from("hai_model_calls")
+      .select("stage, model, status, prompt_tokens, completion_tokens, total_cost, started_at, completed_at, metadata")
+      .eq("entity_id", runId).order("started_at", { ascending: true }),
+    (supabase as any).from("hai_usage_events")
+      .select("status, metadata, created_at")
+      .eq("event_type", "hai.courseware.image.finished")
+      .eq("entity_id", runId).order("created_at", { ascending: true }),
+  ]);
+  if (deck.error) throw annotateTraceError("ppt trace details", deck.error);
+  if (calls.error) throw annotateTraceError("ppt model calls", calls.error);
+  if (images.error) throw annotateTraceError("ppt image events", images.error);
+  return {
+    ...deck.data,
+    ai_output: recordOf(deck.data.ai_output),
+    skill_snapshot: recordOf(deck.data.skill_snapshot) ?? {},
+    profile: profileOf(deck.data.profiles),
+    model_calls: calls.data ?? [],
+    image_events: images.data ?? [],
+  };
+}
+
+function traceBatch<T extends HaiTraceCursor>(items: T[]): HaiTraceBatch<T> {
+  const visible = items.slice(0, TRACE_LOAD_MORE_LIMIT);
+  const last = visible[visible.length - 1];
+  return {
+    items: visible,
+    has_more: items.length > TRACE_LOAD_MORE_LIMIT,
+    next_before: last ? { created_at: last.created_at, id: last.id } : null,
+  };
 }
 
 export async function triggerHaiDailyReview(runDate?: string) {
@@ -378,7 +501,7 @@ async function fetchUsageEvents(since: string): Promise<HaiUsageEventRow[]> {
     const from = page * PAGE_SIZE;
     const query = supabase
       .from("hai_usage_events")
-      .select("id, user_id, event_type, route, status, total_tokens, input_tokens, output_tokens, actual_prompt_tokens, actual_cache_hit_tokens, actual_cache_miss_tokens, actual_completion_tokens, actual_reasoning_tokens, actual_visible_output_tokens, actual_total_tokens, actual_cost, actual_currency, actual_usage_status, duration_ms, metadata, created_at, profiles!user_id(nickname, phone, access_level)")
+      .select("id, user_id, event_type, route, status, total_tokens, input_tokens, output_tokens, actual_prompt_tokens, actual_cache_hit_tokens, actual_cache_miss_tokens, actual_completion_tokens, actual_reasoning_tokens, actual_visible_output_tokens, actual_total_tokens, actual_cost, actual_currency, actual_usage_status, duration_ms, revision:metadata->revision, created_at, profiles!user_id(nickname, phone, access_level)")
       .like("event_type", "hai.request.%")
       .in("status", ["completed", "cached", "failed"])
       .gte("created_at", since)
@@ -390,7 +513,7 @@ async function fetchUsageEvents(since: string): Promise<HaiUsageEventRow[]> {
       // migration is applied; legacy rows simply show estimated usage.
       const fallbackResult = await supabase
         .from("hai_usage_events")
-        .select("id, user_id, event_type, route, status, total_tokens, input_tokens, output_tokens, duration_ms, metadata, created_at, profiles!user_id(nickname, phone, access_level)")
+        .select("id, user_id, event_type, route, status, total_tokens, input_tokens, output_tokens, duration_ms, revision:metadata->revision, created_at, profiles!user_id(nickname, phone, access_level)")
         .like("event_type", "hai.request.%")
         .in("status", ["completed", "cached", "failed"])
         .gte("created_at", since)
@@ -400,7 +523,8 @@ async function fetchUsageEvents(since: string): Promise<HaiUsageEventRow[]> {
       error = fallbackResult.error;
     }
     if (error) throw error;
-    const pageRows = (data as HaiUsageEventRow[]) ?? [];
+    const pageRows = ((data ?? []) as (HaiUsageEventRow & { revision: unknown })[])
+      .map(({ revision, ...row }) => ({ ...row, metadata: { revision } }));
     rows.push(...pageRows);
     if (pageRows.length < PAGE_SIZE) break;
   }

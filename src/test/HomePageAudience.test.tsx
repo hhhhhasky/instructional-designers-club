@@ -13,6 +13,7 @@ const { authState, homeContent } = vi.hoisted(() => ({
   },
   homeContent: {
     loaded: true,
+    heroTitle: null as string | null,
     statsCounts: { members: 0, camps: 0, courses: 0, totalMinutes: 0 },
     homeCourses: { free: [
       { id: '4c36aaa4-2e66-4a18-8f0b-d1d9c6cae516', title: '教学设计和备课有什么区别？', membership_type: 'free', description: '教学设计体验课', duration: 90 },
@@ -51,7 +52,10 @@ const { authState, homeContent } = vi.hoisted(() => ({
 }));
 
 vi.mock("@/contexts/AuthContext", () => ({ useAuth: () => authState }));
-vi.mock("@/hooks/useHomeContent", () => ({ useHomeContent: () => ({ ...homeContent, landing: HOME_LANDING_DEFAULTS }) }));
+vi.mock("@/hooks/useHomeContent", () => ({ useHomeContent: () => ({ ...homeContent, landing: homeContent.heroTitle ? {
+  ...HOME_LANDING_DEFAULTS,
+  home_hero: { ...HOME_LANDING_DEFAULTS.home_hero, title_line1: homeContent.heroTitle },
+} : HOME_LANDING_DEFAULTS }) }));
 vi.mock("@/hooks/useHomeSnapshot", () => ({
   HomeSnapshotProvider: ({ children }: { children: ReactNode }) => children,
 }));
@@ -79,14 +83,15 @@ describe("home page audience split", () => {
   afterEach(() => {
     authState.user = { id: "member-1" };
     homeContent.loaded = true;
+    homeContent.heroTitle = null;
   });
 
-  it("gives returning learners the same problem-first story and a learning shortcut", () => {
+  it("gives returning learners the same problem-first story and a learning shortcut", async () => {
     renderHome();
 
     expect(screen.getByRole('heading', { level: 1, name: /教案写得很完整/ })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /直接回到我的学习/ })).toHaveAttribute('href', '/learning');
-    expect(screen.getByTestId("member-home")).toBeInTheDocument();
+    expect(await screen.findByTestId("member-home")).toBeInTheDocument();
     expect(screen.getByTestId("course-purchases")).toBeInTheDocument();
     expect(screen.queryByText('会员课程体系')).not.toBeInTheDocument();
   });
@@ -132,15 +137,15 @@ describe("home page audience split", () => {
     expect(within(about).queryByText('开发小白')).not.toBeInTheDocument();
   });
 
-  it("shows a text-free placeholder until homepage copy is ready", () => {
+  it("shows the default heading while the snapshot loads and then uses the saved copy", () => {
     homeContent.loaded = false;
     const view = renderHome();
 
-    expect(screen.getByRole('main', { name: '首页内容加载中' })).toHaveAttribute('aria-busy', 'true');
-    expect(screen.queryByRole('heading', { level: 1, name: /教案写得很完整/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: /教案写得很完整/ })).toBeInTheDocument();
 
     homeContent.loaded = true;
+    homeContent.heroTitle = '后台更新的标题';
     view.rerender(<MemoryRouter><HomePage /></MemoryRouter>);
-    expect(screen.getByRole('heading', { level: 1, name: /教案写得很完整/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: /后台更新的标题/ })).toBeInTheDocument();
   });
 });

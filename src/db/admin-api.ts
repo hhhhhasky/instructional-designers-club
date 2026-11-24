@@ -1,3 +1,4 @@
+import type { Database } from "@/types/database.generated";
 import type {
   Activity,
   Announcement,
@@ -324,16 +325,25 @@ export async function adminAdjustBonusCredits(
 
 // ==================== 课程管理 ====================
 
-/**
- * 管理员获取所有课程（含草稿和已归档）
- */
-export async function getAdminCourseList(): Promise<Course[]> {
-  const { data, error } = await supabase.rpc("admin_course_list");
-  if (error) {
-    console.error("getAdminCourseList error:", error);
-    throw error;
-  }
-  return data || [];
+export type AdminCourseListItem = Pick<Course,
+  "id" | "title" | "instructor" | "status" | "membership_type" | "access_product_code"
+  | "password_access_enabled" | "created_at" | "updated_at"
+>;
+
+export interface AdminCoursePage {
+  items: AdminCourseListItem[];
+  total: number;
+  page: number;
+  levels: NonNullable<Course["level"]>[];
+}
+
+export async function getAdminCoursePage(
+  filters: Database["public"]["Functions"]["admin_course_page"]["Args"],
+  signal: AbortSignal,
+): Promise<AdminCoursePage> {
+  const { data, error } = await typedSupabase.rpc("admin_course_page", filters).abortSignal(signal);
+  if (error) throw error;
+  return data as unknown as AdminCoursePage;
 }
 
 export type AdminCourseCategory = Pick<
@@ -675,7 +685,7 @@ export async function adminUpdateCourse(
   return updated;
 }
 
-async function getAdminCourseDetail(courseId: string): Promise<Course> {
+export async function getAdminCourseDetail(courseId: string): Promise<Course> {
   const { data, error } = await supabase.rpc("admin_course_detail", {
     p_course_id: courseId,
   });
