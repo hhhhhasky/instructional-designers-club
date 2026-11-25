@@ -445,6 +445,7 @@ function normalizeCourseWritePayload(
   if (!partial || "membership_type" in course) payload.membership_type = course.membership_type ?? "plus";
   if (!partial || "access_product_code" in course) payload.access_product_code = course.access_product_code ?? null;
   if (!partial || "course_type" in course) payload.course_type = course.course_type ?? "article";
+  if (payload.course_type === "article") payload.duration = 0;
   if (!partial || "is_trial" in course) payload.is_trial = Boolean(course.is_trial);
   if (!partial || "plus_representative" in course) payload.plus_representative = Boolean(course.plus_representative);
   if (!partial || "sort_order" in course) payload.sort_order = Number.isFinite(Number(course.sort_order)) ? Number(course.sort_order) : 0;

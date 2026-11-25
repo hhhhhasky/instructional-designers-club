@@ -6,14 +6,15 @@ import Footer from "@/components/common/Footer";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
 import PageMeta from "@/components/common/PageMeta";
 import PageBackBar from "@/components/common/PageBackBar";
+import CourseFormatBadge from "@/components/course/CourseFormatBadge";
 import { useAuth } from "@/contexts/AuthContext";
-import { getPublishedV2Outlines, type V2Outline } from "@/db/v2-api";
+import { getPublishedV2Outlines, type V2PublishedOutline } from "@/db/v2-api";
 import { canAccessV2, V2_PREVIEW_ACCESS_MESSAGE } from "@/lib/v2-access";
 
 export default function CourseV2CatalogPage() {
   const { user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [outlines, setOutlines] = useState<V2Outline[]>([]);
+  const [outlines, setOutlines] = useState<V2PublishedOutline[]>([]);
   const [loading, setLoading] = useState(true);
   const [denied, setDenied] = useState(false);
 
@@ -80,7 +81,15 @@ export default function CourseV2CatalogPage() {
                     <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                             {lessons.map((lesson, lessonIndex) => (
                               <Link key={lesson.id} to={v2LessonPath(lesson)} className="group flex min-h-[140px] flex-col rounded-2xl border border-bdl bg-white p-4 transition hover:-translate-y-0.5 hover:border-ac hover:shadow-ds-sm">
-                                <div className="flex items-center gap-2 text-xs text-txs"><BookOpen className="h-3.5 w-3.5 text-ac" />LESSON {lessonIndex + 1}{lesson.duration_minutes != null && <span className="ml-auto inline-flex items-center gap-1"><Clock3 className="h-3 w-3" />{lesson.duration_minutes} 分钟</span>}</div>
+                                <div className="flex flex-wrap items-center gap-2 text-xs text-txs">
+                                  <span className="mr-auto inline-flex items-center gap-2">
+                                    <BookOpen className="h-3.5 w-3.5 text-ac" />LESSON {lessonIndex + 1}
+                                  </span>
+                                  <CourseFormatBadge format={lesson.has_video ? "video" : "article"} />
+                                  {lesson.has_video && (lesson.duration_minutes ?? 0) > 0 && (
+                                    <span className="inline-flex items-center gap-1"><Clock3 className="h-3 w-3" />{lesson.duration_minutes} 分钟</span>
+                                  )}
+                                </div>
                                 <p className="mt-3 text-lg font-ds-black leading-6 text-tx">{lesson.title}</p>
                                 {lesson.subtitle && <p className="mt-1 line-clamp-2 text-xs leading-5 text-txs">{lesson.subtitle}</p>}
                                 <span className="mt-auto inline-flex items-center gap-1 pt-4 text-xs font-ds-bold text-ac">进入学习 <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-1" />

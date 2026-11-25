@@ -273,6 +273,14 @@ describe('课程核心页面 — 教研编辑部信息层级', () => {
     await waitFor(() => expect(screen.queryByTestId('loading')).not.toBeInTheDocument());
     const catalog = screen.getByRole('region', { name: '系列课课程目录' });
     expect(within(catalog).getByLabelText('课程类型筛选')).toBeInTheDocument();
+    for (const article of within(catalog).getAllByRole('button', { name: '打开课程：图文通识课' })) {
+      expect(within(article).getByText('图文')).toBeInTheDocument();
+      expect(within(article).queryByText(/分钟/)).not.toBeInTheDocument();
+    }
+    for (const video of within(catalog).getAllByRole('button', { name: '打开课程：视频通识课' })) {
+      expect(within(video).getByText('视频')).toBeInTheDocument();
+      expect(within(video).getByText('30 分钟')).toBeInTheDocument();
+    }
     fireEvent.click(screen.getByRole('button', { name: '筛选课程类型：图文' }));
 
     expect(screen.getAllByRole('button', { name: '打开课程：图文通识课' }).length).toBeGreaterThan(0);

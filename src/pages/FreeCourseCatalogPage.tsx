@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import LoadingOverlay from "@/components/common/LoadingOverlay";
 import PageMeta from "@/components/common/PageMeta";
+import CourseFormatBadge from "@/components/course/CourseFormatBadge";
 import { useCourseLessonHref } from "@/components/routing/CoursePaths";
 import { getCoursesByMembershipAndCategory } from "@/db/api";
 import { COURSE_SLUGS, courseCatalogPath, courseSlug } from "@/lib/course-paths";
+import { resolveCourseType } from "@/lib/course-format";
 import type { Course } from "@/types/types";
 
 export default function FreeCourseCatalogPage() {
@@ -27,7 +29,10 @@ export default function FreeCourseCatalogPage() {
         <ul className="mt-6 divide-y divide-bd rounded-xl border border-bd bg-white">
           {courses.map((course) => (
             <li key={course.id}>
-              <Link to={lessonHref(course.id)} className="block px-5 py-4 font-semibold text-tx hover:text-ac">{course.title}</Link>
+              <Link to={lessonHref(course.id)} className="flex items-center justify-between gap-3 px-5 py-4 font-semibold text-tx hover:text-ac">
+                <span>{course.title}</span>
+                <CourseFormatBadge format={resolveCourseType(course)} />
+              </Link>
             </li>
           ))}
         </ul>

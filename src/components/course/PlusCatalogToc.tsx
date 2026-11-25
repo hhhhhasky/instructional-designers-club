@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { CheckCircle2, PlayCircle } from 'lucide-react';
+import { CheckCircle2, CircleDot } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import ContentFormatBadges from './ContentFormatBadges';
+import { resolveCourseType } from '@/lib/course-format';
+import CourseFormatBadge from './CourseFormatBadge';
 import { getCoursesForModule, getModuleIcon, type PlusTrackConfig } from '@/lib/plusCourseStructure';
 import type { Course, LearningRecord } from '@/types/types';
 
@@ -91,7 +92,7 @@ export default function PlusCatalogToc({
                           >
                             <span className="flex-shrink-0 w-5 flex items-center justify-center">
                               {isCurrent ? (
-                                <PlayCircle className="w-4 h-4 text-ac" />
+                                <CircleDot className="w-4 h-4 text-ac" />
                               ) : isCompleted ? (
                                 <CheckCircle2 className="w-4 h-4 text-sage" />
                               ) : (
@@ -108,9 +109,7 @@ export default function PlusCatalogToc({
                             <span className="flex-1 min-w-0">
                               <span className="flex items-center gap-1.5">
                                 <span className="truncate leading-snug">{course.title}</span>
-                                {!isCurrent && (
-                                  <ContentFormatBadges course={course} compact className="flex-shrink-0 opacity-70" />
-                                )}
+                                <CourseFormatBadge format={resolveCourseType(course)} />
                               </span>
                               {isInProgress && (
                                 <span className="mt-1 block h-1 w-full overflow-hidden rounded-full bg-bgs">

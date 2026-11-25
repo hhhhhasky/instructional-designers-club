@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, BookOpen, ChevronRight, Clock, GraduationCap } from 'lucide-react';
 import { getCategoryIcon } from '@/lib/categoryIcons';
-import ContentFormatBadges from '@/components/course/ContentFormatBadges';
+import CourseFormatBadge from '@/components/course/CourseFormatBadge';
 import PageBackBar from '@/components/common/PageBackBar';
 import Footer from '@/components/common/Footer';
 import LoadingOverlay from '@/components/common/LoadingOverlay';
@@ -19,7 +19,8 @@ import {
   CourseEditorialVolume,
 } from '@/components/course/CourseEditorialShell';
 import CourseAccessNotice from '@/components/course/CourseAccessNotice';
-import CourseFormatFilter, { resolveCourseType, type CourseTypeFilterValue } from '@/components/course/CourseFormatFilter';
+import CourseFormatFilter, { type CourseTypeFilterValue } from '@/components/course/CourseFormatFilter';
+import { getVideoCourseDuration, resolveCourseType } from '@/lib/course-format';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCourseCatalogSnapshot, getCourseDetailSnapshot, subscribeToCourseCatalogUpdates } from '@/db/api';
 import { canAccessCourse } from '@/lib/access-control';
@@ -387,6 +388,8 @@ function CourseCard({
   clickedCourseId: string | null;
   onCourseClick: (course: Course) => void;
 }) {
+  const duration = getVideoCourseDuration(course);
+
   return (
     <button
       type="button"
@@ -406,10 +409,11 @@ function CourseCard({
           {course.title}
         </h4>
         <div className="flex flex-wrap items-center gap-2 text-xs text-txs">
-          {course.duration && (
+          <CourseFormatBadge format={resolveCourseType(course)} />
+          {duration !== null && (
             <span className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
-              {course.duration}分钟
+              {duration} 分钟
             </span>
           )}
           {course.level && (
@@ -420,7 +424,6 @@ function CourseCard({
           {course.is_trial && (
             <Badge className="bg-sage text-white text-xs px-2 py-0">试看</Badge>
           )}
-          <ContentFormatBadges course={course} />
         </div>
       </div>
       <ChevronRight className="w-5 h-5 text-txs group-hover:text-ac group-hover:translate-x-1 transition-all flex-shrink-0" aria-hidden="true" />

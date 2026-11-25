@@ -20,6 +20,7 @@ import QuestionSettingsFields, {
   type QuestionSettingsTypeOption,
 } from "@/components/questions/QuestionSettingsFields";
 import { Button } from "@/components/ui/button";
+import { hasV2LessonVideo } from "@/lib/course-format";
 import {
   deleteV2AssessmentBlockAdmin,
   deleteV2AssessmentItemAdmin,
@@ -58,6 +59,7 @@ export default function V2LessonEditor({ bundle, unitId, onSaved }: V2LessonEdit
   const [saveNotice, setSaveNotice] = useState("");
   const [resourceTitle, setResourceTitle] = useState("");
   const [resourceUrl, setResourceUrl] = useState("");
+  const hasVideo = hasV2LessonVideo(bundle.resources);
 
   useEffect(() => {
     setLesson(bundle.lesson);
@@ -97,6 +99,7 @@ export default function V2LessonEditor({ bundle, unitId, onSaved }: V2LessonEdit
       const saved = await saveV2Lesson(
         {
           ...lesson,
+          duration_minutes: hasVideo ? lesson.duration_minutes : null,
           unit_id: unitId,
           title: lesson.title.trim(),
           objectives: objectives
@@ -196,11 +199,13 @@ export default function V2LessonEditor({ bundle, unitId, onSaved }: V2LessonEdit
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="标题" value={lesson.title} onChange={(value) => setLesson({ ...lesson, title: value })} />
           <Field label="副标题" value={lesson.subtitle ?? ""} onChange={(value) => setLesson({ ...lesson, subtitle: value || null })} />
-          <Field
-            label="时长（分钟）"
-            value={String(lesson.duration_minutes ?? "")}
-            onChange={(value) => setLesson({ ...lesson, duration_minutes: value ? Number(value) : null })}
-          />
+          {hasVideo && (
+            <Field
+              label="时长（分钟）"
+              value={String(lesson.duration_minutes ?? "")}
+              onChange={(value) => setLesson({ ...lesson, duration_minutes: value ? Number(value) : null })}
+            />
+          )}
           <Field
             label="学分"
             value={String(lesson.credits ?? 0)}

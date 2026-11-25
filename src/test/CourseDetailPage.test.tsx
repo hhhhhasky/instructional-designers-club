@@ -868,6 +868,8 @@ describe('正常课程详情按课程产品展示道法视频与正文', () => {
       access_product_code: 'daofa-textbook', membership_type: 'plus', course_type: 'article', video_url: null, body: '数据库里的图文正文',
     });
     expect(await screen.findByText('数据库里的图文正文')).toBeInTheDocument();
+    expect(screen.getByText('图文', { selector: 'span' })).toBeInTheDocument();
+    expect(screen.queryByText(/60\s*分钟/)).not.toBeInTheDocument();
     expect(container.querySelector('video')).toBeNull();
     expect(container.querySelector('iframe')).toBeNull();
   });

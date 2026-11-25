@@ -1,11 +1,8 @@
 import { cn } from '@/lib/utils';
+import { resolveCourseType } from '@/lib/course-format';
 import type { Course, CourseType } from '@/types/types';
 
 export type CourseTypeFilterValue = 'all' | CourseType;
-
-export function resolveCourseType(course: Pick<Course, 'course_type' | 'has_video'>): CourseType {
-  return course.course_type ?? (course.has_video ? 'video' : 'article');
-}
 
 interface CourseFormatFilterProps {
   courses: Course[];

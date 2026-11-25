@@ -140,7 +140,7 @@ const EMPTY_FORM: Omit<Course, "id" | "view_count" | "created_at" | "updated_at"
   category_id: null,
   category: null,
   level: "入门",
-  duration: 60,
+  duration: 0,
   credits: "0",
   status: "draft",
   membership_type: "free",
@@ -1067,16 +1067,19 @@ export default function CourseManagementSection() {
             <div className="space-y-3">
               <h4 className="text-base font-semibold text-tx">课程设置</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-ds-xs text-txs mb-1">时长（分钟）</label>
-                  <input
-                    type="number"
-                    value={form.duration || ""}
-                    onChange={(e) => updateForm("duration", parseInt(e.target.value) || 0)}
-                    min={0}
-                    className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
-                  />
-                </div>
+                {form.course_type === "video" && (
+                  <div>
+                    <label htmlFor="course-duration" className="block text-ds-xs text-txs mb-1">时长（分钟）</label>
+                    <input
+                      id="course-duration"
+                      type="number"
+                      value={form.duration || ""}
+                      onChange={(e) => updateForm("duration", parseInt(e.target.value) || 0)}
+                      min={0}
+                      className="w-full h-11 px-4 text-ds-sm border border-bd rounded-ds-lg bg-bg text-tx focus:outline-none focus:border-ac focus:ring-2 focus:ring-ac/20 transition-all"
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="block text-ds-xs text-txs mb-1">学分</label>
                   <input

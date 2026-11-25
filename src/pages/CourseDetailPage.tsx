@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  CircleDot,
   Clock,
   Download,
   ExternalLink,
@@ -21,7 +22,6 @@ import {
   Maximize2,
   PanelLeftClose,
   PanelLeftOpen,
-  PlayCircle,
   Sparkles,
   User,
 } from 'lucide-react';
@@ -34,6 +34,7 @@ import PageMeta from '@/components/common/PageMeta';
 import CourseCompletionDialog from '@/components/course/CourseCompletionDialog';
 import CourseConfirmDialog from '@/components/course/CourseConfirmDialog';
 import CourseContentStack from '@/components/course/CourseContentStack';
+import CourseFormatBadge from '@/components/course/CourseFormatBadge';
 import { CourseReadingProgress } from '@/components/course/CourseEditorialShell';
 import CoursePasswordGate from '@/components/course/CoursePasswordGate';
 import CoursePlaybackRateControl, {
@@ -61,6 +62,7 @@ import {
 } from '@/db/api';
 import { canAccessCourse, getUserLearningRecords, recordCourseVisit, updateLearningProgress } from '@/lib/access-control';
 import { getCourseAccessCode } from '@/lib/course-entitlements';
+import { getVideoCourseDuration, resolveCourseType } from '@/lib/course-format';
 import { getCoursePurchaseProduct, TEACHING_GENERAL_2025_CATALOG } from '@/lib/course-purchase';
 import { GONGDING_2027_CODE, GONGDING_2027_LESSON_PLACEHOLDER, isGongdingLessonPreview } from '@/lib/gongding-2027';
 import { DAOFA_TOOL_ENTRIES } from '@/lib/daofa-catalog';
@@ -808,6 +810,7 @@ export default function CourseDetailPage({ courseId, canonicalPath }: { courseId
   const isPlusCourse = getCourseAccessCode(course) === 'teaching-general-v1';
   const hasDevelopmentDescription = course.access_product_code === GONGDING_2027_CODE &&
     course.description === GONGDING_2027_LESSON_PLACEHOLDER;
+  const courseDuration = getVideoCourseDuration(course);
   const hasPlusCatalog = isPlusCourse && plusAllCourses.length > 0 && plusTracks.length > 0;
 
   const handleMarkComplete = () => {
@@ -1120,7 +1123,7 @@ export default function CourseDetailPage({ courseId, canonicalPath }: { courseId
                             <div className="flex items-center gap-2.5">
                               <div className="flex-shrink-0">
                                 {isCurrent ? (
-                                  <PlayCircle className="w-4 h-4 text-ac" />
+                                  <CircleDot className="w-4 h-4 text-ac" />
                                 ) : status === 'completed' ? (
                                   <CheckCircle2 className="w-4 h-4 text-sage" />
                                 ) : (
@@ -1140,6 +1143,7 @@ export default function CourseDetailPage({ courseId, canonicalPath }: { courseId
                                 )}>
                                   {sibling.title}
                                 </p>
+                                <CourseFormatBadge format={resolveCourseType(sibling)} />
                                 {status === 'completed' && !isCurrent && (
                                   <span className="text-xs text-sage flex-shrink-0">已完成</span>
                                 )}
@@ -1176,10 +1180,13 @@ export default function CourseDetailPage({ courseId, canonicalPath }: { courseId
 
                   {/* Meta */}
                   <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-txs mt-5 pb-6 border-b border-bdl">
-                    <span className="inline-flex items-center gap-1.5">
-                      <Clock className="w-4 h-4 text-ac" />
-                      {course.duration || 60}分钟
-                    </span>
+                    <CourseFormatBadge format={resolveCourseType(course)} />
+                    {courseDuration !== null && (
+                      <span className="inline-flex items-center gap-1.5">
+                        <Clock className="w-4 h-4 text-ac" aria-hidden="true" />
+                        {courseDuration} 分钟
+                      </span>
+                    )}
                     {course.credits && (
                       <span className="inline-flex items-center gap-1.5">
                         <Award className="w-4 h-4 text-ac" />
@@ -1353,7 +1360,7 @@ export default function CourseDetailPage({ courseId, canonicalPath }: { courseId
                           <div className="flex items-start gap-2.5">
                             <div className="flex-shrink-0 mt-0.5">
                               {isCurrent ? (
-                                <PlayCircle className="w-5 h-5 text-ac" />
+                                <CircleDot className="w-5 h-5 text-ac" />
                               ) : status === 'completed' ? (
                                 <CheckCircle2 className="w-5 h-5 text-sage" />
                               ) : (
@@ -1367,12 +1374,12 @@ export default function CourseDetailPage({ courseId, canonicalPath }: { courseId
                             </div>
 
                             <div className="flex-1 min-w-0">
-                              <p className={cn(
-                                "text-sm leading-snug",
-                                isCurrent ? "text-ac font-semibold" : "text-tx"
-                              )}>
-                                {sibling.title}
-                              </p>
+                              <span className="flex items-center gap-1.5">
+                                <span className={cn("truncate text-sm leading-snug", isCurrent ? "text-ac font-semibold" : "text-tx")}>
+                                  {sibling.title}
+                                </span>
+                                <CourseFormatBadge format={resolveCourseType(sibling)} />
+                              </span>
                               {progress > 0 && progress < 100 && (
                                 <div className="mt-1.5 h-1 bg-bgs rounded-full overflow-hidden">
                                   <div
@@ -1480,7 +1487,7 @@ export default function CourseDetailPage({ courseId, canonicalPath }: { courseId
                         >
                           <span className="flex-shrink-0 w-5 flex items-center justify-center">
                             {isCurrent ? (
-                              <PlayCircle className="w-4 h-4 text-ac" />
+                              <CircleDot className="w-4 h-4 text-ac" />
                             ) : status === 'completed' ? (
                               <CheckCircle2 className="w-4 h-4 text-sage" />
                             ) : (
@@ -1490,7 +1497,10 @@ export default function CourseDetailPage({ courseId, canonicalPath }: { courseId
                             )}
                           </span>
                           <span className="flex-1 min-w-0">
-                            <span className="block text-sm leading-snug">{sibling.title}</span>
+                            <span className="flex items-center gap-1.5">
+                              <span className="truncate text-sm leading-snug">{sibling.title}</span>
+                              <CourseFormatBadge format={resolveCourseType(sibling)} />
+                            </span>
                             {progress > 0 && progress < 100 && (
                               <span className="mt-1.5 block h-1 overflow-hidden rounded-full bg-bgs">
                                 <span className="block h-full rounded-full bg-ac" style={{ width: `${progress}%` }} />

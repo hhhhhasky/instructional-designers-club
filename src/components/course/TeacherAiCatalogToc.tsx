@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { CheckCircle2, PlayCircle } from 'lucide-react';
+import { CheckCircle2, CircleDot } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { getCategoryIcon } from '@/lib/categoryIcons';
-import ContentFormatBadges from './ContentFormatBadges';
+import { resolveCourseType } from '@/lib/course-format';
+import CourseFormatBadge from './CourseFormatBadge';
 import type { Course, LearningRecord } from '@/types/types';
 
 interface TeacherAiCatalogTocProps {
@@ -75,7 +76,7 @@ export default function TeacherAiCatalogToc({
                     >
                       <span className="flex-shrink-0 w-5 flex items-center justify-center">
                         {isCurrent ? (
-                          <PlayCircle className="w-4 h-4 text-amber-600" />
+                          <CircleDot className="w-4 h-4 text-amber-600" />
                         ) : isCompleted ? (
                           <CheckCircle2 className="w-4 h-4 text-sage" />
                         ) : (
@@ -92,9 +93,7 @@ export default function TeacherAiCatalogToc({
                       <span className="flex-1 min-w-0">
                         <span className="flex items-center gap-1.5">
                           <span className="truncate leading-snug">{course.title}</span>
-                          {!isCurrent && (
-                            <ContentFormatBadges course={course} compact className="flex-shrink-0 opacity-70" />
-                          )}
+                          <CourseFormatBadge format={resolveCourseType(course)} />
                         </span>
                         {isInProgress && (
                           <span className="mt-1 block h-1 w-full overflow-hidden rounded-full bg-bgs">

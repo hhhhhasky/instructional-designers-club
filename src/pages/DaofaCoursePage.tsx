@@ -1,17 +1,18 @@
 import { useCourseLessonHref } from "@/components/routing/CoursePaths";
 import { COURSE_PATH } from "@/lib/course-paths";
-import { ArrowRight, BookOpen, Compass, LockKeyhole, PlayCircle } from 'lucide-react';
+import { ArrowRight, BookOpen, Compass, LockKeyhole } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Footer from '@/components/common/Footer';
 import PageMeta from '@/components/common/PageMeta';
-import ContentFormatBadges from '@/components/course/ContentFormatBadges';
+import CourseFormatBadge from '@/components/course/CourseFormatBadge';
 import { CourseEditorialHero } from '@/components/course/CourseEditorialShell';
 import CourseAccessNotice from '@/components/course/CourseAccessNotice';
 import PageBackBar from '@/components/common/PageBackBar';
 import { useAuth } from '@/contexts/AuthContext';
 import { type CourseProductCatalog, getCourseProductCatalog, subscribeToCourseCatalogUpdates } from '@/db/api';
 import { canAccessCourse } from '@/lib/access-control';
+import { resolveCourseType } from '@/lib/course-format';
 import { DAOFA_TOOL_ENTRIES } from '@/lib/daofa-catalog';
 
 export default function DaofaCoursePage() {
@@ -77,9 +78,8 @@ export default function DaofaCoursePage() {
                 {chapter.lessons.map((lesson, lessonIndex) => <li key={lesson.id} className="border-b border-dashed border-bd last:border-b-0">
                   <Link to={lessonHref(lesson.id)} className="group flex min-h-20 items-center gap-4 px-4 py-4 transition-colors hover:bg-acl/25 focus-visible:bg-acl/25 sm:px-6">
                     <span className="w-7 shrink-0 font-mono text-xs text-txt">{String(lessonIndex + 1).padStart(2, '0')}</span>
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-bd text-ac">{lesson.course_type === 'video' ? <PlayCircle className="h-4 w-4" /> : <BookOpen className="h-4 w-4" />}</span>
                     <span className="min-w-0 flex-1"><span className="block font-ds-bold text-tx group-hover:text-ac">{lesson.title}</span><span className="mt-1 block text-xs leading-5 text-txs">{lesson.description}</span></span>
-                    <ContentFormatBadges course={lesson} />
+                    <CourseFormatBadge format={resolveCourseType(lesson)} />
                     <ArrowRight className="h-4 w-4 shrink-0 text-ac transition-transform group-hover:translate-x-1" />
                   </Link>
                 </li>)}

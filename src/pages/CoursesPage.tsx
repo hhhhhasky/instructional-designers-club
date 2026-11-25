@@ -19,11 +19,13 @@ import {
   CourseEditorialVolume,
 } from '@/components/course/CourseEditorialShell';
 import CourseAccessNotice from '@/components/course/CourseAccessNotice';
-import CourseFormatFilter, { resolveCourseType, type CourseTypeFilterValue } from '@/components/course/CourseFormatFilter';
+import CourseFormatBadge from '@/components/course/CourseFormatBadge';
+import CourseFormatFilter, { type CourseTypeFilterValue } from '@/components/course/CourseFormatFilter';
 import { getCourseCatalogSnapshot, getCourseDetailSnapshot, subscribeToCourseCatalogUpdates } from '@/db/api';
 import type { Course } from '@/types/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { canAccessCourse } from '@/lib/access-control';
+import { getVideoCourseDuration, resolveCourseType } from '@/lib/course-format';
 import { getCourseAccessCode, type CourseAccessCode } from '@/lib/course-entitlements';
 import { TEACHING_GENERAL_2025_NAME } from '@/lib/course-purchase';
 import UpgradePopup from '@/components/common/UpgradePopup';
@@ -317,5 +319,33 @@ function PlusCourseCatalog({
 
 function CourseGrid({ courses, onCourseOpen }: { courses: Course[]; onCourseOpen: (course: Course) => void }) {
   if (courses.length === 0) return <p className="rounded-lg border border-dashed border-bd bg-bgs/40 p-4 text-center text-sm text-txs">该系列课程正在准备中。</p>;
-  return <div className="grid grid-cols-1 gap-3 md:grid-cols-2">{courses.map((course, index) => <button key={course.id} type="button" onClick={() => onCourseOpen(course)} onMouseEnter={() => void getCourseDetailSnapshot(course.id)} onFocus={() => void getCourseDetailSnapshot(course.id)} onTouchStart={() => void getCourseDetailSnapshot(course.id)} aria-label={`打开课程：${course.title}`} className="course-editorial-entry group"><span className="course-editorial-index">{String(index + 1).padStart(2, '0')}</span><div className="min-w-0 flex-1 text-left"><h3 className="text-lg font-semibold leading-snug text-tx group-hover:text-ac">{course.title}</h3><span className="mt-2 block text-xs text-txs">{course.duration ? `${course.duration}分钟 · ` : ''}单课</span></div><ChevronRight className="h-5 w-5 shrink-0 text-txs transition-all group-hover:translate-x-1 group-hover:text-ac" aria-hidden="true" /></button>)}</div>;
+  return (
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      {courses.map((course, index) => {
+        const duration = getVideoCourseDuration(course);
+        return (
+          <button
+            key={course.id}
+            type="button"
+            onClick={() => onCourseOpen(course)}
+            onMouseEnter={() => void getCourseDetailSnapshot(course.id)}
+            onFocus={() => void getCourseDetailSnapshot(course.id)}
+            onTouchStart={() => void getCourseDetailSnapshot(course.id)}
+            aria-label={`打开课程：${course.title}`}
+            className="course-editorial-entry group"
+          >
+            <span className="course-editorial-index">{String(index + 1).padStart(2, '0')}</span>
+            <div className="min-w-0 flex-1 text-left">
+              <h3 className="text-lg font-semibold leading-snug text-tx group-hover:text-ac">{course.title}</h3>
+              <span className="mt-2 flex flex-wrap items-center gap-2 text-xs text-txs">
+                <CourseFormatBadge format={resolveCourseType(course)} />
+                {duration !== null && <span>{duration} 分钟</span>}
+              </span>
+            </div>
+            <ChevronRight className="h-5 w-5 shrink-0 text-txs transition-all group-hover:translate-x-1 group-hover:text-ac" aria-hidden="true" />
+          </button>
+        );
+      })}
+    </div>
+  );
 }

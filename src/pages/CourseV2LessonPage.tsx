@@ -12,6 +12,8 @@ import PageMeta from "@/components/common/PageMeta";
 import V2SubjectExampleExplorer from "@/components/course/V2SubjectExampleExplorer";
 import PageBackBar from "@/components/common/PageBackBar";
 import { Button } from "@/components/ui/button";
+import CourseFormatBadge from "@/components/course/CourseFormatBadge";
+import { hasV2LessonVideo } from "@/lib/course-format";
 import { useAuth } from "@/contexts/AuthContext";
 import { clearLearningDataCache } from "@/db/api";
 import { createV2Attempt, getV2LessonBundle, saveV2Answers, saveV2Card, submitV2Attempt, upsertV2LearningRecord, type V2LessonBundle } from "@/db/v2-api";
@@ -122,6 +124,7 @@ export default function CourseV2LessonPage() {
   if (error || !bundle) return <ErrorScreen message={error ?? "课程暂不可用"} />;
 
   const { lesson, unit, resources, cards, assessments, learningRecord } = bundle;
+  const hasVideo = hasV2LessonVideo(resources);
   const assessmentLayout = buildV2AssessmentLayout(assessments, bundle.dictionaryItems);
   const currentUserId = user?.id ?? "";
   const subjectExplorer = resources.find(isSubjectExplorerResource);
@@ -141,7 +144,10 @@ export default function CourseV2LessonPage() {
                 <h1 className="text-3xl font-bold mt-3 leading-tight">{lesson.title}</h1>
                 {lesson.subtitle && <p className="mt-3 text-sm leading-7 text-white/65">{lesson.subtitle}</p>}
                 <div className="mt-5 flex flex-wrap gap-3 text-xs text-white/60">
-                  {lesson.duration_minutes != null && <span className="inline-flex items-center gap-1.5"><Clock3 className="h-3.5 w-3.5" />约 {lesson.duration_minutes} 分钟</span>}
+                  <CourseFormatBadge format={hasVideo ? "video" : "article"} />
+                  {hasVideo && (lesson.duration_minutes ?? 0) > 0 && (
+                    <span className="inline-flex items-center gap-1.5"><Clock3 className="h-3.5 w-3.5" />约 {lesson.duration_minutes} 分钟</span>
+                  )}
                   <span className="inline-flex items-center gap-1.5"><Award className="h-3.5 w-3.5" />{lesson.credits ?? 0} 学分</span>
                   {lesson.is_trial && <span className="rounded-full bg-[var(--sand)]/15 px-2.5 py-1 text-[var(--sand)]">试看内容</span>}
                   <span className="rounded-full bg-white/10 px-2.5 py-1">独立学习记录</span>

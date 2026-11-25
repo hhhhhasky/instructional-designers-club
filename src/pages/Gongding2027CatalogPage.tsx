@@ -6,6 +6,7 @@ import { BookOpen, ChevronRight } from "lucide-react";
 import Footer from "@/components/common/Footer";
 import PageBackBar from "@/components/common/PageBackBar";
 import PageMeta from "@/components/common/PageMeta";
+import CourseFormatBadge from "@/components/course/CourseFormatBadge";
 import {
   CourseEditorialCatalogLayout,
   CourseEditorialHero,
@@ -15,8 +16,9 @@ import CoursePurchaseButton from "@/components/course/CoursePurchaseButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCourseProductCatalog, type CourseProductCatalog } from "@/db/api";
 import { canAccessCourse } from "@/lib/access-control";
+import { resolveCourseType } from "@/lib/course-format";
 import { GONGDING_2027_PURCHASE_PRODUCT, TEACHING_GENERAL_2025_CATALOG } from "@/lib/course-purchase";
-import { GONGDING_2027_CODE, GONGDING_2027_NAME, GONGDING_2027_STATUS } from "@/lib/gongding-2027";
+import { GONGDING_2027_CODE, GONGDING_2027_NAME, GONGDING_2027_STATUS, isGongdingLessonPreview } from "@/lib/gongding-2027";
 
 export default function Gongding2027CatalogPage() {
   const lessonHref = useCourseLessonHref();
@@ -59,6 +61,9 @@ export default function Gongding2027CatalogPage() {
               <Link to={lessonHref(lesson.id)} className="course-editorial-entry group">
                 <span className="course-editorial-index">{String(lesson.sort_order).padStart(2, "0")}</span>
                 <span className="min-w-0 flex-1 font-semibold text-tx group-hover:text-ac">{lesson.title}</span>
+                {!isGongdingLessonPreview(lesson) && (
+                  <CourseFormatBadge format={resolveCourseType(lesson)} />
+                )}
                 <ChevronRight className="h-4 w-4 shrink-0 text-txs" aria-hidden="true" />
               </Link>
             </li>

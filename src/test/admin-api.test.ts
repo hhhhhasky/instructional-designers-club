@@ -82,6 +82,7 @@ describe('admin course write payload', () => {
     expect(insertedPayloads[0]).toMatchObject({
       title: '长文课程',
       course_type: 'article',
+      duration: 0,
       body: longBody,
       images: ['https://example.com/one.png'],
     });

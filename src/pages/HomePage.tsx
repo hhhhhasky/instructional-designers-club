@@ -9,11 +9,13 @@ import { Link } from 'react-router-dom';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/common/Footer';
 import PageMeta from '@/components/common/PageMeta';
+import CourseFormatBadge from '@/components/course/CourseFormatBadge';
 import AnnouncementFeed from '@/components/home/AnnouncementFeed';
 import CoursePurchaseSection from '@/components/pricing/CoursePurchaseSection';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHomeContent } from '@/hooks/useHomeContent';
 import { HomeSnapshotProvider } from '@/hooks/useHomeSnapshot';
+import { getVideoCourseDuration, resolveCourseType } from '@/lib/course-format';
 
 const MemberHomeHero = lazy(() => import("@/components/home/MemberHomeHero"));
 const NotificationCard = lazy(() => import("@/components/home/NotificationCard"));
@@ -73,20 +75,26 @@ function HomePageContent() {
                 <Link to={COURSE_PATH} className="inline-flex items-center gap-2 text-sm font-ds-semibold text-ac hover:underline">{extraCopy.free_cta} <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
               </div>
               <div className="mt-6 grid gap-4 md:grid-cols-2">
-                {freeCourses.map((course) => (
-                  <Link key={course.id} to={lessonHref(course.id)} className="group flex flex-col border border-bd bg-white p-6 transition-colors hover:border-ac focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac focus-visible:ring-offset-2 md:p-8">
-                    <div className="flex items-center justify-between gap-4">
-                      <BookOpen className="h-6 w-6 text-ac" aria-hidden="true" />
-                      <span className="editorial-stamp">免费体验</span>
-                    </div>
-                    <h3 className="text-lg font-semibold mt-5 leading-snug text-tx group-hover:text-ac">{course.title}</h3>
-                    <p className="mt-3 line-clamp-2 text-sm leading-7 text-txs">{course.description}</p>
-                    <div className="mt-auto flex items-center justify-between gap-4 pt-6 text-sm">
-                      <span className="text-txs">{(course.duration ?? 0) > 0 ? `${course.duration} 分钟` : '免费课程'}</span>
-                      <span className="inline-flex items-center gap-2 font-ds-semibold text-ac"><Play className="h-4 w-4" aria-hidden="true" />开始体验 <ArrowRight className="h-4 w-4" aria-hidden="true" /></span>
-                    </div>
-                  </Link>
-                ))}
+                {freeCourses.map((course) => {
+                  const duration = getVideoCourseDuration(course);
+                  return (
+                    <Link key={course.id} to={lessonHref(course.id)} className="group flex flex-col border border-bd bg-white p-6 transition-colors hover:border-ac focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac focus-visible:ring-offset-2 md:p-8">
+                      <div className="flex items-center justify-between gap-4">
+                        <BookOpen className="h-6 w-6 text-ac" aria-hidden="true" />
+                        <span className="editorial-stamp">免费体验</span>
+                      </div>
+                      <h3 className="text-lg font-semibold mt-5 leading-snug text-tx group-hover:text-ac">{course.title}</h3>
+                      <p className="mt-3 line-clamp-2 text-sm leading-7 text-txs">{course.description}</p>
+                      <div className="mt-auto flex items-center justify-between gap-4 pt-6 text-sm">
+                        <span className="flex flex-wrap items-center gap-2 text-txs">
+                          <CourseFormatBadge format={resolveCourseType(course)} />
+                          {duration !== null && <span>{duration} 分钟</span>}
+                        </span>
+                        <span className="inline-flex items-center gap-2 font-ds-semibold text-ac"><Play className="h-4 w-4" aria-hidden="true" />开始体验 <ArrowRight className="h-4 w-4" aria-hidden="true" /></span>
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           </section>

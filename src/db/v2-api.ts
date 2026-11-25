@@ -198,6 +198,10 @@ export interface V2Outline {
   lessons: V2Lesson[];
 }
 
+export interface V2PublishedOutline extends V2Outline {
+  lessons: Array<V2Lesson & { has_video: boolean }>;
+}
+
 export interface V2ReviewQueueItem extends V2Attempt {
   learner_name: string;
   learner_phone: string;
@@ -360,13 +364,23 @@ export async function getV2Outlines(): Promise<V2Outline[]> {
   return units.map((unit) => ({ unit, lessons: lessons.filter((lesson) => lesson.unit_id === unit.id) }));
 }
 
-export async function getPublishedV2Outlines(): Promise<V2Outline[]> {
+export async function getPublishedV2Outlines(): Promise<V2PublishedOutline[]> {
   const [unitsResult, lessonsResult] = await Promise.all([
     table("v2_course_units").select("*").eq("status", "published").eq("is_active", true).order("sort_order").order("created_at"),
-    table("v2_course_lessons").select("*").eq("status", "published").order("sort_order").order("created_at"),
+    table("v2_course_lessons")
+      .select("*, v2_lesson_resources(id)")
+      .eq("status", "published")
+      .eq("v2_lesson_resources.is_active", true)
+      .like("v2_lesson_resources.mime_type", "video/%")
+      .order("sort_order")
+      .order("created_at"),
   ]);
   const units = (throwIfError(unitsResult, "getPublishedV2Outlines units error") ?? []) as V2Unit[];
-  const lessons = (throwIfError(lessonsResult, "getPublishedV2Outlines lessons error") ?? []) as V2Lesson[];
+  const rows = (throwIfError(lessonsResult, "getPublishedV2Outlines lessons error") ?? []) as Array<V2Lesson & { v2_lesson_resources: { id: string }[] }>;
+  const lessons = rows.map(({ v2_lesson_resources, ...lesson }) => ({
+    ...lesson,
+    has_video: v2_lesson_resources.length > 0,
+  }));
   return units
     .map((unit) => ({ unit, lessons: lessons.filter((lesson) => lesson.unit_id === unit.id) }))
     .filter((outline) => outline.lessons.length > 0);
